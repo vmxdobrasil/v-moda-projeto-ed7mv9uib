@@ -53,7 +53,7 @@ export function Footer() {
             to="#"
             className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
           >
-            Contato
+            Fale Conosco
           </Link>
           <Link
             to="#"
@@ -77,14 +77,16 @@ export function Footer() {
 
         {/* Newsletter */}
         <div className="flex flex-col gap-4">
-          <h4 className="font-serif text-lg tracking-wider uppercase mb-2">Newsletter</h4>
+          <h4 className="font-serif text-lg tracking-wider uppercase mb-2">
+            Assine nossa newsletter
+          </h4>
           <p className="text-sm text-primary-foreground/70">
-            Assine para receber convites exclusivos e novidades em primeira mão.
+            Assine nossa newsletter para receber convites exclusivos e novidades em primeira mão.
           </p>
           <form className="flex gap-2 mt-2" onSubmit={(e) => e.preventDefault()}>
             <Input
               type="email"
-              placeholder="Seu e-mail"
+              placeholder="Endereço de e-mail"
               className="bg-transparent border-primary-foreground/20 text-white placeholder:text-white/40 rounded-none focus-visible:ring-1 focus-visible:ring-white h-10"
             />
             <Button
@@ -92,7 +94,7 @@ export function Footer() {
               variant="secondary"
               className="rounded-none h-10 px-6 font-medium tracking-wide uppercase text-xs"
             >
-              Assinar
+              Inscrever-se
             </Button>
           </form>
         </div>
@@ -105,7 +107,7 @@ export function Footer() {
             Termos de Uso
           </Link>
           <Link to="#" className="hover:text-white transition-colors">
-            Privacidade
+            Política de Privacidade
           </Link>
         </div>
       </div>

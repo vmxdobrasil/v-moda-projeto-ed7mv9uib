@@ -63,7 +63,7 @@ export default function ProductDetail() {
     setTimeout(() => {
       setIsAdding(false)
       toast({
-        title: 'Adicionado à sacola',
+        title: 'Adicionado ao Carrinho',
         description: `${product.name} (Tamanho: ${selectedSize}) foi adicionado com sucesso.`,
       })
     }, 800)
@@ -166,17 +166,29 @@ export default function ProductDetail() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-4 mb-12">
+              <div className="flex flex-col sm:flex-row gap-4 mb-12">
                 <Button
                   className="flex-1 rounded-none h-14 uppercase tracking-widest text-sm"
                   onClick={handleAddToCart}
                   disabled={isAdding}
                 >
-                  {isAdding ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Adicionar à Sacola'}
+                  {isAdding ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    'Adicionar ao Carrinho'
+                  )}
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-14 h-14 rounded-none shrink-0 border-border"
+                  className="flex-1 rounded-none h-14 uppercase tracking-widest text-sm"
+                  onClick={handleAddToCart}
+                  disabled={isAdding}
+                >
+                  Comprar Agora
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-14 h-14 rounded-none shrink-0 border-border self-center sm:self-auto"
                   onClick={() => setIsWishlisted(!isWishlisted)}
                 >
                   <Heart

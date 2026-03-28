@@ -9,7 +9,7 @@ import { PRODUCTS } from '@/lib/data'
 const HERO_SLIDES = [
   {
     image: 'https://img.usecurling.com/p/1920/1080?q=high%20fashion%20editorial%20dark',
-    title: 'Coleção de Inverno 2026',
+    title: 'Nova Coleção',
     subtitle: 'A elegância encontra o minimalismo contemporâneo.',
   },
   {

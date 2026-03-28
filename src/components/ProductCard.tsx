@@ -44,7 +44,7 @@ export function ProductCard({ product }: ProductCardProps) {
             to={`/produto/${product.id}`}
             className="flex w-full items-center justify-center bg-white/90 py-3 text-sm font-medium text-black backdrop-blur-sm transition-colors hover:bg-black hover:text-white"
           >
-            Ver rápido
+            Ver Detalhes
           </Link>
         </div>
       </div>
