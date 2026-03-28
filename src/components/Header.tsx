@@ -1,16 +1,26 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { Search, Heart, User, Menu, ShoppingCart } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Search, Heart, User, Menu, ShoppingCart, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
+import useCartStore from '@/stores/useCartStore'
+import useWishlistStore from '@/stores/useWishlistStore'
+import { formatPrice } from '@/lib/data'
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
   const isHome = location.pathname === '/'
+
+  const { items: cartItems, cartTotal, removeFromCart } = useCartStore()
+  const { items: wishlistItems } = useWishlistStore()
+
+  const totalCartItems = cartItems.reduce((acc, item) => acc + item.quantity, 0)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +29,16 @@ export function Header() {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const q = formData.get('q')
+    if (q) {
+      setSearchOpen(false)
+      navigate(`/colecoes?q=${encodeURIComponent(q as string)}`)
+    }
+  }
 
   const transparentHeader = isHome && !isScrolled
   const headerClasses = cn(
@@ -36,8 +56,7 @@ export function Header() {
   const navLinks = [
     { name: 'Início', path: '/' },
     { name: 'Coleções', path: '/colecoes' },
-    { name: 'Sobre Nós', path: '#' },
-    { name: 'Contato', path: '#' },
+    { name: 'Lista de Desejos', path: '/favoritos' },
   ]
 
   return (
@@ -94,25 +113,34 @@ export function Header() {
 
         {/* Icons */}
         <div className="flex flex-1 items-center justify-end gap-4 md:gap-6">
-          <Popover>
+          <Popover open={searchOpen} onOpenChange={setSearchOpen}>
             <PopoverTrigger asChild>
               <button aria-label="Pesquisar" className="p-1 hidden sm:block">
                 <Search className={iconClasses} />
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-80" align="end" sideOffset={20}>
-              <div className="flex gap-2">
-                <Input placeholder="Buscar produtos..." className="h-9 rounded-none" />
-                <Button size="sm" className="rounded-none h-9 uppercase text-xs tracking-wider">
+              <form onSubmit={handleSearch} className="flex gap-2">
+                <Input name="q" placeholder="Buscar produtos..." className="h-9 rounded-none" />
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="rounded-none h-9 uppercase text-xs tracking-wider"
+                >
                   Buscar
                 </Button>
-              </div>
+              </form>
             </PopoverContent>
           </Popover>
 
-          <button aria-label="Favoritos" className="p-1 hidden sm:block">
+          <Link to="/favoritos" aria-label="Favoritos" className="p-1 hidden sm:block relative">
             <Heart className={iconClasses} />
-          </button>
+            {wishlistItems.length > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[9px] font-bold text-white">
+                {wishlistItems.length}
+              </span>
+            )}
+          </Link>
           <button aria-label="Perfil" className="p-1 hidden md:block">
             <User className={iconClasses} />
           </button>
@@ -121,27 +149,69 @@ export function Header() {
             <SheetTrigger asChild>
               <button aria-label="Carrinho" className="p-1 relative">
                 <ShoppingCart className={iconClasses} />
+                {totalCartItems > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white">
+                    {totalCartItems}
+                  </span>
+                )}
               </button>
             </SheetTrigger>
-            <SheetContent className="w-[300px] sm:w-[400px] flex flex-col">
+            <SheetContent className="w-[300px] sm:w-[400px] flex flex-col border-l-0 shadow-2xl">
               <SheetHeader>
                 <SheetTitle className="font-serif text-2xl text-left">Seu Carrinho</SheetTitle>
               </SheetHeader>
-              <div className="flex-1 py-8 flex flex-col items-center justify-center text-center">
-                <ShoppingCart className="w-12 h-12 text-muted-foreground mb-4 opacity-20" />
-                <p className="text-muted-foreground">Seu carrinho está vazio.</p>
+
+              <div className="flex-1 overflow-y-auto py-6 flex flex-col gap-6 scrollbar-hide">
+                {cartItems.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center">
+                    <ShoppingCart className="w-12 h-12 text-muted-foreground mb-4 opacity-20" />
+                    <p className="text-muted-foreground">Seu carrinho está vazio.</p>
+                  </div>
+                ) : (
+                  cartItems.map((item) => (
+                    <div
+                      key={item.product.id}
+                      className="flex gap-4 items-center bg-secondary/30 p-2"
+                    >
+                      <img
+                        src={item.product.image}
+                        alt={item.product.name}
+                        className="w-16 h-20 object-cover"
+                      />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium line-clamp-1">{item.product.name}</h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {formatPrice(item.product.price)}{' '}
+                          <span className="text-xs">x{item.quantity}</span>
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => removeFromCart(item.product.id)}
+                        className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
-              <div className="border-t pt-6 mt-auto">
+
+              <div className="border-t pt-6 mt-auto bg-background">
                 <div className="flex justify-between text-sm text-muted-foreground mb-2">
                   <span>Quantidade</span>
-                  <span>0 itens</span>
+                  <span>
+                    {totalCartItems} {totalCartItems === 1 ? 'item' : 'itens'}
+                  </span>
                 </div>
-                <div className="flex justify-between font-serif text-lg mb-6">
+                <div className="flex justify-between font-serif text-lg mb-6 text-primary">
                   <span>Subtotal</span>
-                  <span>R$ 0,00</span>
+                  <span>{formatPrice(cartTotal)}</span>
                 </div>
                 <div className="space-y-3">
-                  <Button className="w-full rounded-none h-14 uppercase tracking-widest">
+                  <Button
+                    className="w-full rounded-none h-14 uppercase tracking-widest"
+                    disabled={cartItems.length === 0}
+                  >
                     Finalizar Compra
                   </Button>
                   <p className="text-xs text-center text-muted-foreground mt-4 leading-relaxed">

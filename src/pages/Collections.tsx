@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { SlidersHorizontal, X } from 'lucide-react'
 import { FadeIn } from '@/components/FadeIn'
 import { ProductCard } from '@/components/ProductCard'
@@ -31,6 +32,8 @@ const COLORS = [
 ]
 
 export default function Collections() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const searchQuery = searchParams.get('q') || ''
   const [activeCategory, setActiveCategory] = useState('Todos')
   const [selectedColors, setSelectedColors] = useState<string[]>([])
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
@@ -52,10 +55,17 @@ export default function Collections() {
     setActiveCategory('Todos')
     setSelectedColors([])
     setSelectedSizes([])
+    if (searchQuery) {
+      setSearchParams({})
+    }
   }
 
   const filteredProducts = useMemo(() => {
     let result = [...PRODUCTS]
+
+    if (searchQuery) {
+      result = result.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    }
 
     if (activeCategory !== 'Todos') {
       result = result.filter((p) => p.category === activeCategory)
@@ -151,7 +161,10 @@ export default function Collections() {
         </AccordionItem>
       </Accordion>
 
-      {(activeCategory !== 'Todos' || selectedColors.length > 0 || selectedSizes.length > 0) && (
+      {(searchQuery ||
+        activeCategory !== 'Todos' ||
+        selectedColors.length > 0 ||
+        selectedSizes.length > 0) && (
         <Button
           variant="ghost"
           className="w-full text-xs uppercase tracking-widest"
@@ -167,10 +180,13 @@ export default function Collections() {
     <div className="pt-32 pb-24 container min-h-screen">
       <FadeIn>
         <div className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-serif mb-4">Coleções</h1>
+          <h1 className="text-4xl md:text-5xl font-serif mb-4">
+            {searchQuery ? `Resultados para "${searchQuery}"` : 'Coleções'}
+          </h1>
           <p className="text-muted-foreground max-w-2xl">
-            Descubra nossa seleção completa de peças ready-to-wear e acessórios de luxo, projetados
-            para a vida moderna.
+            {searchQuery
+              ? 'Confira os produtos encontrados com base na sua busca.'
+              : 'Descubra nossa seleção completa de peças ready-to-wear e acessórios de luxo, projetados para a vida moderna.'}
           </p>
         </div>
       </FadeIn>
