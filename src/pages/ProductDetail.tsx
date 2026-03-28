@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Heart, ChevronRight, Loader2 } from 'lucide-react'
+import { Heart, ChevronRight, Loader2, Star, UserCircle } from 'lucide-react'
 import { PRODUCTS, formatPrice } from '@/lib/data'
 import { FadeIn } from '@/components/FadeIn'
 import { ProductCard } from '@/components/ProductCard'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Accordion,
   AccordionContent,
@@ -12,6 +13,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 
 export default function ProductDetail() {
   const { id } = useParams()
@@ -22,6 +24,31 @@ export default function ProductDetail() {
   const [selectedSize, setSelectedSize] = useState<string>('')
   const [isAdding, setIsAdding] = useState(false)
   const [isWishlisted, setIsWishlisted] = useState(false)
+
+  const [reviews, setReviews] = useState([
+    {
+      id: 1,
+      user: 'Maria Silva',
+      rating: 5,
+      date: '12/10/2023',
+      comment: 'Peça perfeita! O caimento é impecável e a qualidade do tecido me surpreendeu.',
+    },
+    {
+      id: 2,
+      user: 'Ana Costa',
+      rating: 4,
+      date: '05/11/2023',
+      comment:
+        'Muito bonito, mas achei o tamanho um pouco maior do que o esperado. Recomendo pegar um número menor.',
+    },
+  ])
+  const [newReview, setNewReview] = useState({ rating: 5, comment: '' })
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false)
+
+  const averageRating =
+    reviews.length > 0
+      ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+      : '0.0'
 
   // Reset state when route changes
   useEffect(() => {
@@ -48,6 +75,36 @@ export default function ProductDetail() {
   const relatedProducts = PRODUCTS.filter(
     (p) => p.category === product.category && p.id !== product.id,
   ).slice(0, 4)
+
+  const handleSubmitReview = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newReview.comment.trim()) {
+      toast({
+        title: 'Comentário vazio',
+        description: 'Por favor, escreva um comentário para sua avaliação.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsSubmittingReview(true)
+    setTimeout(() => {
+      const review = {
+        id: Date.now(),
+        user: 'Cliente Anônimo', // Mock authenticated user
+        rating: newReview.rating,
+        date: new Intl.DateTimeFormat('pt-BR').format(new Date()),
+        comment: newReview.comment,
+      }
+      setReviews([review, ...reviews])
+      setNewReview({ rating: 5, comment: '' })
+      setIsSubmittingReview(false)
+      toast({
+        title: 'Avaliação enviada!',
+        description: 'Obrigado por compartilhar sua opinião.',
+      })
+    }, 800)
+  }
 
   const handleAddToCart = () => {
     if (!selectedSize) {
@@ -231,9 +288,122 @@ export default function ProductDetail() {
         </div>
       </div>
 
+      {/* Reviews Section */}
+      <section className="mt-32 container border-t border-border pt-20">
+        <FadeIn>
+          <div className="grid lg:grid-cols-12 gap-12">
+            <div className="lg:col-span-4">
+              <h2 className="text-3xl font-serif mb-6">Avaliações de Clientes</h2>
+
+              <div className="flex items-center gap-4 mb-6">
+                <div className="text-5xl font-serif">{averageRating}</div>
+                <div>
+                  <div className="flex text-accent mb-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={cn(
+                          'w-5 h-5',
+                          star <= Number(averageRating)
+                            ? 'fill-accent'
+                            : 'text-muted-foreground/30',
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Baseado em {reviews.length} avaliações
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-secondary/20 p-6 mt-8">
+                <h3 className="font-serif text-xl mb-4">Deixe sua avaliação</h3>
+                <form onSubmit={handleSubmitReview} className="space-y-4">
+                  <div>
+                    <span className="block text-sm font-medium mb-2">Nota</span>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setNewReview({ ...newReview, rating: star })}
+                          className="focus:outline-none"
+                        >
+                          <Star
+                            className={cn(
+                              'w-6 h-6 transition-colors',
+                              star <= newReview.rating
+                                ? 'fill-accent text-accent'
+                                : 'text-muted-foreground/30 hover:text-accent/50',
+                            )}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="block text-sm font-medium mb-2">Seu Comentário</span>
+                    <Textarea
+                      placeholder="Conte-nos o que achou do produto..."
+                      value={newReview.comment}
+                      onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                      className="min-h-[100px] resize-none border-border focus-visible:ring-accent"
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full uppercase tracking-widest text-xs h-12"
+                    disabled={isSubmittingReview}
+                  >
+                    {isSubmittingReview ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      'Enviar Avaliação'
+                    )}
+                  </Button>
+                </form>
+              </div>
+            </div>
+
+            <div className="lg:col-span-8 flex flex-col gap-6">
+              {reviews.map((review) => (
+                <div key={review.id} className="pb-6 border-b border-border last:border-0">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-3">
+                      <UserCircle className="w-10 h-10 text-muted-foreground/50" />
+                      <div>
+                        <p className="font-medium">{review.user}</p>
+                        <p className="text-xs text-muted-foreground">{review.date}</p>
+                      </div>
+                    </div>
+                    <div className="flex text-accent">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={cn(
+                            'w-4 h-4',
+                            star <= review.rating ? 'fill-accent' : 'text-muted-foreground/30',
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground text-sm mt-3 leading-relaxed">
+                    "{review.comment}"
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </FadeIn>
+      </section>
+
       {/* Related Products */}
       {relatedProducts.length > 0 && (
-        <section className="mt-32 container border-t border-border pt-20">
+        <section className="mt-20 container border-t border-border pt-20">
           <FadeIn>
             <h2 className="text-3xl font-serif text-center mb-12">Você Também Pode Gostar</h2>
           </FadeIn>

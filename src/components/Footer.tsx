@@ -30,15 +30,32 @@ export function Footer() {
           </p>
         </div>
 
-        {/* Col 2: Links Úteis */}
+        {/* Col 2: Institucional */}
         <div className="flex flex-col gap-4">
-          <h4 className="font-serif text-lg tracking-wider uppercase mb-2">Links Úteis</h4>
+          <h4 className="font-serif text-lg tracking-wider uppercase mb-2">Institucional</h4>
           <Link
-            to="/"
+            to="/sobre-nos"
             className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
           >
-            Início
+            Sobre Nós
           </Link>
+          <Link
+            to="/contato"
+            className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
+          >
+            Fale Conosco
+          </Link>
+          <Link
+            to="/faq"
+            className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
+          >
+            Perguntas Frequentes
+          </Link>
+        </div>
+
+        {/* Col 3: Links Úteis */}
+        <div className="flex flex-col gap-4">
+          <h4 className="font-serif text-lg tracking-wider uppercase mb-2">Links Úteis</h4>
           <Link
             to="/colecoes"
             className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
@@ -51,28 +68,11 @@ export function Footer() {
           >
             Minha Conta
           </Link>
-        </div>
-
-        {/* Col 3: Políticas */}
-        <div className="flex flex-col gap-4">
-          <h4 className="font-serif text-lg tracking-wider uppercase mb-2">Políticas</h4>
           <Link
-            to="#"
+            to="/favoritos"
             className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
           >
-            Política de Privacidade
-          </Link>
-          <Link
-            to="#"
-            className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
-          >
-            Termos de Uso
-          </Link>
-          <Link
-            to="#"
-            className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
-          >
-            Trocas e Devoluções
+            Lista de Desejos
           </Link>
         </div>
 
@@ -82,22 +82,28 @@ export function Footer() {
             <h4 className="font-serif text-lg tracking-wider uppercase mb-4">Redes Sociais</h4>
             <div className="flex gap-4">
               <a
-                href="#"
-                className="p-2 bg-primary-foreground/10 hover:bg-primary-foreground/20 rounded-full transition-colors"
+                href="https://instagram.com"
+                target="_blank"
+                rel="noreferrer"
+                className="p-3 bg-primary-foreground/10 hover:bg-accent hover:text-white rounded-full transition-all duration-300"
                 aria-label="Instagram"
               >
                 <Instagram className="w-5 h-5" />
               </a>
               <a
-                href="#"
-                className="p-2 bg-primary-foreground/10 hover:bg-primary-foreground/20 rounded-full transition-colors"
+                href="https://facebook.com"
+                target="_blank"
+                rel="noreferrer"
+                className="p-3 bg-primary-foreground/10 hover:bg-blue-600 hover:text-white rounded-full transition-all duration-300"
                 aria-label="Facebook"
               >
                 <Facebook className="w-5 h-5" />
               </a>
               <a
-                href="#"
-                className="p-2 bg-primary-foreground/10 hover:bg-primary-foreground/20 rounded-full transition-colors"
+                href="https://whatsapp.com"
+                target="_blank"
+                rel="noreferrer"
+                className="p-3 bg-primary-foreground/10 hover:bg-green-500 hover:text-white rounded-full transition-all duration-300"
                 aria-label="WhatsApp"
               >
                 <MessageCircle className="w-5 h-5" />

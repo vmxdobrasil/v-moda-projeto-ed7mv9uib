@@ -11,6 +11,9 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Checkout from './pages/Checkout'
 import Orders from './pages/Orders'
+import AboutUs from './pages/AboutUs'
+import Contact from './pages/Contact'
+import FAQ from './pages/FAQ'
 import Layout from './components/Layout'
 
 const App = () => (
@@ -28,6 +31,9 @@ const App = () => (
           <Route path="/cadastro" element={<Register />} />
           <Route path="/finalizar-compra" element={<Checkout />} />
           <Route path="/meus-pedidos" element={<Orders />} />
+          <Route path="/sobre-nos" element={<AboutUs />} />
+          <Route path="/contato" element={<Contact />} />
+          <Route path="/faq" element={<FAQ />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

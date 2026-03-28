@@ -69,12 +69,15 @@ export function Header() {
   const navLinks = [
     { name: 'Início', path: '/' },
     { name: 'Coleções', path: '/colecoes' },
-    { name: 'Lista de Desejos', path: '/favoritos' },
+    { name: 'Sobre Nós', path: '/sobre-nos' },
+    { name: 'Contato', path: '/contato' },
   ]
 
   const mobileNavLinks = [
     ...navLinks,
+    { name: 'Lista de Desejos', path: '/favoritos' },
     { name: 'Meus Pedidos', path: '/meus-pedidos' },
+    { name: 'FAQ', path: '/faq' },
     { name: 'Entrar / Cadastrar', path: '/login' },
   ]
 
