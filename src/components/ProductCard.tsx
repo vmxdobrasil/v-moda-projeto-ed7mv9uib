@@ -1,8 +1,10 @@
-import { Heart } from 'lucide-react'
+import { Heart, ShoppingBag } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Product, formatPrice } from '@/lib/data'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
 
 interface ProductCardProps {
   product: Product
@@ -10,9 +12,10 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(false)
+  const { toast } = useToast()
 
   return (
-    <div className="group flex flex-col gap-4">
+    <div className="group flex flex-col gap-4 h-full">
       <div className="relative aspect-[3/4] overflow-hidden bg-secondary">
         <Link to={`/produto/${product.id}`}>
           <img
@@ -49,11 +52,29 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <Link to={`/produto/${product.id}`} className="group-hover:underline">
-          <h3 className="font-sans text-sm font-medium text-primary">{product.name}</h3>
-        </Link>
-        <p className="font-sans text-sm text-muted-foreground">{formatPrice(product.price)}</p>
+      <div className="flex flex-col gap-3 flex-grow justify-between">
+        <div className="flex flex-col gap-1">
+          <Link to={`/produto/${product.id}`} className="group-hover:underline">
+            <h3 className="font-sans text-sm font-medium text-primary line-clamp-2">
+              {product.name}
+            </h3>
+          </Link>
+          <p className="font-sans text-sm text-muted-foreground">{formatPrice(product.price)}</p>
+        </div>
+        <Button
+          variant="outline"
+          className="w-full gap-2 rounded-none mt-auto"
+          onClick={(e) => {
+            e.preventDefault()
+            toast({
+              title: 'Adicionado ao carrinho',
+              description: `${product.name} foi adicionado.`,
+            })
+          }}
+        >
+          <ShoppingBag className="h-4 w-4" />
+          Adicionar ao Carrinho
+        </Button>
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Filter, SlidersHorizontal } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { SlidersHorizontal, X } from 'lucide-react'
 import { FadeIn } from '@/components/FadeIn'
 import { ProductCard } from '@/components/ProductCard'
 import { PRODUCTS } from '@/lib/data'
@@ -11,6 +11,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
 const CATEGORIES = ['Todos', 'Vestidos', 'Casacos', 'Calças', 'Acessórios', 'Calçados']
 const SIZES = ['P', 'M', 'G', 'GG', '36', '38', '40', '42', 'Único']
@@ -24,10 +32,51 @@ const COLORS = [
 
 export default function Collections() {
   const [activeCategory, setActiveCategory] = useState('Todos')
+  const [selectedColors, setSelectedColors] = useState<string[]>([])
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([])
+  const [sortBy, setSortBy] = useState('newest')
 
-  const filteredProducts = PRODUCTS.filter(
-    (p) => activeCategory === 'Todos' || p.category === activeCategory,
-  )
+  const toggleColor = (colorHex: string) => {
+    setSelectedColors((prev) =>
+      prev.includes(colorHex) ? prev.filter((c) => c !== colorHex) : [...prev, colorHex],
+    )
+  }
+
+  const toggleSize = (size: string) => {
+    setSelectedSizes((prev) =>
+      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size],
+    )
+  }
+
+  const clearFilters = () => {
+    setActiveCategory('Todos')
+    setSelectedColors([])
+    setSelectedSizes([])
+  }
+
+  const filteredProducts = useMemo(() => {
+    let result = [...PRODUCTS]
+
+    if (activeCategory !== 'Todos') {
+      result = result.filter((p) => p.category === activeCategory)
+    }
+
+    if (selectedColors.length > 0) {
+      result = result.filter((p) => p.colors.some((c) => selectedColors.includes(c)))
+    }
+
+    if (selectedSizes.length > 0) {
+      result = result.filter((p) => p.sizes.some((s) => selectedSizes.includes(s)))
+    }
+
+    if (sortBy === 'price-asc') {
+      result.sort((a, b) => a.price - b.price)
+    } else if (sortBy === 'price-desc') {
+      result.sort((a, b) => b.price - a.price)
+    }
+
+    return result
+  }, [activeCategory, selectedColors, selectedSizes, sortBy])
 
   const FilterSidebar = () => (
     <div className="flex flex-col gap-8">
@@ -54,14 +103,23 @@ export default function Collections() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="flex flex-wrap gap-3 pt-2">
-              {COLORS.map((color) => (
-                <button
-                  key={color.name}
-                  className="w-8 h-8 rounded-full border border-border shadow-sm transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                  style={{ backgroundColor: color.value }}
-                  title={color.name}
-                />
-              ))}
+              {COLORS.map((color) => {
+                const isSelected = selectedColors.includes(color.value)
+                return (
+                  <button
+                    key={color.name}
+                    onClick={() => toggleColor(color.value)}
+                    className={cn(
+                      'w-8 h-8 rounded-full border shadow-sm transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+                      isSelected
+                        ? 'border-primary ring-2 ring-primary ring-offset-2'
+                        : 'border-border',
+                    )}
+                    style={{ backgroundColor: color.value }}
+                    title={color.name}
+                  />
+                )
+              })}
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -71,18 +129,37 @@ export default function Collections() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="flex flex-wrap gap-2 pt-2">
-              {SIZES.map((size) => (
-                <button
-                  key={size}
-                  className="px-3 py-1 border border-border text-xs tracking-wider transition-colors hover:border-primary hover:bg-primary hover:text-primary-foreground"
-                >
-                  {size}
-                </button>
-              ))}
+              {SIZES.map((size) => {
+                const isSelected = selectedSizes.includes(size)
+                return (
+                  <button
+                    key={size}
+                    onClick={() => toggleSize(size)}
+                    className={cn(
+                      'px-3 py-1 border text-xs tracking-wider transition-colors hover:border-primary hover:bg-primary/5',
+                      isSelected
+                        ? 'border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+                        : 'border-border text-foreground',
+                    )}
+                  >
+                    {size}
+                  </button>
+                )
+              })}
             </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+
+      {(activeCategory !== 'Todos' || selectedColors.length > 0 || selectedSizes.length > 0) && (
+        <Button
+          variant="ghost"
+          className="w-full text-xs uppercase tracking-widest"
+          onClick={clearFilters}
+        >
+          Limpar Filtros <X className="ml-2 h-3 w-3" />
+        </Button>
+      )}
     </div>
   )
 
@@ -98,38 +175,53 @@ export default function Collections() {
         </div>
       </FadeIn>
 
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-border">
-        <p className="text-sm text-muted-foreground">{filteredProducts.length} Produtos</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 pb-4 border-b border-border gap-4">
+        <p className="text-sm text-muted-foreground">{filteredProducts.length} Resultados</p>
 
-        {/* Mobile Filter Trigger */}
-        <div className="lg:hidden">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 rounded-none uppercase tracking-widest text-xs"
-              >
-                <SlidersHorizontal className="h-4 w-4" /> Filtros
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <SheetHeader className="mb-8 text-left">
-                <SheetTitle className="font-serif text-2xl">Filtrar por</SheetTitle>
-              </SheetHeader>
-              <FilterSidebar />
-            </SheetContent>
-          </Sheet>
-        </div>
+        <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+          {/* Mobile Filter Trigger */}
+          <div className="lg:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 rounded-none uppercase tracking-widest text-xs"
+                >
+                  <SlidersHorizontal className="h-4 w-4" /> Filtros
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px] overflow-y-auto">
+                <SheetHeader className="mb-8 text-left">
+                  <SheetTitle className="font-serif text-2xl">Filtrar por</SheetTitle>
+                </SheetHeader>
+                <FilterSidebar />
+              </SheetContent>
+            </Sheet>
+          </div>
 
-        {/* Desktop Sort (Mock) */}
-        <div className="hidden lg:flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Ordenar por:</span>
-          <select className="bg-transparent text-sm font-medium focus:outline-none cursor-pointer">
-            <option>Novidades</option>
-            <option>Preço: Menor para Maior</option>
-            <option>Preço: Maior para Menor</option>
-          </select>
+          {/* Sort */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground hidden sm:inline-block">
+              Ordenar por:
+            </span>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[180px] h-9 text-xs uppercase tracking-widest rounded-none bg-transparent border-border">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest" className="text-sm">
+                  Lançamentos
+                </SelectItem>
+                <SelectItem value="price-asc" className="text-sm">
+                  Menor Preço
+                </SelectItem>
+                <SelectItem value="price-desc" className="text-sm">
+                  Maior Preço
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -144,7 +236,7 @@ export default function Collections() {
         {/* Product Grid */}
         <div className="flex-1">
           {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10 sm:gap-x-6 sm:gap-y-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10 sm:gap-x-6 sm:gap-y-12">
               {filteredProducts.map((product, i) => (
                 <FadeIn key={product.id} delay={i * 50}>
                   <ProductCard product={product} />
@@ -154,12 +246,12 @@ export default function Collections() {
           ) : (
             <div className="py-20 text-center">
               <p className="text-muted-foreground text-lg">
-                Nenhum produto encontrado nesta categoria.
+                Nenhum produto encontrado nesta coleção.
               </p>
               <Button
                 variant="outline"
-                className="mt-6 rounded-none"
-                onClick={() => setActiveCategory('Todos')}
+                className="mt-6 rounded-none uppercase tracking-widest text-xs"
+                onClick={clearFilters}
               >
                 Limpar Filtros
               </Button>
