@@ -3,6 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Search, Heart, User, Menu, ShoppingCart, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   Sheet,
   SheetContent,
   SheetTrigger,
@@ -66,6 +72,12 @@ export function Header() {
     { name: 'Lista de Desejos', path: '/favoritos' },
   ]
 
+  const mobileNavLinks = [
+    ...navLinks,
+    { name: 'Meus Pedidos', path: '/meus-pedidos' },
+    { name: 'Entrar / Cadastrar', path: '/login' },
+  ]
+
   return (
     <header className={headerClasses}>
       <div className="container flex items-center justify-between">
@@ -80,15 +92,16 @@ export function Header() {
             <SheetContent side="left" className="w-[300px] sm:w-[400px] border-none">
               <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
               <nav className="flex flex-col gap-8 mt-12">
-                {navLinks.map((link, i) => (
-                  <Link
-                    key={link.name}
-                    to={link.path}
-                    className="text-2xl font-serif text-primary hover:text-accent transition-colors"
-                    style={{ animationDelay: `${i * 100}ms` }}
-                  >
-                    {link.name}
-                  </Link>
+                {mobileNavLinks.map((link, i) => (
+                  <SheetClose asChild key={link.name}>
+                    <Link
+                      to={link.path}
+                      className="text-2xl font-serif text-primary hover:text-accent transition-colors"
+                      style={{ animationDelay: `${i * 100}ms` }}
+                    >
+                      {link.name}
+                    </Link>
+                  </SheetClose>
                 ))}
               </nav>
             </SheetContent>
@@ -148,9 +161,22 @@ export function Header() {
               </span>
             )}
           </Link>
-          <Link to="/login" aria-label="Minha Conta" className="p-1 hidden md:block">
-            <User className={iconClasses} />
-          </Link>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button aria-label="Minha Conta" className="p-1 hidden md:block">
+                <User className={iconClasses} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 rounded-none">
+              <DropdownMenuItem asChild className="rounded-none cursor-pointer">
+                <Link to="/meus-pedidos">Meus Pedidos</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="rounded-none cursor-pointer">
+                <Link to="/login">Entrar / Cadastrar</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Sheet>
             <SheetTrigger asChild>

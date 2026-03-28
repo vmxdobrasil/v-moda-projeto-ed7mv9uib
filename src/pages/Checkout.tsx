@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Table,
   TableBody,
@@ -17,12 +20,20 @@ import { formatPrice } from '@/lib/data'
 export default function Checkout() {
   const { items: cartItems, cartTotal } = useCartStore()
   const { toast } = useToast()
+  const [paymentMethod, setPaymentMethod] = useState('credit_card')
 
   const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault()
     toast({
       title: 'Pedido confirmado',
       description: 'Obrigado pela sua compra! Em breve você receberá um e-mail com os detalhes.',
+    })
+  }
+
+  const copyPixCode = () => {
+    navigator.clipboard.writeText('00020126580014br.gov.bcb.pix0136...')
+    toast({
+      description: 'Código PIX copiado para a área de transferência!',
     })
   }
 
@@ -43,43 +54,128 @@ export default function Checkout() {
       <h1 className="text-3xl md:text-4xl font-serif mb-12">Finalizar Compra</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
-        {/* Formulário de Entrega */}
-        <div>
-          <h2 className="text-xl font-medium mb-6 uppercase tracking-wider">
-            Informações de Entrega
-          </h2>
-          <form id="checkout-form" onSubmit={handleCheckout} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label htmlFor="cep">CEP</Label>
-                <Input id="cep" placeholder="00000-000" required />
+        {/* Formulário */}
+        <div className="space-y-12">
+          <section>
+            <h2 className="text-xl font-medium mb-6 uppercase tracking-wider">
+              Informações de Entrega
+            </h2>
+            <form id="checkout-form" onSubmit={handleCheckout} className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label htmlFor="cep">CEP</Label>
+                  <Input id="cep" placeholder="00000-000" required />
+                </div>
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label htmlFor="city">Cidade</Label>
+                  <Input id="city" required />
+                </div>
               </div>
-              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label htmlFor="city">Cidade</Label>
-                <Input id="city" required />
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="address">Endereço</Label>
-              <Input id="address" required />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Endereço</Label>
+                <Input id="address" required />
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="number">Número</Label>
-                <Input id="number" required />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="number">Número</Label>
+                  <Input id="number" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="neighborhood">Bairro</Label>
+                  <Input id="neighborhood" required />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="neighborhood">Bairro</Label>
-                <Input id="neighborhood" required />
-              </div>
+            </form>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-medium mb-6 uppercase tracking-wider">
+              Forma de Pagamento
+            </h2>
+            <div className="space-y-6">
+              <RadioGroup
+                value={paymentMethod}
+                onValueChange={setPaymentMethod}
+                className="grid grid-cols-2 gap-4"
+              >
+                <div>
+                  <RadioGroupItem value="credit_card" id="credit_card" className="peer sr-only" />
+                  <Label
+                    htmlFor="credit_card"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                  >
+                    <span>Cartão de Crédito</span>
+                  </Label>
+                </div>
+                <div>
+                  <RadioGroupItem value="pix" id="pix" className="peer sr-only" />
+                  <Label
+                    htmlFor="pix"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                  >
+                    <span>PIX</span>
+                  </Label>
+                </div>
+              </RadioGroup>
+
+              {paymentMethod === 'credit_card' && (
+                <div className="space-y-4 animate-in fade-in zoom-in-95 border p-6 rounded-md">
+                  <div className="space-y-2">
+                    <Label htmlFor="cc-number">Número do Cartão</Label>
+                    <Input
+                      id="cc-number"
+                      placeholder="0000 0000 0000 0000"
+                      form="checkout-form"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cc-name">Nome impresso no cartão</Label>
+                    <Input
+                      id="cc-name"
+                      placeholder="NOME DO TITULAR"
+                      form="checkout-form"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cc-exp">Validade</Label>
+                      <Input id="cc-exp" placeholder="MM/AA" form="checkout-form" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cc-cvv">CVV</Label>
+                      <Input id="cc-cvv" placeholder="123" form="checkout-form" required />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod === 'pix' && (
+                <div className="flex flex-col items-center justify-center space-y-4 animate-in fade-in zoom-in-95 border p-6 rounded-md text-center">
+                  <div className="w-48 h-48 bg-muted flex items-center justify-center relative border border-border">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=PIX_MOCK_PAYMENT_VMODA`}
+                      alt="QR Code PIX"
+                      className="w-full h-full object-contain mix-blend-multiply opacity-80"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Escaneie o QR Code ou copie o código abaixo para pagar.
+                  </p>
+                  <Button type="button" variant="outline" onClick={copyPixCode} className="gap-2">
+                    <Copy className="w-4 h-4" /> Copiar Código
+                  </Button>
+                </div>
+              )}
             </div>
-          </form>
+          </section>
         </div>
 
         {/* Resumo do Pedido */}
-        <div className="bg-secondary/20 p-6 md:p-8">
+        <div className="bg-secondary/20 p-6 md:p-8 self-start sticky top-32">
           <h2 className="text-xl font-medium mb-6 uppercase tracking-wider">Resumo do Pedido</h2>
 
           <div className="overflow-x-auto mb-6">
@@ -87,8 +183,7 @@ export default function Checkout() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Produto</TableHead>
-                  <TableHead className="text-center">Quantidade</TableHead>
-                  <TableHead className="text-right">Preço</TableHead>
+                  <TableHead className="text-center">Qtd</TableHead>
                   <TableHead className="text-right">Subtotal</TableHead>
                 </TableRow>
               </TableHeader>
@@ -100,14 +195,13 @@ export default function Checkout() {
                         <img
                           src={item.product.image}
                           alt={item.product.name}
-                          className="w-12 h-16 object-cover hidden sm:block"
+                          className="w-10 h-14 object-cover hidden sm:block"
                         />
-                        <span className="line-clamp-2">{item.product.name}</span>
+                        <span className="line-clamp-2 text-sm">{item.product.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">{item.quantity}</TableCell>
-                    <TableCell className="text-right">{formatPrice(item.product.price)}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center text-sm">{item.quantity}</TableCell>
+                    <TableCell className="text-right text-sm">
                       {formatPrice(item.product.price * item.quantity)}
                     </TableCell>
                   </TableRow>
@@ -123,7 +217,7 @@ export default function Checkout() {
             </div>
             <div className="flex justify-between text-muted-foreground mb-4">
               <span>Frete</span>
-              <span>Calculado no final</span>
+              <span>Grátis</span>
             </div>
             <div className="flex justify-between font-serif text-2xl mb-8">
               <span>Total</span>

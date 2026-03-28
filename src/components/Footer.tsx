@@ -1,12 +1,25 @@
 import { Link } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Instagram, Facebook, MessageCircle } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 export function Footer() {
+  const { toast } = useToast()
+
+  const handleNewsletter = (e: React.FormEvent) => {
+    e.preventDefault()
+    toast({
+      description: 'Obrigado por se inscrever! Você receberá nossas novidades em breve.',
+    })
+    const form = e.target as HTMLFormElement
+    form.reset()
+  }
+
   return (
     <footer className="bg-primary text-primary-foreground pt-20 pb-10">
       <div className="container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-16">
-        {/* Brand */}
+        {/* Col 1: Sobre */}
         <div className="flex flex-col gap-6">
           <Link to="/" className="font-serif text-3xl font-bold tracking-widest uppercase">
             V Moda
@@ -17,106 +30,106 @@ export function Footer() {
           </p>
         </div>
 
-        {/* Links */}
+        {/* Col 2: Links Úteis */}
         <div className="flex flex-col gap-4">
-          <h4 className="font-serif text-lg tracking-wider uppercase mb-2">Explorar</h4>
+          <h4 className="font-serif text-lg tracking-wider uppercase mb-2">Links Úteis</h4>
           <Link
-            to="/colecoes"
+            to="/"
             className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
           >
-            Novidades
+            Início
           </Link>
           <Link
             to="/colecoes"
             className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
           >
-            Coleção Inverno
+            Coleções
           </Link>
           <Link
-            to="/colecoes"
+            to="/meus-pedidos"
             className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
           >
-            Acessórios
-          </Link>
-          <Link
-            to="/colecoes"
-            className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
-          >
-            Editorial
+            Minha Conta
           </Link>
         </div>
 
-        {/* Help */}
+        {/* Col 3: Políticas */}
         <div className="flex flex-col gap-4">
-          <h4 className="font-serif text-lg tracking-wider uppercase mb-2">Atendimento</h4>
+          <h4 className="font-serif text-lg tracking-wider uppercase mb-2">Políticas</h4>
           <Link
             to="#"
             className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
           >
-            Fale Conosco
+            Política de Privacidade
           </Link>
           <Link
             to="#"
             className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
           >
-            Entregas e Devoluções
+            Termos de Uso
           </Link>
           <Link
             to="#"
             className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
           >
-            Guia de Tamanhos
-          </Link>
-          <Link
-            to="#"
-            className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
-          >
-            FAQ
+            Trocas e Devoluções
           </Link>
         </div>
 
-        {/* Contact */}
-        <div className="flex flex-col gap-4">
-          <h4 className="font-serif text-lg tracking-wider uppercase mb-2">Fale Conosco</h4>
-          <p className="text-sm text-primary-foreground/70 mb-2">
-            Deixe sua mensagem para nossa equipe.
-          </p>
-          <form className="flex flex-col gap-3" onSubmit={(e) => e.preventDefault()}>
-            <Input
-              type="text"
-              placeholder="Nome"
-              className="bg-transparent border-primary-foreground/20 text-white placeholder:text-white/40 rounded-none focus-visible:ring-1 focus-visible:ring-white h-10"
-            />
-            <Input
-              type="email"
-              placeholder="E-mail"
-              className="bg-transparent border-primary-foreground/20 text-white placeholder:text-white/40 rounded-none focus-visible:ring-1 focus-visible:ring-white h-10"
-            />
-            <textarea
-              placeholder="Mensagem"
-              className="flex min-h-[80px] w-full bg-transparent border border-primary-foreground/20 px-3 py-2 text-sm text-white placeholder:text-white/40 rounded-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white resize-none"
-            />
-            <Button
-              type="submit"
-              variant="secondary"
-              className="rounded-none h-10 w-full font-medium tracking-wide uppercase text-xs mt-1"
-            >
-              Enviar Mensagem
-            </Button>
-          </form>
+        {/* Col 4: Redes Sociais & Newsletter */}
+        <div className="flex flex-col gap-6">
+          <div>
+            <h4 className="font-serif text-lg tracking-wider uppercase mb-4">Redes Sociais</h4>
+            <div className="flex gap-4">
+              <a
+                href="#"
+                className="p-2 bg-primary-foreground/10 hover:bg-primary-foreground/20 rounded-full transition-colors"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-5 h-5" />
+              </a>
+              <a
+                href="#"
+                className="p-2 bg-primary-foreground/10 hover:bg-primary-foreground/20 rounded-full transition-colors"
+                aria-label="Facebook"
+              >
+                <Facebook className="w-5 h-5" />
+              </a>
+              <a
+                href="#"
+                className="p-2 bg-primary-foreground/10 hover:bg-primary-foreground/20 rounded-full transition-colors"
+                aria-label="WhatsApp"
+              >
+                <MessageCircle className="w-5 h-5" />
+              </a>
+            </div>
+          </div>
+          <div>
+            <h4 className="font-serif text-lg tracking-wider uppercase mb-2">Newsletter</h4>
+            <p className="text-sm text-primary-foreground/70 mb-3">
+              Receba novidades e ofertas exclusivas.
+            </p>
+            <form className="flex flex-col gap-3" onSubmit={handleNewsletter}>
+              <Input
+                type="email"
+                required
+                placeholder="Seu melhor e-mail"
+                className="bg-transparent border-primary-foreground/20 text-white placeholder:text-white/40 rounded-none focus-visible:ring-1 focus-visible:ring-white h-10"
+              />
+              <Button
+                type="submit"
+                variant="secondary"
+                className="rounded-none h-10 w-full font-medium tracking-wide uppercase text-xs"
+              >
+                Inscrever-se
+              </Button>
+            </form>
+          </div>
         </div>
       </div>
 
-      <div className="container flex flex-col md:flex-row items-center justify-between pt-8 border-t border-primary-foreground/10 gap-4 text-xs text-primary-foreground/50">
-        <p>&copy; {new Date().getFullYear()} V MODA. Todos os direitos reservados.</p>
-        <div className="flex gap-6">
-          <Link to="#" className="hover:text-white transition-colors">
-            Termos de Uso
-          </Link>
-          <Link to="#" className="hover:text-white transition-colors">
-            Política de Privacidade
-          </Link>
-        </div>
+      <div className="container flex flex-col items-center justify-center pt-8 border-t border-primary-foreground/10 text-xs text-primary-foreground/50 text-center">
+        <p>© 2024 V Moda. Todos os direitos reservados.</p>
       </div>
     </footer>
   )

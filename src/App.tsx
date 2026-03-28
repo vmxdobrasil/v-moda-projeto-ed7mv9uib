@@ -10,6 +10,7 @@ import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Checkout from './pages/Checkout'
+import Orders from './pages/Orders'
 import Layout from './components/Layout'
 
 const App = () => (
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Register />} />
           <Route path="/finalizar-compra" element={<Checkout />} />
+          <Route path="/meus-pedidos" element={<Orders />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
