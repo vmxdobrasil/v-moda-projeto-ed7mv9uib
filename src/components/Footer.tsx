@@ -75,26 +75,33 @@ export function Footer() {
           </Link>
         </div>
 
-        {/* Newsletter */}
+        {/* Contact */}
         <div className="flex flex-col gap-4">
-          <h4 className="font-serif text-lg tracking-wider uppercase mb-2">
-            Assine nossa newsletter
-          </h4>
-          <p className="text-sm text-primary-foreground/70">
-            Assine nossa newsletter para receber convites exclusivos e novidades em primeira mão.
+          <h4 className="font-serif text-lg tracking-wider uppercase mb-2">Fale Conosco</h4>
+          <p className="text-sm text-primary-foreground/70 mb-2">
+            Deixe sua mensagem para nossa equipe.
           </p>
-          <form className="flex gap-2 mt-2" onSubmit={(e) => e.preventDefault()}>
+          <form className="flex flex-col gap-3" onSubmit={(e) => e.preventDefault()}>
+            <Input
+              type="text"
+              placeholder="Nome"
+              className="bg-transparent border-primary-foreground/20 text-white placeholder:text-white/40 rounded-none focus-visible:ring-1 focus-visible:ring-white h-10"
+            />
             <Input
               type="email"
-              placeholder="Endereço de e-mail"
+              placeholder="E-mail"
               className="bg-transparent border-primary-foreground/20 text-white placeholder:text-white/40 rounded-none focus-visible:ring-1 focus-visible:ring-white h-10"
+            />
+            <textarea
+              placeholder="Mensagem"
+              className="flex min-h-[80px] w-full bg-transparent border border-primary-foreground/20 px-3 py-2 text-sm text-white placeholder:text-white/40 rounded-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white resize-none"
             />
             <Button
               type="submit"
               variant="secondary"
-              className="rounded-none h-10 px-6 font-medium tracking-wide uppercase text-xs"
+              className="rounded-none h-10 w-full font-medium tracking-wide uppercase text-xs mt-1"
             >
-              Inscrever-se
+              Enviar Mensagem
             </Button>
           </form>
         </div>

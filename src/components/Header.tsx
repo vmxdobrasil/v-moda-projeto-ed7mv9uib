@@ -4,6 +4,8 @@ import { Search, Heart, User, Menu, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Input } from '@/components/ui/input'
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -34,8 +36,8 @@ export function Header() {
   const navLinks = [
     { name: 'Início', path: '/' },
     { name: 'Coleções', path: '/colecoes' },
-    { name: 'Produtos', path: '/colecoes' },
-    { name: 'Sobre', path: '#' },
+    { name: 'Sobre Nós', path: '#' },
+    { name: 'Contato', path: '#' },
   ]
 
   return (
@@ -92,9 +94,22 @@ export function Header() {
 
         {/* Icons */}
         <div className="flex flex-1 items-center justify-end gap-4 md:gap-6">
-          <button aria-label="Pesquisar" className="p-1 hidden sm:block">
-            <Search className={iconClasses} />
-          </button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button aria-label="Pesquisar" className="p-1 hidden sm:block">
+                <Search className={iconClasses} />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end" sideOffset={20}>
+              <div className="flex gap-2">
+                <Input placeholder="Buscar produtos..." className="h-9 rounded-none" />
+                <Button size="sm" className="rounded-none h-9 uppercase text-xs tracking-wider">
+                  Buscar
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <button aria-label="Favoritos" className="p-1 hidden sm:block">
             <Heart className={iconClasses} />
           </button>
@@ -117,13 +132,22 @@ export function Header() {
                 <p className="text-muted-foreground">Seu carrinho está vazio.</p>
               </div>
               <div className="border-t pt-6 mt-auto">
+                <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                  <span>Quantidade</span>
+                  <span>0 itens</span>
+                </div>
                 <div className="flex justify-between font-serif text-lg mb-6">
-                  <span>Total</span>
+                  <span>Subtotal</span>
                   <span>R$ 0,00</span>
                 </div>
-                <Button className="w-full rounded-none h-14 uppercase tracking-widest">
-                  Finalizar Compra
-                </Button>
+                <div className="space-y-3">
+                  <Button className="w-full rounded-none h-14 uppercase tracking-widest">
+                    Finalizar Compra
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground mt-4 leading-relaxed">
+                    Informações de Entrega e Método de Pagamento serão solicitados na próxima etapa.
+                  </p>
+                </div>
               </div>
             </SheetContent>
           </Sheet>

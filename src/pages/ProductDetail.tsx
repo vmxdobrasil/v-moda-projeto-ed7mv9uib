@@ -53,7 +53,7 @@ export default function ProductDetail() {
     if (!selectedSize) {
       toast({
         title: 'Selecione um tamanho',
-        description: 'Por favor, escolha um tamanho antes de adicionar à sacola.',
+        description: 'Por favor, escolha um tamanho antes de adicionar ao carrinho.',
         variant: 'destructive',
       })
       return
@@ -189,7 +189,14 @@ export default function ProductDetail() {
                 <Button
                   variant="outline"
                   className="w-14 h-14 rounded-none shrink-0 border-border self-center sm:self-auto"
-                  onClick={() => setIsWishlisted(!isWishlisted)}
+                  onClick={() => {
+                    const newValue = !isWishlisted
+                    setIsWishlisted(newValue)
+                    toast({
+                      title: newValue ? 'Adicionado aos Favoritos' : 'Removido dos Favoritos',
+                      description: `Item ${newValue ? 'adicionado' : 'removido'} com sucesso.`,
+                    })
+                  }}
                 >
                   <Heart
                     className={`w-5 h-5 transition-colors ${isWishlisted ? 'fill-accent text-accent' : ''}`}

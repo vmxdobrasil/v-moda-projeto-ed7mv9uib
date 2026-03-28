@@ -70,7 +70,7 @@ export default function Index() {
                       to="/colecoes"
                       className="inline-flex items-center justify-center bg-white text-black px-8 py-4 uppercase tracking-widest text-sm font-medium transition-all hover:bg-black hover:text-white hover:scale-105 duration-300"
                     >
-                      Explorar Agora
+                      Explore Agora
                     </Link>
                   </FadeIn>
                 </div>
@@ -91,7 +91,7 @@ export default function Index() {
         <FadeIn>
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
             <div>
-              <h2 className="text-3xl md:text-5xl font-serif mb-4">Looks do Momento</h2>
+              <h2 className="text-3xl md:text-5xl font-serif mb-4">Ofertas Especiais</h2>
               <p className="text-muted-foreground max-w-md">
                 As peças mais desejadas da nossa curadoria atual, selecionadas para inspirar.
               </p>
