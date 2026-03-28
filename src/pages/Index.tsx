@@ -70,7 +70,7 @@ export default function Index() {
                       to="/colecoes"
                       className="inline-flex items-center justify-center bg-white text-black px-8 py-4 uppercase tracking-widest text-sm font-medium transition-all hover:bg-black hover:text-white hover:scale-105 duration-300"
                     >
-                      Explore Agora
+                      Ver Coleção
                     </Link>
                   </FadeIn>
                 </div>
@@ -86,21 +86,50 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Trending Section */}
+      {/* Novidades Section */}
       <section className="py-24 md:py-32 container">
         <FadeIn>
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
             <div>
-              <h2 className="text-3xl md:text-5xl font-serif mb-4">Ofertas Especiais</h2>
+              <h2 className="text-3xl md:text-5xl font-serif mb-4">Novidades</h2>
               <p className="text-muted-foreground max-w-md">
-                As peças mais desejadas da nossa curadoria atual, selecionadas para inspirar.
+                Descubra as últimas tendências e lançamentos da nossa nova coleção.
               </p>
             </div>
             <Link
               to="/colecoes"
               className="group flex items-center gap-2 text-sm uppercase tracking-widest font-medium border-b border-primary pb-1 hover:text-accent hover:border-accent transition-colors"
             >
-              Ver Todos{' '}
+              Ver Todas as Novidades{' '}
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
+        </FadeIn>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12">
+          {PRODUCTS.slice(0, 4).map((product, i) => (
+            <FadeIn key={product.id} delay={i * 100}>
+              <ProductCard product={product} />
+            </FadeIn>
+          ))}
+        </div>
+      </section>
+
+      {/* Destaques Section */}
+      <section className="py-24 md:py-32 container bg-secondary/20">
+        <FadeIn>
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+            <div>
+              <h2 className="text-3xl md:text-5xl font-serif mb-4">Destaques</h2>
+              <p className="text-muted-foreground max-w-md">
+                As peças mais avaliadas e desejadas pelos nossos clientes.
+              </p>
+            </div>
+            <Link
+              to="/colecoes"
+              className="group flex items-center gap-2 text-sm uppercase tracking-widest font-medium border-b border-primary pb-1 hover:text-accent hover:border-accent transition-colors"
+            >
+              Ver Todos os Destaques{' '}
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>

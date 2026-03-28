@@ -2,7 +2,14 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Search, Heart, User, Menu, ShoppingCart, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet'
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+  SheetHeader,
+  SheetClose,
+} from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
@@ -141,9 +148,9 @@ export function Header() {
               </span>
             )}
           </Link>
-          <button aria-label="Perfil" className="p-1 hidden md:block">
+          <Link to="/login" aria-label="Minha Conta" className="p-1 hidden md:block">
             <User className={iconClasses} />
-          </button>
+          </Link>
 
           <Sheet>
             <SheetTrigger asChild>
@@ -208,12 +215,20 @@ export function Header() {
                   <span>{formatPrice(cartTotal)}</span>
                 </div>
                 <div className="space-y-3">
-                  <Button
-                    className="w-full rounded-none h-14 uppercase tracking-widest"
-                    disabled={cartItems.length === 0}
-                  >
-                    Finalizar Compra
-                  </Button>
+                  {cartItems.length === 0 ? (
+                    <Button className="w-full rounded-none h-14 uppercase tracking-widest" disabled>
+                      Finalizar Compra
+                    </Button>
+                  ) : (
+                    <SheetClose asChild>
+                      <Button
+                        asChild
+                        className="w-full rounded-none h-14 uppercase tracking-widest"
+                      >
+                        <Link to="/finalizar-compra">Finalizar Compra</Link>
+                      </Button>
+                    </SheetClose>
+                  )}
                   <p className="text-xs text-center text-muted-foreground mt-4 leading-relaxed">
                     Informações de Entrega e Método de Pagamento serão solicitados na próxima etapa.
                   </p>

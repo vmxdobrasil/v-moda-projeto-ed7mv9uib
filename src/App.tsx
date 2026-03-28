@@ -7,6 +7,9 @@ import Collections from './pages/Collections'
 import ProductDetail from './pages/ProductDetail'
 import Wishlist from './pages/Wishlist'
 import NotFound from './pages/NotFound'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Checkout from './pages/Checkout'
 import Layout from './components/Layout'
 
 const App = () => (
@@ -20,6 +23,9 @@ const App = () => (
           <Route path="/colecoes" element={<Collections />} />
           <Route path="/produto/:id" element={<ProductDetail />} />
           <Route path="/favoritos" element={<Wishlist />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/cadastro" element={<Register />} />
+          <Route path="/finalizar-compra" element={<Checkout />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
