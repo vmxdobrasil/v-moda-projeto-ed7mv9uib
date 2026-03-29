@@ -15,6 +15,10 @@ import AboutUs from './pages/AboutUs'
 import Contact from './pages/Contact'
 import FAQ from './pages/FAQ'
 import Layout from './components/Layout'
+import AdminLayout from './pages/admin/AdminLayout'
+import AdminDashboard from './pages/admin/Dashboard'
+import AdminOrders from './pages/admin/Orders'
+import AdminProducts from './pages/admin/Products'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -22,6 +26,11 @@ const App = () => (
       <Toaster />
       <Sonner />
       <Routes>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="pedidos" element={<AdminOrders />} />
+          <Route path="produtos" element={<AdminProducts />} />
+        </Route>
         <Route element={<Layout />}>
           <Route path="/" element={<Index />} />
           <Route path="/colecoes" element={<Collections />} />

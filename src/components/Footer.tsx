@@ -74,6 +74,12 @@ export function Footer() {
           >
             Lista de Desejos
           </Link>
+          <Link
+            to="/admin"
+            className="text-sm text-primary-foreground/70 hover:text-white transition-colors mt-2 font-semibold"
+          >
+            Painel Administrativo
+          </Link>
         </div>
 
         {/* Col 4: Redes Sociais & Newsletter */}
