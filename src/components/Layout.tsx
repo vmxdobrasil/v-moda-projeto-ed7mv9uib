@@ -2,13 +2,16 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import { Header } from './Header'
 import { Footer } from './Footer'
+import { LiveChat } from './LiveChat'
+import { trackEvent } from '@/lib/analytics'
 
 export default function Layout() {
   const location = useLocation()
 
-  // Scroll to top on route change
+  // Scroll to top on route change and track page view
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
+    trackEvent('page_view', { page_path: location.pathname })
   }, [location.pathname])
 
   return (
@@ -18,6 +21,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <Footer />
+      <LiveChat />
     </div>
   )
 }

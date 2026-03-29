@@ -42,7 +42,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <Link to={`/produto/${product.id}`}>
           <img
             src={product.image}
-            alt={product.name}
+            alt={`Imagem do produto: ${product.name}`}
             className="h-full w-full object-cover transition-transform duration-700 ease-out-expo group-hover:scale-105"
             loading="lazy"
           />
@@ -85,7 +85,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 <div className="w-full md:w-1/2 aspect-[3/4] md:aspect-auto bg-secondary">
                   <img
                     src={product.image}
-                    alt={product.name}
+                    alt={`Imagem em detalhes do produto: ${product.name}`}
                     className="w-full h-full object-cover"
                   />
                 </div>

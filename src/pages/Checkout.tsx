@@ -13,21 +13,64 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import useCartStore from '@/stores/useCartStore'
 import { formatPrice } from '@/lib/data'
+import { useSEO } from '@/hooks/useSEO'
+import { trackEvent } from '@/lib/analytics'
+import { useNavigate } from 'react-router-dom'
 
 export default function Checkout() {
-  const { items: cartItems, cartTotal } = useCartStore()
+  const { items: cartItems, cartTotal, clearCart } = useCartStore()
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [paymentMethod, setPaymentMethod] = useState('credit_card')
+
+  useSEO({
+    title: 'Finalizar Compra',
+    description: 'Finalize sua compra na V Moda com segurança e rapidez.',
+  })
+
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      trackEvent('begin_checkout', {
+        currency: 'BRL',
+        value: cartTotal,
+        items: cartItems.map((item) => ({
+          item_id: item.product.id,
+          item_name: item.product.name,
+          price: item.product.price,
+          currency: 'BRL',
+          quantity: item.quantity,
+        })),
+      })
+    }
+  }, [cartItems, cartTotal])
 
   const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault()
+
+    trackEvent('purchase', {
+      transaction_id: `T_${Date.now()}`,
+      currency: 'BRL',
+      value: cartTotal,
+      items: cartItems.map((item) => ({
+        item_id: item.product.id,
+        item_name: item.product.name,
+        price: item.product.price,
+        currency: 'BRL',
+        quantity: item.quantity,
+      })),
+    })
+
     toast({
       title: 'Pedido confirmado',
       description: 'Obrigado pela sua compra! Em breve você receberá um e-mail com os detalhes.',
     })
+
+    clearCart()
+    navigate('/')
   }
 
   const copyPixCode = () => {

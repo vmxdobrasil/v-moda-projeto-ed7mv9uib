@@ -3,6 +3,9 @@ import { useParams, Link } from 'react-router-dom'
 import { Heart, ChevronRight, Loader2, Star, UserCircle } from 'lucide-react'
 import { PRODUCTS, formatPrice } from '@/lib/data'
 import { FadeIn } from '@/components/FadeIn'
+import { useSEO } from '@/hooks/useSEO'
+import { trackEvent } from '@/lib/analytics'
+import useCartStore from '@/stores/useCartStore'
 import { ProductCard } from '@/components/ProductCard'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -18,7 +21,13 @@ import { cn } from '@/lib/utils'
 export default function ProductDetail() {
   const { id } = useParams()
   const { toast } = useToast()
+  const { addToCart } = useCartStore()
   const product = PRODUCTS.find((p) => p.id === id)
+
+  useSEO({
+    title: product?.name || 'Produto',
+    description: product?.description,
+  })
 
   const [activeImage, setActiveImage] = useState(0)
   const [selectedSize, setSelectedSize] = useState<string>('')
@@ -55,7 +64,22 @@ export default function ProductDetail() {
     setActiveImage(0)
     setSelectedSize('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [id])
+
+    if (product) {
+      trackEvent('view_item', {
+        currency: 'BRL',
+        value: product.price,
+        items: [
+          {
+            item_id: product.id,
+            item_name: product.name,
+            price: product.price,
+            currency: 'BRL',
+          },
+        ],
+      })
+    }
+  }, [id, product])
 
   if (!product) {
     return (
@@ -118,16 +142,19 @@ export default function ProductDetail() {
 
     setIsAdding(true)
     setTimeout(() => {
+      if (product) {
+        addToCart(product)
+      }
       setIsAdding(false)
       toast({
         title: 'Adicionado ao Carrinho',
-        description: `${product.name} (Tamanho: ${selectedSize}) foi adicionado com sucesso.`,
+        description: `${product?.name} (Tamanho: ${selectedSize}) foi adicionado com sucesso.`,
       })
     }, 800)
   }
 
   return (
-    <div className="pt-32 pb-24">
+    <article className="pt-32 pb-24">
       <div className="container">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider mb-8">
@@ -153,7 +180,11 @@ export default function ProductDetail() {
                   onClick={() => setActiveImage(idx)}
                   className={`relative aspect-[3/4] md:w-full overflow-hidden shrink-0 w-20 transition-all ${activeImage === idx ? 'ring-1 ring-primary ring-offset-2' : 'opacity-70 hover:opacity-100'}`}
                 >
-                  <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                  <img
+                    src={img}
+                    alt={`Miniatura do produto ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
                 </button>
               ))}
             </div>
@@ -163,7 +194,7 @@ export default function ProductDetail() {
               <FadeIn className="h-full w-full">
                 <img
                   src={allImages[activeImage]}
-                  alt={product.name}
+                  alt={`Imagem principal: ${product.name}`}
                   className="w-full h-full object-cover transition-transform duration-700 ease-out-expo group-hover:scale-110"
                 />
               </FadeIn>
@@ -416,6 +447,6 @@ export default function ProductDetail() {
           </div>
         </section>
       )}
-    </div>
+    </article>
   )
 }

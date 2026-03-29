@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Product } from '@/lib/data'
+import { trackEvent } from '@/lib/analytics'
 
 export interface CartItem {
   product: Product
@@ -38,6 +39,21 @@ export default function useCartStore() {
     } else {
       cartItems.push({ product, quantity })
     }
+
+    trackEvent('add_to_cart', {
+      currency: 'BRL',
+      value: product.price * quantity,
+      items: [
+        {
+          item_id: product.id,
+          item_name: product.name,
+          price: product.price,
+          currency: 'BRL',
+          quantity,
+        },
+      ],
+    })
+
     notify()
   }
 
