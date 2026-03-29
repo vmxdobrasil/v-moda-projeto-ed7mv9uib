@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Eye } from 'lucide-react'
+import { Eye, Download } from 'lucide-react'
 
 // Mock Data
 const MOCK_ORDERS = [
@@ -99,7 +99,7 @@ export default function Orders() {
       <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-4">
           <CardTitle className="text-lg">Últimos Pedidos</CardTitle>
-          <div className="flex items-center gap-4 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filtrar por Status" />
@@ -112,6 +112,41 @@ export default function Orders() {
                 <SelectItem value="Cancelado">Cancelado</SelectItem>
               </SelectContent>
             </Select>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                const headers = [
+                  'ID do Pedido',
+                  'Cliente',
+                  'Data',
+                  'Status',
+                  'Valor Total',
+                  'Endereço',
+                ]
+                const rows = filteredOrders.map((order) => [
+                  order.id,
+                  order.customer,
+                  new Date(order.date).toLocaleDateString('pt-BR'),
+                  order.status,
+                  order.total.toFixed(2),
+                  `"${order.address}"`,
+                ])
+                const csvContent = [headers.join(','), ...rows.map((e) => e.join(','))].join('\n')
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+                const link = document.createElement('a')
+                const url = URL.createObjectURL(blob)
+                link.setAttribute('href', url)
+                link.setAttribute('download', 'pedidos_vmoda.csv')
+                link.style.visibility = 'hidden'
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+              }}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Exportar CSV
+            </Button>
           </div>
         </CardHeader>
         <CardContent>

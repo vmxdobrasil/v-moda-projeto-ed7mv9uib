@@ -19,6 +19,9 @@ import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminOrders from './pages/admin/Orders'
 import AdminProducts from './pages/admin/Products'
+import AdminLogin from './pages/admin/Login'
+import AdminCustomers from './pages/admin/Customers'
+import AdminReports from './pages/admin/Reports'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -26,10 +29,13 @@ const App = () => (
       <Toaster />
       <Sonner />
       <Routes>
+        <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="pedidos" element={<AdminOrders />} />
           <Route path="produtos" element={<AdminProducts />} />
+          <Route path="clientes" element={<AdminCustomers />} />
+          <Route path="relatorios" element={<AdminReports />} />
         </Route>
         <Route element={<Layout />}>
           <Route path="/" element={<Index />} />

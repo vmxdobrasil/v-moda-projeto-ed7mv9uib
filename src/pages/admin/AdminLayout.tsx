@@ -1,15 +1,29 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, ShoppingCart, Package, LogOut } from 'lucide-react'
+import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom'
+import { LayoutDashboard, ShoppingCart, Package, LogOut, Users, BarChart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function AdminLayout() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const isAuthenticated = localStorage.getItem('admin_auth') === '1'
 
   const navigation = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Pedidos', href: '/admin/pedidos', icon: ShoppingCart },
     { name: 'Produtos', href: '/admin/produtos', icon: Package },
+    { name: 'Clientes', href: '/admin/clientes', icon: Users },
+    { name: 'Relatórios', href: '/admin/relatorios', icon: BarChart },
   ]
+
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault()
+    localStorage.removeItem('admin_auth')
+    navigate('/admin/login')
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/admin/login" replace />
+  }
 
   return (
     <div className="min-h-screen bg-muted/30 flex">
@@ -43,14 +57,21 @@ export default function AdminLayout() {
             )
           })}
         </nav>
-        <div className="p-4 border-t">
+        <div className="p-4 border-t space-y-2">
           <Link
             to="/"
             className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
-            <LogOut className="w-4 h-4" />
-            Voltar à Loja
+            <ShoppingCart className="w-4 h-4" />
+            Ir para a Loja
           </Link>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            Sair
+          </button>
         </div>
       </aside>
 
@@ -74,7 +95,7 @@ export default function AdminLayout() {
         </div>
 
         {/* Mobile Nav */}
-        <nav className="md:hidden flex items-center justify-around bg-background border-t p-2">
+        <nav className="md:hidden flex items-center justify-start gap-4 overflow-x-auto bg-background border-t p-2 px-4 no-scrollbar">
           {navigation.map((item) => {
             const isActive = location.pathname === item.href
             return (
@@ -82,8 +103,8 @@ export default function AdminLayout() {
                 key={item.name}
                 to={item.href}
                 className={cn(
-                  'flex flex-col items-center gap-1 p-2 rounded-md text-[10px] font-medium transition-colors',
-                  isActive ? 'text-primary' : 'text-muted-foreground',
+                  'flex flex-col items-center gap-1 p-2 rounded-md text-[10px] font-medium transition-colors min-w-[64px]',
+                  isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 <item.icon className="w-5 h-5" />

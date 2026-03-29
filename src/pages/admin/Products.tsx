@@ -66,7 +66,7 @@ const INITIAL_PRODUCTS: Product[] = [
     name: 'Camisa Linho',
     category: 'Camisas',
     price: 450.0,
-    stock: 5,
+    stock: 3,
     image: 'https://img.usecurling.com/p/100/100?q=linen%20shirt',
     description: 'Camisa de linho puro, leve e fresca.',
   },
@@ -194,11 +194,18 @@ export default function Products() {
                       R$ {product.price.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-center">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock < 10 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}
-                      >
-                        {product.stock} un
-                      </span>
+                      <div className="flex flex-col items-center justify-center gap-1.5">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock <= 5 ? 'bg-destructive/10 text-destructive' : product.stock < 10 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}
+                        >
+                          {product.stock} un
+                        </span>
+                        {product.stock <= 5 && (
+                          <span className="bg-destructive text-destructive-foreground text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider whitespace-nowrap">
+                            Estoque Baixo
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex justify-center gap-1">
