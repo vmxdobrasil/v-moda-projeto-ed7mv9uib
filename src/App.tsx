@@ -22,6 +22,7 @@ import AdminProducts from './pages/admin/Products'
 import AdminLogin from './pages/admin/Login'
 import AdminCustomers from './pages/admin/Customers'
 import AdminReports from './pages/admin/Reports'
+import AdminSettings from './pages/admin/Settings'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="produtos" element={<AdminProducts />} />
           <Route path="clientes" element={<AdminCustomers />} />
           <Route path="relatorios" element={<AdminReports />} />
+          <Route path="configuracoes" element={<AdminSettings />} />
         </Route>
         <Route element={<Layout />}>
           <Route path="/" element={<Index />} />

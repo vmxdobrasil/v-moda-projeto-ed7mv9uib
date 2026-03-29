@@ -1,19 +1,39 @@
 import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, ShoppingCart, Package, LogOut, Users, BarChart } from 'lucide-react'
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  Package,
+  LogOut,
+  Users,
+  BarChart,
+  Settings,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const isAuthenticated = localStorage.getItem('admin_auth') === '1'
+  const role = localStorage.getItem('admin_role') || 'admin' // 'admin' or 'gerente'
 
   const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { name: 'Pedidos', href: '/admin/pedidos', icon: ShoppingCart },
-    { name: 'Produtos', href: '/admin/produtos', icon: Package },
-    { name: 'Clientes', href: '/admin/clientes', icon: Users },
-    { name: 'Relatórios', href: '/admin/relatorios', icon: BarChart },
+    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, roles: ['admin', 'gerente'] },
+    { name: 'Pedidos', href: '/admin/pedidos', icon: ShoppingCart, roles: ['admin', 'gerente'] },
+    { name: 'Produtos', href: '/admin/produtos', icon: Package, roles: ['admin', 'gerente'] },
+    { name: 'Clientes', href: '/admin/clientes', icon: Users, roles: ['admin', 'gerente'] },
+    { name: 'Relatórios', href: '/admin/relatorios', icon: BarChart, roles: ['admin'] },
+    { name: 'Configurações', href: '/admin/configuracoes', icon: Settings, roles: ['admin'] },
   ]
+
+  const filteredNavigation = navigation.filter((item) => item.roles.includes(role))
+
+  // Route guarding
+  if (
+    role === 'gerente' &&
+    ['/admin/relatorios', '/admin/configuracoes'].includes(location.pathname)
+  ) {
+    return <Navigate to="/admin" replace />
+  }
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -28,7 +48,7 @@ export default function AdminLayout() {
   return (
     <div className="min-h-screen bg-muted/30 flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-background border-r flex-col hidden md:flex">
+      <aside className="w-64 bg-background border-r flex-col hidden md:flex print:hidden">
         <div className="h-16 flex items-center px-6 border-b">
           <Link to="/" className="font-serif text-2xl font-bold tracking-widest uppercase">
             V Moda
@@ -38,7 +58,7 @@ export default function AdminLayout() {
           </span>
         </div>
         <nav className="flex-1 px-4 py-6 space-y-2">
-          {navigation.map((item) => {
+          {filteredNavigation.map((item) => {
             const isActive = location.pathname === item.href
             return (
               <Link
@@ -76,8 +96,8 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        <header className="h-16 bg-background border-b flex items-center justify-between px-4 md:px-8">
+      <main className="flex-1 flex flex-col min-h-screen overflow-hidden print:overflow-visible">
+        <header className="h-16 bg-background border-b flex items-center justify-between px-4 md:px-8 print:hidden">
           <div className="flex items-center gap-4 md:hidden">
             <Link to="/" className="font-serif text-xl font-bold tracking-widest uppercase">
               V Moda
@@ -85,18 +105,20 @@ export default function AdminLayout() {
           </div>
           <h1 className="text-xl font-semibold hidden md:block">Painel Administrativo</h1>
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium">Administrador</span>
+            <span className="text-sm font-medium capitalize">
+              {role === 'gerente' ? 'Gerente' : 'Administrador'}
+            </span>
           </div>
         </header>
-        <div className="flex-1 overflow-auto p-4 md:p-8">
+        <div className="flex-1 overflow-auto p-4 md:p-8 print:overflow-visible print:p-0">
           <div className="mx-auto max-w-6xl">
             <Outlet />
           </div>
         </div>
 
         {/* Mobile Nav */}
-        <nav className="md:hidden flex items-center justify-start gap-4 overflow-x-auto bg-background border-t p-2 px-4 no-scrollbar">
-          {navigation.map((item) => {
+        <nav className="md:hidden flex items-center justify-start gap-4 overflow-x-auto bg-background border-t p-2 px-4 no-scrollbar print:hidden">
+          {filteredNavigation.map((item) => {
             const isActive = location.pathname === item.href
             return (
               <Link

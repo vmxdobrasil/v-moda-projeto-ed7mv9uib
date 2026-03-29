@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -12,17 +12,27 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Eye, Search, Mail, Calendar } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Eye, Search, Mail, Calendar, ArrowUpDown, Filter, X } from 'lucide-react'
 
-// Mock Data
+// Mock Data updated with status and lastPurchase
 const MOCK_CUSTOMERS = [
   {
     id: 'CUST-001',
     name: 'Ana Silva',
     email: 'ana.silva@example.com',
     registeredAt: '2023-01-15',
+    lastPurchase: '2023-10-25',
     ordersCount: 5,
     totalSpent: 4500.0,
+    status: 'Ativo',
     history: [
       { id: 'ORD-001', date: '2023-10-25', total: 1250.0, status: 'Pago' },
       { id: 'ORD-045', date: '2023-08-12', total: 850.0, status: 'Enviado' },
@@ -33,8 +43,10 @@ const MOCK_CUSTOMERS = [
     name: 'Carlos Santos',
     email: 'carlos.santos@example.com',
     registeredAt: '2023-03-22',
+    lastPurchase: '2023-10-24',
     ordersCount: 2,
     totalSpent: 900.0,
+    status: 'Ativo',
     history: [{ id: 'ORD-002', date: '2023-10-24', total: 450.0, status: 'Pendente' }],
   },
   {
@@ -42,33 +54,102 @@ const MOCK_CUSTOMERS = [
     name: 'Marina Costa',
     email: 'marina.costa@example.com',
     registeredAt: '2023-05-10',
+    lastPurchase: '2023-09-05',
     ordersCount: 8,
     totalSpent: 7890.0,
-    history: [
-      { id: 'ORD-003', date: '2023-10-23', total: 890.0, status: 'Enviado' },
-      { id: 'ORD-102', date: '2023-09-05', total: 2100.0, status: 'Enviado' },
-    ],
+    status: 'Inativo',
+    history: [{ id: 'ORD-102', date: '2023-09-05', total: 2100.0, status: 'Enviado' }],
   },
   {
     id: 'CUST-004',
     name: 'João Oliveira',
     email: 'joao.oliveira@example.com',
     registeredAt: '2023-07-01',
+    lastPurchase: '2023-10-22',
     ordersCount: 1,
     totalSpent: 1500.0,
+    status: 'Inativo',
     history: [{ id: 'ORD-004', date: '2023-10-22', total: 1500.0, status: 'Cancelado' }],
   },
 ]
+
+type SortField = 'totalSpent' | 'lastPurchase' | null
+type SortDirection = 'asc' | 'desc'
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCustomer, setSelectedCustomer] = useState<(typeof MOCK_CUSTOMERS)[0] | null>(null)
 
-  const filteredCustomers = MOCK_CUSTOMERS.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  // Advanced filters
+  const [showFilters, setShowFilters] = useState(false)
+  const [filterStatus, setFilterStatus] = useState<string>('todos')
+  const [minSpent, setMinSpent] = useState<string>('')
+  const [maxSpent, setMaxSpent] = useState<string>('')
+  const [dateFrom, setDateFrom] = useState<string>('')
+  const [dateTo, setDateTo] = useState<string>('')
+
+  // Sorting
+  const [sortField, setSortField] = useState<SortField>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      if (sortDirection === 'desc') setSortDirection('asc')
+      else setSortField(null)
+    } else {
+      setSortField(field)
+      setSortDirection('desc')
+    }
+  }
+
+  const filteredAndSortedCustomers = useMemo(() => {
+    let result = MOCK_CUSTOMERS.filter((c) => {
+      const matchesSearch =
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.email.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesStatus =
+        filterStatus === 'todos' || c.status.toLowerCase() === filterStatus.toLowerCase()
+      const spent = c.totalSpent
+      const matchesMin = minSpent ? spent >= Number(minSpent) : true
+      const matchesMax = maxSpent ? spent <= Number(maxSpent) : true
+      const regDate = new Date(c.registeredAt).getTime()
+      const matchesDateFrom = dateFrom ? regDate >= new Date(dateFrom).getTime() : true
+      const matchesDateTo = dateTo ? regDate <= new Date(dateTo).getTime() : true
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesMin &&
+        matchesMax &&
+        matchesDateFrom &&
+        matchesDateTo
+      )
+    })
+
+    if (sortField) {
+      result.sort((a, b) => {
+        if (sortField === 'totalSpent') {
+          return sortDirection === 'asc' ? a.totalSpent - b.totalSpent : b.totalSpent - a.totalSpent
+        }
+        if (sortField === 'lastPurchase') {
+          const tA = new Date(a.lastPurchase).getTime()
+          const tB = new Date(b.lastPurchase).getTime()
+          return sortDirection === 'asc' ? tA - tB : tB - tA
+        }
+        return 0
+      })
+    }
+
+    return result
+  }, [searchTerm, filterStatus, minSpent, maxSpent, dateFrom, dateTo, sortField, sortDirection])
+
+  const clearFilters = () => {
+    setFilterStatus('todos')
+    setMinSpent('')
+    setMaxSpent('')
+    setDateFrom('')
+    setDateTo('')
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -98,17 +179,87 @@ export default function Customers() {
 
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <CardTitle className="text-lg">Base de Clientes</CardTitle>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome ou e-mail..."
-                className="pl-9"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <CardTitle className="text-lg">Base de Clientes</CardTitle>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-72">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome ou e-mail..."
+                    className="pl-9"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Button
+                  variant={showFilters ? 'secondary' : 'outline'}
+                  size="icon"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Filter className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
+
+            {showFilters && (
+              <div className="p-4 bg-muted/40 rounded-lg border grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="ativo">Ativo</SelectItem>
+                      <SelectItem value="inativo">Inativo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Ticket Médio (LTV) - Mín</Label>
+                  <Input
+                    type="number"
+                    placeholder="R$ 0,00"
+                    value={minSpent}
+                    onChange={(e) => setMinSpent(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Ticket Médio (LTV) - Máx</Label>
+                  <Input
+                    type="number"
+                    placeholder="R$ 10.000,00"
+                    value={maxSpent}
+                    onChange={(e) => setMaxSpent(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Data de Cadastro (De)</Label>
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Data de Cadastro (Até)</Label>
+                  <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+                </div>
+                <div className="flex items-end justify-end col-span-1 sm:col-span-2 md:col-span-3 pb-0.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="text-muted-foreground"
+                  >
+                    <X className="w-3 h-3 mr-2" />
+                    Limpar Filtros
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -118,18 +269,49 @@ export default function Customers() {
                 <TableRow>
                   <TableHead>Nome do Cliente</TableHead>
                   <TableHead>E-mail</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSort('lastPurchase')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Última Compra
+                      {sortField === 'lastPurchase' && <ArrowUpDown className="w-3 h-3" />}
+                    </div>
+                  </TableHead>
                   <TableHead className="text-center">Total de Pedidos</TableHead>
-                  <TableHead className="text-right">Total Gasto</TableHead>
+                  <TableHead
+                    className="text-right cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSort('totalSpent')}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      Total Gasto
+                      {sortField === 'totalSpent' && <ArrowUpDown className="w-3 h-3" />}
+                    </div>
+                  </TableHead>
                   <TableHead className="text-center w-[80px]">Detalhes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCustomers.map((customer) => (
+                {filteredAndSortedCustomers.map((customer) => (
                   <TableRow key={customer.id}>
                     <TableCell className="font-medium">{customer.name}</TableCell>
                     <TableCell>{customer.email}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={customer.status === 'Ativo' ? 'default' : 'secondary'}
+                        className={
+                          customer.status === 'Ativo' ? 'bg-emerald-500 hover:bg-emerald-600' : ''
+                        }
+                      >
+                        {customer.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(customer.lastPurchase).toLocaleDateString('pt-BR')}
+                    </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="secondary">{customer.ordersCount}</Badge>
+                      <Badge variant="outline">{customer.ordersCount}</Badge>
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap font-medium">
                       R$ {customer.totalSpent.toFixed(2)}
@@ -145,10 +327,10 @@ export default function Customers() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filteredCustomers.length === 0 && (
+                {filteredAndSortedCustomers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      Nenhum cliente encontrado.
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      Nenhum cliente encontrado com os filtros atuais.
                     </TableCell>
                   </TableRow>
                 )}
@@ -206,7 +388,7 @@ export default function Customers() {
 
               <div>
                 <h4 className="font-semibold mb-3 text-sm">Histórico de Pedidos Recentes</h4>
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-muted/50">
                       <TableRow>

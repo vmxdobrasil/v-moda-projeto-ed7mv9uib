@@ -1,0 +1,200 @@
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Shield, Trash2, Plus } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+
+interface User {
+  id: string
+  name: string
+  email: string
+  role: 'admin' | 'gerente'
+}
+
+const MOCK_USERS: User[] = [
+  { id: '1', name: 'Admin Supremo', email: 'admin@vmoda.com', role: 'admin' },
+  { id: '2', name: 'Maria Gerente', email: 'maria@vmoda.com', role: 'gerente' },
+]
+
+export default function Settings() {
+  const { toast } = useToast()
+  const [users, setUsers] = useState<User[]>(MOCK_USERS)
+  const [newUser, setNewUser] = useState<Partial<User>>({ name: '', email: '', role: 'gerente' })
+
+  const handleAddUser = () => {
+    if (!newUser.name || !newUser.email || !newUser.role) {
+      toast({ description: 'Preencha todos os campos.', variant: 'destructive' })
+      return
+    }
+    const user: User = { ...newUser, id: Math.random().toString() } as User
+    setUsers([...users, user])
+    setNewUser({ name: '', email: '', role: 'gerente' })
+    toast({ description: 'Usuário adicionado com sucesso!' })
+  }
+
+  const handleRemoveUser = (id: string) => {
+    setUsers(users.filter((u) => u.id !== id))
+    toast({ description: 'Usuário removido!' })
+  }
+
+  const handleSwitchMyRole = (role: string) => {
+    localStorage.setItem('admin_role', role)
+    toast({
+      description: `Seu papel foi alterado para ${role === 'admin' ? 'Administrador' : 'Gerente'}. Atualizando painel...`,
+    })
+    setTimeout(() => window.location.reload(), 1000)
+  }
+
+  const currentRole = localStorage.getItem('admin_role') || 'admin'
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Configurações do Sistema</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Gerencie acessos e permissões da equipe.
+        </p>
+      </div>
+
+      <Card className="border-primary/50 bg-primary/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Shield className="w-4 h-4 text-primary" />
+            Simulador de Acesso (Apenas Demonstração)
+          </CardTitle>
+          <CardDescription>
+            Alterne seu nível de acesso atual para testar as restrições do painel. Gerentes não têm
+            acesso a Relatórios nem Configurações.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4">
+            <Button
+              variant={currentRole === 'admin' ? 'default' : 'outline'}
+              onClick={() => handleSwitchMyRole('admin')}
+            >
+              Sou Administrador
+            </Button>
+            <Button
+              variant={currentRole === 'gerente' ? 'default' : 'outline'}
+              onClick={() => handleSwitchMyRole('gerente')}
+            >
+              Sou Gerente
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="md:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Novo Membro</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome</Label>
+                <Input
+                  id="name"
+                  value={newUser.name}
+                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Nível de Acesso</Label>
+                <Select
+                  value={newUser.role}
+                  onValueChange={(v: any) => setNewUser({ ...newUser, role: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o acesso" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="gerente">Gerente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleAddUser} className="w-full">
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="md:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Equipe e Permissões</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead>Acesso</TableHead>
+                      <TableHead className="w-[80px] text-center">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                            {user.role === 'admin' ? 'Administrador' : 'Gerente'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => handleRemoveUser(user.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}

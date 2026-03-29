@@ -20,7 +20,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { Plus, Edit2, Trash2, Search } from 'lucide-react'
+import { Plus, Edit2, Trash2, Search, Upload, Download } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 interface Product {
@@ -77,7 +77,9 @@ export default function Products() {
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS)
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [importText, setImportText] = useState('')
 
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
@@ -135,6 +137,78 @@ export default function Products() {
     }
   }
 
+  const handleImport = () => {
+    try {
+      let parsedProducts: Partial<Product>[] = []
+
+      if (importText.trim().startsWith('[')) {
+        parsedProducts = JSON.parse(importText)
+      } else {
+        const lines = importText.split('\n').filter((line) => line.trim())
+        parsedProducts = lines.slice(1).map((line) => {
+          const [id, name, category, price, stock, image] = line.split(',')
+          return {
+            id: id || Math.random().toString(36).substr(2, 9),
+            name: name?.trim(),
+            category: category?.trim(),
+            price: Number(price),
+            stock: Number(stock),
+            image: image?.trim() || 'https://img.usecurling.com/p/100/100?q=product',
+            description: '',
+          }
+        })
+      }
+
+      if (!parsedProducts.length) throw new Error('Nenhum dado válido.')
+
+      let updatedProducts = [...products]
+      let added = 0
+      let updated = 0
+
+      parsedProducts.forEach((p) => {
+        if (!p.name || !p.price) return
+        const existingIdx = updatedProducts.findIndex((ex) => ex.id === p.id || ex.name === p.name)
+        if (existingIdx >= 0) {
+          updatedProducts[existingIdx] = { ...updatedProducts[existingIdx], ...p } as Product
+          updated++
+        } else {
+          updatedProducts.push({
+            id: p.id || Math.random().toString(36).substr(2, 9),
+            name: p.name,
+            category: p.category || 'Geral',
+            price: p.price,
+            stock: p.stock || 0,
+            image: p.image || 'https://img.usecurling.com/p/100/100?q=product',
+            description: p.description || '',
+          })
+          added++
+        }
+      })
+
+      setProducts(updatedProducts)
+      toast({ description: `Importação concluída: ${added} adicionados, ${updated} atualizados.` })
+      setIsImportModalOpen(false)
+      setImportText('')
+    } catch (err) {
+      toast({
+        description: 'Erro ao processar dados. Verifique o formato.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const downloadTemplate = () => {
+    const csvContent =
+      'id,name,category,price,stock,image\nPROD-01,Novo Vestido,Vestidos,450.00,10,https://img.usecurling.com/p/100/100?q=dress'
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'modelo_importacao.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -144,10 +218,16 @@ export default function Products() {
             Adicione, edite ou remova produtos do catálogo.
           </p>
         </div>
-        <Button onClick={() => handleOpenModal()} className="w-full sm:w-auto">
-          <Plus className="w-4 h-4 mr-2" />
-          Adicionar Produto
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />
+            Importar
+          </Button>
+          <Button onClick={() => handleOpenModal()}>
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar Produto
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -318,6 +398,41 @@ export default function Products() {
               Cancelar
             </Button>
             <Button onClick={handleSave}>Salvar Produto</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Importação em Lote</DialogTitle>
+            <DialogDescription>
+              Cole abaixo os dados em formato CSV ou JSON para adicionar ou atualizar produtos.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">
+                Formato CSV: id,name,category,price,stock,image
+              </span>
+              <Button variant="link" onClick={downloadTemplate} className="h-auto p-0">
+                <Download className="w-4 h-4 mr-1" />
+                Baixar Modelo
+              </Button>
+            </div>
+            <Textarea
+              placeholder="Cole os dados aqui..."
+              className="font-mono text-xs"
+              rows={10}
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsImportModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleImport}>Processar Importação</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
