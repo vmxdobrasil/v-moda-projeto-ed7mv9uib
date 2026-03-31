@@ -146,15 +146,15 @@ export default function Products() {
       } else {
         const lines = importText.split('\n').filter((line) => line.trim())
         parsedProducts = lines.slice(1).map((line) => {
-          const [id, name, category, price, stock, image] = line.split(',')
+          const [id, nome, categoria, preco, estoque, imagem, descricao] = line.split(',')
           return {
             id: id || Math.random().toString(36).substr(2, 9),
-            name: name?.trim(),
-            category: category?.trim(),
-            price: Number(price),
-            stock: Number(stock),
-            image: image?.trim() || 'https://img.usecurling.com/p/100/100?q=product',
-            description: '',
+            name: nome?.trim(),
+            category: categoria?.trim() || 'Geral',
+            price: Number(preco),
+            stock: Number(estoque),
+            image: imagem?.trim() || 'https://img.usecurling.com/p/100/100?q=product',
+            description: descricao?.trim() || '',
           }
         })
       }
@@ -199,7 +199,7 @@ export default function Products() {
 
   const downloadTemplate = () => {
     const csvContent =
-      'id,name,category,price,stock,image\nPROD-01,Novo Vestido,Vestidos,450.00,10,https://img.usecurling.com/p/100/100?q=dress'
+      'id,nome,categoria,preco,estoque,imagem,descricao\nPROD-01,Novo Vestido,Vestidos,450.00,10,https://img.usecurling.com/p/100/100?q=dress,Um vestido elegante'
     const blob = new Blob([csvContent], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -413,7 +413,7 @@ export default function Products() {
           <div className="grid gap-4 py-4">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">
-                Formato CSV: id,name,category,price,stock,image
+                Formato CSV: id,nome,categoria,preco,estoque,imagem,descricao
               </span>
               <Button variant="link" onClick={downloadTemplate} className="h-auto p-0">
                 <Download className="w-4 h-4 mr-1" />

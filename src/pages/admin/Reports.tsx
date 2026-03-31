@@ -112,7 +112,7 @@ export default function Reports() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-primary" />
-              Evolução da Receita (Últimos 30 Dias)
+              Tendência de Receita (Últimos 30 Dias)
             </CardTitle>
             <CardDescription className="print:hidden">
               Acompanhamento de faturamento diário.
@@ -170,7 +170,7 @@ export default function Reports() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-primary" />
-              Top 5 Produtos
+              Produtos Mais Vendidos
             </CardTitle>
             <CardDescription className="print:hidden">
               Itens mais vendidos no período selecionado.

@@ -14,15 +14,35 @@ export default function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const isAuthenticated = localStorage.getItem('admin_auth') === '1'
-  const role = localStorage.getItem('admin_role') || 'admin' // 'admin' or 'gerente'
+  const role = localStorage.getItem('admin_role') || 'administrador' // 'administrador' or 'gerente'
 
   const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, roles: ['admin', 'gerente'] },
-    { name: 'Pedidos', href: '/admin/pedidos', icon: ShoppingCart, roles: ['admin', 'gerente'] },
-    { name: 'Produtos', href: '/admin/produtos', icon: Package, roles: ['admin', 'gerente'] },
-    { name: 'Clientes', href: '/admin/clientes', icon: Users, roles: ['admin', 'gerente'] },
-    { name: 'Relatórios', href: '/admin/relatorios', icon: BarChart, roles: ['admin'] },
-    { name: 'Configurações', href: '/admin/configuracoes', icon: Settings, roles: ['admin'] },
+    {
+      name: 'Dashboard',
+      href: '/admin',
+      icon: LayoutDashboard,
+      roles: ['administrador', 'gerente'],
+    },
+    {
+      name: 'Pedidos',
+      href: '/admin/pedidos',
+      icon: ShoppingCart,
+      roles: ['administrador', 'gerente'],
+    },
+    {
+      name: 'Produtos',
+      href: '/admin/produtos',
+      icon: Package,
+      roles: ['administrador', 'gerente'],
+    },
+    { name: 'Clientes', href: '/admin/clientes', icon: Users, roles: ['administrador', 'gerente'] },
+    { name: 'Relatórios', href: '/admin/relatorios', icon: BarChart, roles: ['administrador'] },
+    {
+      name: 'Configurações',
+      href: '/admin/configuracoes',
+      icon: Settings,
+      roles: ['administrador'],
+    },
   ]
 
   const filteredNavigation = navigation.filter((item) => item.roles.includes(role))

@@ -205,7 +205,7 @@ export default function Customers() {
             {showFilters && (
               <div className="p-4 bg-muted/40 rounded-lg border grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
                 <div className="space-y-2">
-                  <Label>Status</Label>
+                  <Label>Atividade de compra</Label>
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione..." />
@@ -218,7 +218,7 @@ export default function Customers() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Ticket Médio (LTV) - Mín</Label>
+                  <Label>Valor Médio do Pedido (LTV) - Mín</Label>
                   <Input
                     type="number"
                     placeholder="R$ 0,00"
@@ -227,7 +227,7 @@ export default function Customers() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Ticket Médio (LTV) - Máx</Label>
+                  <Label>Valor Médio do Pedido (LTV) - Máx</Label>
                   <Input
                     type="number"
                     placeholder="R$ 10.000,00"
@@ -236,7 +236,7 @@ export default function Customers() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Data de Cadastro (De)</Label>
+                  <Label>Data de Registro (De)</Label>
                   <Input
                     type="date"
                     value={dateFrom}
@@ -244,7 +244,7 @@ export default function Customers() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Data de Cadastro (Até)</Label>
+                  <Label>Data de Registro (Até)</Label>
                   <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
                 </div>
                 <div className="flex items-end justify-end col-span-1 sm:col-span-2 md:col-span-3 pb-0.5">

@@ -26,11 +26,11 @@ interface User {
   id: string
   name: string
   email: string
-  role: 'admin' | 'gerente'
+  role: 'administrador' | 'gerente'
 }
 
 const MOCK_USERS: User[] = [
-  { id: '1', name: 'Admin Supremo', email: 'admin@vmoda.com', role: 'admin' },
+  { id: '1', name: 'Admin Supremo', email: 'admin@vmoda.com', role: 'administrador' },
   { id: '2', name: 'Maria Gerente', email: 'maria@vmoda.com', role: 'gerente' },
 ]
 
@@ -58,12 +58,12 @@ export default function Settings() {
   const handleSwitchMyRole = (role: string) => {
     localStorage.setItem('admin_role', role)
     toast({
-      description: `Seu papel foi alterado para ${role === 'admin' ? 'Administrador' : 'Gerente'}. Atualizando painel...`,
+      description: `Seu papel foi alterado para ${role === 'administrador' ? 'Administrador' : 'Gerente'}. Atualizando painel...`,
     })
     setTimeout(() => window.location.reload(), 1000)
   }
 
-  const currentRole = localStorage.getItem('admin_role') || 'admin'
+  const currentRole = localStorage.getItem('admin_role') || 'administrador'
 
   return (
     <div className="space-y-6">
@@ -88,8 +88,8 @@ export default function Settings() {
         <CardContent>
           <div className="flex gap-4">
             <Button
-              variant={currentRole === 'admin' ? 'default' : 'outline'}
-              onClick={() => handleSwitchMyRole('admin')}
+              variant={currentRole === 'administrador' ? 'default' : 'outline'}
+              onClick={() => handleSwitchMyRole('administrador')}
             >
               Sou Administrador
             </Button>
@@ -137,9 +137,9 @@ export default function Settings() {
                     <SelectValue placeholder="Selecione o acesso" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="administrador">Administrador</SelectItem>
                     <SelectItem value="gerente">Gerente</SelectItem>
-                  </SelectContent>
+                  </SelectContent>{' '}
                 </Select>
               </div>
               <Button onClick={handleAddUser} className="w-full">
@@ -172,8 +172,8 @@ export default function Settings() {
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
-                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                            {user.role === 'admin' ? 'Administrador' : 'Gerente'}
+                          <Badge variant={user.role === 'administrador' ? 'default' : 'secondary'}>
+                            {user.role === 'administrador' ? 'Administrador' : 'Gerente'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
