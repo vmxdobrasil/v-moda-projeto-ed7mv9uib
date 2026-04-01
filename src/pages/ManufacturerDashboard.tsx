@@ -21,18 +21,8 @@ export default function ManufacturerDashboard() {
   const { manufacturers, updateVmp } = useManufacturerStore()
   const { toast } = useToast()
 
-  // Redirect if not logged in
-  if (!user) {
-    return <Navigate to="/login" replace />
-  }
-
-  // Redirect if not a manufacturer
-  if (user.type !== 'Lojista Fabricante') {
-    return <Navigate to="/" replace />
-  }
-
   // Fallback to 'm1' if manufacturerId is not set for demo purposes
-  const mId = user.manufacturerId || 'm1'
+  const mId = user?.manufacturerId || 'm1'
   const manufacturer = manufacturers.find((m) => m.id === mId)
 
   const [vmp, setVmp] = useState(manufacturer?.vmp?.toString() || '0')
@@ -43,6 +33,16 @@ export default function ManufacturerDashboard() {
       setVmp(manufacturer.vmp.toString())
     }
   }, [manufacturer])
+
+  // Redirect if not logged in
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  // Redirect if not a manufacturer
+  if (user.type !== 'Lojista Fabricante') {
+    return <Navigate to="/" replace />
+  }
 
   const handleSave = () => {
     const numVmp = parseInt(vmp, 10)
