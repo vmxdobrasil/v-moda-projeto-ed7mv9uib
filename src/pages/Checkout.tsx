@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast'
 import useCartStore from '@/stores/useCartStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { useManufacturerStore } from '@/stores/useManufacturerStore'
+import { useProductStore } from '@/stores/useProductStore'
 import { formatPrice } from '@/lib/data'
 import { useSEO } from '@/hooks/useSEO'
 import { trackEvent } from '@/lib/analytics'
@@ -27,6 +28,7 @@ export default function Checkout() {
   const { items: cartItems, clearCart } = useCartStore()
   const { user } = useAuthStore()
   const { manufacturers } = useManufacturerStore()
+  const { products } = useProductStore()
   const { toast } = useToast()
   const navigate = useNavigate()
 
@@ -37,8 +39,11 @@ export default function Checkout() {
   const isWholesale = user?.type === 'Atacado'
 
   const cartTotal = cartItems.reduce((acc, item) => {
+    const currentProduct = products.find((p) => p.id === item.product.id) || item.product
     const price =
-      isWholesale && item.product.wholesalePrice ? item.product.wholesalePrice : item.product.price
+      isWholesale && currentProduct.wholesalePrice
+        ? currentProduct.wholesalePrice
+        : currentProduct.price
     return acc + price * item.quantity
   }, 0)
 
@@ -110,6 +115,19 @@ export default function Checkout() {
     }
 
     const orderId = `PED-${Math.floor(Math.random() * 10000)}`
+
+    if (isWholesale) {
+      Object.keys(itemsByManufacturer).forEach((mName) => {
+        const m = manufacturers.find((x) => x.name === mName)
+        if (m) {
+          toast({
+            title: `E-mail enviado para o fabricante: ${mName}`,
+            description: `Notificação do pedido ${orderId} com seus itens enviada com sucesso.`,
+            variant: 'default',
+          })
+        }
+      })
+    }
 
     trackEvent('purchase', {
       transaction_id: orderId,
@@ -393,6 +411,11 @@ export default function Checkout() {
                         </span>
                       )}
                     </div>
+                    {mStore?.wholesaleMessage && (
+                      <div className="px-4 py-2 bg-primary/10 text-primary text-xs font-medium border-b border-primary/20">
+                        Aviso: {mStore.wholesaleMessage}
+                      </div>
+                    )}
                     <div className="overflow-x-auto">
                       <Table>
                         <TableBody>
@@ -427,8 +450,10 @@ export default function Checkout() {
                               </TableCell>
                               <TableCell className="text-right text-sm">
                                 {formatPrice(
-                                  (item.product.wholesalePrice || item.product.price) *
-                                    item.quantity,
+                                  ((products.find((p) => p.id === item.product.id) || item.product)
+                                    .wholesalePrice ||
+                                    (products.find((p) => p.id === item.product.id) || item.product)
+                                      .price) * item.quantity,
                                 )}
                               </TableCell>
                             </TableRow>

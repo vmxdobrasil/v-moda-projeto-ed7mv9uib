@@ -4,10 +4,16 @@ export interface Manufacturer {
   id: string
   name: string
   vmp: number
+  wholesaleMessage?: string
 }
 
 const DEFAULT_MANUFACTURERS: Manufacturer[] = [
-  { id: 'm1', name: 'Seda & Co.', vmp: 5 },
+  {
+    id: 'm1',
+    name: 'Seda & Co.',
+    vmp: 5,
+    wholesaleMessage: 'Pedidos acima de 20 peças ganham frete grátis.',
+  },
   { id: 'm2', name: 'Alfaiataria Premium', vmp: 4 },
   { id: 'm3', name: 'Basics', vmp: 10 },
   { id: 'm4', name: 'Couro Fino', vmp: 2 },
@@ -48,10 +54,18 @@ export function useManufacturerStore() {
     }
   }
 
+  const updateMessage = (id: string, message: string) => {
+    const index = manufacturers.findIndex((m) => m.id === id)
+    if (index !== -1) {
+      manufacturers[index].wholesaleMessage = message
+      notify()
+    }
+  }
+
   const addManufacturer = (name: string, vmp: number) => {
     manufacturers.push({ id: `m${Date.now()}`, name, vmp })
     notify()
   }
 
-  return { manufacturers: data, updateVmp, addManufacturer }
+  return { manufacturers: data, updateVmp, updateMessage, addManufacturer }
 }
