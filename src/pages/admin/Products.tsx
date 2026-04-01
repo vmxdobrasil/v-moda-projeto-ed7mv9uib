@@ -282,7 +282,7 @@ export default function Products() {
                         </span>
                         {product.stock <= 5 && (
                           <span className="bg-destructive text-destructive-foreground text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider whitespace-nowrap">
-                            Estoque Baixo
+                            Estoque Crítico
                           </span>
                         )}
                       </div>

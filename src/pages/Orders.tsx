@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Eye, Package, ArrowLeft } from 'lucide-react'
+import { Eye, Package, ArrowLeft, Star, MessageSquare } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -11,12 +11,16 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import { formatPrice } from '@/lib/data'
 
@@ -69,7 +73,21 @@ const statusColors: Record<string, string> = {
 }
 
 export default function Orders() {
+  const { toast } = useToast()
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [reviewItem, setReviewItem] = useState<{ orderId: string; item: OrderItem } | null>(null)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+
+  const handleReviewSubmit = () => {
+    toast({
+      title: 'Avaliação enviada!',
+      description: 'Obrigado por avaliar este produto.',
+    })
+    setReviewItem(null)
+    setReviewRating(5)
+    setReviewComment('')
+  }
 
   return (
     <div className="container py-24 md:py-32 min-h-[70vh]">
@@ -166,7 +184,10 @@ export default function Orders() {
                 <h4 className="font-medium mb-4">Itens do Pedido</h4>
                 <div className="space-y-4">
                   {selectedOrder.items.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center text-sm">
+                    <div
+                      key={index}
+                      className="flex flex-wrap justify-between items-center gap-4 text-sm border-b pb-4 last:border-0 last:pb-0"
+                    >
                       <div className="flex items-center gap-4">
                         <span className="text-muted-foreground">{item.quantity}x</span>
                         <div className="flex flex-col">
@@ -178,9 +199,22 @@ export default function Orders() {
                           )}
                         </div>
                       </div>
-                      <span className="font-medium whitespace-nowrap ml-4">
-                        {formatPrice(item.price * item.quantity)}
-                      </span>
+                      <div className="flex items-center gap-4 ml-auto">
+                        <span className="font-medium whitespace-nowrap">
+                          {formatPrice(item.price * item.quantity)}
+                        </span>
+                        {selectedOrder.status === 'Entregue' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-8 gap-1.5"
+                            onClick={() => setReviewItem({ orderId: selectedOrder.id, item })}
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            Avaliar Produto
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -194,6 +228,59 @@ export default function Orders() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!reviewItem} onOpenChange={(open) => !open && setReviewItem(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-serif mb-2">Avaliar Produto</DialogTitle>
+            <DialogDescription>
+              Compartilhe sua experiência com o produto {reviewItem?.item.name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 mt-4">
+            <div>
+              <span className="block text-sm font-medium mb-2">Sua Nota</span>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setReviewRating(star)}
+                    className="focus:outline-none"
+                  >
+                    <Star
+                      className={cn(
+                        'w-8 h-8 transition-colors',
+                        star <= reviewRating
+                          ? 'fill-accent text-accent'
+                          : 'text-muted-foreground/30 hover:text-accent/50',
+                      )}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="block text-sm font-medium mb-2">Seu Comentário</span>
+              <Textarea
+                placeholder="O que você achou do produto? O caimento é bom? A cor é igual à da foto?"
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                className="min-h-[120px] resize-none focus-visible:ring-accent"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => setReviewItem(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleReviewSubmit}>Enviar Avaliação</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

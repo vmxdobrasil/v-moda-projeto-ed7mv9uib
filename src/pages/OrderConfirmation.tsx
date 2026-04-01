@@ -91,6 +91,36 @@ export default function OrderConfirmation() {
           </div>
         </div>
 
+        {orderData.paymentMethod === 'pix' && (
+          <div className="mb-10 p-6 border rounded-lg bg-secondary/10 flex flex-col items-center text-center w-full max-w-md mx-auto">
+            <h3 className="font-serif text-lg mb-4">Pagamento via PIX</h3>
+            <div className="w-48 h-48 bg-white flex items-center justify-center p-2 rounded-md border border-border mb-4">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=PIX_MOCK_PAYMENT_VMODA`}
+                alt="QR Code PIX"
+                className="w-full h-full object-contain mix-blend-multiply opacity-80"
+              />
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Escaneie o QR Code acima no aplicativo do seu banco para finalizar o pagamento.
+            </p>
+            <Button variant="outline" className="w-full">
+              Copiar Código PIX
+            </Button>
+          </div>
+        )}
+
+        {orderData.paymentMethod === 'boleto' && (
+          <div className="mb-10 p-6 border rounded-lg bg-secondary/10 flex flex-col items-center text-center w-full max-w-md mx-auto">
+            <h3 className="font-serif text-lg mb-2">Boleto Bancário</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Seu boleto foi gerado com sucesso. Clique no botão abaixo para visualizá-lo ou
+              imprimi-lo. O pedido será processado após a confirmação do pagamento.
+            </p>
+            <Button className="w-full sm:w-auto">Acessar Boleto</Button>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button asChild className="rounded-none h-12 px-8 uppercase tracking-widest">
             <Link to="/meus-pedidos">Ver Meus Pedidos</Link>

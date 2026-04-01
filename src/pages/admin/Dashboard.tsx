@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DollarSign, ShoppingBag, Users, CreditCard } from 'lucide-react'
+import { DollarSign, ShoppingBag, Users, CreditCard, AlertTriangle } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import {
   Area,
@@ -27,6 +28,12 @@ const topProducts = [
   { name: 'Calça Pantal', sales: 86 },
   { name: 'Camisa Linho', sales: 75 },
   { name: 'Saia Midi', sales: 64 },
+]
+
+const lowStockProducts = [
+  { id: 'PROD-004', name: 'Camisa Linho', stock: 3 },
+  { id: 'PROD-007', name: 'Bolsa Couro Estruturada', stock: 1 },
+  { id: 'PROD-008', name: 'Cinto Couro', stock: 4 },
 ]
 
 export default function Dashboard() {
@@ -82,8 +89,8 @@ export default function Dashboard() {
       </div>
 
       {/* Charts */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-8">
+        <Card className="lg:col-span-5">
           <CardHeader>
             <CardTitle>Vendas por Período</CardTitle>
           </CardHeader>
@@ -128,43 +135,75 @@ export default function Dashboard() {
             </ChartContainer>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Produtos Mais Vendidos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer
-              config={{ sales: { label: 'Unidades', color: 'hsl(var(--primary))' } }}
-              className="h-[300px] w-full"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={topProducts}
-                  layout="vertical"
-                  margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.5} />
-                  <XAxis type="number" hide />
-                  <YAxis
-                    dataKey="name"
-                    type="category"
-                    axisLine={false}
-                    tickLine={false}
-                    width={100}
-                    fontSize={12}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar
-                    dataKey="sales"
-                    fill="var(--color-sales)"
-                    radius={[0, 4, 4, 0]}
-                    barSize={32}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+
+        <div className="lg:col-span-3 flex flex-col gap-4">
+          <Card className="flex-1">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Produtos Mais Vendidos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={{ sales: { label: 'Unidades', color: 'hsl(var(--primary))' } }}
+                className="h-[140px] w-full"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={topProducts}
+                    layout="vertical"
+                    margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.5} />
+                    <XAxis type="number" hide />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      axisLine={false}
+                      tickLine={false}
+                      width={90}
+                      fontSize={11}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar
+                      dataKey="sales"
+                      fill="var(--color-sales)"
+                      radius={[0, 4, 4, 0]}
+                      barSize={16}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="flex-1 border-destructive/30 bg-destructive/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base text-destructive">
+                <AlertTriangle className="w-5 h-5" />
+                Alertas de Estoque Baixo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {lowStockProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="flex items-center justify-between border-b border-destructive/10 pb-2 last:border-0 last:pb-0"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium text-sm leading-none mb-1.5">
+                        {product.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{product.id}</span>
+                    </div>
+                    <Badge variant="destructive" className="font-mono text-xs px-2">
+                      {product.stock} un
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
