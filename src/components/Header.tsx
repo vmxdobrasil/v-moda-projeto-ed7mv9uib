@@ -84,6 +84,7 @@ export function Header() {
   const navLinks = [
     { name: 'Início', path: '/' },
     { name: 'Coleções', path: '/colecoes' },
+    { name: 'Conhecimento', path: '/conhecimento' },
     { name: 'Revista Digital', path: '/revista' },
     { name: 'Sobre Nós', path: '/sobre-nos' },
     { name: 'Contato', path: '/contato' },
