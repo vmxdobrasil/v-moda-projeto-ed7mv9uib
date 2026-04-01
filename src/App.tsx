@@ -12,6 +12,7 @@ import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import Profile from './pages/Profile'
 import Checkout from './pages/Checkout'
+import OrderConfirmation from './pages/OrderConfirmation'
 import Orders from './pages/Orders'
 import AboutUs from './pages/AboutUs'
 import Contact from './pages/Contact'
@@ -51,6 +52,7 @@ const App = () => (
           <Route path="/recuperar-senha" element={<ForgotPassword />} />
           <Route path="/perfil" element={<Profile />} />
           <Route path="/finalizar-compra" element={<Checkout />} />
+          <Route path="/pedido-realizado" element={<OrderConfirmation />} />
           <Route path="/meus-pedidos" element={<Orders />} />
           <Route path="/sobre-nos" element={<AboutUs />} />
           <Route path="/contato" element={<Contact />} />

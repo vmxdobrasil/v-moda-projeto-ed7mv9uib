@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Copy } from 'lucide-react'
+import { Copy, FileText, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,6 +26,8 @@ export default function Checkout() {
   const { toast } = useToast()
   const navigate = useNavigate()
   const [paymentMethod, setPaymentMethod] = useState('credit_card')
+  const [cep, setCep] = useState('')
+  const [shippingCost, setShippingCost] = useState<number>(0)
 
   useSEO({
     title: 'Finalizar Compra',
@@ -51,10 +53,12 @@ export default function Checkout() {
   const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault()
 
+    const orderId = `PED-${Math.floor(Math.random() * 10000)}`
+
     trackEvent('purchase', {
-      transaction_id: `T_${Date.now()}`,
+      transaction_id: orderId,
       currency: 'BRL',
-      value: cartTotal,
+      value: cartTotal + shippingCost,
       items: cartItems.map((item) => ({
         item_id: item.product.id,
         item_name: item.product.name,
@@ -70,7 +74,32 @@ export default function Checkout() {
     })
 
     clearCart()
-    navigate('/')
+    navigate('/pedido-realizado', {
+      state: {
+        orderId,
+        items: cartItems,
+        total: cartTotal + shippingCost,
+        shippingCost,
+        paymentMethod,
+      },
+    })
+  }
+
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '')
+    setCep(value)
+
+    // Simulate shipping calculation when CEP is fully entered
+    if (value.length === 8) {
+      const mockCost = Math.random() > 0.5 ? 15.9 : 25.9
+      setShippingCost(mockCost)
+      toast({
+        title: 'Frete calculado',
+        description: `O valor do frete é ${formatPrice(mockCost)}.`,
+      })
+    } else {
+      setShippingCost(0)
+    }
   }
 
   const copyPixCode = () => {
@@ -104,15 +133,35 @@ export default function Checkout() {
               Informações de Entrega
             </h2>
             <form id="checkout-form" onSubmit={handleCheckout} className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2 col-span-2 sm:col-span-1">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Nome Completo</Label>
+                <Input id="fullName" required placeholder="Seu nome completo" />
+              </div>
+
+              <div className="space-y-4 p-4 border rounded-md bg-secondary/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <Truck className="w-5 h-5 text-primary" />
+                  <h3 className="font-medium">Cálculo de Frete</h3>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="cep">CEP</Label>
-                  <Input id="cep" placeholder="00000-000" required />
+                  <Input
+                    id="cep"
+                    placeholder="00000000"
+                    maxLength={8}
+                    value={cep}
+                    onChange={handleCepChange}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Digite seu CEP para calcular opções de entrega.
+                  </p>
                 </div>
-                <div className="space-y-2 col-span-2 sm:col-span-1">
-                  <Label htmlFor="city">Cidade</Label>
-                  <Input id="city" required />
-                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="city">Cidade</Label>
+                <Input id="city" required />
               </div>
 
               <div className="space-y-2">
@@ -120,15 +169,20 @@ export default function Checkout() {
                 <Input id="address" required />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="number">Número</Label>
                   <Input id="number" required />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="neighborhood">Bairro</Label>
-                  <Input id="neighborhood" required />
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="complement">Complemento</Label>
+                  <Input id="complement" placeholder="Apto, Bloco, etc (opcional)" />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="neighborhood">Bairro</Label>
+                <Input id="neighborhood" required />
               </div>
             </form>
           </section>
@@ -141,7 +195,7 @@ export default function Checkout() {
               <RadioGroup
                 value={paymentMethod}
                 onValueChange={setPaymentMethod}
-                className="grid grid-cols-2 gap-4"
+                className="grid grid-cols-1 sm:grid-cols-3 gap-4"
               >
                 <div>
                   <RadioGroupItem value="credit_card" id="credit_card" className="peer sr-only" />
@@ -156,9 +210,18 @@ export default function Checkout() {
                   <RadioGroupItem value="pix" id="pix" className="peer sr-only" />
                   <Label
                     htmlFor="pix"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer text-center"
                   >
                     <span>PIX</span>
+                  </Label>
+                </div>
+                <div>
+                  <RadioGroupItem value="boleto" id="boleto" className="peer sr-only" />
+                  <Label
+                    htmlFor="boleto"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer text-center"
+                  >
+                    <span>Boleto</span>
                   </Label>
                 </div>
               </RadioGroup>
@@ -213,6 +276,16 @@ export default function Checkout() {
                   </Button>
                 </div>
               )}
+
+              {paymentMethod === 'boleto' && (
+                <div className="flex flex-col items-center justify-center space-y-4 animate-in fade-in zoom-in-95 border p-6 rounded-md text-center">
+                  <FileText className="w-12 h-12 text-muted-foreground/50" />
+                  <p className="text-sm text-muted-foreground">
+                    O boleto bancário será gerado e enviado para o seu e-mail após a confirmação do
+                    pedido.
+                  </p>
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -240,7 +313,12 @@ export default function Checkout() {
                           alt={item.product.name}
                           className="w-10 h-14 object-cover hidden sm:block"
                         />
-                        <span className="line-clamp-2 text-sm">{item.product.name}</span>
+                        <div className="flex flex-col">
+                          <span className="line-clamp-2 text-sm">{item.product.name}</span>
+                          {item.size && (
+                            <span className="text-xs text-muted-foreground">Tam: {item.size}</span>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-center text-sm">{item.quantity}</TableCell>
@@ -260,11 +338,11 @@ export default function Checkout() {
             </div>
             <div className="flex justify-between text-muted-foreground mb-4">
               <span>Frete</span>
-              <span>Grátis</span>
+              <span>{shippingCost > 0 ? formatPrice(shippingCost) : 'Grátis'}</span>
             </div>
             <div className="flex justify-between font-serif text-2xl mb-8">
               <span>Total</span>
-              <span>{formatPrice(cartTotal)}</span>
+              <span className="text-primary">{formatPrice(cartTotal + shippingCost)}</span>
             </div>
 
             <Button

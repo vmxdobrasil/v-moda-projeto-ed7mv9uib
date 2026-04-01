@@ -32,7 +32,7 @@ export function Header() {
   const navigate = useNavigate()
   const isHome = location.pathname === '/'
 
-  const { items: cartItems, cartTotal, removeFromCart } = useCartStore()
+  const { items: cartItems, cartTotal, removeFromCart, updateQuantity } = useCartStore()
   const { items: wishlistItems } = useWishlistStore()
   const { user, isAuthenticated, logout } = useAuthStore()
 
@@ -285,14 +285,40 @@ export function Header() {
                       />
                       <div className="flex-1">
                         <h4 className="text-sm font-medium line-clamp-1">{item.product.name}</h4>
+                        {item.size && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Tamanho: {item.size}
+                          </p>
+                        )}
                         <p className="text-sm text-muted-foreground mt-1">
-                          {formatPrice(item.product.price)}{' '}
-                          <span className="text-xs">x{item.quantity}</span>
+                          {formatPrice(item.product.price)}
                         </p>
+                        <div className="flex items-center border border-border w-24 h-8 mt-2">
+                          <button
+                            onClick={() =>
+                              updateQuantity(item.product.id, item.quantity - 1, item.size)
+                            }
+                            className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            -
+                          </button>
+                          <span className="flex-1 text-center text-sm font-medium">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() =>
+                              updateQuantity(item.product.id, item.quantity + 1, item.size)
+                            }
+                            className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                       <button
-                        onClick={() => removeFromCart(item.product.id)}
-                        className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+                        onClick={() => removeFromCart(item.product.id, item.size)}
+                        className="p-2 text-muted-foreground hover:text-destructive transition-colors self-start"
+                        aria-label="Remover item"
                       >
                         <X className="w-4 h-4" />
                       </button>

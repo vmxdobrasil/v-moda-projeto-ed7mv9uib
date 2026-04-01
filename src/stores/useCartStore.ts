@@ -5,6 +5,7 @@ import { trackEvent } from '@/lib/analytics'
 export interface CartItem {
   product: Product
   quantity: number
+  size?: string
 }
 
 let cartItems: CartItem[] = []
@@ -32,12 +33,12 @@ export default function useCartStore() {
     }
   }, [])
 
-  const addToCart = (product: Product, quantity = 1) => {
-    const existing = cartItems.find((item) => item.product.id === product.id)
+  const addToCart = (product: Product, quantity = 1, size?: string) => {
+    const existing = cartItems.find((item) => item.product.id === product.id && item.size === size)
     if (existing) {
       existing.quantity += quantity
     } else {
-      cartItems.push({ product, quantity })
+      cartItems.push({ product, quantity, size })
     }
 
     trackEvent('add_to_cart', {
@@ -57,9 +58,21 @@ export default function useCartStore() {
     notify()
   }
 
-  const removeFromCart = (productId: string) => {
-    cartItems = cartItems.filter((item) => item.product.id !== productId)
+  const removeFromCart = (productId: string, size?: string) => {
+    cartItems = cartItems.filter((item) => !(item.product.id === productId && item.size === size))
     notify()
+  }
+
+  const updateQuantity = (productId: string, quantity: number, size?: string) => {
+    const existing = cartItems.find((item) => item.product.id === productId && item.size === size)
+    if (existing) {
+      if (quantity <= 0) {
+        removeFromCart(productId, size)
+      } else {
+        existing.quantity = quantity
+        notify()
+      }
+    }
   }
 
   const clearCart = () => {
@@ -69,5 +82,5 @@ export default function useCartStore() {
 
   const cartTotal = items.reduce((total, item) => total + item.product.price * item.quantity, 0)
 
-  return { items, addToCart, removeFromCart, clearCart, cartTotal }
+  return { items, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal }
 }

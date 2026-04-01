@@ -28,7 +28,8 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.preventDefault()
-    addToCart(product)
+    const defaultSize = product.sizes && product.sizes.length > 0 ? product.sizes[0] : undefined
+    addToCart(product, 1, defaultSize)
     setOpen(false)
     toast({
       title: 'Adicionado ao carrinho',

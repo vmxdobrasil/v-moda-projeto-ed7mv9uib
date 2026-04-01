@@ -24,6 +24,7 @@ interface OrderItem {
   name: string
   quantity: number
   price: number
+  size?: string
 }
 
 interface Order {
@@ -40,14 +41,14 @@ const MOCK_ORDERS: Order[] = [
     date: '28/03/2026',
     total: 3200.0,
     status: 'Processando',
-    items: [{ name: 'Bolsa Couro Estruturada', quantity: 1, price: 3200.0 }],
+    items: [{ name: 'Bolsa Couro Estruturada', quantity: 1, price: 3200.0, size: 'Único' }],
   },
   {
     id: 'PED-1029',
     date: '15/02/2026',
     total: 1290.0,
     status: 'Entregue',
-    items: [{ name: 'Vestido de Seda Minimalista', quantity: 1, price: 1290.0 }],
+    items: [{ name: 'Vestido de Seda Minimalista', quantity: 1, price: 1290.0, size: 'M' }],
   },
   {
     id: 'PED-1025',
@@ -55,8 +56,8 @@ const MOCK_ORDERS: Order[] = [
     total: 2950.0,
     status: 'Entregue',
     items: [
-      { name: 'Blazer Estruturado em Lã', quantity: 1, price: 1850.0 },
-      { name: 'Sapato Scarpin Verniz', quantity: 1, price: 1100.0 },
+      { name: 'Blazer Estruturado em Lã', quantity: 1, price: 1850.0, size: 'P' },
+      { name: 'Sapato Scarpin Verniz', quantity: 1, price: 1100.0, size: '37' },
     ],
   },
 ]
@@ -166,9 +167,16 @@ export default function Orders() {
                 <div className="space-y-4">
                   {selectedOrder.items.map((item, index) => (
                     <div key={index} className="flex justify-between items-center text-sm">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-4">
                         <span className="text-muted-foreground">{item.quantity}x</span>
-                        <span className="line-clamp-1">{item.name}</span>
+                        <div className="flex flex-col">
+                          <span className="line-clamp-1">{item.name}</span>
+                          {item.size && (
+                            <span className="text-xs text-muted-foreground">
+                              Tamanho: {item.size}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <span className="font-medium whitespace-nowrap ml-4">
                         {formatPrice(item.price * item.quantity)}
