@@ -135,6 +135,7 @@ export interface Course {
   level: string
   image: string
   isSpecialization?: boolean
+  hotmartLink?: string
 }
 
 export const COURSES: Course[] = [
@@ -142,7 +143,7 @@ export const COURSES: Course[] = [
     id: 'vendas-fabricantes',
     title: 'Vendas para Gerentes e Vendedoras de Lojas de Fabricantes',
     description:
-      'Módulos dedicados para equipes de loja e gerentes de fabricantes, focados em excelência no varejo.',
+      'Módulos dedicados para equipes de loja e gerentes de fabricantes, focados em técnicas de alta conversão e gestão de loja no varejo.',
     instructor: 'Especialistas V MODA',
     icon: 'Store',
     longDescription:
@@ -157,12 +158,13 @@ export const COURSES: Course[] = [
     level: 'Avançado',
     image: 'https://img.usecurling.com/p/800/600?q=retail%20store%20management%20fashion',
     isSpecialization: true,
+    hotmartLink: 'https://pay.hotmart.com/vmoda-vendas-fabricantes',
   },
   {
     id: 'revendedora-consultora',
     title: 'De Revendedora a Consultora de Moda e Vendas',
     description:
-      'Transforme sua atuação tradicional em uma consultoria de moda e vendas de alto nível.',
+      'Transforme sua atuação com foco em personal branding, consultoria de estilo e vendas consultivas de alto nível.',
     instructor: 'Fábia Mendonça',
     icon: 'Star',
     longDescription:
@@ -177,6 +179,7 @@ export const COURSES: Course[] = [
     level: 'Intermediário a Avançado',
     image: 'https://img.usecurling.com/p/800/600?q=personal%20stylist%20fashion%20consultant',
     isSpecialization: true,
+    hotmartLink: 'https://pay.hotmart.com/vmoda-consultora-moda',
   },
   {
     id: 'marketing-digital',
@@ -196,6 +199,7 @@ export const COURSES: Course[] = [
     duration: '30 horas',
     level: 'Iniciante',
     image: 'https://img.usecurling.com/p/800/600?q=digital%20marketing%20fashion',
+    hotmartLink: 'https://pay.hotmart.com/vmoda-marketing-digital',
   },
   {
     id: 'branding-moda',
@@ -214,6 +218,7 @@ export const COURSES: Course[] = [
     duration: '25 horas',
     level: 'Intermediário',
     image: 'https://img.usecurling.com/p/800/600?q=fashion%20branding%20design',
+    hotmartLink: 'https://pay.hotmart.com/vmoda-branding-moda',
   },
   {
     id: 'estrategias-vendas',
@@ -232,6 +237,7 @@ export const COURSES: Course[] = [
     duration: '35 horas',
     level: 'Avançado',
     image: 'https://img.usecurling.com/p/800/600?q=luxury%20fashion%20sales',
+    hotmartLink: 'https://pay.hotmart.com/vmoda-estrategias-vendas',
   },
   {
     id: 'gestao-redes',
@@ -250,5 +256,6 @@ export const COURSES: Course[] = [
     duration: '20 horas',
     level: 'Iniciante a Intermediário',
     image: 'https://img.usecurling.com/p/800/600?q=social%20media%20fashion%20content',
+    hotmartLink: 'https://pay.hotmart.com/vmoda-gestao-redes',
   },
 ]
