@@ -10,15 +10,17 @@ import {
 } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button } from '@/components/ui/button'
-import { Download, Image as ImageIcon, Loader2 } from 'lucide-react'
+import { Download, Image as ImageIcon, Loader2, Send } from 'lucide-react'
 import { PRODUCTS, formatPrice } from '@/lib/data'
 import { useToast } from '@/hooks/use-toast'
+import { useMagazineStore } from '@/stores/useMagazineStore'
 
 export default function AdminMarketing() {
   const [prodId, setProdId] = useState('')
   const [format, setFormat] = useState<'web' | 'app'>('web')
   const [generating, setGenerating] = useState(false)
   const { toast } = useToast()
+  const { publishIssue } = useMagazineStore()
   const prod = PRODUCTS.find((p) => p.id === prodId)
 
   const download = async () => {
@@ -90,6 +92,20 @@ export default function AdminMarketing() {
     }
   }
 
+  const handlePublish = () => {
+    if (!prod) return
+    publishIssue({
+      id: Math.random().toString(),
+      productId: prod.id,
+      format,
+      createdAt: new Date().toISOString(),
+    })
+    toast({
+      title: 'Publicado!',
+      description: 'O layout foi adicionado à Revista Digital pública.',
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -145,14 +161,31 @@ export default function AdminMarketing() {
                 </Label>
               </RadioGroup>
             </div>
-            <Button className="w-full" size="lg" disabled={!prod || generating} onClick={download}>
-              {generating ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="mr-2 h-4 w-4" />
-              )}
-              Baixar Imagem
-            </Button>
+            <div className="flex gap-4">
+              <Button
+                className="flex-1"
+                size="lg"
+                disabled={!prod || generating}
+                onClick={download}
+              >
+                {generating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Baixar
+              </Button>
+              <Button
+                className="flex-1"
+                variant="secondary"
+                size="lg"
+                disabled={!prod}
+                onClick={handlePublish}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                Publicar no Feed
+              </Button>
+            </div>
           </CardContent>
         </Card>
         <div className="flex flex-col items-center justify-center p-6 bg-muted/50 rounded-lg border border-dashed">

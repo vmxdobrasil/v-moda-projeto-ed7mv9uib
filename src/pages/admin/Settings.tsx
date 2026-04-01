@@ -19,8 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Shield, Trash2, Plus } from 'lucide-react'
+import { Shield, Trash2, Plus, Globe } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useMagazineStore } from '@/stores/useMagazineStore'
 
 interface User {
   id: string
@@ -38,6 +39,13 @@ export default function Settings() {
   const { toast } = useToast()
   const [users, setUsers] = useState<User[]>(MOCK_USERS)
   const [newUser, setNewUser] = useState<Partial<User>>({ name: '', email: '', role: 'gerente' })
+  const { externalUrl, setExternalUrl } = useMagazineStore()
+  const [urlInput, setUrlInput] = useState(externalUrl)
+
+  const handleSaveUrl = () => {
+    setExternalUrl(urlInput)
+    toast({ description: 'URL da Revista Digital atualizada com sucesso!' })
+  }
 
   const handleAddUser = () => {
     if (!newUser.name || !newUser.email || !newUser.role) {
@@ -99,6 +107,35 @@ export default function Settings() {
             >
               Sou Gerente
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Globe className="w-4 h-4 text-primary" />
+            Integração Externa (Revista Digital)
+          </CardTitle>
+          <CardDescription>
+            Configure a URL do site da revista para direcionamento e SEO da página pública
+            (/revista).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 max-w-xl">
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="magUrl">URL da Revista Digital</Label>
+              <Input
+                id="magUrl"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="https://www.revistamodaatual.com.br"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button onClick={handleSaveUrl}>Salvar URL</Button>
+            </div>
           </div>
         </CardContent>
       </Card>

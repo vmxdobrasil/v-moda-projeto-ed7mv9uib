@@ -17,6 +17,7 @@ import Orders from './pages/Orders'
 import AboutUs from './pages/AboutUs'
 import Contact from './pages/Contact'
 import FAQ from './pages/FAQ'
+import Revista from './pages/Revista'
 import Layout from './components/Layout'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/Dashboard'
@@ -58,6 +59,7 @@ const App = () => (
           <Route path="/finalizar-compra" element={<Checkout />} />
           <Route path="/pedido-realizado" element={<OrderConfirmation />} />
           <Route path="/meus-pedidos" element={<Orders />} />
+          <Route path="/revista" element={<Revista />} />
           <Route path="/sobre-nos" element={<AboutUs />} />
           <Route path="/contato" element={<Contact />} />
           <Route path="/faq" element={<FAQ />} />

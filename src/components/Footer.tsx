@@ -57,6 +57,12 @@ export function Footer() {
         <div className="flex flex-col gap-4">
           <h4 className="font-serif text-lg tracking-wider uppercase mb-2">Links Úteis</h4>
           <Link
+            to="/revista"
+            className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
+          >
+            Revista Digital
+          </Link>
+          <Link
             to="/colecoes"
             className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
           >

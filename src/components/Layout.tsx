@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, useSearchParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import { Header } from './Header'
 import { Footer } from './Footer'
@@ -7,6 +7,8 @@ import { trackEvent } from '@/lib/analytics'
 
 export default function Layout() {
   const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const isEmbed = searchParams.get('embed') === 'true'
 
   // Scroll to top on route change and track page view
   useEffect(() => {
@@ -16,12 +18,12 @@ export default function Layout() {
 
   return (
     <div className="flex flex-col min-h-screen font-sans bg-background">
-      <Header />
+      {!isEmbed && <Header />}
       <main className="flex-grow flex flex-col w-full animate-fade-in">
         <Outlet />
       </main>
-      <Footer />
-      <LiveChat />
+      {!isEmbed && <Footer />}
+      {!isEmbed && <LiveChat />}
     </div>
   )
 }
