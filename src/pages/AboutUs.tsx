@@ -1,5 +1,9 @@
 import { FadeIn } from '@/components/FadeIn'
 import { Sparkles, Cpu, ShieldCheck, Heart, Factory, ShoppingBag, Network } from 'lucide-react'
+import { FoundersMessage } from '@/components/about/FoundersMessage'
+import { HistoryTimeline } from '@/components/about/HistoryTimeline'
+import { Testimonials } from '@/components/about/Testimonials'
+import { FaqSection } from '@/components/about/FaqSection'
 
 export default function AboutUs() {
   return (
@@ -177,8 +181,14 @@ export default function AboutUs() {
         </div>
       </div>
 
+      {/* Founder's Message */}
+      <FoundersMessage />
+
+      {/* History Timeline */}
+      <HistoryTimeline />
+
       {/* Partner Network Spotlight */}
-      <div className="container max-w-6xl text-center">
+      <div className="container max-w-6xl text-center mb-24">
         <FadeIn>
           <Network className="w-12 h-12 mx-auto mb-6 text-muted-foreground" />
           <h2 className="text-3xl font-serif mb-4">Nossa Rede de Parceiros</h2>
@@ -204,6 +214,12 @@ export default function AboutUs() {
           </div>
         </FadeIn>
       </div>
+
+      {/* Testimonials */}
+      <Testimonials />
+
+      {/* FAQ */}
+      <FaqSection />
     </div>
   )
 }
