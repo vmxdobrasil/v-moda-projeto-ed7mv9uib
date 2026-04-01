@@ -10,6 +10,7 @@ export interface Product {
   colors: string[]
   sizes: string[]
   trending?: boolean
+  manufacturer: string
 }
 
 export const PRODUCTS: Product[] = [
@@ -30,6 +31,7 @@ export const PRODUCTS: Product[] = [
     colors: ['#000000', '#C5A059', '#F5F5DC'],
     sizes: ['P', 'M', 'G'],
     trending: true,
+    manufacturer: 'Seda & Co.',
   },
   {
     id: 'p2',
@@ -47,6 +49,7 @@ export const PRODUCTS: Product[] = [
     colors: ['#000000', '#333333'],
     sizes: ['P', 'M', 'G', 'GG'],
     trending: true,
+    manufacturer: 'Alfaiataria Premium',
   },
   {
     id: 'p3',
@@ -61,6 +64,7 @@ export const PRODUCTS: Product[] = [
     colors: ['#FFFFFF', '#000000'],
     sizes: ['36', '38', '40', '42'],
     trending: false,
+    manufacturer: 'Basics',
   },
   {
     id: 'p4',
@@ -78,6 +82,7 @@ export const PRODUCTS: Product[] = [
     colors: ['#D2B48C'],
     sizes: ['P', 'M', 'G'],
     trending: true,
+    manufacturer: 'Alfaiataria Premium',
   },
   {
     id: 'p5',
@@ -92,6 +97,7 @@ export const PRODUCTS: Product[] = [
     colors: ['#000000', '#8B4513'],
     sizes: ['Único'],
     trending: true,
+    manufacturer: 'Couro Fino',
   },
   {
     id: 'p6',
@@ -106,6 +112,7 @@ export const PRODUCTS: Product[] = [
     colors: ['#000000', '#FF0000'],
     sizes: ['35', '36', '37', '38', '39'],
     trending: false,
+    manufacturer: 'Couro Fino',
   },
 ]
 

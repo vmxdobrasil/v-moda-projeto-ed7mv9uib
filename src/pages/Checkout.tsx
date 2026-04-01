@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Copy, FileText, Truck } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Copy, FileText, Truck, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Table,
   TableBody,
@@ -13,31 +14,67 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import useCartStore from '@/stores/useCartStore'
 import useAuthStore from '@/stores/useAuthStore'
+import { useManufacturerStore } from '@/stores/useManufacturerStore'
 import { formatPrice } from '@/lib/data'
 import { useSEO } from '@/hooks/useSEO'
 import { trackEvent } from '@/lib/analytics'
-import { useNavigate } from 'react-router-dom'
+import { cn } from '@/lib/utils'
 
 export default function Checkout() {
   const { items: cartItems, clearCart } = useCartStore()
   const { user } = useAuthStore()
+  const { manufacturers } = useManufacturerStore()
   const { toast } = useToast()
-
-  const cartTotal = cartItems.reduce((acc, item) => {
-    const price =
-      user?.type === 'Atacado' && item.product.wholesalePrice
-        ? item.product.wholesalePrice
-        : item.product.price
-    return acc + price * item.quantity
-  }, 0)
   const navigate = useNavigate()
+
   const [paymentMethod, setPaymentMethod] = useState('credit_card')
   const [cep, setCep] = useState('')
   const [shippingCost, setShippingCost] = useState<number>(0)
+
+  const isWholesale = user?.type === 'Atacado'
+
+  const cartTotal = cartItems.reduce((acc, item) => {
+    const price =
+      isWholesale && item.product.wholesalePrice ? item.product.wholesalePrice : item.product.price
+    return acc + price * item.quantity
+  }, 0)
+
+  // Group items by manufacturer for wholesale VMP logic
+  const itemsByManufacturer = cartItems.reduce(
+    (acc, item) => {
+      const m = item.product.manufacturer || 'Outros'
+      if (!acc[m]) acc[m] = { items: [], totalQuantity: 0 }
+      acc[m].items.push(item)
+      acc[m].totalQuantity += item.quantity
+      return acc
+    },
+    {} as Record<string, { items: typeof cartItems; totalQuantity: number }>,
+  )
+
+  const vmpErrors: { manufacturer: string; required: number; current: number; missing: number }[] =
+    []
+
+  if (isWholesale) {
+    Object.keys(itemsByManufacturer).forEach((mName) => {
+      const manufacturer = manufacturers.find((m) => m.name === mName)
+      if (manufacturer) {
+        const { totalQuantity } = itemsByManufacturer[mName]
+        if (totalQuantity < manufacturer.vmp) {
+          vmpErrors.push({
+            manufacturer: mName,
+            required: manufacturer.vmp,
+            current: totalQuantity,
+            missing: manufacturer.vmp - totalQuantity,
+          })
+        }
+      }
+    })
+  }
+
+  const canCheckout = cartItems.length > 0 && vmpErrors.length === 0
 
   useSEO({
     title: 'Finalizar Compra',
@@ -62,6 +99,15 @@ export default function Checkout() {
 
   const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!canCheckout) {
+      toast({
+        title: 'Requisitos não atingidos',
+        description: 'Verifique os avisos de quantidade mínima no seu carrinho.',
+        variant: 'destructive',
+      })
+      return
+    }
 
     const orderId = `PED-${Math.floor(Math.random() * 10000)}`
 
@@ -99,7 +145,6 @@ export default function Checkout() {
     const value = e.target.value.replace(/\D/g, '')
     setCep(value)
 
-    // Simulate shipping calculation when CEP is fully entered
     if (value.length === 8) {
       const mockCost = Math.random() > 0.5 ? 15.9 : 25.9
       setShippingCost(mockCost)
@@ -304,51 +349,137 @@ export default function Checkout() {
         <div className="bg-secondary/20 p-6 md:p-8 self-start sticky top-32">
           <h2 className="text-xl font-medium mb-6 uppercase tracking-wider">Resumo do Pedido</h2>
 
-          <div className="overflow-x-auto mb-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Produto</TableHead>
-                  <TableHead className="text-center">Qtd</TableHead>
-                  <TableHead className="text-right">Subtotal</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cartItems.map((item) => (
-                  <TableRow key={item.product.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={item.product.image}
-                          alt={item.product.name}
-                          className="w-10 h-14 object-cover hidden sm:block"
-                        />
-                        <div className="flex flex-col">
-                          <span className="line-clamp-2 text-sm">{item.product.name}</span>
-                          {item.size && (
-                            <span className="text-xs text-muted-foreground">Tam: {item.size}</span>
+          {isWholesale && vmpErrors.length > 0 && (
+            <div className="space-y-3 mb-6">
+              {vmpErrors.map((error, idx) => (
+                <Alert variant="destructive" key={idx}>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Mínimo não atingido: {error.manufacturer}</AlertTitle>
+                  <AlertDescription>
+                    Faltam <strong>{error.missing}</strong> peças para atingir o VMP de{' '}
+                    {error.required} peças.
+                  </AlertDescription>
+                </Alert>
+              ))}
+            </div>
+          )}
+
+          {isWholesale ? (
+            <div className="space-y-4 mb-6">
+              {Object.entries(itemsByManufacturer).map(([mName, group]) => {
+                const mStore = manufacturers.find((m) => m.name === mName)
+                const vmp = mStore?.vmp || 0
+                const isVmpMet = group.totalQuantity >= vmp
+
+                return (
+                  <div
+                    key={mName}
+                    className="border rounded-md overflow-hidden bg-background shadow-sm"
+                  >
+                    <div className="bg-muted/50 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b">
+                      <span className="font-semibold text-sm uppercase text-foreground">
+                        {mName}
+                      </span>
+                      {vmp > 0 && (
+                        <span
+                          className={cn(
+                            'text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap',
+                            isVmpMet
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400'
+                              : 'bg-destructive/10 text-destructive',
                           )}
-                          {user?.type === 'Atacado' && item.product.wholesalePrice && (
-                            <span className="text-[10px] text-accent font-medium uppercase tracking-wider mt-1">
-                              Atacado
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center text-sm">{item.quantity}</TableCell>
-                    <TableCell className="text-right text-sm">
-                      {formatPrice(
-                        (user?.type === 'Atacado' && item.product.wholesalePrice
-                          ? item.product.wholesalePrice
-                          : item.product.price) * item.quantity,
+                        >
+                          VMP: {vmp} peças (Você tem {group.totalQuantity})
+                        </span>
                       )}
-                    </TableCell>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableBody>
+                          {group.items.map((item) => (
+                            <TableRow key={`${item.product.id}-${item.size}`}>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-3">
+                                  <img
+                                    src={item.product.image}
+                                    alt={item.product.name}
+                                    className="w-10 h-14 object-cover hidden sm:block"
+                                  />
+                                  <div className="flex flex-col">
+                                    <span className="line-clamp-2 text-sm">
+                                      {item.product.name}
+                                    </span>
+                                    {item.size && (
+                                      <span className="text-xs text-muted-foreground">
+                                        Tam: {item.size}
+                                      </span>
+                                    )}
+                                    {item.product.wholesalePrice && (
+                                      <span className="text-[10px] text-accent font-medium uppercase tracking-wider mt-1">
+                                        Atacado
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center text-sm">
+                                {item.quantity}x
+                              </TableCell>
+                              <TableCell className="text-right text-sm">
+                                {formatPrice(
+                                  (item.product.wholesalePrice || item.product.price) *
+                                    item.quantity,
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="overflow-x-auto mb-6 border rounded-md bg-background shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Produto</TableHead>
+                    <TableHead className="text-center">Qtd</TableHead>
+                    <TableHead className="text-right">Subtotal</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {cartItems.map((item) => (
+                    <TableRow key={`${item.product.id}-${item.size}`}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={item.product.image}
+                            alt={item.product.name}
+                            className="w-10 h-14 object-cover hidden sm:block"
+                          />
+                          <div className="flex flex-col">
+                            <span className="line-clamp-2 text-sm">{item.product.name}</span>
+                            {item.size && (
+                              <span className="text-xs text-muted-foreground">
+                                Tam: {item.size}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center text-sm">{item.quantity}</TableCell>
+                      <TableCell className="text-right text-sm">
+                        {formatPrice(item.product.price * item.quantity)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
           <div className="border-t border-border pt-4 mt-4">
             <div className="flex justify-between text-muted-foreground mb-2">
@@ -367,6 +498,7 @@ export default function Checkout() {
             <Button
               type="submit"
               form="checkout-form"
+              disabled={!canCheckout}
               className="w-full rounded-none h-14 uppercase tracking-widest text-lg"
             >
               Confirmar Pedido

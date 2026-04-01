@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Shield, Trash2, Plus, Globe } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useMagazineStore } from '@/stores/useMagazineStore'
+import { useManufacturerStore } from '@/stores/useManufacturerStore'
 
 interface User {
   id: string
@@ -41,6 +42,7 @@ export default function Settings() {
   const [newUser, setNewUser] = useState<Partial<User>>({ name: '', email: '', role: 'gerente' })
   const { externalUrl, setExternalUrl } = useMagazineStore()
   const [urlInput, setUrlInput] = useState(externalUrl)
+  const { manufacturers, updateVmp } = useManufacturerStore()
 
   const handleSaveUrl = () => {
     setExternalUrl(urlInput)
@@ -141,6 +143,46 @@ export default function Settings() {
       </Card>
 
       <div className="grid md:grid-cols-3 gap-6">
+        <div className="md:col-span-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Lojas Fabricantes Parceiras (VMP)</CardTitle>
+              <CardDescription>
+                Configure o Volume Mínimo de Pedido (em peças) para clientes de atacado (Público 2).
+                Clientes de varejo não são afetados.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fabricante</TableHead>
+                      <TableHead className="w-[150px]">VMP (Peças)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {manufacturers.map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell className="font-medium">{m.name}</TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={m.vmp}
+                            onChange={(e) => updateVmp(m.id, parseInt(e.target.value) || 1)}
+                            className="w-24"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="md:col-span-1">
           <Card>
             <CardHeader>
