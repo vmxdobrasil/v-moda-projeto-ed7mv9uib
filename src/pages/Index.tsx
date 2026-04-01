@@ -190,14 +190,16 @@ export default function Index() {
       <section className="py-24 md:py-32 bg-secondary/10 border-y border-border mb-24">
         <div className="container text-center">
           <FadeIn>
-            <h2 className="text-3xl md:text-4xl font-serif mb-4">Siga-nos no Instagram</h2>
+            <h2 className="text-3xl md:text-4xl font-serif mb-4">
+              Siga-nos no Instagram @revistamodaatual
+            </h2>
             <p className="text-muted-foreground mb-10 max-w-lg mx-auto">
               Acompanhe nossos bastidores, novas coleções e inspirações diárias diretamente no nosso
               feed.
             </p>
           </FadeIn>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-12">
             {[
               'https://img.usecurling.com/p/400/400?q=fashion%20model%20street%20style',
               'https://img.usecurling.com/p/400/400?q=minimalist%20clothing%20detail',
@@ -223,7 +225,7 @@ export default function Index() {
 
           <FadeIn delay={400}>
             <a
-              href="https://instagram.com"
+              href="https://www.instagram.com/revistamodaatual"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center border-2 border-primary px-8 py-4 uppercase tracking-widest text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground"

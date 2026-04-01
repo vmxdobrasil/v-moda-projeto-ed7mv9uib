@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button } from '@/components/ui/button'
-import { Download, Image as ImageIcon, Loader2, Send } from 'lucide-react'
+import { Download, Image as ImageIcon, Loader2, Send, Instagram } from 'lucide-react'
 import { PRODUCTS, formatPrice } from '@/lib/data'
 import { useToast } from '@/hooks/use-toast'
 import { useMagazineStore } from '@/stores/useMagazineStore'
@@ -108,9 +108,18 @@ export default function AdminMarketing() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Gerador de Revista</h2>
-        <p className="text-muted-foreground">Crie materiais com o template "MODA ATUAL".</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Gerador de Revista</h2>
+          <p className="text-muted-foreground">Crie materiais com o template "MODA ATUAL".</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => window.open('https://www.instagram.com/revistamodaatual', '_blank')}
+        >
+          <Instagram className="w-4 h-4 mr-2" />
+          Abrir Instagram @revistamodaatual
+        </Button>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card>

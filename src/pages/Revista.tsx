@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useMagazineStore } from '@/stores/useMagazineStore'
 import { PRODUCTS, formatPrice } from '@/lib/data'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Instagram } from 'lucide-react'
 
 export default function Revista() {
   const [searchParams] = useSearchParams()
@@ -106,17 +106,66 @@ export default function Revista() {
       </div>
 
       {!isEmbed && (
-        <div className="mt-20 text-center text-gray-600 text-sm pb-8">
-          <p>© {new Date().getFullYear()} Revista Moda Atual. Todos os direitos reservados.</p>
-          <a
-            href={externalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white transition-colors mt-2 inline-block"
-          >
-            Acessar Portal da Revista
-          </a>
-        </div>
+        <>
+          <section className="mt-32 max-w-5xl mx-auto border-t border-gray-800 pt-20">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-serif mb-4 font-bold tracking-widest uppercase">
+                Siga-nos no Instagram @revistamodaatual
+              </h2>
+              <p className="text-gray-400 max-w-xl mx-auto mb-8">
+                Acompanhe nossos bastidores, novas coleções e inspirações diárias diretamente no
+                nosso feed.
+              </p>
+              <a
+                href="https://www.instagram.com/revistamodaatual"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center border-2 border-white px-8 py-4 uppercase tracking-widest text-sm font-medium transition-colors hover:bg-white hover:text-black"
+              >
+                <Instagram className="w-4 h-4 mr-2" />
+                Ver no Instagram
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                'https://img.usecurling.com/p/400/400?q=fashion%20model%20street%20style',
+                'https://img.usecurling.com/p/400/400?q=minimalist%20clothing%20detail',
+                'https://img.usecurling.com/p/400/400?q=fashion%20accessories%20jewelry',
+                'https://img.usecurling.com/p/400/400?q=luxury%20fashion%20editorial',
+              ].map((img, i) => (
+                <a
+                  key={i}
+                  href="https://www.instagram.com/revistamodaatual"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative aspect-square group overflow-hidden bg-gray-900 block"
+                >
+                  <img
+                    src={img}
+                    alt={`Publicação do Instagram @revistamodaatual ${i + 1}`}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <Instagram className="w-8 h-8 text-white" />
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+
+          <div className="mt-20 text-center text-gray-600 text-sm pb-8 border-t border-gray-900 pt-8">
+            <p>© {new Date().getFullYear()} Revista Moda Atual. Todos os direitos reservados.</p>
+            <a
+              href={externalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition-colors mt-2 inline-block"
+            >
+              Acessar Portal da Revista
+            </a>
+          </div>
+        </>
       )}
     </div>
   )

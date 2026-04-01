@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Search, Heart, User, Menu, ShoppingCart, X } from 'lucide-react'
+import { Search, Heart, User, Menu, ShoppingCart, X, Instagram } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
@@ -151,6 +151,18 @@ export function Header() {
                     </Link>
                   </SheetClose>
                 )}
+
+                <div className="mt-8 pt-8 border-t flex justify-center">
+                  <a
+                    href="https://www.instagram.com/revistamodaatual"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2 text-primary hover:text-accent transition-colors"
+                    aria-label="Instagram"
+                  >
+                    <Instagram className="w-6 h-6" />
+                  </a>
+                </div>
               </nav>
             </SheetContent>
           </Sheet>
@@ -181,6 +193,16 @@ export function Header() {
 
         {/* Icons */}
         <div className="flex flex-1 items-center justify-end gap-4 md:gap-6">
+          <a
+            href="https://www.instagram.com/revistamodaatual"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Instagram @revistamodaatual"
+            className="p-1 hidden lg:block"
+          >
+            <Instagram className={iconClasses} />
+          </a>
+
           <Popover open={searchOpen} onOpenChange={setSearchOpen}>
             <PopoverTrigger asChild>
               <button aria-label="Pesquisar" className="p-1 hidden sm:block">

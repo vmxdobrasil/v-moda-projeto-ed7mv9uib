@@ -94,7 +94,7 @@ export function Footer() {
             <h4 className="font-serif text-lg tracking-wider uppercase mb-4">Redes Sociais</h4>
             <div className="flex gap-4">
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/revistamodaatual"
                 target="_blank"
                 rel="noreferrer"
                 className="p-3 bg-primary-foreground/10 hover:bg-accent hover:text-white rounded-full transition-all duration-300"
