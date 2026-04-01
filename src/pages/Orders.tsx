@@ -203,17 +203,33 @@ export default function Orders() {
                         <span className="font-medium whitespace-nowrap">
                           {formatPrice(item.price * item.quantity)}
                         </span>
-                        {selectedOrder.status === 'Entregue' && (
+                        <div className="flex items-center gap-2">
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
-                            className="text-xs h-8 gap-1.5"
-                            onClick={() => setReviewItem({ orderId: selectedOrder.id, item })}
+                            className="text-xs h-8 gap-1.5 text-muted-foreground hover:text-primary"
+                            onClick={() => {
+                              toast({
+                                title: 'Chat Aberto',
+                                description: 'Você iniciou uma conversa com o fabricante.',
+                              })
+                            }}
                           >
                             <MessageSquare className="w-3.5 h-3.5" />
-                            Avaliar Produto
+                            Contatar
                           </Button>
-                        )}
+                          {selectedOrder.status === 'Entregue' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-8 gap-1.5"
+                              onClick={() => setReviewItem({ orderId: selectedOrder.id, item })}
+                            >
+                              <Star className="w-3.5 h-3.5" />
+                              Avaliar
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}

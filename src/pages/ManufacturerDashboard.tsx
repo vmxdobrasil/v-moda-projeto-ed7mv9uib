@@ -1,15 +1,30 @@
 import { Navigate } from 'react-router-dom'
 import useAuthStore from '@/stores/useAuthStore'
 import { useManufacturerStore } from '@/stores/useManufacturerStore'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Package } from 'lucide-react'
+import { useState } from 'react'
+import {
+  Package,
+  Settings,
+  BarChart,
+  ShoppingBag,
+  Users,
+  Bell,
+  MessageSquare,
+  Boxes,
+} from 'lucide-react'
 import { SettingsTab } from './manufacturer/SettingsTab'
 import { ReportsTab } from './manufacturer/ReportsTab'
 import { ProductsTab } from './manufacturer/ProductsTab'
+import { InventoryTab } from './manufacturer/InventoryTab'
+import { LoyaltyTab } from './manufacturer/LoyaltyTab'
+import { CommunicationsTab } from './manufacturer/CommunicationsTab'
+import { MessagesTab } from './manufacturer/MessagesTab'
+import { cn } from '@/lib/utils'
 
 export default function ManufacturerDashboard() {
   const { user } = useAuthStore()
   const { manufacturers } = useManufacturerStore()
+  const [activeTab, setActiveTab] = useState('settings')
 
   // Fallback to 'm1' if manufacturerId is not set for demo purposes
   const mId = user?.manufacturerId || 'm1'
@@ -37,25 +52,47 @@ export default function ManufacturerDashboard() {
         </div>
       </div>
 
-      <Tabs defaultValue="settings" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
-          <TabsTrigger value="settings">Configurações</TabsTrigger>
-          <TabsTrigger value="reports">Relatórios</TabsTrigger>
-          <TabsTrigger value="products">Meus Produtos</TabsTrigger>
-        </TabsList>
+      <div className="flex flex-col md:flex-row gap-8">
+        <aside className="w-full md:w-56 lg:w-64 shrink-0">
+          <nav className="flex flex-col gap-1">
+            {[
+              { id: 'settings', label: 'Configurações', icon: Settings },
+              { id: 'reports', label: 'Relatórios', icon: BarChart },
+              { id: 'products', label: 'Meus Produtos', icon: ShoppingBag },
+              { id: 'inventory', label: 'Estoque', icon: Boxes },
+              { id: 'loyalty', label: 'Fidelidade', icon: Users },
+              { id: 'communications', label: 'Comunicados', icon: Bell },
+              { id: 'messages', label: 'Mensagens', icon: MessageSquare },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-md transition-colors',
+                  activeTab === item.id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
 
-        <TabsContent value="settings" className="mt-0">
-          <SettingsTab manufacturerId={mId} />
-        </TabsContent>
-
-        <TabsContent value="reports" className="mt-0">
-          <ReportsTab />
-        </TabsContent>
-
-        <TabsContent value="products" className="mt-0">
-          <ProductsTab manufacturerName={manufacturer?.name || ''} />
-        </TabsContent>
-      </Tabs>
+        <main className="flex-1 overflow-hidden min-h-[500px]">
+          {activeTab === 'settings' && <SettingsTab manufacturerId={mId} />}
+          {activeTab === 'reports' && <ReportsTab />}
+          {activeTab === 'products' && <ProductsTab manufacturerName={manufacturer?.name || ''} />}
+          {activeTab === 'inventory' && (
+            <InventoryTab manufacturerName={manufacturer?.name || ''} />
+          )}
+          {activeTab === 'loyalty' && <LoyaltyTab />}
+          {activeTab === 'communications' && <CommunicationsTab />}
+          {activeTab === 'messages' && <MessagesTab />}
+        </main>
+      </div>
     </div>
   )
 }

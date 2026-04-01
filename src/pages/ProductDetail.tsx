@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Heart, ChevronRight, Loader2, Star, UserCircle } from 'lucide-react'
+import { Heart, ChevronRight, Loader2, Star, UserCircle, MessageSquare } from 'lucide-react'
 import { PRODUCTS, formatPrice } from '@/lib/data'
 import { FadeIn } from '@/components/FadeIn'
 import { useSEO } from '@/hooks/useSEO'
@@ -210,7 +210,23 @@ export default function ProductDetail() {
           {/* Product Info */}
           <div className="lg:col-span-5 flex flex-col">
             <FadeIn delay={100}>
-              <h1 className="text-3xl md:text-4xl font-serif mb-2">{product.name}</h1>
+              <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-2 gap-4">
+                <h1 className="text-3xl md:text-4xl font-serif">{product.name}</h1>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 shrink-0"
+                  onClick={() => {
+                    toast({
+                      title: 'Contato Iniciado',
+                      description: `Você iniciou uma conversa com ${product.manufacturer}.`,
+                    })
+                  }}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Contatar {product.manufacturer}
+                </Button>
+              </div>
               <div className="flex items-center gap-3 mb-8">
                 <p className="text-xl">{formatPrice(displayPrice || 0)}</p>
                 {isWholesale && (
