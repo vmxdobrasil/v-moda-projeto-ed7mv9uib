@@ -304,7 +304,14 @@ export default function Customers() {
                     <TableCell className="font-medium">{customer.name}</TableCell>
                     <TableCell>{customer.email}</TableCell>
                     <TableCell>
-                      <Badge variant={customer.type === 'Atacado' ? 'secondary' : 'outline'} className={customer.type === 'Atacado' ? 'bg-accent/10 text-accent hover:bg-accent/20 border-transparent' : ''}>
+                      <Badge
+                        variant={customer.type === 'Atacado' ? 'secondary' : 'outline'}
+                        className={
+                          customer.type === 'Atacado'
+                            ? 'bg-accent/10 text-accent hover:bg-accent/20 border-transparent'
+                            : ''
+                        }
+                      >
                         {customer.type}
                       </Badge>
                     </TableCell>
@@ -381,7 +388,11 @@ export default function Customers() {
                       value={selectedCustomer.type}
                       onValueChange={(val) => {
                         const newType = val as 'Varejo' | 'Atacado'
-                        setCustomers(customers.map(c => c.id === selectedCustomer.id ? { ...c, type: newType } : c))
+                        setCustomers(
+                          customers.map((c) =>
+                            c.id === selectedCustomer.id ? { ...c, type: newType } : c,
+                          ),
+                        )
                         setSelectedCustomer({ ...selectedCustomer, type: newType })
                       }}
                     >
@@ -393,15 +404,6 @@ export default function Customers() {
                         <SelectItem value="Atacado">Atacado</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-                    <span className="flex items-center gap-1">
-                      <Mail className="w-3 h-3" /> {selectedCustomer.email}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" /> Desde{' '}
-                      {new Date(selectedCustomer.registeredAt).toLocaleDateString('pt-BR')}
-                    </span>
                   </div>
                 </div>
               </div>
