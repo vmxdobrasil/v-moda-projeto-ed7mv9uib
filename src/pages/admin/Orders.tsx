@@ -8,7 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -19,6 +18,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Eye, Download } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 // Mock Data
 const MOCK_ORDERS = [
@@ -61,14 +61,25 @@ const MOCK_ORDERS = [
 ]
 
 export default function Orders() {
+  const { toast } = useToast()
+  const [orders, setOrders] = useState(MOCK_ORDERS)
   const [statusFilter, setStatusFilter] = useState('Todos')
   const [selectedOrder, setSelectedOrder] = useState<(typeof MOCK_ORDERS)[0] | null>(null)
 
+  const handleStatusChange = (orderId: string, newStatus: string) => {
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)))
+    if (selectedOrder?.id === orderId) {
+      setSelectedOrder((prev) => (prev ? { ...prev, status: newStatus } : null))
+    }
+    toast({
+      title: 'Status Atualizado',
+      description: `O pedido ${orderId} foi atualizado para ${newStatus}.`,
+    })
+  }
+
   const filteredOrders = useMemo(() => {
-    return statusFilter === 'Todos'
-      ? MOCK_ORDERS
-      : MOCK_ORDERS.filter((o) => o.status === statusFilter)
-  }, [statusFilter])
+    return statusFilter === 'Todos' ? orders : orders.filter((o) => o.status === statusFilter)
+  }, [orders, statusFilter])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -78,10 +89,12 @@ export default function Orders() {
         return 'bg-amber-500 hover:bg-amber-600'
       case 'Enviado':
         return 'bg-blue-500 hover:bg-blue-600'
+      case 'Entregue':
+        return 'bg-purple-500 hover:bg-purple-600'
       case 'Cancelado':
         return 'bg-rose-500 hover:bg-rose-600'
       default:
-        return 'bg-gray-500'
+        return 'bg-gray-500 hover:bg-gray-600'
     }
   }
 
@@ -109,6 +122,7 @@ export default function Orders() {
                 <SelectItem value="Pendente">Pendente</SelectItem>
                 <SelectItem value="Pago">Pago</SelectItem>
                 <SelectItem value="Enviado">Enviado</SelectItem>
+                <SelectItem value="Entregue">Entregue</SelectItem>
                 <SelectItem value="Cancelado">Cancelado</SelectItem>
               </SelectContent>
             </Select>
@@ -169,11 +183,23 @@ export default function Orders() {
                     <TableCell>{order.customer}</TableCell>
                     <TableCell>{new Date(order.date).toLocaleDateString('pt-BR')}</TableCell>
                     <TableCell>
-                      <Badge
-                        className={`text-white border-transparent ${getStatusColor(order.status)}`}
+                      <Select
+                        value={order.status}
+                        onValueChange={(val) => handleStatusChange(order.id, val)}
                       >
-                        {order.status}
-                      </Badge>
+                        <SelectTrigger
+                          className={`h-8 w-[130px] text-white border-none focus:ring-0 ${getStatusColor(order.status)}`}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Pendente">Pendente</SelectItem>
+                          <SelectItem value="Pago">Pago</SelectItem>
+                          <SelectItem value="Enviado">Enviado</SelectItem>
+                          <SelectItem value="Entregue">Entregue</SelectItem>
+                          <SelectItem value="Cancelado">Cancelado</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       R$ {order.total.toFixed(2)}
@@ -216,11 +242,23 @@ export default function Orders() {
                   <span className="font-semibold text-muted-foreground block text-xs uppercase mb-1">
                     Status
                   </span>
-                  <Badge
-                    className={`text-white border-transparent ${getStatusColor(selectedOrder.status)}`}
+                  <Select
+                    value={selectedOrder.status}
+                    onValueChange={(val) => handleStatusChange(selectedOrder.id, val)}
                   >
-                    {selectedOrder.status}
-                  </Badge>
+                    <SelectTrigger
+                      className={`h-8 w-[130px] text-white border-none focus:ring-0 ${getStatusColor(selectedOrder.status)}`}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Pendente">Pendente</SelectItem>
+                      <SelectItem value="Pago">Pago</SelectItem>
+                      <SelectItem value="Enviado">Enviado</SelectItem>
+                      <SelectItem value="Entregue">Entregue</SelectItem>
+                      <SelectItem value="Cancelado">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="col-span-2">
                   <span className="font-semibold text-muted-foreground block text-xs uppercase mb-1">
