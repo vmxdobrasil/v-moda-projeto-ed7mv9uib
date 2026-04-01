@@ -9,6 +9,8 @@ import Wishlist from './pages/Wishlist'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import Profile from './pages/Profile'
 import Checkout from './pages/Checkout'
 import Orders from './pages/Orders'
 import AboutUs from './pages/AboutUs'
@@ -46,6 +48,8 @@ const App = () => (
           <Route path="/favoritos" element={<Wishlist />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Register />} />
+          <Route path="/recuperar-senha" element={<ForgotPassword />} />
+          <Route path="/perfil" element={<Profile />} />
           <Route path="/finalizar-compra" element={<Checkout />} />
           <Route path="/meus-pedidos" element={<Orders />} />
           <Route path="/sobre-nos" element={<AboutUs />} />

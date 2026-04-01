@@ -19,8 +19,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import useCartStore from '@/stores/useCartStore'
 import useWishlistStore from '@/stores/useWishlistStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { formatPrice } from '@/lib/data'
 
 export function Header() {
@@ -32,8 +34,14 @@ export function Header() {
 
   const { items: cartItems, cartTotal, removeFromCart } = useCartStore()
   const { items: wishlistItems } = useWishlistStore()
+  const { user, isAuthenticated, logout } = useAuthStore()
 
   const totalCartItems = cartItems.reduce((acc, item) => acc + item.quantity, 0)
+
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+  }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -76,9 +84,7 @@ export function Header() {
   const mobileNavLinks = [
     ...navLinks,
     { name: 'Lista de Desejos', path: '/favoritos' },
-    { name: 'Meus Pedidos', path: '/meus-pedidos' },
     { name: 'FAQ', path: '/faq' },
-    { name: 'Entrar / Cadastrar', path: '/login' },
   ]
 
   return (
@@ -106,6 +112,44 @@ export function Header() {
                     </Link>
                   </SheetClose>
                 ))}
+
+                {isAuthenticated ? (
+                  <>
+                    <SheetClose asChild>
+                      <Link
+                        to="/perfil"
+                        className="text-2xl font-serif text-primary hover:text-accent transition-colors"
+                      >
+                        Meu Perfil
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link
+                        to="/meus-pedidos"
+                        className="text-2xl font-serif text-primary hover:text-accent transition-colors"
+                      >
+                        Meus Pedidos
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <button
+                        onClick={handleLogout}
+                        className="text-2xl font-serif text-left text-destructive hover:text-destructive/80 transition-colors"
+                      >
+                        Sair
+                      </button>
+                    </SheetClose>
+                  </>
+                ) : (
+                  <SheetClose asChild>
+                    <Link
+                      to="/login"
+                      className="text-2xl font-serif text-primary hover:text-accent transition-colors"
+                    >
+                      Entrar / Cadastrar
+                    </Link>
+                  </SheetClose>
+                )}
               </nav>
             </SheetContent>
           </Sheet>
@@ -168,16 +212,41 @@ export function Header() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button aria-label="Minha Conta" className="p-1 hidden md:block">
-                <User className={iconClasses} />
+                {isAuthenticated && user ? (
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-[10px]">
+                      {user.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <User className={iconClasses} />
+                )}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 rounded-none">
-              <DropdownMenuItem asChild className="rounded-none cursor-pointer">
-                <Link to="/meus-pedidos">Meus Pedidos</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="rounded-none cursor-pointer">
-                <Link to="/login">Entrar / Cadastrar</Link>
-              </DropdownMenuItem>
+              {isAuthenticated ? (
+                <>
+                  <div className="px-2 py-1.5 text-sm font-medium border-b mb-1 truncate">
+                    Olá, {user?.name.split(' ')[0]}
+                  </div>
+                  <DropdownMenuItem asChild className="rounded-none cursor-pointer">
+                    <Link to="/perfil">Meu Perfil</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="rounded-none cursor-pointer">
+                    <Link to="/meus-pedidos">Meus Pedidos</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="rounded-none cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    Sair
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem asChild className="rounded-none cursor-pointer">
+                  <Link to="/login">Entrar / Cadastrar</Link>
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 

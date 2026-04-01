@@ -1,37 +1,70 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { z } from 'zod'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
+import useAuthStore from '@/stores/useAuthStore'
+
+const registerSchema = z
+  .object({
+    name: z.string().min(3, 'O nome deve ter no mínimo 3 caracteres'),
+    email: z.string().email('E-mail inválido'),
+    password: z.string().min(8, 'A senha deve ter no mínimo 8 caracteres'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'As senhas não coincidem',
+    path: ['confirmPassword'],
+  })
+
+type RegisterForm = z.infer<typeof registerSchema>
 
 export default function Register() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  })
-  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const { toast } = useToast()
+  const { login } = useAuthStore()
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const form = useForm<RegisterForm>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  })
 
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: 'Erro de validação',
-        description: 'As senhas não coincidem.',
-        variant: 'destructive',
+  function onSubmit(data: RegisterForm) {
+    setIsLoading(true)
+
+    // Simulate API call
+    setTimeout(() => {
+      login({
+        id: Math.random().toString(36).substring(2, 9),
+        name: data.name,
+        email: data.email,
       })
-      return
-    }
 
-    toast({
-      title: 'Conta criada',
-      description: 'Sua conta foi criada com sucesso.',
-    })
-    navigate('/login')
+      toast({
+        title: 'Conta criada com sucesso',
+        description: 'Bem-vindo à V Moda!',
+      })
+
+      setIsLoading(false)
+      navigate('/perfil')
+    }, 1000)
   }
 
   return (
@@ -42,52 +75,73 @@ export default function Register() {
           <p className="text-muted-foreground mt-2">Preencha os dados abaixo para se cadastrar.</p>
         </div>
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome Completo</Label>
-            <Input
-              id="name"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome Completo</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Seu nome completo" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="seu@email.com"
-              required
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              required
-              value={formData.confirmPassword}
-              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-            />
-          </div>
 
-          <Button type="submit" className="w-full rounded-none h-12 uppercase tracking-widest mt-6">
-            Cadastrar
-          </Button>
-        </form>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>E-mail</FormLabel>
+                  <FormControl>
+                    <Input placeholder="seu@email.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Senha</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirmar Senha</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button
+              type="submit"
+              className="w-full rounded-none h-12 uppercase tracking-widest mt-6"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Cadastrando...' : 'Cadastrar'}
+            </Button>
+          </form>
+        </Form>
 
         <div className="text-center mt-6">
           <p className="text-sm text-muted-foreground">
