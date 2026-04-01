@@ -4,7 +4,8 @@ export interface User {
   id: string
   name: string
   email: string
-  type?: 'Varejo' | 'Atacado'
+  type?: 'Varejo' | 'Atacado' | 'Lojista Fabricante'
+  manufacturerId?: string
 }
 
 interface AuthState {
