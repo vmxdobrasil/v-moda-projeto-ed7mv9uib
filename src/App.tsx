@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import Index from './pages/Index'
 import Collections from './pages/Collections'
 import ProductDetail from './pages/ProductDetail'
+import CourseDetail from './pages/CourseDetail'
 import Wishlist from './pages/Wishlist'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
@@ -64,6 +65,7 @@ const App = () => (
           <Route path="/meus-pedidos" element={<Orders />} />
           <Route path="/revista" element={<Revista />} />
           <Route path="/conhecimento" element={<Academy />} />
+          <Route path="/curso/:id" element={<CourseDetail />} />
           <Route path="/sobre-nos" element={<AboutUs />} />
           <Route path="/contato" element={<Contact />} />
           <Route path="/faq" element={<FAQ />} />

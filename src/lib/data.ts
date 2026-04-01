@@ -122,3 +122,133 @@ export const formatPrice = (price: number) => {
     currency: 'BRL',
   }).format(price)
 }
+
+export interface Course {
+  id: string
+  title: string
+  description: string
+  instructor: string
+  icon: string
+  longDescription: string
+  modules: string[]
+  duration: string
+  level: string
+  image: string
+  isSpecialization?: boolean
+}
+
+export const COURSES: Course[] = [
+  {
+    id: 'vendas-fabricantes',
+    title: 'Vendas para Gerentes e Vendedoras de Lojas de Fabricantes',
+    description:
+      'Módulos dedicados para equipes de loja e gerentes de fabricantes, focados em excelência no varejo.',
+    instructor: 'Especialistas V MODA',
+    icon: 'Store',
+    longDescription:
+      'Este programa foi desenhado especificamente para a realidade de lojas de fábrica e atacado de marcas fabricantes. Aprenda técnicas avançadas de chão de loja, gestão de equipe de vendas, metas de conversão e atendimento premium que transformam o varejo de fábrica em uma experiência de excelência.',
+    modules: [
+      'Gestão Estratégica de Loja',
+      'Técnicas de Vendas e Conversão',
+      'Atendimento Premium em Atacado',
+      'Visual Merchandising Prático',
+    ],
+    duration: '40 horas',
+    level: 'Avançado',
+    image: 'https://img.usecurling.com/p/800/600?q=retail%20store%20management%20fashion',
+    isSpecialization: true,
+  },
+  {
+    id: 'revendedora-consultora',
+    title: 'De Revendedora a Consultora de Moda e Vendas',
+    description:
+      'Transforme sua atuação tradicional em uma consultoria de moda e vendas de alto nível.',
+    instructor: 'Fábia Mendonça',
+    icon: 'Star',
+    longDescription:
+      'Uma trilha de carreira desenhada para elevar o seu perfil profissional. Deixe de ser apenas uma revendedora e torne-se uma Consultora de Moda e Vendas reconhecida. O currículo foca em consultoria de imagem, noções de personal styling, e estratégias avançadas de vendas para fidelizar clientes exigentes.',
+    modules: [
+      'Fundamentos do Personal Styling',
+      'Consultoria de Imagem na Prática',
+      'Venda Consultiva e Relacionamento',
+      'Posicionamento e Criação de Autoridade',
+    ],
+    duration: '60 horas',
+    level: 'Intermediário a Avançado',
+    image: 'https://img.usecurling.com/p/800/600?q=personal%20stylist%20fashion%20consultant',
+    isSpecialization: true,
+  },
+  {
+    id: 'marketing-digital',
+    title: 'Marketing de Moda Digital',
+    description:
+      'Aprenda as estratégias mais atuais para posicionar sua marca no ambiente digital.',
+    instructor: 'Equipe V MODA',
+    icon: 'TrendingUp',
+    longDescription:
+      'Domine as ferramentas digitais para alavancar as vendas da sua marca de moda. Desde tráfego pago até estratégias orgânicas de crescimento sustentável no Instagram e TikTok.',
+    modules: [
+      'Introdução ao Marketing Digital',
+      'Tráfego Pago para Moda',
+      'E-commerce e Conversão',
+      'Análise de Métricas',
+    ],
+    duration: '30 horas',
+    level: 'Iniciante',
+    image: 'https://img.usecurling.com/p/800/600?q=digital%20marketing%20fashion',
+  },
+  {
+    id: 'branding-moda',
+    title: 'Branding para Moda',
+    description: 'Construa uma marca forte, desejável e com identidade visual inconfundível.',
+    instructor: 'Fábia Mendonça',
+    icon: 'Target',
+    longDescription:
+      'Aprenda a criar uma identidade de marca que ressoe com seu público-alvo, criando desejo e lealdade no competitivo mercado da moda. Descubra o seu DNA de marca.',
+    modules: [
+      'DNA de Marca',
+      'Identidade Visual',
+      'Posicionamento de Mercado',
+      'Storytelling na Moda',
+    ],
+    duration: '25 horas',
+    level: 'Intermediário',
+    image: 'https://img.usecurling.com/p/800/600?q=fashion%20branding%20design',
+  },
+  {
+    id: 'estrategias-vendas',
+    title: 'Estratégias de Vendas',
+    description: 'Técnicas avançadas de negociação e conversão para o mercado de luxo.',
+    instructor: 'Valter Mendonça',
+    icon: 'Users',
+    longDescription:
+      'Aprimore suas habilidades de negociação com foco no mercado premium e de luxo. Entenda o comportamento do consumidor de alto padrão e feche vendas maiores.',
+    modules: [
+      'Psicologia do Consumidor',
+      'Técnicas de Persuasão',
+      'Fechamento de Vendas',
+      'Pós-venda e Fidelização',
+    ],
+    duration: '35 horas',
+    level: 'Avançado',
+    image: 'https://img.usecurling.com/p/800/600?q=luxury%20fashion%20sales',
+  },
+  {
+    id: 'gestao-redes',
+    title: 'Gestão de Redes Sociais',
+    description: 'Como criar conteúdo que engaja e converte seguidores em clientes fiéis.',
+    instructor: 'Equipe Moda Atual',
+    icon: 'Lightbulb',
+    longDescription:
+      'Estratégias práticas para dominar o Instagram, TikTok e Pinterest para marcas de moda, transformando curtidas em vendas e seguidores em fãs da marca.',
+    modules: [
+      'Estratégia de Conteúdo',
+      'Produção Visual para Redes',
+      'Engajamento e Comunidade',
+      'Social Commerce',
+    ],
+    duration: '20 horas',
+    level: 'Iniciante a Intermediário',
+    image: 'https://img.usecurling.com/p/800/600?q=social%20media%20fashion%20content',
+  },
+]
