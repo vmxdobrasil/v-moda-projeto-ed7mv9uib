@@ -7,6 +7,7 @@ import {
   Users,
   BarChart,
   Settings,
+  Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -36,6 +37,12 @@ export default function AdminLayout() {
       roles: ['administrador', 'gerente'],
     },
     { name: 'Clientes', href: '/admin/clientes', icon: Users, roles: ['administrador', 'gerente'] },
+    {
+      name: 'Marketing',
+      href: '/admin/marketing',
+      icon: Megaphone,
+      roles: ['administrador', 'gerente'],
+    },
     { name: 'Relatórios', href: '/admin/relatorios', icon: BarChart, roles: ['administrador'] },
     {
       name: 'Configurações',
