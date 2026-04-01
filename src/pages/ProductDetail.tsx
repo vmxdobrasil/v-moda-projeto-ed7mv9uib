@@ -6,6 +6,7 @@ import { FadeIn } from '@/components/FadeIn'
 import { useSEO } from '@/hooks/useSEO'
 import { trackEvent } from '@/lib/analytics'
 import useCartStore from '@/stores/useCartStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { ProductCard } from '@/components/ProductCard'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -22,7 +23,12 @@ export default function ProductDetail() {
   const { id } = useParams()
   const { toast } = useToast()
   const { addToCart } = useCartStore()
+  const { user } = useAuthStore()
   const product = PRODUCTS.find((p) => p.id === id)
+
+  const displayPrice =
+    user?.type === 'Atacado' && product?.wholesalePrice ? product.wholesalePrice : product?.price
+  const isWholesale = user?.type === 'Atacado' && !!product?.wholesalePrice
 
   useSEO({
     title: product?.name || 'Produto',
@@ -205,7 +211,14 @@ export default function ProductDetail() {
           <div className="lg:col-span-5 flex flex-col">
             <FadeIn delay={100}>
               <h1 className="text-3xl md:text-4xl font-serif mb-2">{product.name}</h1>
-              <p className="text-xl mb-8">{formatPrice(product.price)}</p>
+              <div className="flex items-center gap-3 mb-8">
+                <p className="text-xl">{formatPrice(displayPrice || 0)}</p>
+                {isWholesale && (
+                  <span className="bg-accent/10 text-accent text-xs px-2 py-1 uppercase tracking-wider font-semibold rounded">
+                    Preço Atacado
+                  </span>
+                )}
+              </div>
 
               <div className="mb-8">
                 <p className="text-sm text-muted-foreground leading-relaxed">

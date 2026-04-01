@@ -18,6 +18,7 @@ import AboutUs from './pages/AboutUs'
 import Contact from './pages/Contact'
 import FAQ from './pages/FAQ'
 import Revista from './pages/Revista'
+import ResellerApplication from './pages/ResellerApplication'
 import Layout from './components/Layout'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/Dashboard'
@@ -63,6 +64,7 @@ const App = () => (
           <Route path="/sobre-nos" element={<AboutUs />} />
           <Route path="/contato" element={<Contact />} />
           <Route path="/faq" element={<FAQ />} />
+          <Route path="/revenda" element={<ResellerApplication />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -2,6 +2,7 @@ export interface Product {
   id: string
   name: string
   price: number
+  wholesalePrice?: number
   category: string
   image: string
   images: string[]
@@ -16,6 +17,7 @@ export const PRODUCTS: Product[] = [
     id: 'p1',
     name: 'Vestido de Seda Minimalista',
     price: 1290.0,
+    wholesalePrice: 890.0,
     category: 'Vestidos',
     image: 'https://img.usecurling.com/p/600/800?q=elegant%20silk%20dress%20fashion%20model',
     images: [
@@ -33,6 +35,7 @@ export const PRODUCTS: Product[] = [
     id: 'p2',
     name: 'Blazer Estruturado em Lã',
     price: 1850.0,
+    wholesalePrice: 1200.0,
     category: 'Casacos',
     image: 'https://img.usecurling.com/p/600/800?q=structured%20wool%20blazer%20fashion',
     images: [
@@ -49,6 +52,7 @@ export const PRODUCTS: Product[] = [
     id: 'p3',
     name: 'Calça Pantalona Crepe',
     price: 890.0,
+    wholesalePrice: 550.0,
     category: 'Calças',
     image: 'https://img.usecurling.com/p/600/800?q=wide%20leg%20trousers%20fashion',
     images: ['https://img.usecurling.com/p/600/800?q=wide%20leg%20trousers%20fashion&seed=3'],
@@ -62,6 +66,7 @@ export const PRODUCTS: Product[] = [
     id: 'p4',
     name: 'Trench Coat Clássico',
     price: 2400.0,
+    wholesalePrice: 1600.0,
     category: 'Casacos',
     image: 'https://img.usecurling.com/p/600/800?q=classic%20trench%20coat%20fashion%20model',
     images: [
@@ -78,6 +83,7 @@ export const PRODUCTS: Product[] = [
     id: 'p5',
     name: 'Bolsa Couro Estruturada',
     price: 3200.0,
+    wholesalePrice: 2100.0,
     category: 'Acessórios',
     image: 'https://img.usecurling.com/p/600/800?q=luxury%20leather%20handbag',
     images: ['https://img.usecurling.com/p/600/800?q=luxury%20leather%20handbag&seed=5'],
@@ -91,6 +97,7 @@ export const PRODUCTS: Product[] = [
     id: 'p6',
     name: 'Sapato Scarpin Verniz',
     price: 1100.0,
+    wholesalePrice: 750.0,
     category: 'Calçados',
     image: 'https://img.usecurling.com/p/600/800?q=black%20stiletto%20heels',
     images: ['https://img.usecurling.com/p/600/800?q=black%20stiletto%20heels&seed=6'],

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import useCartStore from '@/stores/useCartStore'
 import useWishlistStore from '@/stores/useWishlistStore'
+import useAuthStore from '@/stores/useAuthStore'
 import {
   Dialog,
   DialogContent,
@@ -23,8 +24,13 @@ export function ProductCard({ product }: ProductCardProps) {
   const { toast } = useToast()
   const { addToCart } = useCartStore()
   const { toggleWishlist, isInWishlist } = useWishlistStore()
+  const { user } = useAuthStore()
   const isWishlisted = isInWishlist(product.id)
   const [open, setOpen] = useState(false)
+
+  const displayPrice =
+    user?.type === 'Atacado' && product.wholesalePrice ? product.wholesalePrice : product.price
+  const isWholesale = user?.type === 'Atacado' && !!product.wholesalePrice
 
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.preventDefault()
@@ -93,7 +99,14 @@ export function ProductCard({ product }: ProductCardProps) {
                 <div className="p-8 w-full md:w-1/2 flex flex-col justify-center gap-6 overflow-y-auto">
                   <div>
                     <h2 className="text-2xl font-serif mb-2">{product.name}</h2>
-                    <p className="text-xl text-primary">{formatPrice(product.price)}</p>
+                    <div className="flex items-center gap-3">
+                      <p className="text-xl text-primary">{formatPrice(displayPrice)}</p>
+                      {isWholesale && (
+                        <span className="bg-accent/10 text-accent text-xs px-2 py-1 uppercase tracking-wider font-semibold rounded">
+                          Preço Atacado
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <p className="text-muted-foreground text-sm leading-relaxed">
                     {product.description}
@@ -126,7 +139,14 @@ export function ProductCard({ product }: ProductCardProps) {
               {product.name}
             </h3>
           </Link>
-          <p className="font-sans text-sm text-muted-foreground">{formatPrice(product.price)}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-sans text-sm text-muted-foreground">{formatPrice(displayPrice)}</p>
+            {isWholesale && (
+              <span className="text-[10px] text-accent font-bold uppercase tracking-wider">
+                Atacado
+              </span>
+            )}
+          </div>
         </div>
         <Button
           variant="outline"

@@ -4,6 +4,7 @@ export interface User {
   id: string
   name: string
   email: string
+  type?: 'Varejo' | 'Atacado'
 }
 
 interface AuthState {

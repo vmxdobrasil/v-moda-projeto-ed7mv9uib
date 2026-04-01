@@ -28,6 +28,7 @@ interface Product {
   name: string
   category: string
   price: number
+  wholesalePrice?: number
   stock: number
   image: string
   description: string
@@ -39,6 +40,7 @@ const INITIAL_PRODUCTS: Product[] = [
     name: 'Vestido Seda Longo',
     category: 'Vestidos',
     price: 1250.0,
+    wholesalePrice: 850.0,
     stock: 15,
     image: 'https://img.usecurling.com/p/100/100?q=silk%20dress',
     description: 'Vestido de seda elegante para festas.',
@@ -48,6 +50,7 @@ const INITIAL_PRODUCTS: Product[] = [
     name: 'Blazer Alfaiataria',
     category: 'Casacos',
     price: 1500.0,
+    wholesalePrice: 1000.0,
     stock: 8,
     image: 'https://img.usecurling.com/p/100/100?q=blazer',
     description: 'Blazer com corte impecável.',
@@ -85,6 +88,7 @@ export default function Products() {
     name: '',
     category: '',
     price: 0,
+    wholesalePrice: 0,
     stock: 0,
     image: '',
     description: '',
@@ -97,10 +101,18 @@ export default function Products() {
   const handleOpenModal = (product?: Product) => {
     if (product) {
       setEditingProduct(product)
-      setFormData(product)
+      setFormData({ ...product, wholesalePrice: product.wholesalePrice || 0 })
     } else {
       setEditingProduct(null)
-      setFormData({ name: '', category: '', price: 0, stock: 0, image: '', description: '' })
+      setFormData({
+        name: '',
+        category: '',
+        price: 0,
+        wholesalePrice: 0,
+        stock: 0,
+        image: '',
+        description: '',
+      })
     }
     setIsModalOpen(true)
   }
@@ -254,7 +266,8 @@ export default function Products() {
                   <TableHead>Nome do Produto</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead className="text-right">Preço</TableHead>
-                  <TableHead className="text-center">Estoque</TableHead>
+                  <TableHead className="text-right">Atacado</TableHead>
+                  <TableHead className="text-center">Estoque</TableHead>{' '}
                   <TableHead className="text-center w-[100px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -273,7 +286,11 @@ export default function Products() {
                     <TableCell className="text-right whitespace-nowrap">
                       R$ {product.price.toFixed(2)}
                     </TableCell>
+                    <TableCell className="text-right whitespace-nowrap text-muted-foreground text-sm">
+                      {product.wholesalePrice ? `R$ ${product.wholesalePrice.toFixed(2)}` : '-'}
+                    </TableCell>
                     <TableCell className="text-center">
+                      {' '}
                       <div className="flex flex-col items-center justify-center gap-1.5">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock <= 5 ? 'bg-destructive/10 text-destructive' : product.stock < 10 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}
@@ -361,16 +378,31 @@ export default function Products() {
                 />
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="price">Preço (R$) *</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.price || ''}
-                onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="price">Preço Varejo (R$) *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.price || ''}
+                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="wholesalePrice">Preço Atacado (B2B)</Label>
+                <Input
+                  id="wholesalePrice"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.wholesalePrice || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, wholesalePrice: Number(e.target.value) })
+                  }
+                />
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="image">URL da Imagem *</Label>

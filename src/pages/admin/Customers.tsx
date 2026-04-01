@@ -33,6 +33,7 @@ const MOCK_CUSTOMERS = [
     ordersCount: 5,
     totalSpent: 4500.0,
     status: 'Ativo',
+    type: 'Varejo',
     history: [
       { id: 'ORD-001', date: '2023-10-25', total: 1250.0, status: 'Pago' },
       { id: 'ORD-045', date: '2023-08-12', total: 850.0, status: 'Enviado' },
@@ -47,6 +48,7 @@ const MOCK_CUSTOMERS = [
     ordersCount: 2,
     totalSpent: 900.0,
     status: 'Ativo',
+    type: 'Atacado',
     history: [{ id: 'ORD-002', date: '2023-10-24', total: 450.0, status: 'Pendente' }],
   },
   {
@@ -58,6 +60,7 @@ const MOCK_CUSTOMERS = [
     ordersCount: 8,
     totalSpent: 7890.0,
     status: 'Inativo',
+    type: 'Varejo',
     history: [{ id: 'ORD-102', date: '2023-09-05', total: 2100.0, status: 'Enviado' }],
   },
   {
@@ -69,6 +72,7 @@ const MOCK_CUSTOMERS = [
     ordersCount: 1,
     totalSpent: 1500.0,
     status: 'Inativo',
+    type: 'Varejo',
     history: [{ id: 'ORD-004', date: '2023-10-22', total: 1500.0, status: 'Cancelado' }],
   },
 ]
@@ -77,6 +81,7 @@ type SortField = 'totalSpent' | 'lastPurchase' | null
 type SortDirection = 'asc' | 'desc'
 
 export default function Customers() {
+  const [customers, setCustomers] = useState(MOCK_CUSTOMERS)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCustomer, setSelectedCustomer] = useState<(typeof MOCK_CUSTOMERS)[0] | null>(null)
 
@@ -103,7 +108,7 @@ export default function Customers() {
   }
 
   const filteredAndSortedCustomers = useMemo(() => {
-    let result = MOCK_CUSTOMERS.filter((c) => {
+    let result = customers.filter((c) => {
       const matchesSearch =
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -269,6 +274,7 @@ export default function Customers() {
                 <TableRow>
                   <TableHead>Nome do Cliente</TableHead>
                   <TableHead>E-mail</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -297,6 +303,11 @@ export default function Customers() {
                   <TableRow key={customer.id}>
                     <TableCell className="font-medium">{customer.name}</TableCell>
                     <TableCell>{customer.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={customer.type === 'Atacado' ? 'secondary' : 'outline'} className={customer.type === 'Atacado' ? 'bg-accent/10 text-accent hover:bg-accent/20 border-transparent' : ''}>
+                        {customer.type}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <Badge
                         variant={customer.status === 'Ativo' ? 'default' : 'secondary'}
@@ -351,9 +362,39 @@ export default function Customers() {
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl uppercase">
                   {selectedCustomer.name.charAt(0)}
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold">{selectedCustomer.name}</h3>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                <div className="flex-1 flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-semibold">{selectedCustomer.name}</h3>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                      <span className="flex items-center gap-1">
+                        <Mail className="w-3 h-3" /> {selectedCustomer.email}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" /> Desde{' '}
+                        {new Date(selectedCustomer.registeredAt).toLocaleDateString('pt-BR')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1 items-end">
+                    <Label className="text-xs text-muted-foreground">Classificação</Label>
+                    <Select
+                      value={selectedCustomer.type}
+                      onValueChange={(val) => {
+                        const newType = val as 'Varejo' | 'Atacado'
+                        setCustomers(customers.map(c => c.id === selectedCustomer.id ? { ...c, type: newType } : c))
+                        setSelectedCustomer({ ...selectedCustomer, type: newType })
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Varejo">Varejo</SelectItem>
+                        <SelectItem value="Atacado">Atacado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                     <span className="flex items-center gap-1">
                       <Mail className="w-3 h-3" /> {selectedCustomer.email}
                     </span>

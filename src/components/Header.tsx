@@ -32,11 +32,18 @@ export function Header() {
   const navigate = useNavigate()
   const isHome = location.pathname === '/'
 
-  const { items: cartItems, cartTotal, removeFromCart, updateQuantity } = useCartStore()
+  const { items: cartItems, removeFromCart, updateQuantity } = useCartStore()
   const { items: wishlistItems } = useWishlistStore()
   const { user, isAuthenticated, logout } = useAuthStore()
 
   const totalCartItems = cartItems.reduce((acc, item) => acc + item.quantity, 0)
+  const cartTotal = cartItems.reduce((acc, item) => {
+    const price =
+      user?.type === 'Atacado' && item.product.wholesalePrice
+        ? item.product.wholesalePrice
+        : item.product.price
+    return acc + price * item.quantity
+  }, 0)
 
   const handleLogout = () => {
     logout()
@@ -80,6 +87,9 @@ export function Header() {
     { name: 'Revista Digital', path: '/revista' },
     { name: 'Sobre Nós', path: '/sobre-nos' },
     { name: 'Contato', path: '/contato' },
+    ...(!isAuthenticated || user?.type !== 'Atacado'
+      ? [{ name: 'Seja uma Revendedora', path: '/revenda' }]
+      : []),
   ]
 
   const mobileNavLinks = [
@@ -313,9 +323,20 @@ export function Header() {
                             Tamanho: {item.size}
                           </p>
                         )}
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {formatPrice(item.product.price)}
-                        </p>
+                        <div className="flex flex-col mt-1">
+                          <p className="text-sm text-muted-foreground">
+                            {formatPrice(
+                              user?.type === 'Atacado' && item.product.wholesalePrice
+                                ? item.product.wholesalePrice
+                                : item.product.price,
+                            )}
+                          </p>
+                          {user?.type === 'Atacado' && item.product.wholesalePrice && (
+                            <span className="text-[10px] text-accent font-medium uppercase tracking-wider">
+                              Preço Atacado
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center border border-border w-24 h-8 mt-2">
                           <button
                             onClick={() =>

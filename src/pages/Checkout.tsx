@@ -16,14 +16,24 @@ import {
 import { useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import useCartStore from '@/stores/useCartStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { formatPrice } from '@/lib/data'
 import { useSEO } from '@/hooks/useSEO'
 import { trackEvent } from '@/lib/analytics'
 import { useNavigate } from 'react-router-dom'
 
 export default function Checkout() {
-  const { items: cartItems, cartTotal, clearCart } = useCartStore()
+  const { items: cartItems, clearCart } = useCartStore()
+  const { user } = useAuthStore()
   const { toast } = useToast()
+
+  const cartTotal = cartItems.reduce((acc, item) => {
+    const price =
+      user?.type === 'Atacado' && item.product.wholesalePrice
+        ? item.product.wholesalePrice
+        : item.product.price
+    return acc + price * item.quantity
+  }, 0)
   const navigate = useNavigate()
   const [paymentMethod, setPaymentMethod] = useState('credit_card')
   const [cep, setCep] = useState('')
@@ -318,12 +328,21 @@ export default function Checkout() {
                           {item.size && (
                             <span className="text-xs text-muted-foreground">Tam: {item.size}</span>
                           )}
+                          {user?.type === 'Atacado' && item.product.wholesalePrice && (
+                            <span className="text-[10px] text-accent font-medium uppercase tracking-wider mt-1">
+                              Atacado
+                            </span>
+                          )}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-center text-sm">{item.quantity}</TableCell>
                     <TableCell className="text-right text-sm">
-                      {formatPrice(item.product.price * item.quantity)}
+                      {formatPrice(
+                        (user?.type === 'Atacado' && item.product.wholesalePrice
+                          ? item.product.wholesalePrice
+                          : item.product.price) * item.quantity,
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
