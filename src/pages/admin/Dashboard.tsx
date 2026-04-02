@@ -1,210 +1,230 @@
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DollarSign, ShoppingBag, Users, CreditCard, AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  BarChart,
-  Bar,
-} from 'recharts'
+import { Progress } from '@/components/ui/progress'
+import { MapPin, Users, Award, ShieldCheck } from 'lucide-react'
+import { useRealtime } from '@/hooks/use-realtime'
+import pb from '@/lib/pocketbase/client'
 
-const salesData = [
-  { month: 'Jan', sales: 4000 },
-  { month: 'Fev', sales: 3000 },
-  { month: 'Mar', sales: 5000 },
-  { month: 'Abr', sales: 4500 },
-  { month: 'Mai', sales: 6000 },
-  { month: 'Jun', sales: 5500 },
-]
+interface Customer {
+  id: string
+  name: string
+  email?: string
+  phone?: string
+  status?: string
+  ranking_category?: string
+  ranking_position?: number
+  is_exclusive?: boolean
+  exclusivity_zone?: string
+}
 
-const topProducts = [
-  { name: 'Vestido Seda', sales: 120 },
-  { name: 'Blazer Alfai', sales: 98 },
-  { name: 'Calça Pantal', sales: 86 },
-  { name: 'Camisa Linho', sales: 75 },
-  { name: 'Saia Midi', sales: 64 },
-]
+const CATEGORY_LIMITS: Record<string, { label: string; limit: number }> = {
+  moda_feminina: { label: 'TOP 15 MODA FEMININA', limit: 15 },
+  jeans: { label: 'TOP 10 JEANS', limit: 10 },
+  moda_praia: { label: 'TOP 5 MODA PRAIA', limit: 5 },
+  moda_geral: { label: 'TOP 5 MODA (Geral)', limit: 5 },
+  moda_masculina: { label: 'TOP 5 MODA MASCULINA', limit: 5 },
+  moda_evangelica: { label: 'TOP 5 MODA EVANGÉLICA', limit: 5 },
+  moda_country: { label: 'TOP 5 MODA COUNTRY', limit: 5 },
+  moda_infantil: { label: 'TOP 5 MODA INFANTIL', limit: 5 },
+  bijouterias_semijoias: { label: 'TOP 3 BIJOUTERIAS E SEMIJOIAS', limit: 3 },
+  calcados: { label: 'TOP 2 CALÇADOS', limit: 2 },
+}
 
-const lowStockProducts = [
-  { id: 'PROD-004', name: 'Camisa Linho', stock: 3 },
-  { id: 'PROD-007', name: 'Bolsa Couro Estruturada', stock: 1 },
-  { id: 'PROD-008', name: 'Cinto Couro', stock: 4 },
-]
+export default function AdminDashboard() {
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [loading, setLoading] = useState(true)
 
-export default function Dashboard() {
+  const loadData = async () => {
+    try {
+      const data = await pb.collection('customers').getFullList<Customer>({
+        sort: '-created',
+      })
+      setCustomers(data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  useRealtime('customers', () => {
+    loadData()
+  })
+
+  const { categoriesOccupancy, occupiedZones, totalExclusives } = useMemo(() => {
+    const occupancy: Record<string, number> = {}
+    Object.keys(CATEGORY_LIMITS).forEach((k) => (occupancy[k] = 0))
+
+    const zones: Array<{
+      zone: string
+      category: string
+      customerName: string
+      isExclusive: boolean
+    }> = []
+    let exclusives = 0
+
+    customers.forEach((c) => {
+      if (
+        c.ranking_category &&
+        CATEGORY_LIMITS[c.ranking_category] &&
+        c.ranking_position &&
+        c.ranking_position > 0
+      ) {
+        occupancy[c.ranking_category]++
+      }
+
+      if (c.is_exclusive || (c.ranking_position && c.ranking_position > 0)) {
+        exclusives++
+      }
+
+      if (c.exclusivity_zone) {
+        zones.push({
+          zone: c.exclusivity_zone,
+          category: c.ranking_category || 'N/A',
+          customerName: c.name,
+          isExclusive: c.is_exclusive || false,
+        })
+      }
+    })
+
+    return { categoriesOccupancy: occupancy, occupiedZones: zones, totalExclusives: exclusives }
+  }, [customers])
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-muted-foreground animate-fade-in">
+        Carregando dashboard macro...
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Visão Geral</h2>
-        <p className="text-muted-foreground mt-1">Bem-vindo ao painel administrativo da V Moda.</p>
+    <div className="space-y-6 animate-fade-in-up pb-10">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard de Ocupação</h1>
+        <p className="text-muted-foreground">
+          Monitore a ocupação de categorias exclusivas e zonas territoriais.
+        </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vendas Totais</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R$ 45.231,89</div>
-            <p className="text-xs text-muted-foreground mt-1">+20.1% em relação ao mês anterior</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Pedidos</CardTitle>
-            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+2.350</div>
-            <p className="text-xs text-muted-foreground mt-1">+180 novos pedidos hoje</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Novos Clientes</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total de Revendedores</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+1.234</div>
-            <p className="text-xs text-muted-foreground mt-1">+19% em relação ao mês anterior</p>
+            <div className="text-2xl font-bold">{customers.length}</div>
+            <p className="text-xs text-muted-foreground">Cadastrados no sistema</p>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Revendedores TOP / Exclusivos</CardTitle>
+            <Award className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 573,00</div>
-            <p className="text-xs text-muted-foreground mt-1">+7% em relação ao mês anterior</p>
+            <div className="text-2xl font-bold text-yellow-600">{totalExclusives}</div>
+            <p className="text-xs text-muted-foreground">Integrantes das categorias TOP</p>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Charts */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-8">
-        <Card className="lg:col-span-5">
-          <CardHeader>
-            <CardTitle>Vendas por Período</CardTitle>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Zonas de Exclusividade</CardTitle>
+            <MapPin className="h-4 w-4 text-primary" />
           </CardHeader>
-          <CardContent className="pl-0 sm:pl-2">
-            <ChartContainer
-              config={{ sales: { label: 'Vendas', color: 'hsl(var(--primary))' } }}
-              className="h-[300px] w-full"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={salesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-sales)" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="var(--color-sales)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.5} />
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    axisLine={false}
-                    fontSize={12}
-                    tickMargin={8}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    fontSize={12}
-                    tickFormatter={(value) => `R$${value}`}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area
-                    type="monotone"
-                    dataKey="sales"
-                    stroke="var(--color-sales)"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorSales)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+          <CardContent>
+            <div className="text-2xl font-bold">{occupiedZones.length}</div>
+            <p className="text-xs text-muted-foreground">Territórios mapeados</p>
           </CardContent>
         </Card>
-
-        <div className="lg:col-span-3 flex flex-col gap-4">
-          <Card className="flex-1">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Produtos Mais Vendidos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer
-                config={{ sales: { label: 'Unidades', color: 'hsl(var(--primary))' } }}
-                className="h-[140px] w-full"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={topProducts}
-                    layout="vertical"
-                    margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.5} />
-                    <XAxis type="number" hide />
-                    <YAxis
-                      dataKey="name"
-                      type="category"
-                      axisLine={false}
-                      tickLine={false}
-                      width={90}
-                      fontSize={11}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar
-                      dataKey="sales"
-                      fill="var(--color-sales)"
-                      radius={[0, 4, 4, 0]}
-                      barSize={16}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-
-          <Card className="flex-1 border-destructive/30 bg-destructive/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base text-destructive">
-                <AlertTriangle className="w-5 h-5" />
-                Alertas de Estoque Baixo
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {lowStockProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center justify-between border-b border-destructive/10 pb-2 last:border-0 last:pb-0"
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-medium text-sm leading-none mb-1.5">
-                        {product.name}
-                      </span>
-                      <span className="text-xs text-muted-foreground">{product.id}</span>
-                    </div>
-                    <Badge variant="destructive" className="font-mono text-xs px-2">
-                      {product.stock} un
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
+
+      <h2 className="text-xl font-bold tracking-tight mt-10 mb-4">Ocupação das Categorias TOP</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {Object.entries(CATEGORY_LIMITS).map(([key, { label, limit }]) => {
+          const count = categoriesOccupancy[key] || 0
+          const percentage = Math.min(100, Math.round((count / limit) * 100))
+          const isFull = count >= limit
+
+          return (
+            <Card key={key} className={isFull ? 'border-yellow-500/50 bg-yellow-500/5' : ''}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                  <span className="truncate">{label}</span>
+                  {isFull && <ShieldCheck className="w-4 h-4 text-yellow-600 shrink-0" />}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-baseline mb-2">
+                  <span className={`text-2xl font-bold ${isFull ? 'text-yellow-700' : ''}`}>
+                    {count}
+                  </span>
+                  <span className="text-sm text-muted-foreground">/ {limit} vagas</span>
+                </div>
+                <Progress value={percentage} className={`h-2 ${isFull ? 'bg-yellow-500' : ''}`} />
+                <p className="text-xs text-muted-foreground mt-2 font-medium">
+                  {percentage}% ocupado
+                </p>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      <h2 className="text-xl font-bold tracking-tight mt-10 mb-4">
+        Mapa de Zonas de Exclusividade
+      </h2>
+      <Card>
+        <CardContent className="p-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
+            {occupiedZones.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground col-span-full">
+                Nenhuma zona de exclusividade registrada até o momento.
+              </div>
+            ) : (
+              occupiedZones.map((z, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-4 p-6 hover:bg-muted/30 transition-colors"
+                >
+                  <div className="mt-1 bg-primary/10 p-2 rounded-full shrink-0">
+                    {z.isExclusive ? (
+                      <ShieldCheck className="w-5 h-5 text-yellow-600" />
+                    ) : (
+                      <MapPin className="w-5 h-5 text-primary" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-base truncate">{z.zone}</p>
+                    <p className="text-sm text-foreground truncate mt-0.5">{z.customerName}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="secondary" className="text-[10px] font-medium">
+                        {CATEGORY_LIMITS[z.category]?.label || 'Categoria Indefinida'}
+                      </Badge>
+                      {z.isExclusive && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] text-yellow-600 border-yellow-200 bg-yellow-50"
+                        >
+                          Exclusivo
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
