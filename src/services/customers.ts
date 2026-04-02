@@ -14,6 +14,7 @@ export interface Customer {
   ranking_category?: string
   ranking_position?: number | null
   is_exclusive?: boolean
+  unlocked_benefits?: Record<string, boolean> | null
 }
 
 export const getCustomers = async () => {

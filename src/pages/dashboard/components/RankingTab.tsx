@@ -28,7 +28,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
-import { Shield, ShieldCheck, Trophy, Trash2 } from 'lucide-react'
+import { Shield, ShieldCheck, Trophy, Trash2, Gift } from 'lucide-react'
+import { CustomerBenefits } from '@/components/admin/CustomerBenefits'
 
 const CATEGORY_LIMITS: Record<string, { label: string; limit: number }> = {
   moda_feminina: { label: 'TOP 15 MODA FEMININA', limit: 15 },
@@ -46,6 +47,7 @@ const CATEGORY_LIMITS: Record<string, { label: string; limit: number }> = {
 export default function RankingTab({ customers }: { customers: Customer[] }) {
   const [activeCategory, setActiveCategory] = useState<string>('moda_feminina')
   const [isAssignOpen, setIsAssignOpen] = useState(false)
+  const [benefitsCustomer, setBenefitsCustomer] = useState<Customer | null>(null)
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('')
   const [assignPosition, setAssignPosition] = useState<string>('1')
@@ -214,6 +216,7 @@ export default function RankingTab({ customers }: { customers: Customer[] }) {
               <TableHead>Parceiro</TableHead>
               <TableHead>Zona de Exclusividade</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-center">Benefícios</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -255,16 +258,38 @@ export default function RankingTab({ customers }: { customers: Customer[] }) {
                       </Badge>
                     ) : null}
                   </TableCell>
+                  <TableCell className="text-center">
+                    {cust && (
+                      <Badge
+                        variant="outline"
+                        className="bg-amber-50 text-amber-700 border-amber-200"
+                      >
+                        {Object.values(cust.unlocked_benefits || {}).filter(Boolean).length}/4
+                        Ativos
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">
                     {cust && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemove(cust.id)}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setBenefitsCustomer(cust)}
+                          className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                          title="Esteira de Apoio (Benefícios)"
+                        >
+                          <Gift className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemove(cust.id)}
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     )}
                   </TableCell>
                 </TableRow>
@@ -273,6 +298,17 @@ export default function RankingTab({ customers }: { customers: Customer[] }) {
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={!!benefitsCustomer} onOpenChange={(open) => !open && setBenefitsCustomer(null)}>
+        <DialogContent className="sm:max-w-[700px] h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Benefícios (Esteira de Apoio)</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto mt-4 pr-2">
+            {benefitsCustomer && <CustomerBenefits customer={benefitsCustomer} />}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

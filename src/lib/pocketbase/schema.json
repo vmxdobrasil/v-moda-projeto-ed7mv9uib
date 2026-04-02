@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-02T22:11:31.271Z",
+  "generatedAt": "2026-04-02T22:40:15.851Z",
   "collections": [
     {
       "name": "users",
@@ -265,6 +265,12 @@
         {
           "name": "is_exclusive",
           "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "unlocked_benefits",
+          "type": "json",
           "required": false,
           "system": false
         }
