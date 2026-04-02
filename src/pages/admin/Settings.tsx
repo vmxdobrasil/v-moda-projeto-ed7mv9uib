@@ -19,10 +19,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Shield, Trash2, Plus, Globe } from 'lucide-react'
+import { Shield, Trash2, Plus, Globe, MessageCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useMagazineStore } from '@/stores/useMagazineStore'
 import { useManufacturerStore } from '@/stores/useManufacturerStore'
+import { getWhatsappConfig, saveWhatsappConfig, WhatsappConfig } from '@/services/whatsapp'
+import pb from '@/lib/pocketbase/client'
+import { useEffect } from 'react'
 
 interface User {
   id: string
@@ -43,6 +46,32 @@ export default function Settings() {
   const { externalUrl, setExternalUrl } = useMagazineStore()
   const [urlInput, setUrlInput] = useState(externalUrl)
   const { manufacturers, updateVmp } = useManufacturerStore()
+
+  const [waConfig, setWaConfig] = useState<Partial<WhatsappConfig>>({
+    api_url: '',
+    token: '',
+    instance_id: '',
+  })
+
+  useEffect(() => {
+    const userId = pb.authStore.record?.id
+    if (userId) {
+      getWhatsappConfig(userId).then((conf) => {
+        if (conf) setWaConfig(conf)
+      })
+    }
+  }, [])
+
+  const handleSaveWaConfig = async () => {
+    try {
+      const userId = pb.authStore.record?.id
+      if (!userId) throw new Error('Não autenticado')
+      await saveWhatsappConfig({ ...waConfig, user: userId })
+      toast({ description: 'WhatsApp API configurada com sucesso!' })
+    } catch (e) {
+      toast({ description: 'Erro ao salvar configurações do WhatsApp.', variant: 'destructive' })
+    }
+  }
 
   const handleSaveUrl = () => {
     setExternalUrl(urlInput)
@@ -139,6 +168,53 @@ export default function Settings() {
               <Button onClick={handleSaveUrl}>Salvar URL</Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <MessageCircle className="w-4 h-4 text-green-500" />
+            Configuração de API do WhatsApp
+          </CardTitle>
+          <CardDescription>
+            Integre seu provedor de WhatsApp para envio de notificações automáticas de ranking e
+            benefícios.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 max-w-2xl">
+          <div className="space-y-2">
+            <Label htmlFor="waApiUrl">WhatsApp API Endpoint</Label>
+            <Input
+              id="waApiUrl"
+              type="url"
+              value={waConfig.api_url}
+              onChange={(e) => setWaConfig({ ...waConfig, api_url: e.target.value })}
+              placeholder="https://api.whatsapp-provider.com/v1/messages"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="waToken">Access Token</Label>
+              <Input
+                id="waToken"
+                type="password"
+                value={waConfig.token}
+                onChange={(e) => setWaConfig({ ...waConfig, token: e.target.value })}
+                placeholder="Seu token de acesso"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="waInstance">Instance ID</Label>
+              <Input
+                id="waInstance"
+                value={waConfig.instance_id}
+                onChange={(e) => setWaConfig({ ...waConfig, instance_id: e.target.value })}
+                placeholder="ID da instância"
+              />
+            </div>
+          </div>
+          <Button onClick={handleSaveWaConfig}>Salvar Credenciais</Button>
         </CardContent>
       </Card>
 

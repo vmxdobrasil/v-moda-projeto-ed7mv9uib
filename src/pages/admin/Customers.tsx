@@ -22,8 +22,20 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Eye, Search, Mail, Calendar, ArrowUpDown, Filter, X } from 'lucide-react'
+import {
+  Eye,
+  Search,
+  Mail,
+  Calendar,
+  ArrowUpDown,
+  Filter,
+  X,
+  Phone,
+  MessageCircle,
+} from 'lucide-react'
 import { Customer, getCustomers } from '@/services/customers'
+import { sendManualWhatsapp } from '@/services/whatsapp'
+import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
 import { CustomerBenefits } from '@/components/admin/CustomerBenefits'
 
@@ -39,6 +51,24 @@ export default function Customers() {
   const [filterStatus, setFilterStatus] = useState<string>('todos')
   const [sortField, setSortField] = useState<SortField>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const { toast } = useToast()
+  const [sendingWa, setSendingWa] = useState(false)
+
+  const handleSendWhatsapp = async (customerId: string) => {
+    setSendingWa(true)
+    try {
+      await sendManualWhatsapp(customerId)
+      toast({ description: 'Mensagem enviada com sucesso!' })
+      loadData()
+    } catch (e: any) {
+      toast({
+        description: e.message || 'Erro ao enviar WhatsApp. Verifique as configurações.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSendingWa(false)
+    }
+  }
 
   const loadData = async () => {
     try {
@@ -289,15 +319,36 @@ export default function Customers() {
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold">{selectedCustomer.name}</h3>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-1">
                         <span className="flex items-center gap-1">
                           <Mail className="w-3 h-3" /> {selectedCustomer.email || 'Sem e-mail'}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3" />{' '}
+                          {(selectedCustomer as any).phone || 'Sem telefone'}
                         </span>
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" /> Desde{' '}
                           {new Date(selectedCustomer.created).toLocaleDateString('pt-BR')}
                         </span>
                       </div>
+
+                      {(selectedCustomer as any).phone && selectedCustomer.ranking_position && (
+                        <div className="mt-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+                            onClick={() => handleSendWhatsapp(selectedCustomer.id)}
+                            disabled={sendingWa}
+                          >
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            {sendingWa
+                              ? 'Enviando...'
+                              : 'Enviar Mensagem de Boas-vindas (WhatsApp)'}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
