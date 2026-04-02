@@ -63,6 +63,12 @@ export function Footer() {
             V MODA Academy
           </Link>
           <Link
+            to="/credito-moda"
+            className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
+          >
+            CréditoModa
+          </Link>
+          <Link
             to="/revista"
             className="text-sm text-primary-foreground/70 hover:text-white transition-colors"
           >

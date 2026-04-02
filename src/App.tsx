@@ -22,6 +22,7 @@ import Revista from './pages/Revista'
 import ResellerApplication from './pages/ResellerApplication'
 import ManufacturerDashboard from './pages/ManufacturerDashboard'
 import Academy from './pages/Academy'
+import CreditoModa from './pages/CreditoModa'
 import Layout from './components/Layout'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/Dashboard'
@@ -71,6 +72,7 @@ const App = () => (
           <Route path="/faq" element={<FAQ />} />
           <Route path="/revenda" element={<ResellerApplication />} />
           <Route path="/painel-fabricante" element={<ManufacturerDashboard />} />
+          <Route path="/credito-moda" element={<CreditoModa />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
