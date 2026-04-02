@@ -8,6 +8,34 @@ export interface WhatsappConfig {
   instance_id?: string
 }
 
+export interface WhatsappTemplate {
+  id?: string
+  user: string
+  name: string
+  trigger_event: 'welcome_message' | 'ranking_promotion' | 'benefit_alert'
+  content: string
+  is_active: boolean
+}
+
+export const getWhatsappTemplates = async (userId: string) => {
+  return pb.collection('whatsapp_templates').getFullList<WhatsappTemplate>({
+    filter: `user = "${userId}"`,
+    sort: '-created',
+  })
+}
+
+export const saveWhatsappTemplate = async (data: Partial<WhatsappTemplate>) => {
+  if (data.id) {
+    return pb.collection('whatsapp_templates').update(data.id, data)
+  } else {
+    return pb.collection('whatsapp_templates').create(data)
+  }
+}
+
+export const deleteWhatsappTemplate = async (id: string) => {
+  return pb.collection('whatsapp_templates').delete(id)
+}
+
 export const getWhatsappConfig = async (userId: string) => {
   try {
     return await pb

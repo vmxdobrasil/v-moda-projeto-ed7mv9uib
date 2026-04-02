@@ -19,11 +19,28 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Shield, Trash2, Plus, Globe, MessageCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useMagazineStore } from '@/stores/useMagazineStore'
 import { useManufacturerStore } from '@/stores/useManufacturerStore'
-import { getWhatsappConfig, saveWhatsappConfig, WhatsappConfig } from '@/services/whatsapp'
+import {
+  getWhatsappConfig,
+  saveWhatsappConfig,
+  WhatsappConfig,
+  getWhatsappTemplates,
+  saveWhatsappTemplate,
+  WhatsappTemplate,
+} from '@/services/whatsapp'
 import pb from '@/lib/pocketbase/client'
 import { useEffect } from 'react'
 
@@ -53,14 +70,62 @@ export default function Settings() {
     instance_id: '',
   })
 
+  const [templates, setTemplates] = useState<WhatsappTemplate[]>([])
+  const [editingTemplate, setEditingTemplate] = useState<Partial<WhatsappTemplate> | null>(null)
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
+
   useEffect(() => {
     const userId = pb.authStore.record?.id
     if (userId) {
       getWhatsappConfig(userId).then((conf) => {
         if (conf) setWaConfig(conf)
       })
+      getWhatsappTemplates(userId).then((tpls) => {
+        setTemplates(tpls)
+      })
     }
   }, [])
+
+  const handleSaveTemplate = async () => {
+    try {
+      const userId = pb.authStore.record?.id
+      if (!userId) throw new Error('Não autenticado')
+      if (!editingTemplate?.name || !editingTemplate?.trigger_event || !editingTemplate?.content) {
+        toast({ description: 'Preencha todos os campos obrigatórios.', variant: 'destructive' })
+        return
+      }
+
+      const saved = await saveWhatsappTemplate({ ...editingTemplate, user: userId })
+      setTemplates((prev) => {
+        const idx = prev.findIndex((t) => t.id === saved.id)
+        if (idx >= 0) {
+          const newTpls = [...prev]
+          newTpls[idx] = saved as WhatsappTemplate
+          return newTpls
+        }
+        return [saved as WhatsappTemplate, ...prev]
+      })
+      setIsTemplateDialogOpen(false)
+      toast({ description: 'Modelo salvo com sucesso!' })
+    } catch (e) {
+      toast({ description: 'Erro ao salvar modelo.', variant: 'destructive' })
+    }
+  }
+
+  const handleEditTemplate = (tpl: WhatsappTemplate) => {
+    setEditingTemplate(tpl)
+    setIsTemplateDialogOpen(true)
+  }
+
+  const handleCreateTemplate = () => {
+    setEditingTemplate({
+      name: '',
+      trigger_event: 'welcome_message',
+      content: '',
+      is_active: true,
+    })
+    setIsTemplateDialogOpen(true)
+  }
 
   const handleSaveWaConfig = async () => {
     try {
@@ -217,6 +282,162 @@ export default function Settings() {
           <Button onClick={handleSaveWaConfig}>Salvar Credenciais</Button>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-primary" />
+              Modelos de Mensagens (WhatsApp)
+            </CardTitle>
+            <CardDescription>
+              Crie e edite templates dinâmicos para envios automáticos e manuais.
+            </CardDescription>
+          </div>
+          <Button onClick={handleCreateTemplate} size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Modelo
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Gatilho</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[80px] text-center">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {templates.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      Nenhum modelo cadastrado.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  templates.map((tpl) => (
+                    <TableRow key={tpl.id}>
+                      <TableCell className="font-medium">{tpl.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {tpl.trigger_event === 'welcome_message'
+                            ? 'Boas-Vindas'
+                            : tpl.trigger_event === 'ranking_promotion'
+                              ? 'Promoção de Ranking'
+                              : 'Alerta de Benefício'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={tpl.is_active ? 'default' : 'secondary'}>
+                          {tpl.is_active ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditTemplate(tpl)}>
+                          Editar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingTemplate?.id ? 'Editar Modelo' : 'Novo Modelo'}</DialogTitle>
+            <DialogDescription>Configure o conteúdo da mensagem e seu gatilho.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nome do Modelo</Label>
+                <Input
+                  value={editingTemplate?.name || ''}
+                  onChange={(e) => setEditingTemplate({ ...editingTemplate, name: e.target.value })}
+                  placeholder="Ex: Boas-vindas Padrão"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Gatilho (Trigger)</Label>
+                <Select
+                  value={editingTemplate?.trigger_event || 'welcome_message'}
+                  onValueChange={(v: any) =>
+                    setEditingTemplate({ ...editingTemplate, trigger_event: v })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="welcome_message">Boas-Vindas</SelectItem>
+                    <SelectItem value="ranking_promotion">Promoção de Ranking</SelectItem>
+                    <SelectItem value="benefit_alert">Alerta de Benefício</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Conteúdo da Mensagem</Label>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={editingTemplate?.is_active ?? true}
+                    onCheckedChange={(c) =>
+                      setEditingTemplate({ ...editingTemplate, is_active: c })
+                    }
+                  />
+                  <Label>Ativo</Label>
+                </div>
+              </div>
+              <Textarea
+                className="min-h-[150px]"
+                value={editingTemplate?.content || ''}
+                onChange={(e) =>
+                  setEditingTemplate({ ...editingTemplate, content: e.target.value })
+                }
+                placeholder="Escreva sua mensagem aqui..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Variáveis disponíveis:{' '}
+                <code className="bg-muted px-1 py-0.5 rounded">{'{{name}}'}</code> (Nome),{' '}
+                <code className="bg-muted px-1 py-0.5 rounded">{'{{ranking}}'}</code> (Posição),{' '}
+                <code className="bg-muted px-1 py-0.5 rounded">{'{{category}}'}</code> (Categoria),{' '}
+                <code className="bg-muted px-1 py-0.5 rounded">{'{{zone}}'}</code> (Zona),{' '}
+                <code className="bg-muted px-1 py-0.5 rounded">{'{{benefit_link}}'}</code> (Link).
+              </p>
+            </div>
+            {editingTemplate?.content && (
+              <div className="space-y-2 mt-2 p-4 bg-muted/50 rounded-lg border">
+                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                  Preview (Exemplo)
+                </Label>
+                <p className="text-sm whitespace-pre-wrap">
+                  {editingTemplate.content
+                    .replace(/\{\{name\}\}/g, 'João Silva')
+                    .replace(/\{\{ranking\}\}/g, 'TOP 1')
+                    .replace(/\{\{category\}\}/g, 'Jeans')
+                    .replace(/\{\{zone\}\}/g, 'São Paulo')
+                    .replace(/\{\{benefit_link\}\}/g, 'https://vmoda.com/beneficios')}
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTemplateDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveTemplate}>Salvar Modelo</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-3">

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-02T23:13:12.018Z",
+  "generatedAt": "2026-04-02T23:18:28.141Z",
   "collections": [
     {
       "name": "users",
@@ -456,6 +456,69 @@
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_whatsapp_configs_user ON whatsapp_configs (user)"]
+    },
+    {
+      "name": "whatsapp_templates",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user = @request.auth.id",
+        "view": "@request.auth.id != '' && user = @request.auth.id",
+        "create": "@request.auth.id != '' && user = @request.auth.id",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "trigger_event",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["welcome_message", "ranking_promotion", "benefit_alert"]
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "is_active",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_whatsapp_templates_user ON whatsapp_templates (user)",
+        "CREATE INDEX idx_whatsapp_templates_trigger ON whatsapp_templates (trigger_event)"
+      ]
     }
   ]
 }

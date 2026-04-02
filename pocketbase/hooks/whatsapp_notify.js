@@ -35,11 +35,38 @@ routerAdd(
     const apiUrl = config.get('api_url')
     const token = config.get('token')
 
-    const pos = record.get('ranking_position')
+    let templateContent = null
+    let templateActive = true
+    try {
+      const tpl = $app.findFirstRecordByFilter(
+        'whatsapp_templates',
+        'user = {:user} && trigger_event = "welcome_message"',
+        { user: manufacturerId },
+      )
+      templateContent = tpl.get('content')
+      templateActive = tpl.get('is_active')
+    } catch (err) {}
+
+    if (!templateActive) {
+      return e.badRequestError('Envio de mensagens de boas-vindas está desativado.')
+    }
+
+    const pos = record.get('ranking_position') || 'VIP'
     const cat = record.get('ranking_category') || 'Geral'
     const name = record.get('name') || 'Cliente'
+    const zone = record.get('exclusivity_zone') || ''
+    const link = 'https://v-moda-project-344c0.goskip.app/beneficios'
 
-    const msg = `Olá ${name}! Parabéns, você é destaque (TOP ${pos || 'VIP'} em ${cat})! Acesse sua Mini Esteira de Apoio para resgatar sua Revista Digital, E-book e 80% de bônus no ERP/IA. Link: https://v-moda-project-344c0.goskip.app/beneficios`
+    let msg = `Olá ${name}! Parabéns, você é destaque (TOP ${pos} em ${cat})! Acesse sua Mini Esteira de Apoio para resgatar sua Revista Digital, E-book e 80% de bônus no ERP/IA. Link: ${link}`
+
+    if (templateContent) {
+      msg = templateContent
+        .replace(/\{\{name\}\}/g, name)
+        .replace(/\{\{ranking\}\}/g, pos)
+        .replace(/\{\{category\}\}/g, cat)
+        .replace(/\{\{zone\}\}/g, zone)
+        .replace(/\{\{benefit_link\}\}/g, link)
+    }
 
     try {
       const res = $http.send({

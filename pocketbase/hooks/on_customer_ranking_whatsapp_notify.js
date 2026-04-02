@@ -20,10 +20,38 @@ onRecordAfterUpdateSuccess((e) => {
     const apiUrl = config.get('api_url')
     const token = config.get('token')
 
+    let templateContent = null
+    let templateActive = true
+    try {
+      const tpl = $app.findFirstRecordByFilter(
+        'whatsapp_templates',
+        'user = {:user} && trigger_event = "ranking_promotion"',
+        { user: manufacturerId },
+      )
+      templateContent = tpl.get('content')
+      templateActive = tpl.get('is_active')
+    } catch (err) {}
+
+    if (!templateActive) {
+      e.next()
+      return
+    }
+
     const cat = record.get('ranking_category') || 'Geral'
     const name = record.get('name') || 'Cliente'
+    const zone = record.get('exclusivity_zone') || ''
+    const link = 'https://v-moda-project-344c0.goskip.app/beneficios'
 
-    const msg = `Olá ${name}! Parabéns, você alcançou o TOP ${pos} na categoria ${cat}! Acesse sua Mini Esteira de Apoio para resgatar sua Revista Digital, E-book e 80% de bônus no ERP/IA. Link: https://v-moda-project-344c0.goskip.app/beneficios`
+    let msg = `Olá ${name}! Parabéns, você alcançou o TOP ${pos} na categoria ${cat}! Acesse sua Mini Esteira de Apoio para resgatar sua Revista Digital, E-book e 80% de bônus no ERP/IA. Link: ${link}`
+
+    if (templateContent) {
+      msg = templateContent
+        .replace(/\{\{name\}\}/g, name)
+        .replace(/\{\{ranking\}\}/g, pos)
+        .replace(/\{\{category\}\}/g, cat)
+        .replace(/\{\{zone\}\}/g, zone)
+        .replace(/\{\{benefit_link\}\}/g, link)
+    }
 
     const res = $http.send({
       url: apiUrl,
