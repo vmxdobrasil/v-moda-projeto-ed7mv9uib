@@ -12,7 +12,7 @@ export interface WhatsappTemplate {
   id?: string
   user: string
   name: string
-  trigger_event: 'welcome_message' | 'ranking_promotion' | 'benefit_alert'
+  trigger_event: 'welcome_message' | 'ranking_promotion' | 'benefit_alert' | 'reactivation_campaign'
   content: string
   is_active: boolean
 }
@@ -56,4 +56,12 @@ export const saveWhatsappConfig = async (data: Partial<WhatsappConfig>) => {
 
 export const sendManualWhatsapp = async (customerId: string) => {
   return pb.send(`/backend/v1/whatsapp/notify/${customerId}`, { method: 'POST' })
+}
+
+export const sendReactivationCampaign = async (customerIds: string[]) => {
+  return pb.send('/backend/v1/whatsapp/reactivate', {
+    method: 'POST',
+    body: JSON.stringify({ customerIds }),
+    headers: { 'Content-Type': 'application/json' },
+  })
 }

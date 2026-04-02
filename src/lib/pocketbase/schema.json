@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-02T23:18:28.141Z",
+  "generatedAt": "2026-04-02T23:27:51.278Z",
   "collections": [
     {
       "name": "users",
@@ -279,6 +279,12 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "last_contacted_at",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -486,7 +492,12 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["welcome_message", "ranking_promotion", "benefit_alert"]
+          "selectValues": [
+            "welcome_message",
+            "ranking_promotion",
+            "benefit_alert",
+            "reactivation_campaign"
+          ]
         },
         {
           "name": "content",

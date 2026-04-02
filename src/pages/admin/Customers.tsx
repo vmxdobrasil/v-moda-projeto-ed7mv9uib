@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Eye,
   Search,
@@ -32,9 +33,10 @@ import {
   X,
   Phone,
   MessageCircle,
+  Zap,
 } from 'lucide-react'
 import { Customer, getCustomers } from '@/services/customers'
-import { sendManualWhatsapp } from '@/services/whatsapp'
+import { sendManualWhatsapp, sendReactivationCampaign } from '@/services/whatsapp'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
 import { CustomerBenefits } from '@/components/admin/CustomerBenefits'
@@ -47,28 +49,15 @@ export default function Customers() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
 
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [bulkCampaignOpen, setBulkCampaignOpen] = useState(false)
+
   const [showFilters, setShowFilters] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string>('todos')
   const [sortField, setSortField] = useState<SortField>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const { toast } = useToast()
   const [sendingWa, setSendingWa] = useState(false)
-
-  const handleSendWhatsapp = async (customerId: string) => {
-    setSendingWa(true)
-    try {
-      await sendManualWhatsapp(customerId)
-      toast({ description: 'Mensagem enviada com sucesso!' })
-      loadData()
-    } catch (e: any) {
-      toast({
-        description: e.message || 'Erro ao enviar WhatsApp. Verifique as configurações.',
-        variant: 'destructive',
-      })
-    } finally {
-      setSendingWa(false)
-    }
-  }
 
   const loadData = async () => {
     try {
@@ -86,9 +75,59 @@ export default function Customers() {
   useEffect(() => {
     loadData()
   }, [])
+
   useRealtime('customers', () => {
     loadData()
   })
+
+  const handleSendWhatsapp = async (customerId: string) => {
+    setSendingWa(true)
+    try {
+      await sendManualWhatsapp(customerId)
+      toast({ description: 'Mensagem enviada com sucesso!' })
+      loadData()
+    } catch (e: any) {
+      toast({
+        description: e.message || 'Erro ao enviar WhatsApp. Verifique as configurações.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSendingWa(false)
+    }
+  }
+
+  const handleReactivate = async (customerId: string) => {
+    setSendingWa(true)
+    try {
+      await sendReactivationCampaign([customerId])
+      toast({ description: 'Campanha de reativação iniciada!' })
+      loadData()
+    } catch (e: any) {
+      toast({ description: e.message || 'Erro ao iniciar campanha.', variant: 'destructive' })
+    } finally {
+      setSendingWa(false)
+    }
+  }
+
+  const handleBulkReactivate = async () => {
+    setSendingWa(true)
+    try {
+      await sendReactivationCampaign(selectedIds)
+      toast({
+        description: `${selectedIds.length} cliente(s) adicionado(s) à campanha de reativação!`,
+      })
+      setSelectedIds([])
+      setBulkCampaignOpen(false)
+      loadData()
+    } catch (e: any) {
+      toast({
+        description: e.message || 'Erro ao iniciar campanha em massa.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSendingWa(false)
+    }
+  }
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -113,15 +152,24 @@ export default function Customers() {
     }
   }
 
+  const isInactive = (updatedStr: string) => {
+    const diff = Date.now() - new Date(updatedStr).getTime()
+    return diff > 30 * 24 * 60 * 60 * 1000
+  }
+
   const filteredAndSortedCustomers = useMemo(() => {
     let result = customers.filter((c) => {
       const matchesSearch =
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (c.email || '').toLowerCase().includes(searchTerm.toLowerCase())
       const derived = getDerivedData(c)
+
       const matchesStatus =
         filterStatus === 'todos' ||
-        derived.displayStatus.toLowerCase() === filterStatus.toLowerCase()
+        (filterStatus === 'inativo'
+          ? isInactive(c.updated)
+          : derived.displayStatus.toLowerCase() === filterStatus.toLowerCase())
+
       return matchesSearch && matchesStatus
     })
 
@@ -143,13 +191,36 @@ export default function Customers() {
     return result
   }, [searchTerm, filterStatus, sortField, sortDirection, customers])
 
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredAndSortedCustomers.length && selectedIds.length > 0) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(filteredAndSortedCustomers.map((c) => c.id))
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">CRM e Clientes</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Gerencie os perfis dos seus clientes e histórico de compras.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">CRM e Clientes</h2>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Gerencie os perfis dos seus clientes e histórico de compras.
+          </p>
+        </div>
+        {selectedIds.length > 0 && (
+          <Button
+            onClick={() => setBulkCampaignOpen(true)}
+            className="bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            Executar Campanha de Reativação ({selectedIds.length})
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -176,7 +247,7 @@ export default function Customers() {
             </div>
           </div>
           {showFilters && (
-            <div className="p-4 bg-muted/40 rounded-lg border flex items-end gap-4 animate-in fade-in">
+            <div className="p-4 bg-muted/40 rounded-lg border flex items-end gap-4 animate-in fade-in mt-4">
               <div className="space-y-2 flex-1">
                 <Label>Status</Label>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -186,7 +257,7 @@ export default function Customers() {
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="ativo">Ativo</SelectItem>
-                    <SelectItem value="inativo">Inativo</SelectItem>
+                    <SelectItem value="inativo">Inativo {`> 30 dias`}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -205,10 +276,21 @@ export default function Customers() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[40px] text-center">
+                    <Checkbox
+                      checked={
+                        selectedIds.length > 0 &&
+                        selectedIds.length === filteredAndSortedCustomers.length
+                      }
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
                   <TableHead>Nome do Cliente</TableHead>
                   <TableHead>E-mail</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Último Contato</TableHead>
                   <TableHead
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => handleSort('lastPurchase')}
@@ -227,14 +309,24 @@ export default function Customers() {
                       {sortField === 'totalSpent' && <ArrowUpDown className="w-3 h-3" />}
                     </div>
                   </TableHead>
-                  <TableHead className="text-center w-[80px]">Detalhes</TableHead>
+                  <TableHead className="text-center w-[100px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredAndSortedCustomers.map((customer) => {
                   const derived = getDerivedData(customer)
+                  const lastContactedAt = (customer as any).last_contacted_at
+                  const customerInactive = isInactive(customer.updated)
+
                   return (
                     <TableRow key={customer.id}>
+                      <TableCell className="text-center">
+                        <Checkbox
+                          checked={selectedIds.includes(customer.id)}
+                          onCheckedChange={() => toggleSelect(customer.id)}
+                          aria-label={`Selecionar ${customer.name}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{customer.name}</TableCell>
                       <TableCell>{customer.email || 'Sem email'}</TableCell>
                       <TableCell>
@@ -251,15 +343,28 @@ export default function Customers() {
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={derived.displayStatus === 'Ativo' ? 'default' : 'secondary'}
+                          variant={
+                            customerInactive
+                              ? 'secondary'
+                              : derived.displayStatus === 'Ativo'
+                                ? 'default'
+                                : 'secondary'
+                          }
                           className={
-                            derived.displayStatus === 'Ativo'
-                              ? 'bg-emerald-500 hover:bg-emerald-600'
-                              : ''
+                            customerInactive
+                              ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                              : derived.displayStatus === 'Ativo'
+                                ? 'bg-emerald-500 hover:bg-emerald-600'
+                                : ''
                           }
                         >
-                          {derived.displayStatus}
+                          {customerInactive ? 'Inativo' : derived.displayStatus}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                        {lastContactedAt
+                          ? new Date(lastContactedAt).toLocaleDateString('pt-BR')
+                          : 'Nunca'}
                       </TableCell>
                       <TableCell>
                         {new Date(derived.lastPurchase).toLocaleDateString('pt-BR')}
@@ -268,20 +373,34 @@ export default function Customers() {
                         R$ {derived.totalSpent.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelectedCustomer(customer)}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center justify-center gap-1">
+                          {customerInactive && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleReactivate(customer.id)}
+                              disabled={sendingWa}
+                              title="Reativar Cliente"
+                            >
+                              <Zap className="w-4 h-4 text-amber-500" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setSelectedCustomer(customer)}
+                            title="Ver Detalhes"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
                 })}
                 {filteredAndSortedCustomers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       Nenhum cliente encontrado.
                     </TableCell>
                   </TableRow>
@@ -291,6 +410,42 @@ export default function Customers() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={bulkCampaignOpen} onOpenChange={setBulkCampaignOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Campanha em Massa</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Você está prestes a acionar o envio do template{' '}
+              <strong>"Campanha de Reativação"</strong> para{' '}
+              <strong className="text-foreground">{selectedIds.length} cliente(s)</strong>{' '}
+              selecionado(s).
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Todas as mensagens serão enfileiradas e enviadas de forma gradual. Deseja iniciar a
+              campanha agora?
+            </p>
+          </div>
+          <div className="flex justify-end gap-3 mt-2">
+            <Button
+              variant="outline"
+              onClick={() => setBulkCampaignOpen(false)}
+              disabled={sendingWa}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleBulkReactivate}
+              disabled={sendingWa}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {sendingWa ? 'Enviando...' : 'Confirmar Envio'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!selectedCustomer} onOpenChange={(open) => !open && setSelectedCustomer(null)}>
         <DialogContent className="sm:max-w-[700px] h-[85vh] flex flex-col">
@@ -334,7 +489,7 @@ export default function Customers() {
                       </div>
 
                       {(selectedCustomer as any).phone && selectedCustomer.ranking_position && (
-                        <div className="mt-3">
+                        <div className="mt-3 flex gap-2">
                           <Button
                             size="sm"
                             variant="outline"
@@ -343,10 +498,21 @@ export default function Customers() {
                             disabled={sendingWa}
                           >
                             <MessageCircle className="w-4 h-4 mr-2" />
-                            {sendingWa
-                              ? 'Enviando...'
-                              : 'Enviar Mensagem de Boas-vindas (WhatsApp)'}
+                            Boas-vindas (WhatsApp)
                           </Button>
+
+                          {isInactive(selectedCustomer.updated) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700"
+                              onClick={() => handleReactivate(selectedCustomer.id)}
+                              disabled={sendingWa}
+                            >
+                              <Zap className="w-4 h-4 mr-2" />
+                              Campanha Reativação
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>

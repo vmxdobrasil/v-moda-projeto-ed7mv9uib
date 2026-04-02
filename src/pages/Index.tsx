@@ -1,11 +1,16 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Heart } from 'lucide-react'
+import { ArrowRight, Heart, MessageSquare, Users, Zap } from 'lucide-react'
 import { useSEO } from '@/hooks/useSEO'
+import { useRealtime } from '@/hooks/use-realtime'
+import pb from '@/lib/pocketbase/client'
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel'
 import Autoplay from 'embla-carousel-autoplay'
 import { FadeIn } from '@/components/FadeIn'
 import { ProductCard } from '@/components/ProductCard'
 import { PRODUCTS } from '@/lib/data'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
 const HERO_SLIDES = [
   {
@@ -46,6 +51,34 @@ export default function Index() {
   })
 
   const trendingProducts = PRODUCTS.filter((p) => p.trending).slice(0, 4)
+
+  const [messages, setMessages] = useState<any[]>([])
+
+  const loadMessages = async () => {
+    try {
+      const data = await pb.collection('messages').getFullList({ sort: '-created' })
+      setMessages(data)
+    } catch (e) {
+      console.error('Error loading messages', e)
+    }
+  }
+
+  useEffect(() => {
+    loadMessages()
+  }, [])
+
+  useRealtime('messages', () => {
+    loadMessages()
+  })
+
+  const outboundCount = messages.filter((m) => m.direction === 'outbound').length
+  const inboundCount = messages.filter((m) => m.direction === 'inbound').length
+  const responseRate = outboundCount > 0 ? Math.round((inboundCount / outboundCount) * 100) : 0
+
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  const activeConversations = new Set(
+    messages.filter((m) => new Date(m.created).getTime() > sevenDaysAgo).map((m) => m.sender_id),
+  ).size
 
   return (
     <main className="w-full pb-24">
@@ -94,6 +127,112 @@ export default function Index() {
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 text-white/70 animate-bounce">
           <span className="text-xs uppercase tracking-widest">Rolar</span>
           <div className="w-[1px] h-12 bg-white/50" />
+        </div>
+      </section>
+
+      {/* Messaging Insights Section */}
+      <section className="py-16 md:py-24 bg-muted/20 border-b border-border">
+        <div className="container">
+          <FadeIn>
+            <div className="mb-12">
+              <h2 className="text-3xl md:text-4xl font-serif mb-4">Messaging Insights</h2>
+              <p className="text-muted-foreground max-w-2xl">
+                Acompanhe o desempenho das suas campanhas e comunicações automatizadas via WhatsApp
+                em tempo real.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+              <Card className="bg-background/60 backdrop-blur">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Mensagens Enviadas</CardTitle>
+                  <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{outboundCount}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Campanhas automatizadas e manuais
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-background/60 backdrop-blur">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Conversas Ativas</CardTitle>
+                  <Users className="w-4 h-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{activeConversations}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Contatos únicos nos últimos 7 dias
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-background/60 backdrop-blur">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Taxa de Resposta</CardTitle>
+                  <Zap className="w-4 h-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{responseRate}%</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Proporção de recebidas vs enviadas
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Logs de Mensagens ao Vivo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {messages.slice(0, 5).map((msg) => (
+                    <div
+                      key={msg.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-muted/40 border rounded-lg hover:bg-muted/60 transition-colors"
+                    >
+                      <div className="flex-1 overflow-hidden">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-sm">
+                            {msg.sender_name || msg.sender_id || 'Desconhecido'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(msg.created).toLocaleString('pt-BR')}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">{msg.content}</p>
+                      </div>
+                      <Badge
+                        variant={
+                          msg.status === 'pending'
+                            ? 'secondary'
+                            : msg.status === 'replied'
+                              ? 'default'
+                              : 'outline'
+                        }
+                        className="self-start sm:self-auto shrink-0"
+                      >
+                        {msg.status === 'pending'
+                          ? 'Pendente'
+                          : msg.status === 'replied'
+                            ? 'Respondido'
+                            : msg.status}
+                      </Badge>
+                    </div>
+                  ))}
+                  {messages.length === 0 && (
+                    <div className="text-center py-6 text-muted-foreground text-sm">
+                      Nenhuma mensagem registrada no sistema ainda.
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </FadeIn>
         </div>
       </section>
 
@@ -245,7 +384,7 @@ export default function Index() {
               alt="Inspiração Editorial Minimalista"
               className="w-full h-full object-cover"
             />
-          </FadeIn>{' '}
+          </FadeIn>
           <div className="flex flex-col justify-center">
             <FadeIn delay={200}>
               <span className="text-sm uppercase tracking-[0.2em] text-accent font-medium mb-6 block">
