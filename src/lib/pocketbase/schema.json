@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-02T21:17:46.726Z",
+  "generatedAt": "2026-04-02T21:37:49.744Z",
   "collections": [
     {
       "name": "users",
@@ -167,6 +167,131 @@
         "CREATE INDEX idx_messages_status ON messages (status)",
         "CREATE INDEX idx_messages_created ON messages (created DESC)"
       ]
+    },
+    {
+      "name": "customers",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && manufacturer = @request.auth.id",
+        "view": "@request.auth.id != '' && manufacturer = @request.auth.id",
+        "create": "@request.auth.id != '' && manufacturer = @request.auth.id",
+        "update": "@request.auth.id != '' && manufacturer = @request.auth.id",
+        "delete": "@request.auth.id != '' && manufacturer = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["new", "interested", "negotiating", "converted", "inactive"]
+        },
+        {
+          "name": "manufacturer",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "source",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["whatsapp", "instagram", "email", "manual"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_customers_manufacturer ON customers (manufacturer)",
+        "CREATE INDEX idx_customers_status ON customers (status)"
+      ]
+    },
+    {
+      "name": "subscriptions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user = @request.auth.id",
+        "view": "@request.auth.id != '' && user = @request.auth.id",
+        "create": "@request.auth.id != '' && user = @request.auth.id",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "plan_tier",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["free", "basic", "pro", "enterprise"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["active", "past_due", "canceled"]
+        },
+        {
+          "name": "next_billing_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_subscriptions_user ON subscriptions (user)"]
     }
   ]
 }

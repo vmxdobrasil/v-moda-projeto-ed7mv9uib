@@ -34,6 +34,9 @@ import AdminReports from './pages/admin/Reports'
 import AdminSettings from './pages/admin/Settings'
 import AdminReviews from './pages/admin/Reviews'
 import AdminMarketing from './pages/admin/Marketing'
+import DashboardLayout from './pages/dashboard/DashboardLayout'
+import CRM from './pages/dashboard/CRM'
+import Billing from './pages/dashboard/Billing'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -51,6 +54,11 @@ const App = () => (
           <Route path="avaliacoes" element={<AdminReviews />} />
           <Route path="marketing" element={<AdminMarketing />} />
           <Route path="configuracoes" element={<AdminSettings />} />
+        </Route>
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<Navigate to="/dashboard/crm" replace />} />
+          <Route path="crm" element={<CRM />} />
+          <Route path="billing" element={<Billing />} />
         </Route>
         <Route element={<Layout />}>
           <Route path="/" element={<Index />} />
