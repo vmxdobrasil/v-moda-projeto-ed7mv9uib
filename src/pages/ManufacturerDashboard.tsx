@@ -11,6 +11,7 @@ import {
   Bell,
   MessageSquare,
   Boxes,
+  Bot,
 } from 'lucide-react'
 import { SettingsTab } from './manufacturer/SettingsTab'
 import { ReportsTab } from './manufacturer/ReportsTab'
@@ -18,7 +19,7 @@ import { ProductsTab } from './manufacturer/ProductsTab'
 import { InventoryTab } from './manufacturer/InventoryTab'
 import { LoyaltyTab } from './manufacturer/LoyaltyTab'
 import { CommunicationsTab } from './manufacturer/CommunicationsTab'
-import { MessagesTab } from './manufacturer/MessagesTab'
+import { AICustomerServiceTab } from './manufacturer/AICustomerServiceTab'
 import { cn } from '@/lib/utils'
 
 export default function ManufacturerDashboard() {
@@ -62,7 +63,7 @@ export default function ManufacturerDashboard() {
               { id: 'inventory', label: 'Estoque', icon: Boxes },
               { id: 'loyalty', label: 'Fidelidade', icon: Users },
               { id: 'communications', label: 'Comunicados', icon: Bell },
-              { id: 'messages', label: 'Mensagens', icon: MessageSquare },
+              { id: 'ai-service', label: 'Atendimento IA', icon: Bot },
             ].map((item) => (
               <button
                 key={item.id}
@@ -90,7 +91,7 @@ export default function ManufacturerDashboard() {
           )}
           {activeTab === 'loyalty' && <LoyaltyTab />}
           {activeTab === 'communications' && <CommunicationsTab />}
-          {activeTab === 'messages' && <MessagesTab />}
+          {activeTab === 'ai-service' && <AICustomerServiceTab />}
         </main>
       </div>
     </div>
