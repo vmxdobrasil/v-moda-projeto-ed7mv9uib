@@ -85,7 +85,7 @@ export function Header() {
     { name: 'Início', path: '/' },
     { name: 'Coleções', path: '/colecoes' },
     { name: 'Conhecimento', path: '/conhecimento' },
-    { name: 'CréditoModa', path: '/credito-moda' },
+    // { name: 'CréditoModa', path: '/credito-moda' },
     { name: 'Revista Digital', path: '/revista' },
     { name: 'Sobre Nós', path: '/sobre-nos' },
     { name: 'Contato', path: '/contato' },
