@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-02T21:37:49.744Z",
+  "generatedAt": "2026-04-02T22:11:31.271Z",
   "collections": [
     {
       "name": "users",
@@ -231,6 +231,42 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "exclusivity_zone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ranking_category",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "moda_feminina",
+            "jeans",
+            "moda_praia",
+            "moda_geral",
+            "moda_masculina",
+            "moda_evangelica",
+            "moda_country",
+            "moda_infantil",
+            "bijouterias_semijoias",
+            "calcados"
+          ]
+        },
+        {
+          "name": "ranking_position",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_exclusive",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

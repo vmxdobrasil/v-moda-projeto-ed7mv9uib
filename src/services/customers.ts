@@ -10,6 +10,10 @@ export interface Customer {
   source: 'whatsapp' | 'instagram' | 'email' | 'manual'
   created: string
   updated: string
+  exclusivity_zone?: string
+  ranking_category?: string
+  ranking_position?: number | null
+  is_exclusive?: boolean
 }
 
 export const getCustomers = async () => {

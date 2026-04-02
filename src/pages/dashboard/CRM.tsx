@@ -36,6 +36,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { UserPlus, MessageSquare, Trash2 } from 'lucide-react'
+import RankingTab from './components/RankingTab'
 
 export default function CRM() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -246,6 +247,7 @@ export default function CRM() {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="rankings">Rankings & Exclusividade</TabsTrigger>
         </TabsList>
 
         <TabsContent value="leads" className="space-y-4">
@@ -315,7 +317,24 @@ export default function CRM() {
                 ) : (
                   filteredCustomers.map((customer) => (
                     <TableRow key={customer.id}>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
+                      <TableCell className="font-medium">
+                        {customer.name}
+                        {customer.ranking_category && customer.ranking_position && (
+                          <div className="mt-1 flex items-center gap-1">
+                            <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-medium text-yellow-800">
+                              <span className="mr-1">🏆</span> TOP {customer.ranking_position}
+                            </span>
+                            {customer.is_exclusive && (
+                              <span
+                                className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-800"
+                                title={customer.exclusivity_zone}
+                              >
+                                Exclusivo
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div className="text-sm">{customer.email || '-'}</div>
                         <div className="text-xs text-muted-foreground">{customer.phone || '-'}</div>
@@ -408,6 +427,10 @@ export default function CRM() {
               </TableBody>
             </Table>
           </div>
+        </TabsContent>
+
+        <TabsContent value="rankings">
+          <RankingTab customers={customers} />
         </TabsContent>
       </Tabs>
     </div>
