@@ -48,7 +48,9 @@ export default function Customers() {
         const updated = data.find((c) => c.id === selectedCustomer.id)
         if (updated) setSelectedCustomer(updated)
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   useEffect(() => {
