@@ -16,7 +16,9 @@ export default function DashboardLayout() {
     try {
       const data = await getMyNotifications()
       setNotifications(data)
-    } catch (e) {}
+    } catch (e) {
+      console.error('Failed to load notifications:', e)
+    }
   }
 
   useEffect(() => {
