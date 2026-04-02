@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-02T22:40:15.851Z",
+  "generatedAt": "2026-04-02T22:53:59.184Z",
   "collections": [
     {
       "name": "users",
@@ -334,6 +334,69 @@
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_subscriptions_user ON subscriptions (user)"]
+    },
+    {
+      "name": "notifications",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (user = @request.auth.id || customer_email = @request.auth.email)",
+        "view": "@request.auth.id != '' && (user = @request.auth.id || customer_email = @request.auth.email)",
+        "create": null,
+        "update": "@request.auth.id != '' && (user = @request.auth.id || customer_email = @request.auth.email)",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "customer_email",
+          "type": "email",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "read",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_notifications_user ON notifications (user)",
+        "CREATE INDEX idx_notifications_email ON notifications (customer_email)",
+        "CREATE INDEX idx_notifications_created ON notifications (created DESC)"
+      ]
     }
   ]
 }

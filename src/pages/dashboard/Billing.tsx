@@ -5,6 +5,8 @@ import {
   createMySubscription,
   Subscription,
 } from '@/services/subscriptions'
+import pb from '@/lib/pocketbase/client'
+import { useRealtime } from '@/hooks/use-realtime'
 import {
   Card,
   CardContent,
@@ -15,7 +17,7 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Check } from 'lucide-react'
+import { Check, Award } from 'lucide-react'
 import { toast } from 'sonner'
 
 const PLANS = [
@@ -69,15 +71,37 @@ export default function Billing() {
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
+  const [hasDiscount, setHasDiscount] = useState(false)
 
   useEffect(() => {
-    loadSubscription()
+    loadData()
   }, [])
 
-  const loadSubscription = async () => {
+  useRealtime('subscriptions', () => {
+    loadData()
+  })
+
+  useRealtime('customers', () => {
+    loadData()
+  })
+
+  const loadData = async () => {
     try {
-      const sub = await getMySubscription()
+      const [sub, customersRes] = await Promise.all([
+        getMySubscription(),
+        pb
+          .collection('customers')
+          .getList(1, 1, {
+            filter: `email = "${pb.authStore.record?.email}"`,
+          })
+          .catch(() => ({ items: [] })),
+      ])
       setSubscription(sub)
+
+      const myCustomerRecord = customersRes.items[0]
+      if (myCustomerRecord && myCustomerRecord.ranking_category) {
+        setHasDiscount(true)
+      }
     } catch (err) {
       console.error(err)
     } finally {
@@ -144,9 +168,36 @@ export default function Billing() {
         </div>
       </div>
 
+      {hasDiscount && (
+        <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white p-4 rounded-lg shadow-md flex items-center justify-between mb-8 animate-fade-in">
+          <div>
+            <h3 className="font-bold text-lg">Bônus Especial Ativado!</h3>
+            <p className="text-sm opacity-90">
+              Como você possui um ranking TOP, você tem 80% de desconto em Software/ERP e Agentes de
+              IA.
+            </p>
+          </div>
+          <Award className="w-8 h-8 opacity-80" />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {PLANS.map((plan) => {
           const isCurrent = plan.id === currentPlanId
+
+          let displayPrice = plan.price
+          let originalPrice = ''
+
+          if (hasDiscount && plan.price.includes('R$')) {
+            const priceMatch = plan.price.match(/\d+/)
+            if (priceMatch) {
+              const originalValue = parseInt(priceMatch[0])
+              const discountedValue = originalValue * 0.2
+              displayPrice = `R$ ${discountedValue.toFixed(2).replace('.', ',')}/mês`
+              originalPrice = plan.price
+            }
+          }
+
           return (
             <Card
               key={plan.id}
@@ -160,7 +211,14 @@ export default function Billing() {
               <CardHeader>
                 <CardTitle className="text-2xl">{plan.name}</CardTitle>
                 <CardDescription className="h-10">{plan.description}</CardDescription>
-                <div className="mt-4 text-3xl font-bold">{plan.price}</div>
+                <div className="mt-4">
+                  {originalPrice && (
+                    <span className="text-sm text-muted-foreground line-through mr-2">
+                      {originalPrice}
+                    </span>
+                  )}
+                  <span className="text-3xl font-bold">{displayPrice}</span>
+                </div>
               </CardHeader>
               <CardContent className="flex-1">
                 <ul className="space-y-3">

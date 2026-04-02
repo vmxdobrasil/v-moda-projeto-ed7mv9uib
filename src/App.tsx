@@ -37,6 +37,7 @@ import AdminMarketing from './pages/admin/Marketing'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import CRM from './pages/dashboard/CRM'
 import Billing from './pages/dashboard/Billing'
+import Performance from './pages/dashboard/Performance'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -59,6 +60,7 @@ const App = () => (
           <Route index element={<Navigate to="/dashboard/crm" replace />} />
           <Route path="crm" element={<CRM />} />
           <Route path="billing" element={<Billing />} />
+          <Route path="performance" element={<Performance />} />
         </Route>
         <Route element={<Layout />}>
           <Route path="/" element={<Index />} />
