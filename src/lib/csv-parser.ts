@@ -1,6 +1,14 @@
 export async function parseCSV(
   file: File,
 ): Promise<{ headers: string[]; rows: Record<string, string>[] }> {
+  if (file.name.endsWith('.xlsx')) {
+    return Promise.reject(
+      new Error(
+        'Formato XLSX não suportado diretamente sem conversão. Por favor, salve seu arquivo como CSV e tente novamente.',
+      ),
+    )
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = (e) => {

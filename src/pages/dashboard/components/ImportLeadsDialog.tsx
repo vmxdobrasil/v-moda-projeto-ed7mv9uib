@@ -10,6 +10,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { toast } from 'sonner'
 import { parseCSV } from '@/lib/csv-parser'
 import { useBulkImport } from '@/hooks/use-bulk-import'
@@ -69,11 +77,13 @@ export default function ImportLeadsDialog({
         if (n.includes('telefone') || n.includes('celular') || n === 'phone') autoMap.phone = h
         if (n.includes('email') || n === 'e-mail') autoMap.email = h
         if (n.includes('origem') || n === 'source') autoMap.source = h
+        if (n.includes('categoria') || n.includes('ranking')) autoMap.ranking_category = h
+        if (n.includes('zona') || n.includes('exclusividade')) autoMap.exclusivity_zone = h
       })
       setMapping(autoMap)
       setStep(2)
-    } catch (err) {
-      toast.error('Erro ao ler arquivo. Verifique se é um CSV válido.')
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao ler arquivo. Verifique se é um CSV válido.')
     }
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
@@ -113,7 +123,7 @@ export default function ImportLeadsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !isImporting && (v ? setStep(1) : reset())}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
           <DialogTitle>Importar Leads em Massa</DialogTitle>
         </DialogHeader>
@@ -142,7 +152,38 @@ export default function ImportLeadsDialog({
               <FileSpreadsheet className="w-4 h-4" /> {rows.length} registros encontrados. Mapeie as
               colunas:
             </div>
-            <div className="max-h-[350px] overflow-y-auto space-y-2 pr-2">
+
+            {rows.length > 0 && (
+              <div className="border rounded-md overflow-x-auto mb-4 max-h-[150px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {headers.map((h) => (
+                        <TableHead key={h} className="whitespace-nowrap text-xs">
+                          {h}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.slice(0, 3).map((row, i) => (
+                      <TableRow key={i}>
+                        {headers.map((h) => (
+                          <TableCell
+                            key={h}
+                            className="whitespace-nowrap truncate max-w-[150px] text-xs"
+                          >
+                            {row[h]}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            <div className="max-h-[250px] overflow-y-auto space-y-2 pr-2">
               {renderMappingRow('name', 'Nome do Lead', true)}
               {renderMappingRow('phone', 'WhatsApp / Telefone', true)}
               {renderMappingRow('email', 'E-mail')}
