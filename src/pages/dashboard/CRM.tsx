@@ -35,10 +35,10 @@ import {
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-import { UserPlus, MessageSquare, Trash2 } from 'lucide-react'
+import { UserPlus, MessageSquare, Trash2, Settings, UploadCloud } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import RankingTab from './components/RankingTab'
 import ImportLeadsDialog from './components/ImportLeadsDialog'
-import { UploadCloud } from 'lucide-react'
 
 export default function CRM() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -182,6 +182,11 @@ export default function CRM() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/dashboard/settings/whatsapp">
+              <Settings className="w-4 h-4 mr-2" /> WhatsApp API
+            </Link>
+          </Button>
           <Button variant="outline" onClick={() => setIsImportOpen(true)}>
             <UploadCloud className="w-4 h-4 mr-2" /> Importar Leads
           </Button>
