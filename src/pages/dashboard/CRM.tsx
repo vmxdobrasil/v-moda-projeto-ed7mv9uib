@@ -37,6 +37,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { UserPlus, MessageSquare, Trash2 } from 'lucide-react'
 import RankingTab from './components/RankingTab'
+import ImportLeadsDialog from './components/ImportLeadsDialog'
+import { UploadCloud } from 'lucide-react'
 
 export default function CRM() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -53,6 +55,8 @@ export default function CRM() {
     status: 'new',
     source: 'manual',
   })
+  const [isImportOpen, setIsImportOpen] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
 
   const loadData = async () => {
     try {
@@ -98,7 +102,9 @@ export default function CRM() {
   }, [])
 
   useRealtime('customers', () => {
-    loadData()
+    if (!isImporting) {
+      loadData()
+    }
   })
   useRealtime('messages', () => {
     loadData()
@@ -175,65 +181,77 @@ export default function CRM() {
           <p className="text-muted-foreground">Gerencie seus leads e oportunidades de negócio.</p>
         </div>
 
-        <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="w-4 h-4 mr-2" /> Novo Lead
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Adicionar Novo Lead</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome</Label>
-                <Input
-                  id="name"
-                  value={newCustomer.name}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newCustomer.email}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  value={newCustomer.phone}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Origem</Label>
-                <Select
-                  value={newCustomer.source}
-                  onValueChange={(v: any) => setNewCustomer({ ...newCustomer, source: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manual">Manual</SelectItem>
-                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                    <SelectItem value="instagram">Instagram</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button className="w-full" onClick={handleCreate}>
-                Salvar
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+            <UploadCloud className="w-4 h-4 mr-2" /> Importar Leads
+          </Button>
+          <ImportLeadsDialog
+            open={isImportOpen}
+            onOpenChange={setIsImportOpen}
+            onImportStateChange={setIsImporting}
+            onImportComplete={loadData}
+          />
+
+          <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus className="w-4 h-4 mr-2" /> Novo Lead
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Adicionar Novo Lead</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome</Label>
+                  <Input
+                    id="name"
+                    value={newCustomer.name}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newCustomer.email}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone</Label>
+                  <Input
+                    id="phone"
+                    value={newCustomer.phone}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Origem</Label>
+                  <Select
+                    value={newCustomer.source}
+                    onValueChange={(v: any) => setNewCustomer({ ...newCustomer, source: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manual">Manual</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                      <SelectItem value="instagram">Instagram</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button className="w-full" onClick={handleCreate}>
+                  Salvar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Tabs defaultValue="leads" className="w-full">
