@@ -35,6 +35,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import {
   UserPlus,
@@ -44,6 +45,7 @@ import {
   UploadCloud,
   Pencil,
   BadgeCheck,
+  MessageCircle,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -181,6 +183,7 @@ export default function CRM() {
         email: editingCustomer.email,
         phone: editingCustomer.phone,
         is_verified: editingCustomer.is_verified,
+        bio: editingCustomer.bio,
       })
       toast.success('Lead atualizado com sucesso')
       setEditingCustomer(null)
@@ -378,6 +381,18 @@ export default function CRM() {
                       }
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-bio">Bio / Descrição</Label>
+                    <Textarea
+                      id="edit-bio"
+                      value={editingCustomer.bio || ''}
+                      onChange={(e) =>
+                        setEditingCustomer({ ...editingCustomer, bio: e.target.value })
+                      }
+                      placeholder="Descrição breve da loja..."
+                      className="resize-none h-20"
+                    />
+                  </div>
                   <div className="flex items-center justify-between mt-4 p-3 bg-muted/50 rounded-lg">
                     <div className="space-y-0.5">
                       <Label>Perfil Verificado</Label>
@@ -464,6 +479,7 @@ export default function CRM() {
                   <TableHead>Contato</TableHead>
                   <TableHead>Origem</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Cliques WA</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -471,13 +487,13 @@ export default function CRM() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       Carregando leads...
                     </TableCell>
                   </TableRow>
                 ) : filteredCustomers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       Nenhum lead encontrado.
                     </TableCell>
                   </TableRow>
@@ -555,6 +571,12 @@ export default function CRM() {
                             <SelectItem value="inactive">Inativo</SelectItem>
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5 text-sm font-medium">
+                          <MessageCircle className="w-4 h-4 text-green-500" />
+                          {customer.whatsapp_clicks || 0}
+                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {new Date(customer.created).toLocaleDateString('pt-BR')}

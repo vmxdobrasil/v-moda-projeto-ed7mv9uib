@@ -21,6 +21,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 
 const HERO_SLIDES = [
   {
@@ -65,6 +74,22 @@ export default function Index() {
   const [messages, setMessages] = useState<any[]>([])
   const [teamUsers, setTeamUsers] = useState<any[]>([])
   const [resellers, setResellers] = useState<any[]>([])
+  const [showVerifiedOnly, setShowVerifiedOnly] = useState(false)
+  const [selectedReseller, setSelectedReseller] = useState<any>(null)
+
+  const handleWhatsAppClick = async (e: React.MouseEvent, reseller: any) => {
+    e.stopPropagation()
+    if (reseller.id) {
+      try {
+        await pb.collection('customers').update(reseller.id, {
+          whatsapp_clicks: (reseller.whatsapp_clicks || 0) + 1,
+        })
+      } catch (err) {
+        console.error('Error updating clicks', err)
+      }
+    }
+    window.open(`https://wa.me/${reseller.phone.replace(/\D/g, '')}`, '_blank')
+  }
 
   const loadMessages = async () => {
     try {
@@ -409,70 +434,163 @@ export default function Index() {
       <section className="py-24 bg-muted/10 border-t border-border">
         <div className="container">
           <FadeIn>
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-serif mb-4">Lojas e Revendedoras</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Conheça as lojas e revendedoras parceiras que levam a V Moda até você. Valorizamos
-                fotos reais para uma experiência mais próxima e humana.
-              </p>
+            <div className="flex flex-col items-center mb-16 space-y-6">
+              <div className="text-center">
+                <h2 className="text-3xl md:text-4xl font-serif mb-4">Lojas e Revendedoras</h2>
+                <p className="text-muted-foreground max-w-2xl mx-auto">
+                  Conheça as lojas e revendedoras parceiras que levam a V Moda até você. Valorizamos
+                  fotos reais para uma experiência mais próxima e humana.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 bg-background px-4 py-2 rounded-full shadow-sm border">
+                <Switch
+                  id="verified-only"
+                  checked={showVerifiedOnly}
+                  onCheckedChange={setShowVerifiedOnly}
+                />
+                <Label htmlFor="verified-only" className="cursor-pointer text-sm font-medium">
+                  Mostrar apenas verificados
+                </Label>
+              </div>
             </div>
           </FadeIn>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
-            {(resellers.length > 0 ? resellers.slice(0, 10) : Array.from({ length: 5 })).map(
-              (reseller: any, i) => (
-                <FadeIn key={reseller?.id || i} delay={i * 100} className="text-center group">
+            {resellers.length === 0 ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <FadeIn key={i} delay={i * 100} className="text-center group">
                   <div className="relative mx-auto mb-4 w-28 h-28 md:w-36 md:h-36 rounded-full overflow-hidden border-4 border-background shadow-lg">
-                    {reseller?.avatar ? (
-                      <img
-                        src={pb.files.getUrl(reseller, reseller.avatar, { thumb: '200x200' })}
-                        alt={reseller.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                    ) : (
-                      <img
-                        src={`https://img.usecurling.com/ppl/medium?seed=${i + 60}&gender=female`}
-                        alt="Avatar"
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90"
-                      />
-                    )}
+                    <img
+                      src={`https://img.usecurling.com/ppl/medium?seed=${i + 60}&gender=female`}
+                      alt="Avatar"
+                      className="w-full h-full object-cover opacity-90"
+                    />
                   </div>
-                  <h3
-                    className="font-serif text-base md:text-lg truncate px-2 flex items-center justify-center gap-1"
-                    title={reseller?.name || `Loja Parceira ${i + 1}`}
+                  <div className="h-4 bg-muted rounded w-24 mx-auto mb-2" />
+                  <div className="h-3 bg-muted rounded w-16 mx-auto mb-2" />
+                </FadeIn>
+              ))
+            ) : resellers.filter((r) => (showVerifiedOnly ? r.is_verified : true)).length === 0 ? (
+              <div className="col-span-full text-center py-8 text-muted-foreground">
+                Nenhum parceiro verificado encontrado.
+              </div>
+            ) : (
+              resellers
+                .filter((r) => (showVerifiedOnly ? r.is_verified : true))
+                .slice(0, 10)
+                .map((reseller: any, i) => (
+                  <FadeIn
+                    key={reseller.id}
+                    delay={i * 100}
+                    className="text-center group cursor-pointer hover:bg-muted/50 p-4 rounded-xl transition-colors"
+                    onClick={() => setSelectedReseller(reseller)}
                   >
-                    {reseller?.name || `Loja Parceira ${i + 1}`}
-                    {reseller?.is_verified && (
-                      <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
-                    )}
-                  </h3>
-                  <p className="text-xs text-muted-foreground capitalize mb-2">
-                    {reseller?.ranking_category
-                      ? reseller.ranking_category.replace(/_/g, ' ')
-                      : 'Varejo / Revenda'}
-                  </p>
-                  {reseller?.phone && (
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="outline"
-                      className="w-full max-w-[140px] mx-auto h-8 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                    <div className="relative mx-auto mb-4 w-28 h-28 md:w-36 md:h-36 rounded-full overflow-hidden border-4 border-background shadow-lg">
+                      {reseller.avatar ? (
+                        <img
+                          src={pb.files.getUrl(reseller, reseller.avatar, { thumb: '200x200' })}
+                          alt={reseller.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                      ) : (
+                        <img
+                          src={`https://img.usecurling.com/ppl/medium?seed=${i + 60}&gender=female`}
+                          alt="Avatar"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90"
+                        />
+                      )}
+                    </div>
+                    <h3
+                      className="font-serif text-base md:text-lg truncate px-2 flex items-center justify-center gap-1"
+                      title={reseller.name}
                     >
-                      <a
-                        href={`https://wa.me/${reseller.phone.replace(/\D/g, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      {reseller.name}
+                      {reseller.is_verified && (
+                        <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
+                      )}
+                    </h3>
+                    <p className="text-xs text-muted-foreground capitalize mb-3">
+                      {reseller.ranking_category
+                        ? reseller.ranking_category.replace(/_/g, ' ')
+                        : 'Varejo / Revenda'}
+                    </p>
+                    {reseller.phone && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full max-w-[140px] mx-auto h-8 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                        onClick={(e) => handleWhatsAppClick(e, reseller)}
                       >
                         <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
                         WhatsApp
-                      </a>
-                    </Button>
-                  )}
-                </FadeIn>
-              ),
+                      </Button>
+                    )}
+                  </FadeIn>
+                ))
             )}
           </div>
         </div>
       </section>
+
+      {/* Partner Detail Modal */}
+      <Dialog open={!!selectedReseller} onOpenChange={(open) => !open && setSelectedReseller(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          {selectedReseller && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="sr-only">Detalhes do Parceiro</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Informações sobre {selectedReseller.name}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col items-center text-center space-y-4 pt-4">
+                <Avatar className="w-32 h-32 border-4 border-background shadow-lg">
+                  <AvatarImage
+                    src={
+                      selectedReseller.avatar
+                        ? pb.files.getUrl(selectedReseller, selectedReseller.avatar, {
+                            thumb: '200x200',
+                          })
+                        : `https://img.usecurling.com/ppl/medium?seed=99&gender=female`
+                    }
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="text-2xl">
+                    {selectedReseller.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-2xl font-serif flex items-center justify-center gap-2">
+                    {selectedReseller.name}
+                    {selectedReseller.is_verified && (
+                      <BadgeCheck className="w-6 h-6 text-green-500" title="Parceiro Verificado" />
+                    )}
+                  </h3>
+                  <p className="text-sm text-muted-foreground capitalize mt-1">
+                    {selectedReseller.ranking_category
+                      ? selectedReseller.ranking_category.replace(/_/g, ' ')
+                      : 'Varejo / Revenda'}
+                  </p>
+                </div>
+                {selectedReseller.bio && (
+                  <p className="text-sm text-foreground/80 leading-relaxed max-w-sm">
+                    {selectedReseller.bio}
+                  </p>
+                )}
+                {selectedReseller.phone && (
+                  <Button
+                    className="w-full mt-4 bg-[#25D366] hover:bg-[#128C7E] text-white"
+                    size="lg"
+                    onClick={(e) => handleWhatsAppClick(e, selectedReseller)}
+                  >
+                    <MessageCircle className="w-5 h-5 mr-2" />
+                    Chamar no WhatsApp
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Nossa Equipe Section */}
       <section className="py-24 bg-muted/30 border-y border-border">

@@ -17,6 +17,8 @@ export interface Customer {
   is_exclusive?: boolean
   unlocked_benefits?: Record<string, boolean> | null
   is_verified?: boolean
+  bio?: string
+  whatsapp_clicks?: number
 }
 
 export const getCustomers = async () => {
