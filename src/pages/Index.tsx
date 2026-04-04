@@ -626,7 +626,7 @@ export default function Index() {
                 <div className="flex-1 w-full space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Localização / Zona</Label>
                   <Input
-                    placeholder="Buscar cidade, estado..."
+                    placeholder="Buscar por cidade ou região..."
                     value={zoneFilter}
                     onChange={(e) => setZoneFilter(e.target.value)}
                     className="h-9"

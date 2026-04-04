@@ -37,6 +37,7 @@ import AdminReviews from './pages/admin/Reviews'
 import AdminMarketing from './pages/admin/Marketing'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import CRM from './pages/dashboard/CRM'
+import Analytics from './pages/dashboard/Analytics'
 import Billing from './pages/dashboard/Billing'
 import Performance from './pages/dashboard/Performance'
 import WhatsappSettings from './pages/dashboard/WhatsappSettings'
@@ -61,6 +62,7 @@ const App = () => (
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Navigate to="/dashboard/crm" replace />} />
           <Route path="crm" element={<CRM />} />
+          <Route path="analytics" element={<Analytics />} />
           <Route path="billing" element={<Billing />} />
           <Route path="performance" element={<Performance />} />
           <Route path="settings/whatsapp" element={<WhatsappSettings />} />

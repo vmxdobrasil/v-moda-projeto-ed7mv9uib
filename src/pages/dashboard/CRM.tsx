@@ -50,7 +50,7 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { GripVertical } from 'lucide-react'
+import { GripVertical, Clock } from 'lucide-react'
 import RankingTab from './components/RankingTab'
 import ImportLeadsDialog from './components/ImportLeadsDialog'
 import AnalyticsTab from './components/AnalyticsTab'
@@ -546,7 +546,7 @@ export default function CRM() {
                               />
                             )}
                           </div>
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between mb-1.5">
                             <span className="text-xs text-muted-foreground capitalize">
                               {c.ranking_category
                                 ? categoryLabels[c.ranking_category] || c.ranking_category
@@ -555,6 +555,18 @@ export default function CRM() {
                             <span className="text-xs font-medium bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
                               {c.source}
                             </span>
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground bg-muted/50 w-fit px-1.5 py-0.5 rounded">
+                            <Clock className="w-3 h-3" />
+                            {(() => {
+                              const days = Math.floor(
+                                (Date.now() - new Date(c.updated).getTime()) /
+                                  (1000 * 60 * 60 * 24),
+                              )
+                              if (days === 0) return 'Hoje'
+                              if (days === 1) return 'Há 1 dia nesta etapa'
+                              return `Há ${days} dias nesta etapa`
+                            })()}
                           </div>
                         </div>
                       </div>
