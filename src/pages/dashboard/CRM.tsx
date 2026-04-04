@@ -46,6 +46,7 @@ import {
   Pencil,
   BadgeCheck,
   MessageCircle,
+  Download,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -62,6 +63,44 @@ export default function CRM() {
   const [sourceFilter, setSourceFilter] = useState<string>('all')
 
   const [isNewOpen, setIsNewOpen] = useState(false)
+
+  const exportToCSV = () => {
+    const headers = [
+      'Nome',
+      'Email',
+      'Telefone',
+      'Status',
+      'Origem',
+      'Categoria',
+      'Zona de Exclusividade',
+      'Cliques WhatsApp',
+    ]
+
+    const rows = filteredCustomers.map((c) =>
+      [
+        c.name || '',
+        c.email || '',
+        c.phone || '',
+        c.status || '',
+        c.source || '',
+        c.ranking_category || '',
+        c.exclusivity_zone || '',
+        (c.whatsapp_clicks || 0).toString(),
+      ]
+        .map((v) => `"${v.replace(/"/g, '""')}"`)
+        .join(','),
+    )
+
+    const csvContent = [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `leads_export_${new Date().toISOString().split('T')[0]}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
   const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({
     name: '',
     email: '',
@@ -127,6 +166,13 @@ export default function CRM() {
   })
   useRealtime('messages', () => {
     loadData()
+  })
+  useRealtime('notifications', (e) => {
+    if (e.action === 'create' && e.record.user === pb.authStore.record?.id) {
+      toast.info(e.record.title, {
+        description: e.record.message,
+      })
+    }
   })
 
   const handleStatusChange = async (id: string, status: Customer['status']) => {
@@ -233,6 +279,19 @@ export default function CRM() {
     inactive: 'bg-gray-100 text-gray-800',
   }
 
+  const categoryLabels: Record<string, string> = {
+    moda_feminina: 'Moda Feminina',
+    jeans: 'Jeans',
+    moda_praia: 'Moda Praia',
+    moda_geral: 'Moda Geral',
+    moda_masculina: 'Moda Masculina',
+    moda_evangelica: 'Moda Evangélica',
+    moda_country: 'Moda Country',
+    moda_infantil: 'Moda Infantil',
+    bijouterias_semijoias: 'Bijouterias / Semijoias',
+    calcados: 'Calçados',
+  }
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex justify-between items-center">
@@ -246,6 +305,9 @@ export default function CRM() {
             <Link to="/dashboard/settings/whatsapp">
               <Settings className="w-4 h-4 mr-2" /> WhatsApp API
             </Link>
+          </Button>
+          <Button variant="outline" onClick={exportToCSV}>
+            <Download className="w-4 h-4 mr-2" /> Exportar Leads (CSV)
           </Button>
           <Button variant="outline" onClick={() => setIsImportOpen(true)}>
             <UploadCloud className="w-4 h-4 mr-2" /> Importar Leads
@@ -479,6 +541,7 @@ export default function CRM() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Contato</TableHead>
+                  <TableHead>Categoria / Zona</TableHead>
                   <TableHead>Origem</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Cliques WA</TableHead>
@@ -553,6 +616,16 @@ export default function CRM() {
                       <TableCell>
                         <div className="text-sm">{customer.email || '-'}</div>
                         <div className="text-xs text-muted-foreground">{customer.phone || '-'}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-medium">
+                          {customer.ranking_category
+                            ? categoryLabels[customer.ranking_category] || customer.ranking_category
+                            : '-'}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {customer.exclusivity_zone || '-'}
+                        </div>
                       </TableCell>
                       <TableCell className="capitalize text-sm">{customer.source}</TableCell>
                       <TableCell>

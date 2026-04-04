@@ -4,14 +4,32 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Customer } from '@/services/customers'
 
+const CATEGORY_LABELS: Record<string, string> = {
+  moda_feminina: 'Moda Feminina',
+  jeans: 'Jeans',
+  moda_praia: 'Moda Praia',
+  moda_geral: 'Moda Geral',
+  moda_masculina: 'Moda Masculina',
+  moda_evangelica: 'Moda Evangélica',
+  moda_country: 'Moda Country',
+  moda_infantil: 'Moda Infantil',
+  bijouterias_semijoias: 'Bijouterias/Semijoias',
+  calcados: 'Calçados',
+}
+
 export default function InsightsTab({ customers }: { customers: Customer[] }) {
   const data = useMemo(() => {
-    return customers
-      .filter((c) => (c.whatsapp_clicks || 0) > 0)
-      .map((c) => ({
-        name: c.name,
-        clicks: c.whatsapp_clicks || 0,
-      }))
+    const categoryClicks: Record<string, number> = {}
+
+    customers.forEach((c) => {
+      if ((c.whatsapp_clicks || 0) > 0 && c.ranking_category) {
+        const cat = CATEGORY_LABELS[c.ranking_category] || c.ranking_category
+        categoryClicks[cat] = (categoryClicks[cat] || 0) + (c.whatsapp_clicks || 0)
+      }
+    })
+
+    return Object.entries(categoryClicks)
+      .map(([name, clicks]) => ({ name, clicks }))
       .sort((a, b) => b.clicks - a.clicks)
       .slice(0, 10)
   }, [customers])
@@ -24,13 +42,13 @@ export default function InsightsTab({ customers }: { customers: Customer[] }) {
     <div className="grid grid-cols-1 gap-6 animate-fade-in-up">
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle>Partner Performance Insights</CardTitle>
-          <CardDescription>Most engaged partners based on WhatsApp clicks</CardDescription>
+          <CardTitle>Performance por Segmento</CardTitle>
+          <CardDescription>Categorias com maior engajamento via WhatsApp Clicks</CardDescription>
         </CardHeader>
         <CardContent>
           {data.length === 0 ? (
             <div className="h-[300px] flex items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg">
-              No click data available yet.
+              Sem dados de cliques suficientes nas categorias.
             </div>
           ) : (
             <ChartContainer config={chartConfig} className="h-[400px] w-full">

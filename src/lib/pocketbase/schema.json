@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-04T17:07:36.245Z",
+  "generatedAt": "2026-04-04T17:13:13.401Z",
   "collections": [
     {
       "name": "users",
@@ -216,7 +216,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["whatsapp", "instagram", "email", "manual"]
+          "selectValues": ["whatsapp", "instagram", "email", "manual", "site"]
         },
         {
           "name": "created",

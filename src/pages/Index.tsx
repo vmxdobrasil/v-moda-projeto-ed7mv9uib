@@ -25,6 +25,13 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import {
   Dialog,
@@ -79,6 +86,8 @@ export default function Index() {
   const [resellers, setResellers] = useState<any[]>([])
   const [topPartners, setTopPartners] = useState<any[]>([])
   const [showVerifiedOnly, setShowVerifiedOnly] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [zoneFilter, setZoneFilter] = useState('')
   const [selectedReseller, setSelectedReseller] = useState<any>(null)
 
   const [leadName, setLeadName] = useState('')
@@ -569,15 +578,52 @@ export default function Index() {
                   fotos reais para uma experiência mais próxima e humana.
                 </p>
               </div>
-              <div className="flex items-center gap-2 bg-background px-4 py-2 rounded-full shadow-sm border">
-                <Switch
-                  id="verified-only"
-                  checked={showVerifiedOnly}
-                  onCheckedChange={setShowVerifiedOnly}
-                />
-                <Label htmlFor="verified-only" className="cursor-pointer text-sm font-medium">
-                  Mostrar apenas verificados
-                </Label>
+              <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-4xl bg-background p-4 rounded-xl shadow-sm border mt-6">
+                <div className="flex-1 w-full space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Categoria</Label>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Todas as Categorias" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as Categorias</SelectItem>
+                      <SelectItem value="moda_feminina">Moda Feminina</SelectItem>
+                      <SelectItem value="jeans">Jeans</SelectItem>
+                      <SelectItem value="moda_praia">Moda Praia</SelectItem>
+                      <SelectItem value="moda_geral">Moda Geral</SelectItem>
+                      <SelectItem value="moda_masculina">Moda Masculina</SelectItem>
+                      <SelectItem value="moda_evangelica">Moda Evangélica</SelectItem>
+                      <SelectItem value="moda_country">Moda Country</SelectItem>
+                      <SelectItem value="moda_infantil">Moda Infantil</SelectItem>
+                      <SelectItem value="bijouterias_semijoias">Bijouterias / Semijoias</SelectItem>
+                      <SelectItem value="calcados">Calçados</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex-1 w-full space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Localização / Zona</Label>
+                  <Input
+                    placeholder="Buscar cidade, estado..."
+                    value={zoneFilter}
+                    onChange={(e) => setZoneFilter(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 h-9 mt-5 px-4 bg-muted/50 rounded-lg border border-transparent">
+                  <Switch
+                    id="verified-only"
+                    checked={showVerifiedOnly}
+                    onCheckedChange={setShowVerifiedOnly}
+                  />
+                  <Label
+                    htmlFor="verified-only"
+                    className="cursor-pointer text-sm whitespace-nowrap font-medium"
+                  >
+                    Somente Verificados
+                  </Label>
+                </div>
               </div>
             </div>
           </FadeIn>
@@ -596,13 +642,32 @@ export default function Index() {
                   <div className="h-3 bg-muted rounded w-16 mx-auto mb-2" />
                 </FadeIn>
               ))
-            ) : resellers.filter((r) => (showVerifiedOnly ? r.is_verified : true)).length === 0 ? (
+            ) : resellers.filter((r) => {
+                if (showVerifiedOnly && !r.is_verified) return false
+                if (categoryFilter !== 'all' && r.ranking_category !== categoryFilter) return false
+                if (
+                  zoneFilter &&
+                  !r.exclusivity_zone?.toLowerCase().includes(zoneFilter.toLowerCase())
+                )
+                  return false
+                return true
+              }).length === 0 ? (
               <div className="col-span-full text-center py-8 text-muted-foreground">
-                Nenhum parceiro verificado encontrado.
+                Nenhum parceiro encontrado com os filtros selecionados.
               </div>
             ) : (
               resellers
-                .filter((r) => (showVerifiedOnly ? r.is_verified : true))
+                .filter((r) => {
+                  if (showVerifiedOnly && !r.is_verified) return false
+                  if (categoryFilter !== 'all' && r.ranking_category !== categoryFilter)
+                    return false
+                  if (
+                    zoneFilter &&
+                    !r.exclusivity_zone?.toLowerCase().includes(zoneFilter.toLowerCase())
+                  )
+                    return false
+                  return true
+                })
                 .slice(0, 10)
                 .map((reseller: any, i) => (
                   <FadeIn
