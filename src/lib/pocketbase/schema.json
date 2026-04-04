@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-04T19:42:34.798Z",
+  "generatedAt": "2026-04-04T20:04:35.817Z",
   "collections": [
     {
       "name": "users",
@@ -253,7 +253,8 @@
             "moda_country",
             "moda_infantil",
             "bijouterias_semijoias",
-            "calcados"
+            "calcados",
+            "moda_fitness"
           ]
         },
         {
@@ -607,7 +608,8 @@
             "moda_country",
             "moda_infantil",
             "bijouterias_semijoias",
-            "calcados"
+            "calcados",
+            "moda_fitness"
           ]
         },
         {

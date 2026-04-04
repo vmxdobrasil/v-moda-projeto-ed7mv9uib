@@ -11,7 +11,10 @@ import {
   MapPin,
   LayoutGrid,
   Map as MapIcon,
+  Trophy,
 } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { useSEO } from '@/hooks/useSEO'
 import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
@@ -88,6 +91,7 @@ export default function Index() {
   const [teamUsers, setTeamUsers] = useState<any[]>([])
   const [resellers, setResellers] = useState<any[]>([])
   const [topPartners, setTopPartners] = useState<any[]>([])
+  const [top60Brands, setTop60Brands] = useState<any[]>([])
   const [showVerifiedOnly, setShowVerifiedOnly] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [zoneFilter, setZoneFilter] = useState('')
@@ -145,10 +149,23 @@ export default function Index() {
     }
   }
 
+  const loadTop60Brands = async () => {
+    try {
+      const data = await pb.collection('customers').getFullList({
+        filter: "ranking_position > 0 && status = 'converted'",
+        sort: 'ranking_category,ranking_position',
+      })
+      setTop60Brands(data)
+    } catch (e) {
+      console.error('Error loading top 60 brands', e)
+    }
+  }
+
   useEffect(() => {
     loadMessages()
     loadResellers()
     loadTopPartners()
+    loadTop60Brands()
     pb.collection('users').getFullList({ sort: '-created' }).then(setTeamUsers).catch(console.error)
   }, [])
 
@@ -159,7 +176,28 @@ export default function Index() {
   useRealtime('customers', () => {
     loadResellers()
     loadTopPartners()
+    loadTop60Brands()
   })
+
+  const TOP_CATEGORIES = [
+    { id: 'moda_feminina', label: 'Top 15 Feminina' },
+    { id: 'jeans', label: 'Top 10 Jeans' },
+    { id: 'moda_praia', label: 'Top 5 Praia' },
+    { id: 'moda_masculina', label: 'Top 5 Masculina' },
+    { id: 'moda_fitness', label: 'Top 5 Fitness' },
+    { id: 'moda_evangelica', label: 'Top 5 Evangélica' },
+    { id: 'moda_country', label: 'Top 5 Country' },
+    { id: 'moda_infantil', label: 'Top 5 Infantil' },
+    { id: 'bijouterias_semijoias', label: 'Top 3 Joias' },
+    { id: 'calcados', label: 'Top 2 Calçados' },
+  ]
+
+  const getMedalColor = (position: number) => {
+    if (position === 1) return 'bg-yellow-400 text-yellow-900 shadow-yellow-200'
+    if (position === 2) return 'bg-slate-300 text-slate-800 shadow-slate-200'
+    if (position === 3) return 'bg-amber-600 text-amber-50 shadow-amber-200'
+    return 'bg-muted text-muted-foreground'
+  }
 
   const outboundCount = messages.filter((m) => m.direction === 'outbound').length
   const inboundCount = messages.filter((m) => m.direction === 'inbound').length
@@ -570,6 +608,104 @@ export default function Index() {
         </div>
       </section>
 
+      {/* Top 60 Ranking Section */}
+      <section className="py-24 bg-muted/5 border-t border-border">
+        <div className="container">
+          <FadeIn>
+            <div className="flex flex-col items-center mb-12 text-center">
+              <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-6">
+                <Trophy className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-3xl md:text-5xl font-serif mb-4">TOP 60 Marcas</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Conheça os parceiros de destaque no Goiás Fashion Hub, classificados por segmento e
+                excelência.
+              </p>
+            </div>
+          </FadeIn>
+
+          <FadeIn delay={200}>
+            <Tabs defaultValue="moda_feminina" className="w-full">
+              <ScrollArea className="w-full max-w-full whitespace-nowrap mb-8">
+                <TabsList className="inline-flex w-max space-x-2 bg-transparent p-1 h-auto">
+                  {TOP_CATEGORIES.map((cat) => (
+                    <TabsTrigger
+                      key={cat.id}
+                      value={cat.id}
+                      className="rounded-full px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background hover:bg-muted transition-colors"
+                    >
+                      {cat.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                <ScrollBar orientation="horizontal" className="invisible" />
+              </ScrollArea>
+
+              {TOP_CATEGORIES.map((cat) => (
+                <TabsContent key={cat.id} value={cat.id} className="mt-0 outline-none">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                    {top60Brands
+                      .filter((b) => b.ranking_category === cat.id)
+                      .sort((a, b) => a.ranking_position - b.ranking_position)
+                      .map((brand, i) => (
+                        <Card
+                          key={brand.id}
+                          className="relative overflow-hidden group cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1 border-border/50"
+                          onClick={() => setSelectedReseller(brand)}
+                        >
+                          <div
+                            className={`absolute top-0 left-0 w-12 h-12 flex items-start justify-start p-2 rounded-br-2xl shadow-sm z-10 ${getMedalColor(
+                              brand.ranking_position,
+                            )}`}
+                          >
+                            <span className="font-bold text-sm tracking-tighter">
+                              #{brand.ranking_position}
+                            </span>
+                          </div>
+                          <CardContent className="p-6 flex flex-col items-center text-center pt-8">
+                            <Avatar className="w-20 h-20 mb-4 border-2 border-background shadow-md">
+                              <AvatarImage
+                                src={
+                                  brand.avatar
+                                    ? pb.files.getUrl(brand, brand.avatar, { thumb: '200x200' })
+                                    : `https://img.usecurling.com/ppl/medium?seed=${
+                                        brand.id || i + 200
+                                      }&gender=female`
+                                }
+                                className="object-cover transition-transform duration-500 group-hover:scale-110"
+                              />
+                              <AvatarFallback>
+                                {brand.name.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <h4
+                              className="font-serif font-medium text-lg flex items-center justify-center gap-1.5 w-full truncate px-2"
+                              title={brand.name}
+                            >
+                              <span className="truncate">{brand.name}</span>
+                              {brand.is_verified && (
+                                <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
+                              )}
+                            </h4>
+                            <p className="text-xs text-muted-foreground capitalize mt-1">
+                              {brand.ranking_category.replace(/_/g, ' ')}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    {top60Brands.filter((b) => b.ranking_category === cat.id).length === 0 && (
+                      <div className="col-span-full py-12 text-center text-muted-foreground">
+                        Nenhuma marca ranqueada nesta categoria ainda.
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </FadeIn>
+        </div>
+      </section>
+
       {/* Lojas e Revendedoras Section */}
       <section className="py-24 bg-muted/10 border-t border-border">
         <div className="container">
@@ -614,6 +750,7 @@ export default function Index() {
                       <SelectItem value="moda_praia">Moda Praia</SelectItem>
                       <SelectItem value="moda_geral">Moda Geral</SelectItem>
                       <SelectItem value="moda_masculina">Moda Masculina</SelectItem>
+                      <SelectItem value="moda_fitness">Moda Fitness</SelectItem>
                       <SelectItem value="moda_evangelica">Moda Evangélica</SelectItem>
                       <SelectItem value="moda_country">Moda Country</SelectItem>
                       <SelectItem value="moda_infantil">Moda Infantil</SelectItem>
