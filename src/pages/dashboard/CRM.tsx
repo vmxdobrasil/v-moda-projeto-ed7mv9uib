@@ -40,6 +40,7 @@ import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import RankingTab from './components/RankingTab'
 import ImportLeadsDialog from './components/ImportLeadsDialog'
+import AnalyticsTab from './components/AnalyticsTab'
 
 export default function CRM() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -295,6 +296,7 @@ export default function CRM() {
             )}
           </TabsTrigger>
           <TabsTrigger value="rankings">Rankings & Exclusividade</TabsTrigger>
+          <TabsTrigger value="analytics">Relatórios</TabsTrigger>
         </TabsList>
 
         <TabsContent value="leads" className="space-y-4">
@@ -502,6 +504,10 @@ export default function CRM() {
 
         <TabsContent value="rankings">
           <RankingTab customers={customers} />
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <AnalyticsTab customers={customers} />
         </TabsContent>
       </Tabs>
     </div>

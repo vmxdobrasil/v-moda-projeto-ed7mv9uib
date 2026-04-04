@@ -16,6 +16,7 @@ import Checkout from './pages/Checkout'
 import OrderConfirmation from './pages/OrderConfirmation'
 import Orders from './pages/Orders'
 import AboutUs from './pages/AboutUs'
+import Portfolio from './pages/Portfolio'
 import Contact from './pages/Contact'
 import FAQ from './pages/FAQ'
 import Revista from './pages/Revista'
@@ -67,6 +68,7 @@ const App = () => (
         <Route element={<Layout />}>
           <Route path="/" element={<Index />} />
           <Route path="/colecoes" element={<Collections />} />
+          <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/produto/:id" element={<ProductDetail />} />
           <Route path="/favoritos" element={<Wishlist />} />
           <Route path="/login" element={<Login />} />

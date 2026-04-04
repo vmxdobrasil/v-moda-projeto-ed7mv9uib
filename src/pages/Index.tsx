@@ -11,6 +11,7 @@ import { ProductCard } from '@/components/ProductCard'
 import { PRODUCTS } from '@/lib/data'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 const HERO_SLIDES = [
   {
@@ -53,6 +54,7 @@ export default function Index() {
   const trendingProducts = PRODUCTS.filter((p) => p.trending).slice(0, 4)
 
   const [messages, setMessages] = useState<any[]>([])
+  const [teamUsers, setTeamUsers] = useState<any[]>([])
 
   const loadMessages = async () => {
     try {
@@ -65,6 +67,7 @@ export default function Index() {
 
   useEffect(() => {
     loadMessages()
+    pb.collection('users').getFullList({ sort: '-created' }).then(setTeamUsers).catch(console.error)
   }, [])
 
   useRealtime('messages', () => {
@@ -372,6 +375,121 @@ export default function Index() {
               Ver no Instagram
             </a>
           </FadeIn>
+        </div>
+      </section>
+
+      {/* Nossa Equipe Section */}
+      <section className="py-24 bg-muted/30 border-y border-border">
+        <div className="container">
+          <FadeIn>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-serif mb-4">Nossa Equipe</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Os profissionais por trás da excelência e curadoria V Moda.
+              </p>
+            </div>
+          </FadeIn>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {(teamUsers.length > 0
+              ? teamUsers.slice(0, 4)
+              : [
+                  {
+                    id: '1',
+                    name: 'Ana Silva',
+                    avatar: null,
+                    role: 'Diretora Criativa',
+                    seed: 1,
+                    gender: 'female',
+                  },
+                  {
+                    id: '2',
+                    name: 'Carlos Santos',
+                    avatar: null,
+                    role: 'Estilista Chefe',
+                    seed: 2,
+                    gender: 'male',
+                  },
+                  {
+                    id: '3',
+                    name: 'Marina Costa',
+                    avatar: null,
+                    role: 'Gerente de Produção',
+                    seed: 3,
+                    gender: 'female',
+                  },
+                  {
+                    id: '4',
+                    name: 'Roberto Almeida',
+                    avatar: null,
+                    role: 'Marketing',
+                    seed: 4,
+                    gender: 'male',
+                  },
+                ]
+            ).map((user, i) => (
+              <FadeIn key={user.id} delay={i * 100} className="text-center group">
+                <div className="relative mx-auto mb-4 w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-background shadow-lg">
+                  <img
+                    src={
+                      user.avatar
+                        ? pb.files.getUrl(user, user.avatar, { thumb: '200x200' })
+                        : `https://img.usecurling.com/ppl/medium?seed=${user.seed || i + 10}&gender=${user.gender || 'female'}`
+                    }
+                    alt={user.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                </div>
+                <h3 className="font-serif text-lg">{user.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {user.role || 'Especialista de Moda'}
+                </p>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Fabricantes Section */}
+      <section className="py-24 container">
+        <FadeIn>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-serif mb-4">Fabricantes Parceiros</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Marcas exclusivas que confiam na nossa plataforma para alavancar suas vendas e
+              construir portfólios incríveis.
+            </p>
+          </div>
+        </FadeIn>
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6 items-center justify-items-center opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
+          {(teamUsers.length > 0 ? teamUsers.slice(0, 6) : Array.from({ length: 6 })).map(
+            (user: any, i) => (
+              <FadeIn key={user?.id || i} delay={i * 100}>
+                <div className="w-20 h-20 md:w-28 md:h-28 rounded-full bg-secondary/30 flex items-center justify-center overflow-hidden p-4 border hover:border-primary transition-colors cursor-pointer">
+                  {user?.avatar ? (
+                    <img
+                      src={pb.files.getUrl(user, user.avatar, { thumb: '100x100' })}
+                      alt={user.name}
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={`https://img.usecurling.com/i?q=brand%20logo&shape=outline&color=black&seed=${i + 20}`}
+                      alt="Logo Parceiro"
+                      className="max-w-full max-h-full object-contain opacity-60"
+                    />
+                  )}
+                </div>
+              </FadeIn>
+            ),
+          )}
+        </div>
+        <div className="mt-12 text-center">
+          <Link
+            to="/portfolio"
+            className="inline-flex items-center justify-center border-b border-primary pb-1 text-sm uppercase tracking-widest font-medium hover:text-accent hover:border-accent transition-colors"
+          >
+            Ver Portfólio de Projetos
+          </Link>
         </div>
       </section>
 
