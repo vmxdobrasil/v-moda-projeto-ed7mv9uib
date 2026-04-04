@@ -180,16 +180,16 @@ export default function Index() {
   })
 
   const TOP_CATEGORIES = [
-    { id: 'moda_feminina', label: 'Top 15 Feminina' },
-    { id: 'jeans', label: 'Top 10 Jeans' },
-    { id: 'moda_praia', label: 'Top 5 Praia' },
-    { id: 'moda_masculina', label: 'Top 5 Masculina' },
-    { id: 'moda_fitness', label: 'Top 5 Fitness' },
-    { id: 'moda_evangelica', label: 'Top 5 Evangélica' },
-    { id: 'moda_country', label: 'Top 5 Country' },
-    { id: 'moda_infantil', label: 'Top 5 Infantil' },
-    { id: 'bijouterias_semijoias', label: 'Top 3 Joias' },
-    { id: 'calcados', label: 'Top 2 Calçados' },
+    { id: 'moda_feminina', label: 'TOP 15 MODA FEMININA' },
+    { id: 'jeans', label: 'TOP 10 JEANS' },
+    { id: 'moda_praia', label: 'TOP 5 MODA PRAIA' },
+    { id: 'moda_masculina', label: 'TOP 5 MODA MASCULINA' },
+    { id: 'moda_fitness', label: 'TOP 5 MODA FITNESS' },
+    { id: 'moda_evangelica', label: 'TOP 5 MODA EVANGÉLICA' },
+    { id: 'moda_country', label: 'TOP 5 MODA COUNTRY' },
+    { id: 'moda_infantil', label: 'TOP 5 MODA INFANTIL/JUVENIL' },
+    { id: 'bijouterias_semijoias', label: 'TOP 3 BIJOUTERIAS E SEMI JOIAS' },
+    { id: 'calcados', label: 'TOP 2 CALÇADOS' },
   ]
 
   const getMedalColor = (position: number) => {
@@ -616,10 +616,20 @@ export default function Index() {
               <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-6">
                 <Trophy className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-3xl md:text-5xl font-serif mb-4">TOP 60 Marcas</h2>
+              <h2 className="text-3xl md:text-5xl font-serif mb-4 flex flex-col md:flex-row items-center justify-center gap-3">
+                <span className="text-center text-2xl md:text-4xl">
+                  TOP 60 das melhores marcas da
+                </span>
+                <Badge
+                  variant="default"
+                  className="text-sm md:text-lg font-sans tracking-widest px-4 py-1.5 whitespace-normal text-center h-auto inline-flex leading-snug"
+                >
+                  REVISTA MODA ATUAL DIGITAL
+                </Badge>
+              </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Conheça os parceiros de destaque no Goiás Fashion Hub, classificados por segmento e
-                excelência.
+                Conheça a seleção exclusiva feita pela Revista Moda Atual Digital. Os parceiros de
+                destaque no Goiás Fashion Hub, classificados por segmento e excelência.
               </p>
             </div>
           </FadeIn>
