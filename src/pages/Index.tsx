@@ -23,6 +23,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/hooks/use-toast'
 import {
   Dialog,
   DialogContent,
@@ -74,16 +77,22 @@ export default function Index() {
   const [messages, setMessages] = useState<any[]>([])
   const [teamUsers, setTeamUsers] = useState<any[]>([])
   const [resellers, setResellers] = useState<any[]>([])
+  const [topPartners, setTopPartners] = useState<any[]>([])
   const [showVerifiedOnly, setShowVerifiedOnly] = useState(false)
   const [selectedReseller, setSelectedReseller] = useState<any>(null)
+
+  const [leadName, setLeadName] = useState('')
+  const [leadEmail, setLeadEmail] = useState('')
+  const [leadMessage, setLeadMessage] = useState('')
+  const [isSubmittingLead, setIsSubmittingLead] = useState(false)
+
+  const { toast } = useToast()
 
   const handleWhatsAppClick = async (e: React.MouseEvent, reseller: any) => {
     e.stopPropagation()
     if (reseller.id) {
       try {
-        await pb.collection('customers').update(reseller.id, {
-          whatsapp_clicks: (reseller.whatsapp_clicks || 0) + 1,
-        })
+        await pb.send(`/backend/v1/partners/${reseller.id}/click`, { method: 'POST' })
       } catch (err) {
         console.error('Error updating clicks', err)
       }
@@ -112,9 +121,21 @@ export default function Index() {
     }
   }
 
+  const loadTopPartners = async () => {
+    try {
+      const data = await pb.collection('customers').getFullList({
+        sort: '-whatsapp_clicks',
+      })
+      setTopPartners(data.slice(0, 5))
+    } catch (e) {
+      console.error('Error loading top partners', e)
+    }
+  }
+
   useEffect(() => {
     loadMessages()
     loadResellers()
+    loadTopPartners()
     pb.collection('users').getFullList({ sort: '-created' }).then(setTeamUsers).catch(console.error)
   }, [])
 
@@ -124,6 +145,7 @@ export default function Index() {
 
   useRealtime('customers', () => {
     loadResellers()
+    loadTopPartners()
   })
 
   const outboundCount = messages.filter((m) => m.direction === 'outbound').length
@@ -134,6 +156,42 @@ export default function Index() {
   const activeConversations = new Set(
     messages.filter((m) => new Date(m.created).getTime() > sevenDaysAgo).map((m) => m.sender_id),
   ).size
+
+  const handleLeadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!leadName || !leadEmail || !selectedReseller?.manufacturer) return
+
+    setIsSubmittingLead(true)
+    try {
+      await pb.send('/backend/v1/partners/lead', {
+        method: 'POST',
+        body: JSON.stringify({
+          manufacturer: selectedReseller.manufacturer,
+          partnerName: selectedReseller.name,
+          name: leadName,
+          email: leadEmail,
+          message: leadMessage,
+        }),
+      })
+      toast({
+        title: 'Sucesso!',
+        description: 'Your interest has been sent to the manufacturer!',
+      })
+      setLeadName('')
+      setLeadEmail('')
+      setLeadMessage('')
+      setSelectedReseller(null)
+    } catch (err) {
+      console.error(err)
+      toast({
+        title: 'Erro',
+        description: 'Could not send your interest. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSubmittingLead(false)
+    }
+  }
 
   return (
     <main className="w-full pb-24">
@@ -430,6 +488,75 @@ export default function Index() {
         </div>
       </section>
 
+      {/* Top Partners Section */}
+      <section className="py-24 bg-background border-t border-border">
+        <div className="container">
+          <FadeIn>
+            <div className="flex flex-col items-center mb-16 text-center">
+              <h2 className="text-3xl md:text-4xl font-serif mb-4">Top Partners</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Os parceiros mais procurados e engajados da nossa plataforma.
+              </p>
+            </div>
+          </FadeIn>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+            {topPartners.map((partner, i) => (
+              <FadeIn
+                key={partner.id}
+                delay={i * 100}
+                className="relative text-center group cursor-pointer hover:bg-muted/50 p-6 rounded-2xl border shadow-sm transition-all hover:-translate-y-1"
+                onClick={() => setSelectedReseller(partner)}
+              >
+                {i < 3 && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground text-[10px] uppercase font-bold tracking-wider py-1 px-3 rounded-full shadow-md z-10">
+                    Trending
+                  </div>
+                )}
+                <div className="relative mx-auto mb-4 w-24 h-24 rounded-full overflow-hidden border-4 border-background shadow-lg">
+                  {partner.avatar ? (
+                    <img
+                      src={pb.files.getUrl(partner, partner.avatar, { thumb: '200x200' })}
+                      alt={partner.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <img
+                      src={`https://img.usecurling.com/ppl/medium?seed=${i + 100}&gender=female`}
+                      alt="Avatar"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90"
+                    />
+                  )}
+                </div>
+                <h3
+                  className="font-serif text-lg truncate px-2 flex items-center justify-center gap-1 mb-1"
+                  title={partner.name}
+                >
+                  {partner.name}
+                  {partner.is_verified && (
+                    <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
+                  )}
+                </h3>
+                <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground mb-4">
+                  <MessageCircle className="w-3.5 h-3.5 text-green-500" />
+                  {partner.whatsapp_clicks || 0} contatos
+                </div>
+                {partner.phone && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full h-8 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                    onClick={(e) => handleWhatsAppClick(e, partner)}
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
+                    WhatsApp
+                  </Button>
+                )}
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Lojas e Revendedoras Section */}
       <section className="py-24 bg-muted/10 border-t border-border">
         <div className="container">
@@ -576,14 +703,67 @@ export default function Index() {
                     {selectedReseller.bio}
                   </p>
                 )}
+
+                <div className="w-full mt-6 text-left border-t pt-6">
+                  <h4 className="font-semibold mb-4 text-sm">I'm Interested (Express Interest)</h4>
+                  <form onSubmit={handleLeadSubmit} className="space-y-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="leadName" className="text-xs">
+                        Name *
+                      </Label>
+                      <Input
+                        id="leadName"
+                        required
+                        value={leadName}
+                        onChange={(e) => setLeadName(e.target.value)}
+                        placeholder="Your full name"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="leadEmail" className="text-xs">
+                        Email *
+                      </Label>
+                      <Input
+                        id="leadEmail"
+                        type="email"
+                        required
+                        value={leadEmail}
+                        onChange={(e) => setLeadEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="leadMessage" className="text-xs">
+                        Message / Product Interest
+                      </Label>
+                      <Textarea
+                        id="leadMessage"
+                        value={leadMessage}
+                        onChange={(e) => setLeadMessage(e.target.value)}
+                        placeholder="What are you interested in?"
+                        className="resize-none h-16 text-sm"
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={isSubmittingLead}
+                      className="w-full h-8 text-xs"
+                    >
+                      {isSubmittingLead ? 'Sending...' : 'Express Interest'}
+                    </Button>
+                  </form>
+                </div>
+
                 {selectedReseller.phone && (
                   <Button
-                    className="w-full mt-4 bg-[#25D366] hover:bg-[#128C7E] text-white"
+                    className="w-full mt-2 bg-[#25D366] hover:bg-[#128C7E] text-white"
                     size="lg"
                     onClick={(e) => handleWhatsAppClick(e, selectedReseller)}
                   >
                     <MessageCircle className="w-5 h-5 mr-2" />
-                    Chamar no WhatsApp
+                    Contact on WhatsApp
                   </Button>
                 )}
               </div>

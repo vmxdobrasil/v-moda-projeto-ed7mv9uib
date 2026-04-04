@@ -52,6 +52,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import RankingTab from './components/RankingTab'
 import ImportLeadsDialog from './components/ImportLeadsDialog'
 import AnalyticsTab from './components/AnalyticsTab'
+import InsightsTab from './components/InsightsTab'
 
 export default function CRM() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -430,6 +431,7 @@ export default function CRM() {
           </TabsTrigger>
           <TabsTrigger value="rankings">Rankings & Exclusividade</TabsTrigger>
           <TabsTrigger value="analytics">Relatórios</TabsTrigger>
+          <TabsTrigger value="insights">Insights</TabsTrigger>
         </TabsList>
 
         <TabsContent value="leads" className="space-y-4">
@@ -664,6 +666,10 @@ export default function CRM() {
 
         <TabsContent value="analytics">
           <AnalyticsTab customers={customers} />
+        </TabsContent>
+
+        <TabsContent value="insights">
+          <InsightsTab customers={customers} />
         </TabsContent>
       </Tabs>
     </div>
