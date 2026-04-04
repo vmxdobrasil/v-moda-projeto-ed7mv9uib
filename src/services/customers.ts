@@ -5,6 +5,7 @@ export interface Customer {
   name: string
   email: string
   phone: string
+  avatar?: string
   status: 'new' | 'interested' | 'negotiating' | 'converted' | 'inactive'
   manufacturer: string
   source: 'whatsapp' | 'instagram' | 'email' | 'manual'
@@ -23,14 +24,20 @@ export const getCustomers = async () => {
   })
 }
 
-export const createCustomer = async (data: Partial<Customer>) => {
-  if (pb.authStore.record?.id) {
-    data.manufacturer = pb.authStore.record.id
+export const createCustomer = async (data: Partial<Customer> | FormData) => {
+  if (data instanceof FormData) {
+    if (pb.authStore.record?.id && !data.has('manufacturer')) {
+      data.append('manufacturer', pb.authStore.record.id)
+    }
+  } else {
+    if (pb.authStore.record?.id) {
+      data.manufacturer = pb.authStore.record.id
+    }
   }
   return pb.collection('customers').create<Customer>(data)
 }
 
-export const updateCustomer = async (id: string, data: Partial<Customer>) => {
+export const updateCustomer = async (id: string, data: Partial<Customer> | FormData) => {
   return pb.collection('customers').update<Customer>(id, data)
 }
 

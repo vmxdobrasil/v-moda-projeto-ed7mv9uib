@@ -7,10 +7,25 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import pb from '@/lib/pocketbase/client'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export default function DashboardLayout() {
   const location = useLocation()
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [userRecord, setUserRecord] = useState(pb.authStore.record)
+
+  useEffect(() => {
+    return pb.authStore.onChange((token, record) => {
+      setUserRecord(record)
+    })
+  }, [])
+
+  useRealtime('users', (e) => {
+    if (e.action === 'update' && e.record.id === pb.authStore.record?.id) {
+      setUserRecord(e.record)
+      pb.authStore.save(pb.authStore.token, e.record)
+    }
+  })
 
   const loadNotifications = async () => {
     try {
@@ -72,14 +87,22 @@ export default function DashboardLayout() {
             to="/perfil"
             className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-              {pb.authStore.record?.name?.charAt(0) || 'U'}
-            </div>
+            <Avatar className="w-8 h-8">
+              <AvatarImage
+                src={
+                  userRecord?.avatar
+                    ? pb.files.getUrl(userRecord, userRecord.avatar, { thumb: '100x100' })
+                    : undefined
+                }
+                alt={userRecord?.name}
+              />
+              <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                {userRecord?.name?.charAt(0)?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">
-                {pb.authStore.record?.name || 'Usuário'}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">{pb.authStore.record?.email}</p>
+              <p className="text-sm font-medium truncate">{userRecord?.name || 'Usuário'}</p>
+              <p className="text-xs text-muted-foreground truncate">{userRecord?.email}</p>
             </div>
           </Link>
         </div>

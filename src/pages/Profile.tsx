@@ -15,7 +15,9 @@ import {
 } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
 import useAuthStore from '@/stores/useAuthStore'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, User, Upload } from 'lucide-react'
+import pb from '@/lib/pocketbase/client'
+import { Label } from '@/components/ui/label'
 
 const profileSchema = z.object({
   name: z.string().min(3, 'O nome deve ter no mínimo 3 caracteres'),
@@ -30,6 +32,8 @@ export default function Profile() {
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
   const form = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -47,22 +51,49 @@ export default function Profile() {
         name: user.name,
         email: user.email,
       })
+      if (user.avatar) {
+        setAvatarPreview(pb.files.getUrl(user, user.avatar))
+      }
     }
   }, [isAuthenticated, navigate, user, form])
 
-  function onSubmit(data: ProfileForm) {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setAvatarFile(file)
+      setAvatarPreview(URL.createObjectURL(file))
+    }
+  }
+
+  async function onSubmit(data: ProfileForm) {
     setIsLoading(true)
 
-    setTimeout(() => {
-      updateUser(data)
-      setIsEditing(false)
-      setIsLoading(false)
+    try {
+      const formData = new FormData()
+      formData.append('name', data.name)
+      formData.append('email', data.email)
 
+      if (avatarFile) {
+        formData.append('avatar', avatarFile)
+      }
+
+      const updatedRecord = await pb.collection('users').update(user.id, formData)
+      updateUser(updatedRecord)
+
+      setIsEditing(false)
       toast({
         title: 'Perfil atualizado',
         description: 'Suas informações foram salvas com sucesso.',
       })
-    }, 1000)
+    } catch (err) {
+      toast({
+        title: 'Erro ao atualizar',
+        description: 'Ocorreu um erro ao salvar suas informações.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   function handleLogout() {
@@ -78,13 +109,39 @@ export default function Profile() {
         {/* Sidebar */}
         <aside className="w-full md:w-64 flex-shrink-0">
           <div className="bg-secondary/30 p-6 rounded-lg flex flex-col items-center text-center space-y-4">
-            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
-              <User className="w-12 h-12 text-primary" />
+            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden border-2 border-primary/20">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Logomarca" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-12 h-12 text-primary" />
+              )}
             </div>
-            <div>
-              <h2 className="font-serif text-xl">{user.name}</h2>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
-            </div>
+
+            {isEditing && (
+              <div className="w-full">
+                <Label
+                  htmlFor="avatar-upload"
+                  className="cursor-pointer w-full flex items-center justify-center gap-2 bg-secondary/50 px-3 py-2 rounded text-sm hover:bg-secondary transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                  Logomarca (Máx 2MB)
+                </Label>
+                <Input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </div>
+            )}
+
+            {!isEditing && (
+              <div>
+                <h2 className="font-serif text-xl">{user.name}</h2>
+                <p className="text-sm text-muted-foreground">{user.email}</p>
+              </div>
+            )}
             <Button
               variant="outline"
               className="w-full mt-4 flex items-center gap-2"
@@ -163,6 +220,12 @@ export default function Profile() {
                       onClick={() => {
                         setIsEditing(false)
                         form.reset()
+                        setAvatarFile(null)
+                        if (user?.avatar) {
+                          setAvatarPreview(pb.files.getUrl(user, user.avatar))
+                        } else {
+                          setAvatarPreview(null)
+                        }
                       }}
                       disabled={isLoading}
                     >

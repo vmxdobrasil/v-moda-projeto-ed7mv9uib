@@ -37,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { UserPlus, MessageSquare, Trash2, Settings, UploadCloud } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import RankingTab from './components/RankingTab'
 import ImportLeadsDialog from './components/ImportLeadsDialog'
 
@@ -55,6 +56,7 @@ export default function CRM() {
     status: 'new',
     source: 'manual',
   })
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
 
@@ -125,10 +127,22 @@ export default function CRM() {
       return
     }
     try {
-      await createCustomer(newCustomer)
+      if (avatarFile) {
+        const formData = new FormData()
+        Object.entries(newCustomer).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            formData.append(key, value.toString())
+          }
+        })
+        formData.append('avatar', avatarFile)
+        await createCustomer(formData)
+      } else {
+        await createCustomer(newCustomer)
+      }
       toast.success('Lead criado com sucesso')
       setIsNewOpen(false)
       setNewCustomer({ name: '', email: '', phone: '', status: 'new', source: 'manual' })
+      setAvatarFile(null)
     } catch (err) {
       toast.error('Erro ao criar lead')
     }
@@ -232,6 +246,16 @@ export default function CRM() {
                     value={newCustomer.phone}
                     onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="avatar">Foto (Opcional)</Label>
+                  <Input
+                    id="avatar"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+                  />
+                  <p className="text-xs text-muted-foreground">JPG, PNG ou WebP. Máx 2MB.</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Origem</Label>
@@ -341,22 +365,46 @@ export default function CRM() {
                   filteredCustomers.map((customer) => (
                     <TableRow key={customer.id}>
                       <TableCell className="font-medium">
-                        {customer.name}
-                        {customer.ranking_category && customer.ranking_position && (
-                          <div className="mt-1 flex items-center gap-1">
-                            <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-medium text-yellow-800">
-                              <span className="mr-1">🏆</span> TOP {customer.ranking_position}
-                            </span>
-                            {customer.is_exclusive && (
-                              <span
-                                className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-800"
-                                title={customer.exclusivity_zone}
-                              >
-                                Exclusivo
-                              </span>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage
+                              src={
+                                customer.avatar
+                                  ? pb.files.getUrl(customer, customer.avatar, { thumb: '100x100' })
+                                  : undefined
+                              }
+                              alt={customer.name}
+                            />
+                            <AvatarFallback className="text-xs">
+                              {customer.name
+                                ? customer.name
+                                    .split(' ')
+                                    .map((n) => n[0])
+                                    .slice(0, 2)
+                                    .join('')
+                                    .toUpperCase()
+                                : 'C'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            {customer.name}
+                            {customer.ranking_category && customer.ranking_position && (
+                              <div className="mt-1 flex items-center gap-1">
+                                <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-medium text-yellow-800">
+                                  <span className="mr-1">🏆</span> TOP {customer.ranking_position}
+                                </span>
+                                {customer.is_exclusive && (
+                                  <span
+                                    className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-800"
+                                    title={customer.exclusivity_zone}
+                                  >
+                                    Exclusivo
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
-                        )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">{customer.email || '-'}</div>

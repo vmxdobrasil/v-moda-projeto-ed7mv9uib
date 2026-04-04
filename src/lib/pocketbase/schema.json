@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-03T14:16:11.284Z",
+  "generatedAt": "2026-04-04T12:18:43.611Z",
   "collections": [
     {
       "name": "users",
@@ -283,6 +283,12 @@
         {
           "name": "last_contacted_at",
           "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avatar",
+          "type": "file",
           "required": false,
           "system": false
         }
