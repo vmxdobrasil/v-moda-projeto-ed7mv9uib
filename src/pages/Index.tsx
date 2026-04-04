@@ -8,6 +8,9 @@ import {
   Zap,
   BadgeCheck,
   MessageCircle,
+  MapPin,
+  LayoutGrid,
+  Map as MapIcon,
 } from 'lucide-react'
 import { useSEO } from '@/hooks/useSEO'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -89,6 +92,7 @@ export default function Index() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [zoneFilter, setZoneFilter] = useState('')
   const [selectedReseller, setSelectedReseller] = useState<any>(null)
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid')
 
   const [leadName, setLeadName] = useState('')
   const [leadEmail, setLeadEmail] = useState('')
@@ -578,6 +582,24 @@ export default function Index() {
                   fotos reais para uma experiência mais próxima e humana.
                 </p>
               </div>
+              <div className="flex justify-center mb-6">
+                <div className="bg-muted p-1 rounded-lg inline-flex">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${viewMode === 'grid' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                    Grade
+                  </button>
+                  <button
+                    onClick={() => setViewMode('map')}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${viewMode === 'map' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    <MapIcon className="w-4 h-4" />
+                    Mapa
+                  </button>
+                </div>
+              </div>
               <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-4xl bg-background p-4 rounded-xl shadow-sm border mt-6">
                 <div className="flex-1 w-full space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Categoria</Label>
@@ -627,37 +649,23 @@ export default function Index() {
               </div>
             </div>
           </FadeIn>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
-            {resellers.length === 0 ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <FadeIn key={i} delay={i * 100} className="text-center group">
-                  <div className="relative mx-auto mb-4 w-28 h-28 md:w-36 md:h-36 rounded-full overflow-hidden border-4 border-background shadow-lg">
-                    <img
-                      src={`https://img.usecurling.com/ppl/medium?seed=${i + 60}&gender=female`}
-                      alt="Avatar"
-                      className="w-full h-full object-cover opacity-90"
-                    />
-                  </div>
-                  <div className="h-4 bg-muted rounded w-24 mx-auto mb-2" />
-                  <div className="h-3 bg-muted rounded w-16 mx-auto mb-2" />
-                </FadeIn>
-              ))
-            ) : resellers.filter((r) => {
-                if (showVerifiedOnly && !r.is_verified) return false
-                if (categoryFilter !== 'all' && r.ranking_category !== categoryFilter) return false
-                if (
-                  zoneFilter &&
-                  !r.exclusivity_zone?.toLowerCase().includes(zoneFilter.toLowerCase())
-                )
-                  return false
-                return true
-              }).length === 0 ? (
-              <div className="col-span-full text-center py-8 text-muted-foreground">
-                Nenhum parceiro encontrado com os filtros selecionados.
-              </div>
-            ) : (
-              resellers
-                .filter((r) => {
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
+              {resellers.length === 0 ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <FadeIn key={i} delay={i * 100} className="text-center group">
+                    <div className="relative mx-auto mb-4 w-28 h-28 md:w-36 md:h-36 rounded-full overflow-hidden border-4 border-background shadow-lg">
+                      <img
+                        src={`https://img.usecurling.com/ppl/medium?seed=${i + 60}&gender=female`}
+                        alt="Avatar"
+                        className="w-full h-full object-cover opacity-90"
+                      />
+                    </div>
+                    <div className="h-4 bg-muted rounded w-24 mx-auto mb-2" />
+                    <div className="h-3 bg-muted rounded w-16 mx-auto mb-2" />
+                  </FadeIn>
+                ))
+              ) : resellers.filter((r) => {
                   if (showVerifiedOnly && !r.is_verified) return false
                   if (categoryFilter !== 'all' && r.ranking_category !== categoryFilter)
                     return false
@@ -667,59 +675,142 @@ export default function Index() {
                   )
                     return false
                   return true
-                })
-                .slice(0, 10)
-                .map((reseller: any, i) => (
-                  <FadeIn
-                    key={reseller.id}
-                    delay={i * 100}
-                    className="text-center group cursor-pointer hover:bg-muted/50 p-4 rounded-xl transition-colors"
-                    onClick={() => setSelectedReseller(reseller)}
-                  >
-                    <div className="relative mx-auto mb-4 w-28 h-28 md:w-36 md:h-36 rounded-full overflow-hidden border-4 border-background shadow-lg">
-                      {reseller.avatar ? (
-                        <img
-                          src={pb.files.getUrl(reseller, reseller.avatar, { thumb: '200x200' })}
-                          alt={reseller.name}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                        />
-                      ) : (
-                        <img
-                          src={`https://img.usecurling.com/ppl/medium?seed=${i + 60}&gender=female`}
-                          alt="Avatar"
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90"
-                        />
-                      )}
-                    </div>
-                    <h3
-                      className="font-serif text-base md:text-lg truncate px-2 flex items-center justify-center gap-1"
-                      title={reseller.name}
+                }).length === 0 ? (
+                <div className="col-span-full text-center py-8 text-muted-foreground">
+                  Nenhum parceiro encontrado com os filtros selecionados.
+                </div>
+              ) : (
+                resellers
+                  .filter((r) => {
+                    if (showVerifiedOnly && !r.is_verified) return false
+                    if (categoryFilter !== 'all' && r.ranking_category !== categoryFilter)
+                      return false
+                    if (
+                      zoneFilter &&
+                      !r.exclusivity_zone?.toLowerCase().includes(zoneFilter.toLowerCase())
+                    )
+                      return false
+                    return true
+                  })
+                  .slice(0, 10)
+                  .map((reseller: any, i) => (
+                    <FadeIn
+                      key={reseller.id}
+                      delay={i * 100}
+                      className="text-center group cursor-pointer hover:bg-muted/50 p-4 rounded-xl transition-colors"
+                      onClick={() => setSelectedReseller(reseller)}
                     >
-                      {reseller.name}
-                      {reseller.is_verified && (
-                        <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
-                      )}
-                    </h3>
-                    <p className="text-xs text-muted-foreground capitalize mb-3">
-                      {reseller.ranking_category
-                        ? reseller.ranking_category.replace(/_/g, ' ')
-                        : 'Varejo / Revenda'}
-                    </p>
-                    {reseller.phone && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full max-w-[140px] mx-auto h-8 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-                        onClick={(e) => handleWhatsAppClick(e, reseller)}
+                      <div className="relative mx-auto mb-4 w-28 h-28 md:w-36 md:h-36 rounded-full overflow-hidden border-4 border-background shadow-lg">
+                        {reseller.avatar ? (
+                          <img
+                            src={pb.files.getUrl(reseller, reseller.avatar, { thumb: '200x200' })}
+                            alt={reseller.name}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                        ) : (
+                          <img
+                            src={`https://img.usecurling.com/ppl/medium?seed=${i + 60}&gender=female`}
+                            alt="Avatar"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90"
+                          />
+                        )}
+                      </div>
+                      <h3
+                        className="font-serif text-base md:text-lg truncate px-2 flex items-center justify-center gap-1"
+                        title={reseller.name}
                       >
-                        <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
-                        WhatsApp
-                      </Button>
-                    )}
-                  </FadeIn>
-                ))
-            )}
-          </div>
+                        {reseller.name}
+                        {reseller.is_verified && (
+                          <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
+                        )}
+                      </h3>
+                      <p className="text-xs text-muted-foreground capitalize mb-3">
+                        {reseller.ranking_category
+                          ? reseller.ranking_category.replace(/_/g, ' ')
+                          : 'Varejo / Revenda'}
+                      </p>
+                      {reseller.phone && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full max-w-[140px] mx-auto h-8 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                          onClick={(e) => handleWhatsAppClick(e, reseller)}
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
+                          WhatsApp
+                        </Button>
+                      )}
+                    </FadeIn>
+                  ))
+              )}
+            </div>
+          ) : (
+            <FadeIn>
+              <div className="w-full h-[500px] md:h-[600px] rounded-xl overflow-hidden border relative bg-[#e5e3df]">
+                <img
+                  src="https://img.usecurling.com/p/1200/800?q=google%20maps%20view%20clean%20light"
+                  alt="Mapa de Parceiros"
+                  className="w-full h-full object-cover opacity-60"
+                />
+                <div className="absolute top-4 left-4 right-4 md:right-auto md:w-80 bg-background/90 backdrop-blur p-4 rounded-lg shadow-lg z-10 border">
+                  <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    Mapa de Parceiros
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Explore a distribuição geográfica das nossas lojas e revendedoras autorizadas.
+                    Clique nos marcadores para ver mais detalhes.
+                  </p>
+                </div>
+                {resellers
+                  .filter((r) => {
+                    if (showVerifiedOnly && !r.is_verified) return false
+                    if (categoryFilter !== 'all' && r.ranking_category !== categoryFilter)
+                      return false
+                    if (
+                      zoneFilter &&
+                      !r.exclusivity_zone?.toLowerCase().includes(zoneFilter.toLowerCase())
+                    )
+                      return false
+                    return true
+                  })
+                  .map((reseller: any) => {
+                    let hash = 0
+                    const str = reseller.exclusivity_zone || reseller.id
+                    for (let i = 0; i < str.length; i++) {
+                      hash = str.charCodeAt(i) + ((hash << 5) - hash)
+                    }
+                    const x = 15 + (Math.abs(hash) % 70)
+                    const y = 15 + (Math.abs(hash >> 8) % 70)
+
+                    return (
+                      <div
+                        key={reseller.id}
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-20"
+                        style={{ left: `${x}%`, top: `${y}%` }}
+                        onClick={() => setSelectedReseller(reseller)}
+                      >
+                        <MapPin className="w-8 h-8 text-primary drop-shadow-lg group-hover:scale-125 group-hover:-translate-y-2 group-hover:text-accent transition-all duration-300" />
+                        {reseller.is_verified && (
+                          <div className="absolute -top-1 -right-1 bg-background rounded-full">
+                            <BadgeCheck className="w-4 h-4 text-green-500" />
+                          </div>
+                        )}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background px-3 py-1.5 text-xs font-bold rounded shadow-xl opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-opacity border flex flex-col items-center gap-1">
+                          <div className="flex items-center gap-1">{reseller.name}</div>
+                          {reseller.exclusivity_zone && (
+                            <span className="text-[10px] font-normal text-muted-foreground">
+                              {reseller.exclusivity_zone}
+                            </span>
+                          )}
+                          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-background border-r border-b rotate-45"></div>
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
+            </FadeIn>
+          )}
         </div>
       </section>
 

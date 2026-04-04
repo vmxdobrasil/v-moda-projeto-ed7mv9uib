@@ -50,6 +50,7 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { GripVertical } from 'lucide-react'
 import RankingTab from './components/RankingTab'
 import ImportLeadsDialog from './components/ImportLeadsDialog'
 import AnalyticsTab from './components/AnalyticsTab'
@@ -483,6 +484,7 @@ export default function CRM() {
       <Tabs defaultValue="leads" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="leads">Meus Leads</TabsTrigger>
+          <TabsTrigger value="funnel">Funil de Vendas</TabsTrigger>
           <TabsTrigger value="suggestions" className="relative">
             Sugestões de Captura
             {suggestions.length > 0 && (
@@ -495,6 +497,78 @@ export default function CRM() {
           <TabsTrigger value="analytics">Relatórios</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="funnel" className="h-[calc(100vh-250px)]">
+          <div className="flex gap-4 overflow-x-auto pb-4 h-full">
+            {['new', 'interested', 'negotiating', 'converted', 'inactive'].map((status) => (
+              <div
+                key={status}
+                className="flex-1 min-w-[280px] bg-muted/30 rounded-lg p-4 flex flex-col border border-border/50"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  const id = e.dataTransfer.getData('customerId')
+                  if (id) handleStatusChange(id, status as Customer['status'])
+                }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-sm uppercase flex items-center gap-2">
+                    {status === 'new' && 'Novos'}
+                    {status === 'interested' && 'Interessados'}
+                    {status === 'negotiating' && 'Em Negociação'}
+                    {status === 'converted' && 'Convertidos'}
+                    {status === 'inactive' && 'Inativos'}
+                    <span className="bg-background text-muted-foreground text-xs py-0.5 px-2 rounded-full border">
+                      {customers.filter((c) => c.status === status).length}
+                    </span>
+                  </h3>
+                </div>
+                <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                  {customers
+                    .filter((c) => c.status === status)
+                    .map((c) => (
+                      <div
+                        key={c.id}
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData('customerId', c.id)}
+                        className="bg-card p-3 rounded-lg shadow-sm border border-border cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors group relative"
+                      >
+                        <div className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <GripVertical className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                        <div className="pl-6">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="font-semibold text-sm truncate pr-2">{c.name}</span>
+                            {c.is_verified && (
+                              <BadgeCheck
+                                className="w-4 h-4 text-green-500 shrink-0"
+                                title="Verificado"
+                              />
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground capitalize">
+                              {c.ranking_category
+                                ? categoryLabels[c.ranking_category] || c.ranking_category
+                                : 'Sem categoria'}
+                            </span>
+                            <span className="text-xs font-medium bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                              {c.source}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  {customers.filter((c) => c.status === status).length === 0 && (
+                    <div className="h-24 border-2 border-dashed border-border/50 rounded-lg flex items-center justify-center text-sm text-muted-foreground">
+                      Solte leads aqui
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </TabsContent>
 
         <TabsContent value="leads" className="space-y-4">
           <div className="flex gap-4 items-center bg-card p-4 rounded-lg border shadow-sm">
