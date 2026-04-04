@@ -34,8 +34,17 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
-import { UserPlus, MessageSquare, Trash2, Settings, UploadCloud } from 'lucide-react'
+import {
+  UserPlus,
+  MessageSquare,
+  Trash2,
+  Settings,
+  UploadCloud,
+  Pencil,
+  BadgeCheck,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import RankingTab from './components/RankingTab'
@@ -56,8 +65,12 @@ export default function CRM() {
     phone: '',
     status: 'new',
     source: 'manual',
+    is_verified: false,
   })
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
+
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
+
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
 
@@ -142,10 +155,37 @@ export default function CRM() {
       }
       toast.success('Lead criado com sucesso')
       setIsNewOpen(false)
-      setNewCustomer({ name: '', email: '', phone: '', status: 'new', source: 'manual' })
+      setNewCustomer({
+        name: '',
+        email: '',
+        phone: '',
+        status: 'new',
+        source: 'manual',
+        is_verified: false,
+      })
       setAvatarFile(null)
     } catch (err) {
       toast.error('Erro ao criar lead')
+    }
+  }
+
+  const handleEdit = async () => {
+    if (!editingCustomer) return
+    if (!editingCustomer.name) {
+      toast.error('Nome é obrigatório')
+      return
+    }
+    try {
+      await updateCustomer(editingCustomer.id, {
+        name: editingCustomer.name,
+        email: editingCustomer.email,
+        phone: editingCustomer.phone,
+        is_verified: editingCustomer.is_verified,
+      })
+      toast.success('Lead atualizado com sucesso')
+      setEditingCustomer(null)
+    } catch (err) {
+      toast.error('Erro ao atualizar lead')
     }
   }
 
@@ -167,6 +207,7 @@ export default function CRM() {
         phone: suggestion.phone,
         source: suggestion.source,
         status: 'new',
+        is_verified: false,
       })
       toast.success('Lead adicionado ao CRM!')
     } catch (err) {
@@ -277,10 +318,85 @@ export default function CRM() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button className="w-full" onClick={handleCreate}>
+                <div className="flex items-center justify-between mt-2 p-3 bg-muted/50 rounded-lg">
+                  <div className="space-y-0.5">
+                    <Label>Perfil Verificado</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Exibir selo de confiança público.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={newCustomer.is_verified || false}
+                    onCheckedChange={(c) => setNewCustomer({ ...newCustomer, is_verified: c })}
+                  />
+                </div>
+                <Button className="w-full mt-2" onClick={handleCreate}>
                   Salvar
                 </Button>
               </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            open={!!editingCustomer}
+            onOpenChange={(open) => !open && setEditingCustomer(null)}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Editar Lead / Parceiro</DialogTitle>
+              </DialogHeader>
+              {editingCustomer && (
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-name">Nome</Label>
+                    <Input
+                      id="edit-name"
+                      value={editingCustomer.name}
+                      onChange={(e) =>
+                        setEditingCustomer({ ...editingCustomer, name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-email">Email</Label>
+                    <Input
+                      id="edit-email"
+                      type="email"
+                      value={editingCustomer.email || ''}
+                      onChange={(e) =>
+                        setEditingCustomer({ ...editingCustomer, email: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-phone">Telefone</Label>
+                    <Input
+                      id="edit-phone"
+                      value={editingCustomer.phone || ''}
+                      onChange={(e) =>
+                        setEditingCustomer({ ...editingCustomer, phone: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-4 p-3 bg-muted/50 rounded-lg">
+                    <div className="space-y-0.5">
+                      <Label>Perfil Verificado</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Exibir selo de confiança público.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={editingCustomer.is_verified || false}
+                      onCheckedChange={(c) =>
+                        setEditingCustomer({ ...editingCustomer, is_verified: c })
+                      }
+                    />
+                  </div>
+                  <Button className="w-full mt-4" onClick={handleEdit}>
+                    Salvar Alterações
+                  </Button>
+                </div>
+              )}
             </DialogContent>
           </Dialog>
         </div>
@@ -392,7 +508,12 @@ export default function CRM() {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            {customer.name}
+                            <div className="flex items-center gap-1.5">
+                              {customer.name}
+                              {customer.is_verified && (
+                                <BadgeCheck className="w-4 h-4 text-green-500" title="Verificado" />
+                              )}
+                            </div>
                             {customer.ranking_category && customer.ranking_position && (
                               <div className="mt-1 flex items-center gap-1">
                                 <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-medium text-yellow-800">
@@ -442,8 +563,18 @@ export default function CRM() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => setEditingCustomer(customer)}
+                          className="text-muted-foreground hover:text-foreground"
+                          title="Editar Lead"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleDelete(customer.id)}
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50 ml-1"
+                          title="Remover Lead"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

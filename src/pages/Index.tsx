@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Heart, MessageSquare, Users, Zap } from 'lucide-react'
+import {
+  ArrowRight,
+  Heart,
+  MessageSquare,
+  Users,
+  Zap,
+  BadgeCheck,
+  MessageCircle,
+} from 'lucide-react'
 import { useSEO } from '@/hooks/useSEO'
 import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
@@ -12,6 +20,7 @@ import { PRODUCTS } from '@/lib/data'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 
 const HERO_SLIDES = [
   {
@@ -428,16 +437,36 @@ export default function Index() {
                     )}
                   </div>
                   <h3
-                    className="font-serif text-base md:text-lg truncate px-2"
+                    className="font-serif text-base md:text-lg truncate px-2 flex items-center justify-center gap-1"
                     title={reseller?.name || `Loja Parceira ${i + 1}`}
                   >
                     {reseller?.name || `Loja Parceira ${i + 1}`}
+                    {reseller?.is_verified && (
+                      <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
+                    )}
                   </h3>
-                  <p className="text-xs text-muted-foreground capitalize">
+                  <p className="text-xs text-muted-foreground capitalize mb-2">
                     {reseller?.ranking_category
                       ? reseller.ranking_category.replace(/_/g, ' ')
                       : 'Varejo / Revenda'}
                   </p>
+                  {reseller?.phone && (
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="w-full max-w-[140px] mx-auto h-8 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                    >
+                      <a
+                        href={`https://wa.me/${reseller.phone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
+                        WhatsApp
+                      </a>
+                    </Button>
+                  )}
                 </FadeIn>
               ),
             )}

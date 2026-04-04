@@ -16,6 +16,7 @@ export interface Customer {
   ranking_position?: number | null
   is_exclusive?: boolean
   unlocked_benefits?: Record<string, boolean> | null
+  is_verified?: boolean
 }
 
 export const getCustomers = async () => {
