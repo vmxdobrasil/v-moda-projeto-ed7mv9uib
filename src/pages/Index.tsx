@@ -55,6 +55,7 @@ export default function Index() {
 
   const [messages, setMessages] = useState<any[]>([])
   const [teamUsers, setTeamUsers] = useState<any[]>([])
+  const [resellers, setResellers] = useState<any[]>([])
 
   const loadMessages = async () => {
     try {
@@ -65,13 +66,30 @@ export default function Index() {
     }
   }
 
+  const loadResellers = async () => {
+    try {
+      const data = await pb.collection('customers').getFullList({
+        sort: '-created',
+        filter: "status = 'converted' || avatar != ''",
+      })
+      setResellers(data)
+    } catch (e) {
+      console.error('Error loading resellers', e)
+    }
+  }
+
   useEffect(() => {
     loadMessages()
+    loadResellers()
     pb.collection('users').getFullList({ sort: '-created' }).then(setTeamUsers).catch(console.error)
   }, [])
 
   useRealtime('messages', () => {
     loadMessages()
+  })
+
+  useRealtime('customers', () => {
+    loadResellers()
   })
 
   const outboundCount = messages.filter((m) => m.direction === 'outbound').length
@@ -375,6 +393,55 @@ export default function Index() {
               Ver no Instagram
             </a>
           </FadeIn>
+        </div>
+      </section>
+
+      {/* Lojas e Revendedoras Section */}
+      <section className="py-24 bg-muted/10 border-t border-border">
+        <div className="container">
+          <FadeIn>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-serif mb-4">Lojas e Revendedoras</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Conheça as lojas e revendedoras parceiras que levam a V Moda até você. Valorizamos
+                fotos reais para uma experiência mais próxima e humana.
+              </p>
+            </div>
+          </FadeIn>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
+            {(resellers.length > 0 ? resellers.slice(0, 10) : Array.from({ length: 5 })).map(
+              (reseller: any, i) => (
+                <FadeIn key={reseller?.id || i} delay={i * 100} className="text-center group">
+                  <div className="relative mx-auto mb-4 w-28 h-28 md:w-36 md:h-36 rounded-full overflow-hidden border-4 border-background shadow-lg">
+                    {reseller?.avatar ? (
+                      <img
+                        src={pb.files.getUrl(reseller, reseller.avatar, { thumb: '200x200' })}
+                        alt={reseller.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    ) : (
+                      <img
+                        src={`https://img.usecurling.com/ppl/medium?seed=${i + 60}&gender=female`}
+                        alt="Avatar"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90"
+                      />
+                    )}
+                  </div>
+                  <h3
+                    className="font-serif text-base md:text-lg truncate px-2"
+                    title={reseller?.name || `Loja Parceira ${i + 1}`}
+                  >
+                    {reseller?.name || `Loja Parceira ${i + 1}`}
+                  </h3>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {reseller?.ranking_category
+                      ? reseller.ranking_category.replace(/_/g, ' ')
+                      : 'Varejo / Revenda'}
+                  </p>
+                </FadeIn>
+              ),
+            )}
+          </div>
         </div>
       </section>
 

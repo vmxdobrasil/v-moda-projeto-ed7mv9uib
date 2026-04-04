@@ -249,14 +249,16 @@ export default function CRM() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="avatar">Foto (Opcional)</Label>
+                  <Label htmlFor="avatar">Foto da Loja / Revendedora (Opcional)</Label>
                   <Input
                     id="avatar"
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
                   />
-                  <p className="text-xs text-muted-foreground">JPG, PNG ou WebP. Máx 2MB.</p>
+                  <p className="text-xs text-muted-foreground">
+                    JPG, PNG ou WebP. Máx 2MB. Use uma foto real para humanizar o perfil.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label>Origem</Label>
@@ -368,7 +370,7 @@ export default function CRM() {
                     <TableRow key={customer.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
+                          <Avatar className="h-12 w-12 border-2 border-primary/10 shadow-sm">
                             <AvatarImage
                               src={
                                 customer.avatar
@@ -376,8 +378,9 @@ export default function CRM() {
                                   : undefined
                               }
                               alt={customer.name}
+                              className="object-cover"
                             />
-                            <AvatarFallback className="text-xs">
+                            <AvatarFallback className="text-sm font-semibold uppercase bg-primary/5 text-primary">
                               {customer.name
                                 ? customer.name
                                     .split(' ')

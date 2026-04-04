@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
   Select,
   SelectContent,
@@ -286,6 +287,7 @@ export default function Customers() {
                       aria-label="Selecionar todos"
                     />
                   </TableHead>
+                  <TableHead className="w-[60px] text-center">Foto</TableHead>
                   <TableHead>Nome do Cliente</TableHead>
                   <TableHead>E-mail</TableHead>
                   <TableHead>Tipo</TableHead>
@@ -326,6 +328,22 @@ export default function Customers() {
                           onCheckedChange={() => toggleSelect(customer.id)}
                           aria-label={`Selecionar ${customer.name}`}
                         />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Avatar className="h-10 w-10 border shadow-sm mx-auto">
+                          <AvatarImage
+                            src={
+                              customer.avatar
+                                ? pb.files.getUrl(customer, customer.avatar, { thumb: '100x100' })
+                                : undefined
+                            }
+                            alt={customer.name}
+                            className="object-cover"
+                          />
+                          <AvatarFallback className="text-xs uppercase bg-primary/5 text-primary font-medium">
+                            {customer.name.substring(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
                       </TableCell>
                       <TableCell className="font-medium">{customer.name}</TableCell>
                       <TableCell>{customer.email || 'Sem email'}</TableCell>
@@ -400,7 +418,7 @@ export default function Customers() {
                 })}
                 {filteredAndSortedCustomers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       Nenhum cliente encontrado.
                     </TableCell>
                   </TableRow>
@@ -469,9 +487,22 @@ export default function Customers() {
               <ScrollArea className="flex-1 mt-4 pr-4">
                 <TabsContent value="geral" className="m-0 space-y-6 pb-4">
                   <div className="flex items-start gap-4 p-4 bg-muted/30 rounded-lg border">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl uppercase">
-                      {selectedCustomer.name.charAt(0)}
-                    </div>
+                    <Avatar className="h-16 w-16 border shadow-sm">
+                      <AvatarImage
+                        src={
+                          selectedCustomer.avatar
+                            ? pb.files.getUrl(selectedCustomer, selectedCustomer.avatar, {
+                                thumb: '200x200',
+                              })
+                            : undefined
+                        }
+                        alt={selectedCustomer.name}
+                        className="object-cover"
+                      />
+                      <AvatarFallback className="text-xl font-bold uppercase bg-primary/10 text-primary">
+                        {selectedCustomer.name.substring(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold">{selectedCustomer.name}</h3>
                       <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-1">
