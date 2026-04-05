@@ -77,6 +77,12 @@ export default function AffiliateDashboard() {
   const [editingLogisticsId, setEditingLogisticsId] = useState<string | null>(null)
   const [logisticsNotes, setLogisticsNotes] = useState('')
   const [freightValue, setFreightValue] = useState<string>('')
+  const [editingActiveRoute, setEditingActiveRoute] = useState('')
+  const [editingSeatNumber, setEditingSeatNumber] = useState<string>('')
+
+  const [isSeatMapDialogOpen, setIsSeatMapDialogOpen] = useState(false)
+  const [selectedSeat, setSelectedSeat] = useState<number | null>(null)
+  const [selectedCustomerForSeat, setSelectedCustomerForSeat] = useState<string>('')
 
   const [formData, setFormData] = useState({
     name: '',
@@ -88,6 +94,8 @@ export default function AffiliateDashboard() {
     manufacturer: 'none',
     caravan_name: '',
     freight_value: '',
+    active_route: '',
+    seat_number: '',
   })
 
   const loadData = useCallback(async () => {
@@ -197,6 +205,52 @@ export default function AffiliateDashboard() {
     toast({ title: 'Exportação concluída!', description: 'O download começará em instantes.' })
   }
 
+  const exportManifest = () => {
+    const headers = [
+      'Assento',
+      'Nome',
+      'Telefone',
+      'Rota Ativa',
+      'Ônibus / Excursão',
+      'Status Logístico',
+      'Valor do Frete (R$)',
+      'Notas',
+    ]
+    const manifestCustomers = customers
+      .filter((c) => c.caravan_name || c.seat_number || c.freight_value)
+      .sort((a, b) => (a.seat_number || 999) - (b.seat_number || 999))
+
+    const csvContent = manifestCustomers
+      .map((c) =>
+        [
+          c.seat_number || 'N/A',
+          c.name,
+          c.phone || '',
+          c.active_route || '',
+          c.caravan_name || '',
+          c.logistics_status || '',
+          c.freight_value ? c.freight_value.toFixed(2) : '0.00',
+          c.logistics_notes || '',
+        ]
+          .map((v) => `"${v}"`)
+          .join(','),
+      )
+      .join('\n')
+
+    const bom = '\uFEFF'
+    const blob = new Blob([bom + headers.join(',') + '\n' + csvContent], {
+      type: 'text/csv;charset=utf-8;',
+    })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `manifesto_viagem_onibus_${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    toast({
+      title: 'Manifesto exportado!',
+      description: 'O download do manifesto de viagem começou.',
+    })
+  }
+
   const handleManualRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.name.trim()) {
@@ -240,6 +294,8 @@ export default function AffiliateDashboard() {
       if (formData.manufacturer !== 'none') payload.manufacturer = formData.manufacturer
       if (formData.caravan_name) payload.caravan_name = formData.caravan_name
       if (formData.freight_value) payload.freight_value = parseFloat(formData.freight_value)
+      if (formData.active_route) payload.active_route = formData.active_route
+      if (formData.seat_number) payload.seat_number = parseInt(formData.seat_number)
 
       await createCustomer(payload)
       toast({ title: 'Cliente registrado!', description: 'Cliente adicionado com sucesso.' })
@@ -254,6 +310,8 @@ export default function AffiliateDashboard() {
         manufacturer: 'none',
         caravan_name: '',
         freight_value: '',
+        active_route: '',
+        seat_number: '',
       })
       loadData()
     } catch (err) {
@@ -310,10 +368,43 @@ export default function AffiliateDashboard() {
     }
   }
 
+  const assignCustomerToSeat = async (customerId: string, seat: number) => {
+    try {
+      await pb.collection('customers').update(customerId, { seat_number: seat })
+      toast({ title: 'Assento confirmado!', description: 'Passageiro alocado no ônibus.' })
+      setIsSeatMapDialogOpen(false)
+      setSelectedCustomerForSeat('')
+      loadData()
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Erro ao alocar passageiro.', variant: 'destructive' })
+    }
+  }
+
+  const removeCustomerFromSeat = async (customerId: string) => {
+    try {
+      await pb.collection('customers').update(customerId, { seat_number: null })
+      toast({
+        title: 'Assento liberado!',
+        description: 'Assento do ônibus está disponível novamente.',
+      })
+      setIsSeatMapDialogOpen(false)
+      loadData()
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Erro ao liberar assento.', variant: 'destructive' })
+    }
+  }
+
+  const seatsGrid = Array.from({ length: 50 }, (_, i) => i + 1)
+  const selectedSeatCustomer = selectedSeat
+    ? customers.find((c) => c.seat_number === selectedSeat)
+    : null
+
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto animate-fade-in-up">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <h1 className="text-3xl font-serif font-bold">Painel do Guia de Compras / Transportador</h1>
+        <h1 className="text-3xl font-serif font-bold tracking-tight uppercase">
+          Painel do Guia de Compras/Transportador
+        </h1>
         <Button asChild className="shrink-0 bg-primary/10 text-primary hover:bg-primary/20">
           <Link to="/dashboard/media-kit">
             <ImageIcon className="w-4 h-4 mr-2" />
@@ -357,7 +448,9 @@ export default function AffiliateDashboard() {
         </Card>
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium text-emerald-600">Total Ganho</CardTitle>
+            <CardTitle className="text-sm font-medium text-emerald-600">
+              Comissão Acumulada (2%)
+            </CardTitle>
             <DollarSign className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
@@ -368,7 +461,7 @@ export default function AffiliateDashboard() {
         {user.is_transporter && (
           <Card>
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium text-blue-600">Receita de Frete</CardTitle>
+              <CardTitle className="text-sm font-medium text-blue-600">Total de Fretes</CardTitle>
               <BusFront className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
@@ -494,7 +587,7 @@ export default function AffiliateDashboard() {
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="caravan_name">Nome do Ônibus (Opcional)</Label>
+                          <Label htmlFor="caravan_name">Excursão / Ônibus</Label>
                           <Input
                             id="caravan_name"
                             value={formData.caravan_name}
@@ -516,6 +609,33 @@ export default function AffiliateDashboard() {
                               setFormData((f) => ({ ...f, freight_value: e.target.value }))
                             }
                             placeholder="Ex: 150.00"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="active_route">Rota / Destino</Label>
+                          <Input
+                            id="active_route"
+                            value={formData.active_route}
+                            onChange={(e) =>
+                              setFormData((f) => ({ ...f, active_route: e.target.value }))
+                            }
+                            placeholder="Ex: Goiânia 44"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="seat_number">Assento do Ônibus</Label>
+                          <Input
+                            id="seat_number"
+                            type="number"
+                            min="1"
+                            max="60"
+                            value={formData.seat_number}
+                            onChange={(e) =>
+                              setFormData((f) => ({ ...f, seat_number: e.target.value }))
+                            }
+                            placeholder="Ex: 12"
                           />
                         </div>
                       </div>
@@ -634,83 +754,195 @@ export default function AffiliateDashboard() {
 
         {user.is_transporter && (
           <TabsContent value="logistics" className="m-0">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BusFront className="w-5 h-5" /> Logística de Ônibus & Coletas
-                </CardTitle>
-                <CardDescription>
-                  Gerencie as mercadorias, passageiros do ônibus e coletas nos fabricantes.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Lojista / Sacoleira</TableHead>
-                        <TableHead>Ônibus / Excursão</TableHead>
-                        <TableHead>Frete</TableHead>
-                        <TableHead>Status Logístico</TableHead>
-                        <TableHead>Notas de Coleta</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {customers.map((c) => (
-                        <TableRow key={c.id}>
-                          <TableCell className="font-medium">{c.name}</TableCell>
-                          <TableCell>{c.caravan_name || '-'}</TableCell>
-                          <TableCell className="font-medium text-blue-600">
-                            R$ {c.freight_value ? c.freight_value.toFixed(2) : '0.00'}
-                          </TableCell>
-                          <TableCell>
-                            <Select
-                              value={c.logistics_status || 'Aguardando Ônibus'}
-                              onValueChange={(val) => handleLogisticsStatusChange(c.id, val)}
-                            >
-                              <SelectTrigger className="h-8 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Aguardando Ônibus">Aguardando Ônibus</SelectItem>
-                                <SelectItem value="Em Trânsito no Ônibus">
-                                  Em Trânsito no Ônibus
-                                </SelectItem>
-                                <SelectItem value="Entregue">Entregue</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
-                            {c.logistics_notes || 'Nenhuma anotação'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditingLogisticsId(c.id)
-                                setLogisticsNotes(c.logistics_notes || '')
-                                setFreightValue(c.freight_value ? c.freight_value.toString() : '')
-                              }}
-                            >
-                              <FileText className="w-4 h-4 mr-2" /> Editar
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {customers.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-                            Nenhum registro logístico.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+            <Tabs defaultValue="list" className="w-full">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4 bg-card p-4 rounded-xl border shadow-sm">
+                <div>
+                  <h3 className="text-lg font-bold flex items-center gap-2">
+                    <BusFront className="w-5 h-5 text-primary" /> Gestão do Ônibus e Coletas
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Organize passageiros, assentos e fretes da sua excursão.
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <TabsList>
+                    <TabsTrigger value="list">Lista e Fretes</TabsTrigger>
+                    <TabsTrigger value="map">Mapa de Assentos</TabsTrigger>
+                  </TabsList>
+                  <Button
+                    onClick={exportManifest}
+                    variant="default"
+                    className="bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
+                  >
+                    <FileText className="w-4 h-4 mr-2" /> Gerar Manifesto
+                  </Button>
+                </div>
+              </div>
+
+              <TabsContent value="list" className="m-0">
+                <Card>
+                  <CardContent className="p-0 sm:p-6">
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Passageiro / Cliente</TableHead>
+                            <TableHead>Assento</TableHead>
+                            <TableHead>Rota / Destino</TableHead>
+                            <TableHead>Frete</TableHead>
+                            <TableHead>Status Logístico</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {customers.map((c) => (
+                            <TableRow key={c.id}>
+                              <TableCell className="font-medium">
+                                {c.name}
+                                <div className="text-xs text-muted-foreground font-normal">
+                                  {c.caravan_name || 'Sem Ônibus Atribuído'}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {c.seat_number ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-primary/10 text-primary border-primary/30"
+                                  >
+                                    {c.seat_number}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-sm">{c.active_route || '-'}</TableCell>
+                              <TableCell className="font-medium text-blue-600">
+                                R$ {c.freight_value ? c.freight_value.toFixed(2) : '0.00'}
+                              </TableCell>
+                              <TableCell>
+                                <Select
+                                  value={c.logistics_status || 'Aguardando Ônibus'}
+                                  onValueChange={(val) => handleLogisticsStatusChange(c.id, val)}
+                                >
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Aguardando Ônibus">
+                                      Aguardando Ônibus
+                                    </SelectItem>
+                                    <SelectItem value="Em Trânsito no Ônibus">
+                                      Em Trânsito no Ônibus
+                                    </SelectItem>
+                                    <SelectItem value="Entregue">Entregue</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingLogisticsId(c.id)
+                                    setLogisticsNotes(c.logistics_notes || '')
+                                    setFreightValue(
+                                      c.freight_value ? c.freight_value.toString() : '',
+                                    )
+                                    setEditingActiveRoute(c.active_route || '')
+                                    setEditingSeatNumber(
+                                      c.seat_number ? c.seat_number.toString() : '',
+                                    )
+                                  }}
+                                >
+                                  <FileText className="w-4 h-4 mr-2" /> Editar
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {customers.length === 0 && (
+                            <TableRow>
+                              <TableCell
+                                colSpan={6}
+                                className="text-center py-6 text-muted-foreground"
+                              >
+                                Nenhum passageiro ou frete registrado.
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="map" className="m-0">
+                <Card>
+                  <CardContent className="p-6 md:p-12 flex flex-col items-center justify-center overflow-x-auto bg-muted/20">
+                    <div className="mb-8 text-center max-w-md">
+                      <h3 className="text-xl font-bold font-serif mb-2">
+                        Mapa de Assentos do Ônibus
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Visualize a ocupação da sua excursão. Clique em um assento para alocar ou
+                        remover passageiros da lista.
+                      </p>
+                    </div>
+
+                    <div className="relative p-6 md:p-8 bg-card rounded-[3rem] border-[12px] border-muted-foreground/10 shadow-xl min-w-[340px]">
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-muted-foreground/20 px-10 py-1.5 rounded-b-xl font-bold text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                        Frente / Motorista
+                      </div>
+
+                      <div className="mt-8 grid grid-cols-5 gap-3 relative z-10">
+                        {seatsGrid.reduce((acc: any[], seat) => {
+                          const cust = customers.find((c) => c.seat_number === seat)
+                          acc.push(
+                            <Button
+                              key={seat}
+                              variant={cust ? 'default' : 'outline'}
+                              onClick={() => {
+                                setSelectedSeat(seat)
+                                setIsSeatMapDialogOpen(true)
+                              }}
+                              className={cn(
+                                'h-12 w-12 p-0 rounded-t-xl rounded-b-md border-2 font-bold text-base transition-all relative',
+                                cust
+                                  ? 'bg-primary border-primary text-primary-foreground shadow-md hover:bg-primary/90'
+                                  : 'bg-background border-muted-foreground/30 hover:border-primary text-muted-foreground',
+                              )}
+                            >
+                              {seat}
+                              {cust && (
+                                <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5">
+                                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-green-500 border-2 border-card"></span>
+                                </span>
+                              )}
+                            </Button>,
+                          )
+                          // Adiciona corredor (coluna vazia) no meio
+                          if (seat % 4 === 2 && seat !== 50) {
+                            acc.push(<div key={`aisle-${seat}`} className="w-8" />)
+                          }
+                          return acc
+                        }, [])}
+                      </div>
+                    </div>
+
+                    <div className="mt-8 flex gap-6 text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-sm bg-primary border-2 border-primary"></div>
+                        <span>Ocupado ({customers.filter((c) => c.seat_number).length})</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-sm bg-background border-2 border-muted-foreground/30"></div>
+                        <span>Livre ({50 - customers.filter((c) => c.seat_number).length})</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         )}
       </Tabs>
@@ -749,15 +981,36 @@ export default function AffiliateDashboard() {
             <DialogTitle>Detalhes Logísticos (Ônibus e Frete)</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Valor do Frete (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={freightValue}
+                  onChange={(e) => setFreightValue(e.target.value)}
+                  placeholder="Ex: 150.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Assento do Ônibus</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={editingSeatNumber}
+                  onChange={(e) => setEditingSeatNumber(e.target.value)}
+                  placeholder="Ex: 12"
+                />
+              </div>
+            </div>
             <div className="space-y-2">
-              <Label>Valor do Frete (R$)</Label>
+              <Label>Rota Ativa / Destino</Label>
               <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={freightValue}
-                onChange={(e) => setFreightValue(e.target.value)}
-                placeholder="Ex: 150.00"
+                value={editingActiveRoute}
+                onChange={(e) => setEditingActiveRoute(e.target.value)}
+                placeholder="Ex: Goiânia - Setor Fama"
               />
             </div>
             <div className="space-y-2">
@@ -766,7 +1019,7 @@ export default function AffiliateDashboard() {
                 value={logisticsNotes}
                 onChange={(e) => setLogisticsNotes(e.target.value)}
                 placeholder="Ex: Coletar 5 volumes na loja X do Setor Fama para o Ônibus."
-                className="min-h-[150px] resize-none"
+                className="min-h-[120px] resize-none"
               />
             </div>
             <Button
@@ -776,6 +1029,8 @@ export default function AffiliateDashboard() {
                   await pb.collection('customers').update(editingLogisticsId, {
                     logistics_notes: logisticsNotes,
                     freight_value: freightValue ? parseFloat(freightValue) : 0,
+                    active_route: editingActiveRoute,
+                    seat_number: editingSeatNumber ? parseInt(editingSeatNumber) : null,
                   })
                   toast({ title: 'Sucesso', description: 'Detalhes logísticos salvos.' })
                   setEditingLogisticsId(null)
@@ -792,6 +1047,95 @@ export default function AffiliateDashboard() {
             >
               Salvar Notas
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSeatMapDialogOpen} onOpenChange={setIsSeatMapDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BusFront className="w-5 h-5 text-primary" /> Gerenciar Assento {selectedSeat}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedSeatCustomer ? (
+              <div className="space-y-6">
+                <div className="bg-muted p-4 rounded-xl border">
+                  <h4 className="font-bold text-lg">{selectedSeatCustomer.name}</h4>
+                  <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> {selectedSeatCustomer.phone || 'Sem telefone'}
+                  </p>
+                  <div className="mt-4 pt-4 border-t flex flex-col gap-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Rota:</span>
+                      <span className="font-medium">
+                        {selectedSeatCustomer.active_route || 'Não definida'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Status:</span>
+                      <span className="font-medium">
+                        {selectedSeatCustomer.logistics_status || 'Pendente'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setIsSeatMapDialogOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => removeCustomerFromSeat(selectedSeatCustomer.id)}
+                  >
+                    Liberar Assento
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Atribuir Passageiro para a Poltrona {selectedSeat}</Label>
+                  <Select
+                    value={selectedCustomerForSeat}
+                    onValueChange={setSelectedCustomerForSeat}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione um cliente da sua lista..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers
+                        .filter((c) => !c.seat_number)
+                        .map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      {customers.filter((c) => !c.seat_number).length === 0 && (
+                        <SelectItem value="none" disabled>
+                          Todos os clientes já possuem assento.
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={() =>
+                    selectedSeat && assignCustomerToSeat(selectedCustomerForSeat, selectedSeat)
+                  }
+                  disabled={!selectedCustomerForSeat || selectedCustomerForSeat === 'none'}
+                  className="w-full"
+                >
+                  Confirmar Passageiro
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
