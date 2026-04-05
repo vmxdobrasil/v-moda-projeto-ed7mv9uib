@@ -32,6 +32,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -69,9 +70,11 @@ export default function AffiliateDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [manufacturers, setManufacturers] = useState<any[]>([])
 
-  // CRM Notes State
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null)
   const [notesContent, setNotesContent] = useState('')
+
+  const [editingLogisticsId, setEditingLogisticsId] = useState<string | null>(null)
+  const [logisticsNotes, setLogisticsNotes] = useState('')
 
   const [formData, setFormData] = useState({
     name: '',
@@ -81,6 +84,7 @@ export default function AffiliateDashboard() {
     state: '',
     source: 'none',
     manufacturer: 'none',
+    caravan_name: '',
   })
 
   const loadData = useCallback(async () => {
@@ -147,7 +151,16 @@ export default function AffiliateDashboard() {
   }
 
   const exportCSV = () => {
-    const headers = ['Nome', 'Email', 'Telefone', 'Cidade', 'Estado', 'Origem', 'Data de Registro']
+    const headers = [
+      'Nome',
+      'Email',
+      'Telefone',
+      'Cidade',
+      'Estado',
+      'Origem',
+      'Caravana',
+      'Data de Registro',
+    ]
     const csvContent = customers
       .map((c) =>
         [
@@ -156,21 +169,8 @@ export default function AffiliateDashboard() {
           c.phone || '',
           c.city || '',
           c.state || '',
-          c.source === 'whatsapp_group'
-            ? 'Grupo WhatsApp'
-            : c.source === 'social_profile'
-              ? 'Rede Social'
-              : c.source === 'manual'
-                ? 'Manual'
-                : c.source === 'whatsapp'
-                  ? 'WhatsApp'
-                  : c.source === 'instagram'
-                    ? 'Instagram'
-                    : c.source === 'email'
-                      ? 'Email'
-                      : c.source === 'site'
-                        ? 'Site'
-                        : c.source || 'Não informada',
+          c.source || 'Não informada',
+          c.caravan_name || '',
           new Date(c.created).toLocaleDateString('pt-BR'),
         ]
           .map((v) => `"${v}"`)
@@ -224,13 +224,9 @@ export default function AffiliateDashboard() {
         status: 'new',
       }
 
-      if (formData.source !== 'none') {
-        payload.source = formData.source
-      }
-
-      if (formData.manufacturer !== 'none') {
-        payload.manufacturer = formData.manufacturer
-      }
+      if (formData.source !== 'none') payload.source = formData.source
+      if (formData.manufacturer !== 'none') payload.manufacturer = formData.manufacturer
+      if (formData.caravan_name) payload.caravan_name = formData.caravan_name
 
       await createCustomer(payload)
       toast({ title: 'Lead registrado!', description: 'Cliente adicionado com sucesso.' })
@@ -243,6 +239,7 @@ export default function AffiliateDashboard() {
         state: '',
         source: 'none',
         manufacturer: 'none',
+        caravan_name: '',
       })
       loadData()
     } catch (err) {
@@ -369,228 +366,306 @@ export default function AffiliateDashboard() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 pb-4">
-          <div>
-            <CardTitle>Mini CRM - Meus Leads</CardTitle>
-            <CardDescription>Acompanhe, gerencie e contate os clientes indicados.</CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
-              <Upload className="w-4 h-4 mr-2" /> Importar
-            </Button>
-            <Button variant="outline" onClick={exportCSV} disabled={customers.length === 0}>
-              <Download className="w-4 h-4 mr-2" /> Exportar Lista
-            </Button>
-
-            <ImportLeadsDialog
-              open={isImportDialogOpen}
-              onOpenChange={setIsImportDialogOpen}
-              onImportStateChange={setIsImporting}
-              onImportComplete={loadData}
-            />
-
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" /> Novo Lead
+      <Tabs defaultValue="leads" className="w-full mt-8">
+        <TabsList className="mb-4">
+          <TabsTrigger value="leads">Mini CRM - Meus Leads</TabsTrigger>
+          {user.is_transporter && (
+            <TabsTrigger value="logistics">Logística & Caravanas</TabsTrigger>
+          )}
+        </TabsList>
+        <TabsContent value="leads" className="m-0">
+          <Card>
+            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 pb-4">
+              <div>
+                <CardTitle>Mini CRM - Meus Leads</CardTitle>
+                <CardDescription>
+                  Acompanhe, gerencie e contate os clientes indicados.
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
+                  <Upload className="w-4 h-4 mr-2" /> Importar
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Registrar Lead Manualmente</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleManualRegistration} className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome *</Label>
-                    <Input
-                      id="name"
-                      required
-                      value={formData.name}
-                      onChange={(e) => setFormData((f) => ({ ...f, name: e.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData((f) => ({ ...f, email: e.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData((f) => ({ ...f, phone: e.target.value }))}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="city">Cidade</Label>
-                      <Input
-                        id="city"
-                        value={formData.city}
-                        onChange={(e) => setFormData((f) => ({ ...f, city: e.target.value }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="state">Estado</Label>
-                      <Input
-                        id="state"
-                        value={formData.state}
-                        onChange={(e) => setFormData((f) => ({ ...f, state: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Origem (Opcional)</Label>
-                    <Select
-                      value={formData.source}
-                      onValueChange={(v) => setFormData((f) => ({ ...f, source: v }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a origem" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Não informada</SelectItem>
-                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                        <SelectItem value="instagram">Instagram</SelectItem>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="manual">Manual</SelectItem>
-                        <SelectItem value="site">Site</SelectItem>
-                        <SelectItem value="whatsapp_group">Grupo de WhatsApp</SelectItem>
-                        <SelectItem value="social_profile">Perfil Social</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Fabricante de Interesse (Opcional)</Label>
-                    <Select
-                      value={formData.manufacturer}
-                      onValueChange={(v) => setFormData((f) => ({ ...f, manufacturer: v }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um fabricante" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Nenhum</SelectItem>
-                        {manufacturers.map((m) => (
-                          <SelectItem key={m.id} value={m.id}>
-                            {m.name || m.email}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? 'Registrando...' : 'Registrar Lead'}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Contato</TableHead>
-                  <TableHead>Local</TableHead>
-                  <TableHead>Origem</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {customers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell className="font-medium">
-                      {customer.name}
-                      {customer.notes && (
-                        <FileText
-                          className="inline-block w-3 h-3 ml-2 text-muted-foreground"
-                          title="Possui anotações"
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{customer.email || '-'}</div>
-                      <div className="text-sm text-muted-foreground">{customer.phone || '-'}</div>
-                    </TableCell>
-                    <TableCell>
-                      {customer.city ? `${customer.city}/${customer.state || '-'}` : '-'}
-                    </TableCell>
-                    <TableCell>
-                      {customer.source === 'whatsapp_group'
-                        ? 'Grupo WhatsApp'
-                        : customer.source === 'social_profile'
-                          ? 'Rede Social'
-                          : customer.source === 'manual'
-                            ? 'Manual'
-                            : customer.source === 'whatsapp'
-                              ? 'WhatsApp'
-                              : customer.source === 'instagram'
-                                ? 'Instagram'
-                                : customer.source === 'email'
-                                  ? 'Email'
-                                  : customer.source === 'site'
-                                    ? 'Site'
-                                    : customer.source || 'Não informada'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={customer.status === 'converted' ? 'default' : 'secondary'}
-                        className={
-                          customer.status === 'converted'
-                            ? 'bg-emerald-500 hover:bg-emerald-600'
-                            : 'bg-amber-100 text-amber-800'
-                        }
-                      >
-                        {customer.status === 'converted' ? 'Convertido' : 'Pendente'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openWhatsApp(customer)}
-                          disabled={!customer.phone}
-                          title="Chamar no WhatsApp"
-                        >
-                          <MessageCircle className="w-4 h-4 text-green-500" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openNotes(customer)}
-                          title="Anotações / CRM"
-                        >
-                          <FileText className="w-4 h-4 text-blue-500" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {customers.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-                      Nenhum lead registrado.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                <Button variant="outline" onClick={exportCSV} disabled={customers.length === 0}>
+                  <Download className="w-4 h-4 mr-2" /> Exportar Lista
+                </Button>
 
-      {/* CRM Notes Sheet */}
+                <ImportLeadsDialog
+                  open={isImportDialogOpen}
+                  onOpenChange={setIsImportDialogOpen}
+                  onImportStateChange={setIsImporting}
+                  onImportComplete={loadData}
+                />
+
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" /> Novo Lead
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Registrar Lead Manualmente</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleManualRegistration} className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Nome *</Label>
+                        <Input
+                          id="name"
+                          required
+                          value={formData.name}
+                          onChange={(e) => setFormData((f) => ({ ...f, name: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData((f) => ({ ...f, email: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Telefone</Label>
+                        <Input
+                          id="phone"
+                          value={formData.phone}
+                          onChange={(e) => setFormData((f) => ({ ...f, phone: e.target.value }))}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="city">Cidade</Label>
+                          <Input
+                            id="city"
+                            value={formData.city}
+                            onChange={(e) => setFormData((f) => ({ ...f, city: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="state">Estado</Label>
+                          <Input
+                            id="state"
+                            value={formData.state}
+                            onChange={(e) => setFormData((f) => ({ ...f, state: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="caravan_name">Caravana / Excursão (Opcional)</Label>
+                        <Input
+                          id="caravan_name"
+                          value={formData.caravan_name}
+                          onChange={(e) =>
+                            setFormData((f) => ({ ...f, caravan_name: e.target.value }))
+                          }
+                          placeholder="Ex: Bate-volta Brás 15/10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Origem (Opcional)</Label>
+                        <Select
+                          value={formData.source}
+                          onValueChange={(v) => setFormData((f) => ({ ...f, source: v }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a origem" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Não informada</SelectItem>
+                            <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                            <SelectItem value="instagram">Instagram</SelectItem>
+                            <SelectItem value="email">Email</SelectItem>
+                            <SelectItem value="manual">Manual</SelectItem>
+                            <SelectItem value="site">Site</SelectItem>
+                            <SelectItem value="whatsapp_group">Grupo de WhatsApp</SelectItem>
+                            <SelectItem value="social_profile">Perfil Social</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Fabricante de Interesse (Opcional)</Label>
+                        <Select
+                          value={formData.manufacturer}
+                          onValueChange={(v) => setFormData((f) => ({ ...f, manufacturer: v }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um fabricante" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhum</SelectItem>
+                            {manufacturers.map((m) => (
+                              <SelectItem key={m.id} value={m.id}>
+                                {m.name || m.email}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button type="submit" className="w-full" disabled={isSubmitting}>
+                        {isSubmitting ? 'Registrando...' : 'Registrar Lead'}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Contato</TableHead>
+                      <TableHead>Local</TableHead>
+                      <TableHead>Origem</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customers.map((customer) => (
+                      <TableRow key={customer.id}>
+                        <TableCell className="font-medium">
+                          {customer.name}
+                          {customer.notes && (
+                            <FileText
+                              className="inline-block w-3 h-3 ml-2 text-muted-foreground"
+                              title="Possui anotações"
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">{customer.email || '-'}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {customer.phone || '-'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {customer.city ? `${customer.city}/${customer.state || '-'}` : '-'}
+                        </TableCell>
+                        <TableCell>{customer.source || '-'}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={customer.status === 'converted' ? 'default' : 'secondary'}
+                            className={
+                              customer.status === 'converted'
+                                ? 'bg-emerald-500 hover:bg-emerald-600'
+                                : 'bg-amber-100 text-amber-800'
+                            }
+                          >
+                            {customer.status === 'converted' ? 'Convertido' : 'Pendente'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openWhatsApp(customer)}
+                              disabled={!customer.phone}
+                              title="Chamar no WhatsApp"
+                            >
+                              <MessageCircle className="w-4 h-4 text-green-500" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openNotes(customer)}
+                              title="Anotações / CRM"
+                            >
+                              <FileText className="w-4 h-4 text-blue-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {customers.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                          Nenhum lead registrado.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {user.is_transporter && (
+          <TabsContent value="logistics" className="m-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Logística & Coletas</CardTitle>
+                <CardDescription>
+                  Acompanhe os pedidos das sacoleiras e gerencie suas coletas nos fabricantes.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Sacoleira</TableHead>
+                        <TableHead>Caravana</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Notas Logísticas</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {customers.map((c) => (
+                        <TableRow key={c.id}>
+                          <TableCell className="font-medium">{c.name}</TableCell>
+                          <TableCell>{c.caravan_name || '-'}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={c.status === 'converted' ? 'default' : 'secondary'}
+                              className={
+                                c.status === 'converted'
+                                  ? 'bg-emerald-500 hover:bg-emerald-600'
+                                  : 'bg-amber-100 text-amber-800'
+                              }
+                            >
+                              {c.status === 'converted' ? 'Convertido' : 'Pendente'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
+                            {c.logistics_notes || 'Nenhuma anotação'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingLogisticsId(c.id)
+                                setLogisticsNotes(c.logistics_notes || '')
+                              }}
+                            >
+                              <FileText className="w-4 h-4 mr-2" /> Notas
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {customers.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                            Nenhum pedido registrado.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
+
       <Sheet open={!!editingNotesId} onOpenChange={(open) => !open && setEditingNotesId(null)}>
         <SheetContent>
           <SheetHeader>
@@ -603,7 +678,7 @@ export default function AffiliateDashboard() {
             <Textarea
               value={notesContent}
               onChange={(e) => setNotesContent(e.target.value)}
-              placeholder="Ex: Cliente prefere vestidos tamanho M, gosta de estampas florais. Entrar em contato dia 15..."
+              placeholder="Ex: Cliente prefere vestidos tamanho M..."
               className="min-h-[250px] resize-none"
             />
             <div className="flex justify-end gap-2">
@@ -615,6 +690,47 @@ export default function AffiliateDashboard() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <Dialog
+        open={!!editingLogisticsId}
+        onOpenChange={(open) => !open && setEditingLogisticsId(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Notas de Logística / Coleta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Textarea
+              value={logisticsNotes}
+              onChange={(e) => setLogisticsNotes(e.target.value)}
+              placeholder="Ex: Coletar 5 volumes na loja X do Setor Fama."
+              className="min-h-[150px] resize-none"
+            />
+            <Button
+              onClick={async () => {
+                if (!editingLogisticsId) return
+                try {
+                  await pb
+                    .collection('customers')
+                    .update(editingLogisticsId, { logistics_notes: logisticsNotes })
+                  toast({ title: 'Sucesso', description: 'Notas salvas.' })
+                  setEditingLogisticsId(null)
+                  loadData()
+                } catch (err) {
+                  toast({
+                    title: 'Erro',
+                    variant: 'destructive',
+                    description: 'Não foi possível salvar.',
+                  })
+                }
+              }}
+              className="w-full"
+            >
+              Salvar Notas
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
