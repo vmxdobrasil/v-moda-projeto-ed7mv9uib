@@ -52,7 +52,7 @@ export default function AffiliateDashboard() {
     phone: '',
     city: '',
     state: '',
-    source: 'whatsapp_group',
+    source: 'none',
     manufacturer: 'none',
   })
 
@@ -122,7 +122,15 @@ export default function AffiliateDashboard() {
               ? 'Rede Social'
               : c.source === 'manual'
                 ? 'Manual'
-                : c.source || '',
+                : c.source === 'whatsapp'
+                  ? 'WhatsApp'
+                  : c.source === 'instagram'
+                    ? 'Instagram'
+                    : c.source === 'email'
+                      ? 'Email'
+                      : c.source === 'site'
+                        ? 'Site'
+                        : c.source || 'Não informada',
           new Date(c.created).toLocaleDateString('pt-BR'),
         ]
           .map((v) => `"${v}"`)
@@ -167,16 +175,24 @@ export default function AffiliateDashboard() {
         }
       }
 
-      await createCustomer({
+      const payload: any = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         city: formData.city,
         state: formData.state,
-        source: formData.source as any,
         status: 'new',
-        ...(formData.manufacturer !== 'none' ? { manufacturer: formData.manufacturer } : {}),
-      })
+      }
+
+      if (formData.source !== 'none') {
+        payload.source = formData.source
+      }
+
+      if (formData.manufacturer !== 'none') {
+        payload.manufacturer = formData.manufacturer
+      }
+
+      await createCustomer(payload)
       toast({ title: 'Lead registrado!', description: 'Cliente adicionado com sucesso.' })
       setIsDialogOpen(false)
       setFormData({
@@ -185,7 +201,7 @@ export default function AffiliateDashboard() {
         phone: '',
         city: '',
         state: '',
-        source: 'whatsapp_group',
+        source: 'none',
         manufacturer: 'none',
       })
       loadData()
@@ -339,18 +355,23 @@ export default function AffiliateDashboard() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Origem</Label>
+                    <Label>Origem (Opcional)</Label>
                     <Select
                       value={formData.source}
                       onValueChange={(v) => setFormData((f) => ({ ...f, source: v }))}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Selecione a origem" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">Não informada</SelectItem>
+                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        <SelectItem value="instagram">Instagram</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="manual">Manual</SelectItem>
+                        <SelectItem value="site">Site</SelectItem>
                         <SelectItem value="whatsapp_group">Grupo de WhatsApp</SelectItem>
                         <SelectItem value="social_profile">Perfil Social</SelectItem>
-                        <SelectItem value="manual">Manual</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -411,7 +432,15 @@ export default function AffiliateDashboard() {
                         ? 'Rede Social'
                         : customer.source === 'manual'
                           ? 'Manual'
-                          : customer.source || 'Manual'}
+                          : customer.source === 'whatsapp'
+                            ? 'WhatsApp'
+                            : customer.source === 'instagram'
+                              ? 'Instagram'
+                              : customer.source === 'email'
+                                ? 'Email'
+                                : customer.source === 'site'
+                                  ? 'Site'
+                                  : customer.source || 'Não informada'}
                   </TableCell>
                   <TableCell>{new Date(customer.created).toLocaleDateString('pt-BR')}</TableCell>
                   <TableCell>
