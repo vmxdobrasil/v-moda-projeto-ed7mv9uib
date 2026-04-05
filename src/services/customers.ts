@@ -8,7 +8,14 @@ export interface Customer {
   avatar?: string
   status: 'new' | 'interested' | 'negotiating' | 'converted' | 'inactive'
   manufacturer: string
-  source: 'whatsapp' | 'instagram' | 'email' | 'manual'
+  source:
+    | 'whatsapp'
+    | 'instagram'
+    | 'email'
+    | 'manual'
+    | 'site'
+    | 'whatsapp_group'
+    | 'social_profile'
   created: string
   updated: string
   exclusivity_zone?: string
@@ -28,13 +35,22 @@ export const getCustomers = async () => {
 }
 
 export const createCustomer = async (data: Partial<Customer> | FormData) => {
+  const user = pb.authStore.record
   if (data instanceof FormData) {
-    if (pb.authStore.record?.id && !data.has('manufacturer')) {
-      data.append('manufacturer', pb.authStore.record.id)
+    if (user?.id) {
+      if (user.role === 'affiliate' && !data.has('affiliate_referrer')) {
+        data.append('affiliate_referrer', user.id)
+      } else if (user.role !== 'affiliate' && !data.has('manufacturer')) {
+        data.append('manufacturer', user.id)
+      }
     }
   } else {
-    if (pb.authStore.record?.id) {
-      data.manufacturer = pb.authStore.record.id
+    if (user?.id) {
+      if (user.role === 'affiliate') {
+        data.affiliate_referrer = user.id
+      } else if (!data.manufacturer) {
+        data.manufacturer = user.id
+      }
     }
   }
   return pb.collection('customers').create<Customer>(data)

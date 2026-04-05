@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-05T11:12:10.117Z",
+  "generatedAt": "2026-04-05T11:20:26.141Z",
   "collections": [
     {
       "name": "users",
@@ -198,11 +198,11 @@
       "name": "customers",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && manufacturer = @request.auth.id",
-        "view": "@request.auth.id != '' && manufacturer = @request.auth.id",
-        "create": "@request.auth.id != '' && manufacturer = @request.auth.id",
-        "update": "@request.auth.id != '' && manufacturer = @request.auth.id",
-        "delete": "@request.auth.id != '' && manufacturer = @request.auth.id"
+        "list": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)",
+        "view": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)",
+        "create": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)",
+        "update": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)",
+        "delete": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)"
       },
       "fields": [
         {
@@ -233,7 +233,7 @@
         {
           "name": "manufacturer",
           "type": "relation",
-          "required": true,
+          "required": false,
           "system": false,
           "collectionRef": "users"
         },
@@ -242,7 +242,15 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["whatsapp", "instagram", "email", "manual", "site"]
+          "selectValues": [
+            "whatsapp",
+            "instagram",
+            "email",
+            "manual",
+            "site",
+            "whatsapp_group",
+            "social_profile"
+          ]
         },
         {
           "name": "created",
