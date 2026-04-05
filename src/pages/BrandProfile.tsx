@@ -51,12 +51,13 @@ export default function BrandProfile() {
     if (!id) return
     const loadData = async () => {
       try {
-        const b = await pb.collection('customers').getOne(id)
+        const b = await pb.collection('customers').getOne(id, { expand: 'category_id' })
         setBrand(b)
         if (b.manufacturer) {
           const p = await pb.collection('projects').getFullList({
             filter: `manufacturer="${b.manufacturer}"`,
             sort: '-created',
+            expand: 'category_id',
           })
           setProjects(p)
         }
@@ -160,9 +161,10 @@ export default function BrandProfile() {
 
                   <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm mt-3">
                     <span className="text-muted-foreground uppercase tracking-wider font-semibold">
-                      {brand.ranking_category
-                        ? brand.ranking_category.replace(/_/g, ' ')
-                        : 'Varejo / Revenda'}
+                      {brand.expand?.category_id?.name ||
+                        (brand.ranking_category
+                          ? brand.ranking_category.replace(/_/g, ' ')
+                          : 'Varejo / Revenda')}
                     </span>
                     {brand.price_level && (
                       <>

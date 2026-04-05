@@ -37,6 +37,7 @@ import AdminReports from './pages/admin/Reports'
 import AdminSettings from './pages/admin/Settings'
 import AdminReviews from './pages/admin/Reviews'
 import AdminMarketing from './pages/admin/Marketing'
+import AdminCategories from './pages/admin/Categories'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import CRM from './pages/dashboard/CRM'
 import Analytics from './pages/dashboard/Analytics'
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="relatorios" element={<AdminReports />} />
             <Route path="avaliacoes" element={<AdminReviews />} />
             <Route path="marketing" element={<AdminMarketing />} />
+            <Route path="categorias" element={<AdminCategories />} />
             <Route path="configuracoes" element={<AdminSettings />} />
           </Route>
           <Route path="/dashboard" element={<DashboardLayout />}>

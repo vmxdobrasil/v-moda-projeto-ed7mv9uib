@@ -58,20 +58,6 @@ const MOCK_PROJECTS: any[] = [
   },
 ]
 
-const CATEGORIES = [
-  'todas',
-  'moda_feminina',
-  'jeans',
-  'moda_praia',
-  'moda_geral',
-  'moda_masculina',
-  'moda_evangelica',
-  'moda_country',
-  'moda_infantil',
-  'bijouterias_semijoias',
-  'calcados',
-]
-
 export default function Portfolio() {
   useSEO({
     title: 'Portfólio de Projetos | V Moda',
@@ -79,26 +65,37 @@ export default function Portfolio() {
       'Explore os cases de sucesso e projetos de moda desenvolvidos por nossos parceiros.',
   })
 
-  const [projects, setProjects] = useState<Project[]>([])
+  const [projects, setProjects] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([
+    { id: 'todas', name: 'Todas as Categorias' },
+  ])
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('todas')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getProjects()
-      .then((data) => {
-        setProjects(data)
-        setLoading(false)
-      })
-      .catch((err) => {
+    const loadData = async () => {
+      try {
+        const [cats, projs] = await Promise.all([
+          pb.collection('categories').getFullList({ sort: 'name' }),
+          pb
+            .collection('projects')
+            .getFullList({ sort: '-created', expand: 'manufacturer,category_id' }),
+        ])
+        setCategories([{ id: 'todas', name: 'Todas as Categorias' }, ...cats])
+        setProjects(projs)
+      } catch (err) {
         console.error(err)
+      } finally {
         setLoading(false)
-      })
+      }
+    }
+    loadData()
   }, [])
 
   const data = projects.length > 0 ? projects : MOCK_PROJECTS
   const filtered = data.filter((p) => {
-    const matchCat = category === 'todas' || p.category === category
+    const matchCat = category === 'todas' || p.category_id === category || p.category === category
     const matchSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.description?.toLowerCase().includes(search.toLowerCase())
@@ -141,9 +138,9 @@ export default function Portfolio() {
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat} className="capitalize">
-                    {cat === 'todas' ? 'Todas as Categorias' : cat.replace('_', ' ')}
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id} className="capitalize">
+                    {cat.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -181,7 +178,9 @@ export default function Portfolio() {
                         variant="secondary"
                         className="bg-background/90 backdrop-blur capitalize shadow-sm text-xs px-2 py-1"
                       >
-                        {project.category?.replace('_', ' ')}
+                        {project.expand?.category_id?.name ||
+                          project.category?.replace('_', ' ') ||
+                          'Categoria'}
                       </Badge>
                     </div>
                   </div>

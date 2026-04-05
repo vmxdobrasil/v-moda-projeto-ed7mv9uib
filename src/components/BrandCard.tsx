@@ -67,9 +67,10 @@ export function BrandCard({ brand }: { brand: any }) {
 
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground uppercase tracking-wider mb-1">
           <span>
-            {brand.ranking_category
-              ? brand.ranking_category.replace(/_/g, ' ')
-              : 'Varejo / Revenda'}
+            {brand.expand?.category_id?.name ||
+              (brand.ranking_category
+                ? brand.ranking_category.replace(/_/g, ' ')
+                : 'Varejo / Revenda')}
           </span>
           {brand.price_level && (
             <>

@@ -15,21 +15,6 @@ import {
 import { FadeIn } from '@/components/FadeIn'
 import { BrandCard } from '@/components/BrandCard'
 
-const CATEGORIES = [
-  { id: 'all', label: 'Todas as Categorias' },
-  { id: 'moda_feminina', label: 'Moda Feminina' },
-  { id: 'jeans', label: 'Jeans' },
-  { id: 'moda_praia', label: 'Moda Praia' },
-  { id: 'moda_geral', label: 'Moda Geral' },
-  { id: 'moda_masculina', label: 'Moda Masculina' },
-  { id: 'moda_fitness', label: 'Moda Fitness' },
-  { id: 'moda_evangelica', label: 'Moda Evangélica' },
-  { id: 'moda_country', label: 'Moda Country' },
-  { id: 'moda_infantil', label: 'Moda Infantil' },
-  { id: 'bijouterias_semijoias', label: 'Bijouterias / Semijoias' },
-  { id: 'calcados', label: 'Calçados' },
-]
-
 const STATES = [
   { id: 'all', label: 'Todos os Estados' },
   { id: 'GO', label: 'Goiás' },
@@ -70,6 +55,26 @@ export default function FashionGuide() {
   const [stateFilter, setStateFilter] = useState('all')
   const [priceFilter, setPriceFilter] = useState('all')
   const [totalItems, setTotalItems] = useState(0)
+  const [categoriesList, setCategoriesList] = useState<any[]>([
+    { id: 'all', name: 'Todas as Categorias' },
+  ])
+
+  const loadCategoriesList = async () => {
+    try {
+      const data = await pb.collection('categories').getFullList({ sort: 'name' })
+      setCategoriesList([{ id: 'all', name: 'Todas as Categorias' }, ...data])
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  useEffect(() => {
+    loadCategoriesList()
+  }, [])
+
+  useRealtime('categories', () => {
+    loadCategoriesList()
+  })
 
   const loadBrands = async (pageNumber: number, reset: boolean = false) => {
     setIsLoading(true)
@@ -83,7 +88,7 @@ export default function FashionGuide() {
         conditions.push(`name ~ "${searchTerm.replace(/"/g, '')}"`)
       }
       if (category !== 'all') {
-        conditions.push(`ranking_category = "${category}"`)
+        conditions.push(`category_id = "${category}"`)
       }
       if (cityFilter) {
         conditions.push(`city ~ "${cityFilter.replace(/"/g, '')}"`)
@@ -100,6 +105,7 @@ export default function FashionGuide() {
       const result = await pb.collection('customers').getList(pageNumber, 24, {
         filter: filterStr,
         sort: 'name',
+        expand: 'category_id',
       })
 
       if (reset) {
@@ -190,9 +196,9 @@ export default function FashionGuide() {
                     <SelectValue placeholder="Categoria" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map((cat) => (
+                    {categoriesList.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id}>
-                        {cat.label}
+                        {cat.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

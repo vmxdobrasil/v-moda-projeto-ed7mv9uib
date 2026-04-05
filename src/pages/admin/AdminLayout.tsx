@@ -8,6 +8,7 @@ import {
   BarChart,
   Settings,
   Megaphone,
+  Tags,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -41,6 +42,12 @@ export default function AdminLayout() {
       name: 'Marketing',
       href: '/admin/marketing',
       icon: Megaphone,
+      roles: ['administrador', 'gerente'],
+    },
+    {
+      name: 'Categorias',
+      href: '/admin/categorias',
+      icon: Tags,
       roles: ['administrador', 'gerente'],
     },
     { name: 'Relatórios', href: '/admin/relatorios', icon: BarChart, roles: ['administrador'] },
