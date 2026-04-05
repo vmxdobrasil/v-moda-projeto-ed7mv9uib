@@ -68,7 +68,9 @@ export default function BrandProfile() {
     if (brand.id) {
       try {
         await pb.send(`/backend/v1/partners/${brand.id}/click`, { method: 'POST' })
-      } catch (e) {}
+      } catch (e) {
+        console.error('Error tracking click', e)
+      }
     }
     if (brand.phone) {
       window.open(`https://wa.me/${brand.phone.replace(/\D/g, '')}`, '_blank')
