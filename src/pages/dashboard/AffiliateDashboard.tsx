@@ -45,6 +45,7 @@ export default function AffiliateDashboard() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [manufacturers, setManufacturers] = useState<any[]>([])
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -52,6 +53,7 @@ export default function AffiliateDashboard() {
     city: '',
     state: '',
     source: 'whatsapp_group',
+    manufacturer: 'none',
   })
 
   const loadData = useCallback(async () => {
@@ -69,6 +71,12 @@ export default function AffiliateDashboard() {
         sort: '-created',
       })
       setCustomers(custs)
+
+      const mfrs = await pb.collection('users').getFullList({
+        filter: `role="manufacturer"`,
+        sort: 'name',
+      })
+      setManufacturers(mfrs)
     } catch (e) {
       console.error(e)
     }
@@ -112,7 +120,9 @@ export default function AffiliateDashboard() {
             ? 'Grupo WhatsApp'
             : c.source === 'social_profile'
               ? 'Rede Social'
-              : c.source || '',
+              : c.source === 'manual'
+                ? 'Manual'
+                : c.source || '',
           new Date(c.created).toLocaleDateString('pt-BR'),
         ]
           .map((v) => `"${v}"`)
@@ -133,8 +143,30 @@ export default function AffiliateDashboard() {
 
   const handleManualRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.name.trim()) {
+      toast({ title: 'Erro', description: 'O nome é obrigatório.', variant: 'destructive' })
+      return
+    }
+
     setIsSubmitting(true)
     try {
+      if (formData.phone) {
+        const existing = await pb
+          .collection('customers')
+          .getFirstListItem(`phone="${formData.phone}" && affiliate_referrer="${user.id}"`)
+          .catch(() => null)
+
+        if (existing) {
+          toast({
+            title: 'Erro',
+            description: 'Um lead com este telefone já foi registrado por você.',
+            variant: 'destructive',
+          })
+          setIsSubmitting(false)
+          return
+        }
+      }
+
       await createCustomer({
         name: formData.name,
         email: formData.email,
@@ -143,10 +175,19 @@ export default function AffiliateDashboard() {
         state: formData.state,
         source: formData.source as any,
         status: 'new',
+        ...(formData.manufacturer !== 'none' ? { manufacturer: formData.manufacturer } : {}),
       })
       toast({ title: 'Lead registrado!', description: 'Cliente adicionado com sucesso.' })
       setIsDialogOpen(false)
-      setFormData({ name: '', email: '', phone: '', city: '', state: '', source: 'whatsapp_group' })
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        city: '',
+        state: '',
+        source: 'whatsapp_group',
+        manufacturer: 'none',
+      })
       loadData()
     } catch (err) {
       toast({
@@ -309,6 +350,26 @@ export default function AffiliateDashboard() {
                       <SelectContent>
                         <SelectItem value="whatsapp_group">Grupo de WhatsApp</SelectItem>
                         <SelectItem value="social_profile">Perfil Social</SelectItem>
+                        <SelectItem value="manual">Manual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Fabricante de Interesse (Opcional)</Label>
+                    <Select
+                      value={formData.manufacturer}
+                      onValueChange={(v) => setFormData((f) => ({ ...f, manufacturer: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um fabricante" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
+                        {manufacturers.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            {m.name || m.email}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -348,7 +409,9 @@ export default function AffiliateDashboard() {
                       ? 'Grupo WhatsApp'
                       : customer.source === 'social_profile'
                         ? 'Rede Social'
-                        : customer.source || 'Manual'}
+                        : customer.source === 'manual'
+                          ? 'Manual'
+                          : customer.source || 'Manual'}
                   </TableCell>
                   <TableCell>{new Date(customer.created).toLocaleDateString('pt-BR')}</TableCell>
                   <TableCell>
