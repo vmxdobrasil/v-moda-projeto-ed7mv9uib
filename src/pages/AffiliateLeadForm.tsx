@@ -75,9 +75,9 @@ export default function AffiliateLeadForm() {
     <div className="container max-w-md mx-auto py-24 md:py-32 animate-fade-in-up">
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-serif">Seja um Parceiro</CardTitle>
+          <CardTitle className="text-2xl font-serif">Seja nosso Lojista Parceiro</CardTitle>
           <CardDescription>
-            Cadastre-se para conectar sua marca aos melhores fabricantes.
+            Cadastre sua loja para se conectar aos melhores fabricantes através do seu Guia.
           </CardDescription>
         </CardHeader>
         <CardContent>

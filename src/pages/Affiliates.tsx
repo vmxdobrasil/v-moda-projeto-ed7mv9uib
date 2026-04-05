@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { MapPin, Truck, ShoppingBag, Search } from 'lucide-react'
+import { MapPin, BusFront, ShoppingBag, Search } from 'lucide-react'
 
 const HUB_LABELS: Record<string, string> = {
   '44_goiania': 'Região da 44',
@@ -54,9 +54,9 @@ export default function Affiliates() {
   return (
     <div className="container mx-auto py-12 space-y-8 animate-fade-in-up">
       <div>
-        <h1 className="text-3xl font-serif font-bold">Guias e Transportadores</h1>
+        <h1 className="text-3xl font-serif font-bold">Guias de Turismo de Compras</h1>
         <p className="text-muted-foreground mt-2">
-          Encontre parceiros logísticos e guias de caravanas por região ou polo de moda.
+          Encontre guias de turismo de compras por região ou polo de moda.
         </p>
       </div>
 
@@ -115,8 +115,8 @@ export default function Affiliates() {
                       variant="default"
                       className="bg-primary hover:bg-primary text-xs shrink-0"
                     >
-                      <Truck className="w-3 h-3 mr-1" />
-                      Logística
+                      <BusFront className="w-3 h-3 mr-1" />
+                      Ônibus
                     </Badge>
                   )}
                 </div>

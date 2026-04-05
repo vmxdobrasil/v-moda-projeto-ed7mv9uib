@@ -235,7 +235,9 @@ export default function Profile() {
                   {user.role === 'affiliate' && (
                     <>
                       <div className="col-span-1 md:col-span-2 pt-4 mt-2 border-t">
-                        <h3 className="text-lg font-medium mb-4">Guia de Turismo & Transporte</h3>
+                        <h3 className="text-lg font-medium mb-4">
+                          Guia de Turismo de Compras & Transporte
+                        </h3>
                         <FormField
                           control={form.control}
                           name="is_transporter"
@@ -243,11 +245,11 @@ export default function Profile() {
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                               <div className="space-y-0.5">
                                 <FormLabel className="text-base">
-                                  Atuo como Transportador / Guia de Caravana
+                                  Atuo como Guia de Turismo de Compras
                                 </FormLabel>
                                 <FormDescription>
                                   Ative se você organiza excursões e faz o transporte de mercadorias
-                                  para as sacoleiras.
+                                  para as sacoleiras via Ônibus.
                                 </FormDescription>
                               </div>
                               <FormControl>

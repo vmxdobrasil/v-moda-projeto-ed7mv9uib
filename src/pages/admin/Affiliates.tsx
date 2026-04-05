@@ -76,9 +76,9 @@ export default function AdminAffiliates() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Gestão de Afiliados</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Gestão de Guias de Turismo de Compras</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Gerencie as taxas de comissão e acompanhe o desempenho dos parceiros.
+          Gerencie as taxas de comissão e acompanhe o desempenho dos guias.
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export default function AdminAffiliates() {
         <CardHeader className="pb-4">
           <CardTitle className="text-lg flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Afiliados Cadastrados
+            Guias Cadastrados
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -132,7 +132,7 @@ export default function AdminAffiliates() {
                   {affiliates.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        Nenhum afiliado encontrado.
+                        Nenhum guia encontrado.
                       </TableCell>
                     </TableRow>
                   )}
@@ -150,7 +150,7 @@ export default function AdminAffiliates() {
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
-              <Label>Afiliado</Label>
+              <Label>Guia</Label>
               <Input
                 value={editUser?.name || editUser?.email || ''}
                 disabled

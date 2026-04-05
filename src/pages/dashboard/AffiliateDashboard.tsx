@@ -51,10 +51,11 @@ import {
   FileText,
   Target,
   Image as ImageIcon,
+  BusFront,
 } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import pb from '@/lib/pocketbase/client'
-import { createCustomer } from '@/services/customers'
+import { createCustomer, updateCustomer } from '@/services/customers'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import ImportLeadsDialog from './components/ImportLeadsDialog'
 
@@ -147,7 +148,7 @@ export default function AffiliateDashboard() {
   const copyLink = () => {
     const code = user.affiliate_code || user.id
     navigator.clipboard.writeText(`${window.location.origin}/parceiro?ref=${code}&src=${source}`)
-    toast({ title: 'Link copiado!', description: 'Link de afiliado copiado com sucesso.' })
+    toast({ title: 'Link copiado!', description: 'Link do Guia copiado com sucesso.' })
   }
 
   const exportCSV = () => {
@@ -158,7 +159,7 @@ export default function AffiliateDashboard() {
       'Cidade',
       'Estado',
       'Origem',
-      'Caravana',
+      'Ônibus',
       'Data de Registro',
     ]
     const csvContent = customers
@@ -184,7 +185,7 @@ export default function AffiliateDashboard() {
     })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `leads_afiliado_${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `leads_guia_${new Date().toISOString().split('T')[0]}.csv`
     link.click()
     toast({ title: 'Exportação concluída!', description: 'O download começará em instantes.' })
   }
@@ -193,6 +194,10 @@ export default function AffiliateDashboard() {
     e.preventDefault()
     if (!formData.name.trim()) {
       toast({ title: 'Erro', description: 'O nome é obrigatório.', variant: 'destructive' })
+      return
+    }
+    if (!formData.phone.trim()) {
+      toast({ title: 'Erro', description: 'O telefone é obrigatório.', variant: 'destructive' })
       return
     }
 
@@ -207,7 +212,7 @@ export default function AffiliateDashboard() {
         if (existing) {
           toast({
             title: 'Erro',
-            description: 'Um lead com este telefone já foi registrado por você.',
+            description: 'Um cliente com este telefone já foi registrado por você.',
             variant: 'destructive',
           })
           setIsSubmitting(false)
@@ -229,7 +234,7 @@ export default function AffiliateDashboard() {
       if (formData.caravan_name) payload.caravan_name = formData.caravan_name
 
       await createCustomer(payload)
-      toast({ title: 'Lead registrado!', description: 'Cliente adicionado com sucesso.' })
+      toast({ title: 'Cliente registrado!', description: 'Cliente adicionado com sucesso.' })
       setIsDialogOpen(false)
       setFormData({
         name: '',
@@ -256,7 +261,7 @@ export default function AffiliateDashboard() {
   const openWhatsApp = (customer: any) => {
     if (!customer.phone) return
     const text = encodeURIComponent(
-      `Olá ${customer.name}, vi que você se interessou pela V Moda e gostaria de te ajudar...`,
+      `Olá ${customer.name}, sou seu Guia de Turismo de Compras e gostaria de te ajudar...`,
     )
     window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${text}`, '_blank')
   }
@@ -282,10 +287,24 @@ export default function AffiliateDashboard() {
     }
   }
 
+  const handleLogisticsStatusChange = async (id: string, newStatus: string) => {
+    try {
+      await updateCustomer(id, { logistics_status: newStatus })
+      toast({ title: 'Status Atualizado', description: 'Status logístico atualizado.' })
+      loadData()
+    } catch (err) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao atualizar o status logístico.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto animate-fade-in-up">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <h1 className="text-3xl font-serif font-bold">Painel de Afiliado</h1>
+        <h1 className="text-3xl font-serif font-bold">Painel do Guia de Turismo de Compras</h1>
         <Button asChild className="shrink-0 bg-primary/10 text-primary hover:bg-primary/20">
           <Link to="/dashboard/media-kit">
             <ImageIcon className="w-4 h-4 mr-2" />
@@ -297,7 +316,7 @@ export default function AffiliateDashboard() {
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Meus Leads</CardTitle>
+            <CardTitle className="text-sm font-medium">Meus Clientes</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -342,7 +361,8 @@ export default function AffiliateDashboard() {
         <CardHeader>
           <CardTitle>Gerador de Links</CardTitle>
           <CardDescription>
-            Crie links rastreáveis para compartilhar nos seus canais.
+            Crie links rastreáveis para compartilhar nos seus canais e registrar clientes
+            automaticamente.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -368,18 +388,16 @@ export default function AffiliateDashboard() {
 
       <Tabs defaultValue="leads" className="w-full mt-8">
         <TabsList className="mb-4">
-          <TabsTrigger value="leads">Mini CRM - Meus Leads</TabsTrigger>
-          {user.is_transporter && (
-            <TabsTrigger value="logistics">Logística & Caravanas</TabsTrigger>
-          )}
+          <TabsTrigger value="leads">Meus Clientes</TabsTrigger>
+          {user.is_transporter && <TabsTrigger value="logistics">Logística de Ônibus</TabsTrigger>}
         </TabsList>
         <TabsContent value="leads" className="m-0">
           <Card>
             <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 pb-4">
               <div>
-                <CardTitle>Mini CRM - Meus Leads</CardTitle>
+                <CardTitle>Mini CRM - Meus Clientes</CardTitle>
                 <CardDescription>
-                  Acompanhe, gerencie e contate os clientes indicados.
+                  Acompanhe, gerencie e contate os lojistas e sacoleiras indicados.
                 </CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -400,12 +418,12 @@ export default function AffiliateDashboard() {
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
                     <Button>
-                      <Plus className="w-4 h-4 mr-2" /> Novo Lead
+                      <Plus className="w-4 h-4 mr-2" /> Cadastrar Cliente
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                      <DialogTitle>Registrar Lead Manualmente</DialogTitle>
+                      <DialogTitle>Registrar Cliente Manualmente</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleManualRegistration} className="space-y-4 py-4">
                       <div className="space-y-2">
@@ -427,9 +445,10 @@ export default function AffiliateDashboard() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Telefone</Label>
+                        <Label htmlFor="phone">Telefone / WhatsApp *</Label>
                         <Input
                           id="phone"
+                          required
                           value={formData.phone}
                           onChange={(e) => setFormData((f) => ({ ...f, phone: e.target.value }))}
                         />
@@ -453,14 +472,14 @@ export default function AffiliateDashboard() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="caravan_name">Caravana / Excursão (Opcional)</Label>
+                        <Label htmlFor="caravan_name">Nome do Ônibus / Excursão (Opcional)</Label>
                         <Input
                           id="caravan_name"
                           value={formData.caravan_name}
                           onChange={(e) =>
                             setFormData((f) => ({ ...f, caravan_name: e.target.value }))
                           }
-                          placeholder="Ex: Bate-volta Brás 15/10"
+                          placeholder="Ex: Excursão Brás - 15/10"
                         />
                       </div>
                       <div className="space-y-2">
@@ -484,27 +503,8 @@ export default function AffiliateDashboard() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Fabricante de Interesse (Opcional)</Label>
-                        <Select
-                          value={formData.manufacturer}
-                          onValueChange={(v) => setFormData((f) => ({ ...f, manufacturer: v }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um fabricante" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Nenhum</SelectItem>
-                            {manufacturers.map((m) => (
-                              <SelectItem key={m.id} value={m.id}>
-                                {m.name || m.email}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
                       <Button type="submit" className="w-full" disabled={isSubmitting}>
-                        {isSubmitting ? 'Registrando...' : 'Registrar Lead'}
+                        {isSubmitting ? 'Registrando...' : 'Registrar Cliente'}
                       </Button>
                     </form>
                   </DialogContent>
@@ -584,7 +584,7 @@ export default function AffiliateDashboard() {
                     {customers.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-                          Nenhum lead registrado.
+                          Nenhum cliente registrado.
                         </TableCell>
                       </TableRow>
                     )}
@@ -599,9 +599,11 @@ export default function AffiliateDashboard() {
           <TabsContent value="logistics" className="m-0">
             <Card>
               <CardHeader>
-                <CardTitle>Logística & Coletas</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <BusFront className="w-5 h-5" /> Logística de Ônibus & Coletas
+                </CardTitle>
                 <CardDescription>
-                  Acompanhe os pedidos das sacoleiras e gerencie suas coletas nos fabricantes.
+                  Gerencie as mercadorias, passageiros do ônibus e coletas nos fabricantes.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -609,10 +611,10 @@ export default function AffiliateDashboard() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Sacoleira</TableHead>
-                        <TableHead>Caravana</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Notas Logísticas</TableHead>
+                        <TableHead>Lojista / Sacoleira</TableHead>
+                        <TableHead>Ônibus / Excursão</TableHead>
+                        <TableHead>Status Logístico</TableHead>
+                        <TableHead>Notas de Coleta</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -622,16 +624,21 @@ export default function AffiliateDashboard() {
                           <TableCell className="font-medium">{c.name}</TableCell>
                           <TableCell>{c.caravan_name || '-'}</TableCell>
                           <TableCell>
-                            <Badge
-                              variant={c.status === 'converted' ? 'default' : 'secondary'}
-                              className={
-                                c.status === 'converted'
-                                  ? 'bg-emerald-500 hover:bg-emerald-600'
-                                  : 'bg-amber-100 text-amber-800'
-                              }
+                            <Select
+                              value={c.logistics_status || 'Aguardando Ônibus'}
+                              onValueChange={(val) => handleLogisticsStatusChange(c.id, val)}
                             >
-                              {c.status === 'converted' ? 'Convertido' : 'Pendente'}
-                            </Badge>
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Aguardando Ônibus">Aguardando Ônibus</SelectItem>
+                                <SelectItem value="Em Trânsito no Ônibus">
+                                  Em Trânsito no Ônibus
+                                </SelectItem>
+                                <SelectItem value="Entregue">Entregue</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
                             {c.logistics_notes || 'Nenhuma anotação'}
@@ -653,7 +660,7 @@ export default function AffiliateDashboard() {
                       {customers.length === 0 && (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                            Nenhum pedido registrado.
+                            Nenhum registro logístico.
                           </TableCell>
                         </TableRow>
                       )}
@@ -703,7 +710,7 @@ export default function AffiliateDashboard() {
             <Textarea
               value={logisticsNotes}
               onChange={(e) => setLogisticsNotes(e.target.value)}
-              placeholder="Ex: Coletar 5 volumes na loja X do Setor Fama."
+              placeholder="Ex: Coletar 5 volumes na loja X do Setor Fama para o Ônibus."
               className="min-h-[150px] resize-none"
             />
             <Button

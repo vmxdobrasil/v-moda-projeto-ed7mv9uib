@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-05T13:33:59.836Z",
+  "generatedAt": "2026-04-05T13:48:27.846Z",
   "collections": [
     {
       "name": "users",
@@ -427,6 +427,13 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "logistics_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Aguardando Ônibus", "Em Trânsito no Ônibus", "Entregue"]
         }
       ],
       "indexes": [
