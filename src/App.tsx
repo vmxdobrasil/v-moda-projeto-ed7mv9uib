@@ -21,6 +21,7 @@ import Contact from './pages/Contact'
 import FAQ from './pages/FAQ'
 import Revista from './pages/Revista'
 import ResellerApplication from './pages/ResellerApplication'
+import FashionGuide from './pages/FashionGuide'
 import ManufacturerDashboard from './pages/ManufacturerDashboard'
 import Academy from './pages/Academy'
 import CreditoModa from './pages/CreditoModa'
@@ -86,6 +87,7 @@ const App = () => (
           <Route path="/sobre-nos" element={<AboutUs />} />
           <Route path="/contato" element={<Contact />} />
           <Route path="/faq" element={<FAQ />} />
+          <Route path="/guia-de-moda" element={<FashionGuide />} />
           <Route path="/revenda" element={<ResellerApplication />} />
           <Route path="/painel-fabricante" element={<ManufacturerDashboard />} />
           <Route path="/credito-moda" element={<Navigate to="/" replace />} />

@@ -958,6 +958,16 @@ export default function Index() {
               </div>
             </FadeIn>
           )}
+
+          <FadeIn delay={200} className="mt-16 text-center">
+            <Button
+              asChild
+              size="lg"
+              className="rounded-none px-8 py-6 text-sm uppercase tracking-widest font-bold shadow-lg transition-transform hover:scale-105"
+            >
+              <Link to="/guia-de-moda">Ver Guia Completo (1000+ marcas)</Link>
+            </Button>
+          </FadeIn>
         </div>
       </section>
 
