@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Users, CreditCard, BarChart, Bell } from 'lucide-react'
+import { Users, CreditCard, BarChart, Bell, BusFront } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { getMyNotifications, markNotificationRead, Notification } from '@/services/notifications'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Button } from '@/components/ui/button'
@@ -51,11 +51,19 @@ export default function DashboardLayout() {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
   }
 
-  const links = [
-    { href: '/dashboard/crm', label: 'CRM', icon: Users },
-    { href: '/dashboard/performance', label: 'Performance', icon: BarChart },
-    { href: '/dashboard/billing', label: 'Meu Plano', icon: CreditCard },
-  ]
+  const links = useMemo(() => {
+    if (userRecord?.role === 'affiliate') {
+      return [
+        { href: '/dashboard/affiliate', label: 'Painel do Guia / Transportador', icon: BusFront },
+        { href: '/dashboard/performance', label: 'Performance', icon: BarChart },
+      ]
+    }
+    return [
+      { href: '/dashboard/crm', label: 'CRM', icon: Users },
+      { href: '/dashboard/performance', label: 'Performance', icon: BarChart },
+      { href: '/dashboard/billing', label: 'Meu Plano', icon: CreditCard },
+    ]
+  }, [userRecord?.role])
 
   return (
     <div className="flex h-screen bg-muted/20">

@@ -236,7 +236,7 @@ export default function Profile() {
                     <>
                       <div className="col-span-1 md:col-span-2 pt-4 mt-2 border-t">
                         <h3 className="text-lg font-medium mb-4">
-                          Guia de Turismo de Compras & Transporte
+                          Guia de Compras & Transportador
                         </h3>
                         <FormField
                           control={form.control}
@@ -245,7 +245,7 @@ export default function Profile() {
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                               <div className="space-y-0.5">
                                 <FormLabel className="text-base">
-                                  Atuo como Guia de Turismo de Compras
+                                  Atuo como Guia de Compras / Transportador
                                 </FormLabel>
                                 <FormDescription>
                                   Ative se você organiza excursões e faz o transporte de mercadorias

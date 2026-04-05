@@ -131,12 +131,12 @@ export default function AffiliateDashboard() {
 
   if (!user || user.role !== 'affiliate') return null
 
-  const commissionRate = (user.commission_rate || 1.0) / 100
+  const commissionRate = (user.commission_rate || 2.0) / 100
   let earned = 0,
     pending = 0
 
   referrals.forEach((ref) => {
-    const val = ref.metadata?.value || 1000
+    const val = ref.metadata?.amount || ref.metadata?.value || 0
     if (ref.type === 'conversion') earned += val * commissionRate
     else if (ref.type === 'lead') pending += val * commissionRate
   })
@@ -185,7 +185,7 @@ export default function AffiliateDashboard() {
     })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `leads_guia_${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `clientes_guia_transportador_${new Date().toISOString().split('T')[0]}.csv`
     link.click()
     toast({ title: 'Exportação concluída!', description: 'O download começará em instantes.' })
   }
@@ -261,7 +261,7 @@ export default function AffiliateDashboard() {
   const openWhatsApp = (customer: any) => {
     if (!customer.phone) return
     const text = encodeURIComponent(
-      `Olá ${customer.name}, sou seu Guia de Turismo de Compras e gostaria de te ajudar...`,
+      `Olá ${customer.name}, sou seu Guia de Compras / Transportador e gostaria de te ajudar...`,
     )
     window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${text}`, '_blank')
   }
@@ -304,7 +304,7 @@ export default function AffiliateDashboard() {
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto animate-fade-in-up">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <h1 className="text-3xl font-serif font-bold">Painel do Guia de Turismo de Compras</h1>
+        <h1 className="text-3xl font-serif font-bold">Painel do Guia de Compras / Transportador</h1>
         <Button asChild className="shrink-0 bg-primary/10 text-primary hover:bg-primary/20">
           <Link to="/dashboard/media-kit">
             <ImageIcon className="w-4 h-4 mr-2" />
