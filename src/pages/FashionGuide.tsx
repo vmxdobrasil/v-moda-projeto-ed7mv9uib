@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Search, Loader2 } from 'lucide-react'
 import { useSEO } from '@/hooks/useSEO'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -48,9 +49,12 @@ export default function FashionGuide() {
   const [brands, setBrands] = useState<any[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const location = useLocation()
+  const initialCategory = location.state?.category || 'all'
+
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [category, setCategory] = useState('all')
+  const [category, setCategory] = useState(initialCategory)
   const [cityFilter, setCityFilter] = useState('')
   const [stateFilter, setStateFilter] = useState('all')
   const [priceFilter, setPriceFilter] = useState('all')
@@ -149,9 +153,17 @@ export default function FashionGuide() {
     }
   }
 
+  const selectedCatObj = categoriesList.find((c) => c.id === category)
+  const bannerUrl =
+    selectedCatObj && selectedCatObj.id !== 'all'
+      ? selectedCatObj.banner
+        ? pb.files.getUrl(selectedCatObj, selectedCatObj.banner)
+        : `https://img.usecurling.com/p/1200/300?q=fashion%20${selectedCatObj.slug}%20banner&color=black`
+      : 'https://img.usecurling.com/p/1200/300?q=fashion%20shopping%20mall%20banner&color=black'
+
   return (
     <main className="w-full min-h-screen bg-muted/10 pb-24 pt-32">
-      <section className="bg-background border-b border-border py-16 mb-12">
+      <section className="bg-background border-b border-border py-16 mb-8">
         <div className="container text-center">
           <FadeIn>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif mb-6 flex flex-col items-center justify-center gap-4">
@@ -166,6 +178,21 @@ export default function FashionGuide() {
             </p>
           </FadeIn>
         </div>
+      </section>
+
+      <section className="container mb-8">
+        <FadeIn>
+          <div className="w-full h-[160px] md:h-[240px] rounded-2xl overflow-hidden relative border shadow-sm bg-muted">
+            <img src={bannerUrl} alt="Banner da Categoria" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <h2 className="text-3xl md:text-5xl font-serif text-white drop-shadow-lg text-center px-4 uppercase tracking-wider">
+                {selectedCatObj && selectedCatObj.id !== 'all'
+                  ? selectedCatObj.name
+                  : 'Polo de Moda Geral'}
+              </h2>
+            </div>
+          </div>
+        </FadeIn>
       </section>
 
       <section className="container mb-12">

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-05T10:10:53.509Z",
+  "generatedAt": "2026-04-05T10:29:56.649Z",
   "collections": [
     {
       "name": "users",
@@ -826,6 +826,18 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "thumbnail",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "banner",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_categories_slug ON categories (slug)"]

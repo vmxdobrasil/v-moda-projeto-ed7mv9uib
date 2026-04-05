@@ -13,6 +13,7 @@ import {
   Map as MapIcon,
   Trophy,
   Star,
+  TrendingUp,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
@@ -87,6 +88,7 @@ export default function Index() {
   const [resellers, setResellers] = useState<any[]>([])
   const [topPartners, setTopPartners] = useState<any[]>([])
   const [top60Brands, setTop60Brands] = useState<any[]>([])
+  const [featuredCategories, setFeaturedCategories] = useState<any[]>([])
   const [showVerifiedOnly, setShowVerifiedOnly] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [zoneFilter, setZoneFilter] = useState('')
@@ -158,6 +160,10 @@ export default function Index() {
     loadTopPartners()
     loadTop60Brands()
     pb.collection('users').getFullList({ sort: '-created' }).then(setTeamUsers).catch(console.error)
+    pb.collection('categories')
+      .getFullList({ sort: 'name' })
+      .then(setFeaturedCategories)
+      .catch(console.error)
   }, [])
 
   useRealtime('messages', () => {
@@ -410,6 +416,60 @@ export default function Index() {
               <ProductCard product={product} />
             </FadeIn>
           ))}
+        </div>
+      </section>
+
+      {/* Categorias em Alta Section */}
+      <section className="py-24 bg-muted/20">
+        <div className="container">
+          <FadeIn>
+            <div className="flex flex-col items-center mb-16 text-center">
+              <h2 className="text-3xl md:text-4xl font-serif mb-4 flex items-center gap-3">
+                <TrendingUp className="w-8 h-8 text-primary" /> Categorias em Alta
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Explore os segmentos mais procurados do Polo de Moda e encontre os melhores
+                fabricantes.
+              </p>
+            </div>
+          </FadeIn>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
+            {featuredCategories.slice(0, 12).map((cat, i) => {
+              const isHighlighted = cat.name.toLowerCase().includes('plus size')
+              return (
+                <FadeIn key={cat.id} delay={i * 50}>
+                  <Link to="/guia-de-moda" state={{ category: cat.id }} className="block h-full">
+                    <Card
+                      className={`group relative h-full overflow-hidden border-none shadow-md hover:shadow-lg transition-all hover:-translate-y-1 ${isHighlighted ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
+                    >
+                      <CardContent className="p-0 aspect-square relative">
+                        <img
+                          src={
+                            cat.thumbnail
+                              ? pb.files.getUrl(cat, cat.thumbnail, { thumb: '400x400' })
+                              : `https://img.usecurling.com/p/400/400?q=fashion%20${cat.slug}`
+                          }
+                          alt={cat.name}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                        {isHighlighted && (
+                          <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full z-10 shadow-sm uppercase tracking-wider">
+                            Em Alta
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 p-3 text-center">
+                          <h3 className="text-white font-medium text-xs md:text-sm tracking-wide drop-shadow-md truncate px-1">
+                            {cat.name}
+                          </h3>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </FadeIn>
+              )
+            })}
+          </div>
         </div>
       </section>
 

@@ -98,11 +98,52 @@ export default function Performance() {
 
   return (
     <div className="space-y-8 animate-fade-in-up">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Performance e Benefícios</h1>
-        <p className="text-muted-foreground">
-          Acompanhe seus leads, status de exclusividade e acesse seus materiais.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Performance e Benefícios</h1>
+          <p className="text-muted-foreground">
+            Acompanhe seus leads, status de exclusividade e acesse seus materiais.
+          </p>
+        </div>
+        <Button
+          onClick={() => {
+            if (!myCustomers.length) return
+            const headers = [
+              'Nome da Marca',
+              'Segmento',
+              'Cliques no WhatsApp',
+              'Nota Média',
+              'Total de Avaliações',
+              'Localização',
+            ]
+            const rows = myCustomers.map((c) => {
+              const name = `"${(c.name || '').replace(/"/g, '""')}"`
+              const category = `"${(c.ranking_category || '').replace(/_/g, ' ')}"`
+              const clicks = c.whatsapp_clicks || 0
+              const rating = c.rating_average || 0
+              const reviews = c.rating_count || 0
+              const location = `"${c.city || ''}/${c.state || ''}"`
+              return [name, category, clicks, rating, reviews, location].join(',')
+            })
+            const csvContent = [headers.join(','), ...rows].join('\n')
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.setAttribute('href', url)
+            link.setAttribute(
+              'download',
+              `performance_export_${new Date().toISOString().split('T')[0]}.csv`,
+            )
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+          }}
+          variant="outline"
+          className="shrink-0 bg-background"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Exportar Relatório (CSV)
+        </Button>
       </div>
 
       {hasTopRanking && (
