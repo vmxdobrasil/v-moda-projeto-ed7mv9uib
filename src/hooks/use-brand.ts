@@ -10,7 +10,9 @@ export function useBrand() {
     try {
       const data = await getBrandSettings()
       setSettings(data)
-    } catch (e) {}
+    } catch (e) {
+      console.error('Failed to load brand settings', e)
+    }
   }
 
   useEffect(() => {
