@@ -232,6 +232,10 @@ export default function CRM() {
         phone: editingCustomer.phone,
         is_verified: editingCustomer.is_verified,
         bio: editingCustomer.bio,
+        logistics_status: editingCustomer.logistics_status,
+        seat_number: editingCustomer.seat_number,
+        notes: editingCustomer.notes,
+        unlocked_benefits: editingCustomer.unlocked_benefits,
       })
       toast.success('Lead atualizado com sucesso')
       setEditingCustomer(null)
@@ -309,6 +313,25 @@ export default function CRM() {
           </Button>
           <Button variant="outline" onClick={exportToCSV}>
             <Download className="w-4 h-4 mr-2" /> Exportar Leads (CSV)
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              const inactiveIds = customers.filter((c) => c.status === 'inactive').map((c) => c.id)
+              if (inactiveIds.length === 0) return toast.info('Nenhum lead inativo para reativar')
+              try {
+                await pb.send('/backend/v1/whatsapp/reactivate', {
+                  method: 'POST',
+                  body: JSON.stringify({ customerIds: inactiveIds }),
+                  headers: { 'Content-Type': 'application/json' },
+                })
+                toast.success('Campanha de reativação via IA iniciada!')
+              } catch (e) {
+                toast.error('Erro ao iniciar campanha')
+              }
+            }}
+          >
+            <MessageCircle className="w-4 h-4 mr-2 text-green-500" /> Reativar Inativos
           </Button>
           <Button variant="outline" onClick={() => setIsImportOpen(true)}>
             <UploadCloud className="w-4 h-4 mr-2" /> Importar Leads
@@ -457,6 +480,18 @@ export default function CRM() {
                       className="resize-none h-20"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-notes">Anotações Internas (CRM)</Label>
+                    <Textarea
+                      id="edit-notes"
+                      value={editingCustomer.notes || ''}
+                      onChange={(e) =>
+                        setEditingCustomer({ ...editingCustomer, notes: e.target.value })
+                      }
+                      placeholder="Anotações sobre a venda, preferências, etc."
+                      className="resize-none h-20"
+                    />
+                  </div>
                   <div className="flex items-center justify-between mt-4 p-3 bg-muted/50 rounded-lg">
                     <div className="space-y-0.5">
                       <Label>Perfil Verificado</Label>
@@ -471,6 +506,74 @@ export default function CRM() {
                       }
                     />
                   </div>
+                  <div className="flex items-center justify-between mt-2 p-3 bg-muted/50 rounded-lg">
+                    <div className="space-y-0.5">
+                      <Label>Acesso ao Mini CRM</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Liberar benefício de uso do CRM para o cliente.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={editingCustomer.unlocked_benefits?.crm_enabled || false}
+                      onCheckedChange={(c) =>
+                        setEditingCustomer({
+                          ...editingCustomer,
+                          unlocked_benefits: {
+                            ...editingCustomer.unlocked_benefits,
+                            crm_enabled: c,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <Label>Status Logística</Label>
+                      <Select
+                        value={editingCustomer.logistics_status || ''}
+                        onValueChange={(v: any) =>
+                          setEditingCustomer({ ...editingCustomer, logistics_status: v })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Aguardando Ônibus">Aguardando Ônibus</SelectItem>
+                          <SelectItem value="Em Trânsito no Ônibus">
+                            Em Trânsito no Ônibus
+                          </SelectItem>
+                          <SelectItem value="Entregue">Entregue</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Poltrona</Label>
+                      <Input
+                        type="number"
+                        value={editingCustomer.seat_number || ''}
+                        onChange={(e) =>
+                          setEditingCustomer({
+                            ...editingCustomer,
+                            seat_number: parseInt(e.target.value) || undefined,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {editingCustomer.seat_number && (
+                    <div className="flex flex-col items-center justify-center p-4 bg-muted/30 rounded-lg border mt-4">
+                      <p className="text-sm font-medium mb-2">QR Code de Check-in</p>
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(JSON.stringify({ id: editingCustomer.id, seat: editingCustomer.seat_number }))}`}
+                        alt="QR Code Check-in"
+                        className="w-32 h-32 rounded-lg bg-white p-2 border shadow-sm"
+                      />
+                    </div>
+                  )}
+
                   <Button className="w-full mt-4" onClick={handleEdit}>
                     Salvar Alterações
                   </Button>
@@ -746,8 +849,26 @@ export default function CRM() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={async () => {
+                            try {
+                              await pb.send(`/backend/v1/whatsapp/notify/${customer.id}`, {
+                                method: 'POST',
+                              })
+                              toast.success('Notificação de Boas-vindas enviada!')
+                            } catch (e) {
+                              toast.error('Erro ao enviar notificação')
+                            }
+                          }}
+                          className="text-green-500 hover:text-green-600 hover:bg-green-50"
+                          title="Enviar Boas-vindas via WhatsApp"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => setEditingCustomer(customer)}
-                          className="text-muted-foreground hover:text-foreground"
+                          className="text-muted-foreground hover:text-foreground ml-1"
                           title="Editar Lead"
                         >
                           <Pencil className="w-4 h-4" />

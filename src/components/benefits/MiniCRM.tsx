@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/table'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil } from 'lucide-react'
+import { Plus, Pencil, MessageCircle, QrCode } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 
 export function MiniCRM() {
@@ -246,7 +246,20 @@ export function MiniCRM() {
                   className="min-h-[100px]"
                 />
               </div>
-              <Button className="w-full mt-2" onClick={handleSave}>
+              {editingCustomer && editingCustomer.seat_number && (
+                <div className="flex flex-col items-center justify-center p-4 bg-muted/30 rounded-lg border mt-4">
+                  <p className="text-sm font-medium mb-2">QR Code de Embarque</p>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(JSON.stringify({ id: editingCustomer.id, seat: editingCustomer.seat_number, route: editingCustomer.active_route }))}`}
+                    alt="QR Code"
+                    className="w-32 h-32 rounded-lg bg-white p-2 border shadow-sm"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Apresente no embarque para check-in rápido.
+                  </p>
+                </div>
+              )}
+              <Button className="w-full mt-4" onClick={handleSave}>
                 Salvar Alterações
               </Button>
             </div>
@@ -314,9 +327,26 @@ export function MiniCRM() {
                     {c.notes || '-'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
-                      <Pencil className="w-4 h-4 text-muted-foreground" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={async () => {
+                          try {
+                            await pb.send(`/backend/v1/whatsapp/notify/${c.id}`, { method: 'POST' })
+                            toast.success('Notificação enviada com sucesso!')
+                          } catch (e) {
+                            toast.error('Erro ao enviar notificação')
+                          }
+                        }}
+                        title="Notificar via WhatsApp"
+                      >
+                        <MessageCircle className="w-4 h-4 text-green-500" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
+                        <Pencil className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

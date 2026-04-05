@@ -1,1144 +1,258 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Progress } from '@/components/ui/progress'
-import { useToast } from '@/hooks/use-toast'
+import { getReferrals, type Referral } from '@/services/referrals'
 import { useRealtime } from '@/hooks/use-realtime'
-import {
-  Copy,
-  DollarSign,
-  Clock,
-  Users,
-  Download,
-  Plus,
-  Upload,
-  MessageCircle,
-  FileText,
-  Target,
-  Image as ImageIcon,
-  BusFront,
-} from 'lucide-react'
-import useAuthStore from '@/stores/useAuthStore'
 import pb from '@/lib/pocketbase/client'
-import { createCustomer, updateCustomer } from '@/services/customers'
-import { getErrorMessage } from '@/lib/pocketbase/errors'
-import ImportLeadsDialog from './components/ImportLeadsDialog'
+import { Link2, Users, DollarSign, TrendingUp, MapPin, QrCode } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
 
 export default function AffiliateDashboard() {
-  const { user } = useAuthStore()
+  const [referrals, setReferrals] = useState<Referral[]>([])
+  const [loading, setLoading] = useState(true)
   const { toast } = useToast()
-  const [referrals, setReferrals] = useState<any[]>([])
-  const [customers, setCustomers] = useState<any[]>([])
-  const [source, setSource] = useState('social_profile')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
-  const [isImporting, setIsImporting] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [manufacturers, setManufacturers] = useState<any[]>([])
 
-  const [editingNotesId, setEditingNotesId] = useState<string | null>(null)
-  const [notesContent, setNotesContent] = useState('')
+  const user = pb.authStore.record
 
-  const [editingLogisticsId, setEditingLogisticsId] = useState<string | null>(null)
-  const [logisticsNotes, setLogisticsNotes] = useState('')
-  const [freightValue, setFreightValue] = useState<string>('')
-  const [editingActiveRoute, setEditingActiveRoute] = useState('')
-  const [editingSeatNumber, setEditingSeatNumber] = useState<string>('')
-
-  const [isSeatMapDialogOpen, setIsSeatMapDialogOpen] = useState(false)
-  const [selectedSeat, setSelectedSeat] = useState<number | null>(null)
-  const [selectedCustomerForSeat, setSelectedCustomerForSeat] = useState<string>('')
-
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    city: '',
-    state: '',
-    source: 'none',
-    manufacturer: 'none',
-    caravan_name: '',
-    freight_value: '',
-    active_route: '',
-    seat_number: '',
-  })
-
-  const loadData = useCallback(async () => {
-    if (!user || user.role !== 'affiliate') return
+  const loadData = async () => {
     try {
-      const refs = await pb.collection('referrals').getFullList({
-        filter: `affiliate="${user.id}"`,
-        sort: '-created',
-        expand: 'brand',
-      })
-      setReferrals(refs)
-
-      const custs = await pb.collection('customers').getFullList({
-        filter: `affiliate_referrer="${user.id}"`,
-        sort: '-created',
-      })
-      setCustomers(custs)
-
-      const mfrs = await pb.collection('users').getFullList({
-        filter: `role="manufacturer"`,
-        sort: 'name',
-      })
-      setManufacturers(mfrs)
+      const data = await getReferrals()
+      setReferrals(data)
     } catch (e) {
       console.error(e)
+    } finally {
+      setLoading(false)
     }
-  }, [user])
+  }
 
   useEffect(() => {
     loadData()
-  }, [loadData])
+  }, [])
 
-  useRealtime('referrals', loadData)
-  useRealtime('customers', loadData)
-  useRealtime('notifications', (e) => {
-    if (e.action === 'create' && e.record.user === user?.id) {
-      toast({
-        title: e.record.title || 'Nova Notificação',
-        description: e.record.message,
-      })
-    }
+  useRealtime('referrals', () => {
+    loadData()
   })
 
-  if (!user || user.role !== 'affiliate') return null
+  const metrics = useMemo(() => {
+    const clicks = referrals.filter((r) => r.type === 'click').length
+    const leads = referrals.filter((r) => r.type === 'lead').length
+    const conversions = referrals.filter((r) => r.type === 'conversion').length
 
-  const commissionRate = (user.commission_rate || 2.0) / 100
-  let earned = 0,
-    pending = 0,
-    totalFreight = 0
+    const commissionRate = user?.commission_rate || 10
+    const avgTicket = 500
+    const estimatedCommissions = conversions * avgTicket * (commissionRate / 100)
 
-  referrals.forEach((ref) => {
-    const val = ref.metadata?.amount || ref.metadata?.value || 0
-    if (ref.type === 'conversion') earned += val * commissionRate
-    else if (ref.type === 'lead') pending += val * commissionRate
-  })
-
-  customers.forEach((c) => {
-    if (c.freight_value) totalFreight += c.freight_value
-  })
-
-  const conversions = referrals.filter((r) => r.type === 'conversion').length
-  const nextGoal = Math.max(10, Math.ceil((conversions + 1) / 10) * 10)
-  const progressPercent = Math.min(100, (conversions / nextGoal) * 100)
-
-  const copyLink = () => {
-    const code = user.affiliate_code || user.id
-    navigator.clipboard.writeText(`${window.location.origin}/parceiro?ref=${code}&src=${source}`)
-    toast({ title: 'Link copiado!', description: 'Link do Guia copiado com sucesso.' })
-  }
-
-  const exportCSV = () => {
-    const headers = [
-      'Nome',
-      'Email',
-      'Telefone',
-      'Cidade',
-      'Estado',
-      'Origem',
-      'Ônibus',
-      'Data de Registro',
-    ]
-    const csvContent = customers
-      .map((c) =>
-        [
-          c.name,
-          c.email || '',
-          c.phone || '',
-          c.city || '',
-          c.state || '',
-          c.source || 'Não informada',
-          c.caravan_name || '',
-          new Date(c.created).toLocaleDateString('pt-BR'),
-        ]
-          .map((v) => `"${v}"`)
-          .join(','),
-      )
-      .join('\n')
-
-    const bom = '\uFEFF'
-    const blob = new Blob([bom + headers.join(',') + '\n' + csvContent], {
-      type: 'text/csv;charset=utf-8;',
+    const hubsCount: Record<string, number> = {}
+    referrals.forEach((r) => {
+      const hub = r.expand?.brand?.city || r.expand?.brand?.state || 'Online'
+      hubsCount[hub] = (hubsCount[hub] || 0) + 1
     })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `clientes_guia_transportador_${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
-    toast({ title: 'Exportação concluída!', description: 'O download começará em instantes.' })
+
+    const topHubs = Object.entries(hubsCount)
+      .map(([name, count]) => ({ name, value: count }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5)
+
+    const conversionRate = clicks > 0 ? ((conversions / clicks) * 100).toFixed(1) : '0.0'
+
+    return { clicks, leads, conversions, estimatedCommissions, topHubs, conversionRate }
+  }, [referrals, user])
+
+  const copyAffiliateLink = () => {
+    if (!user?.affiliate_code) return
+    const link = `${window.location.origin}/afiliados?ref=${user.affiliate_code}`
+    navigator.clipboard.writeText(link)
+    toast({ title: 'Link copiado com sucesso!' })
   }
 
-  const exportManifest = () => {
-    const headers = [
-      'Assento',
-      'Nome',
-      'Telefone',
-      'Rota Ativa',
-      'Ônibus / Excursão',
-      'Status Logístico',
-      'Valor do Frete (R$)',
-      'Notas',
-    ]
-    const manifestCustomers = customers
-      .filter((c) => c.caravan_name || c.seat_number || c.freight_value)
-      .sort((a, b) => (a.seat_number || 999) - (b.seat_number || 999))
-
-    const csvContent = manifestCustomers
-      .map((c) =>
-        [
-          c.seat_number || 'N/A',
-          c.name,
-          c.phone || '',
-          c.active_route || '',
-          c.caravan_name || '',
-          c.logistics_status || '',
-          c.freight_value ? c.freight_value.toFixed(2) : '0.00',
-          c.logistics_notes || '',
-        ]
-          .map((v) => `"${v}"`)
-          .join(','),
-      )
-      .join('\n')
-
-    const bom = '\uFEFF'
-    const blob = new Blob([bom + headers.join(',') + '\n' + csvContent], {
-      type: 'text/csv;charset=utf-8;',
-    })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `manifesto_viagem_onibus_${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
-    toast({
-      title: 'Manifesto exportado!',
-      description: 'O download do manifesto de viagem começou.',
-    })
-  }
-
-  const handleManualRegistration = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.name.trim()) {
-      toast({ title: 'Erro', description: 'O nome é obrigatório.', variant: 'destructive' })
-      return
-    }
-    if (!formData.phone.trim()) {
-      toast({ title: 'Erro', description: 'O telefone é obrigatório.', variant: 'destructive' })
-      return
-    }
-
-    setIsSubmitting(true)
-    try {
-      if (formData.phone) {
-        const existing = await pb
-          .collection('customers')
-          .getFirstListItem(`phone="${formData.phone}" && affiliate_referrer="${user.id}"`)
-          .catch(() => null)
-
-        if (existing) {
-          toast({
-            title: 'Erro',
-            description: 'Um cliente com este telefone já foi registrado por você.',
-            variant: 'destructive',
-          })
-          setIsSubmitting(false)
-          return
-        }
-      }
-
-      const payload: any = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        city: formData.city,
-        state: formData.state,
-        status: 'new',
-      }
-
-      if (formData.source !== 'none') payload.source = formData.source
-      if (formData.manufacturer !== 'none') payload.manufacturer = formData.manufacturer
-      if (formData.caravan_name) payload.caravan_name = formData.caravan_name
-      if (formData.freight_value) payload.freight_value = parseFloat(formData.freight_value)
-      if (formData.active_route) payload.active_route = formData.active_route
-      if (formData.seat_number) payload.seat_number = parseInt(formData.seat_number)
-
-      await createCustomer(payload)
-      toast({ title: 'Cliente registrado!', description: 'Cliente adicionado com sucesso.' })
-      setIsDialogOpen(false)
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        city: '',
-        state: '',
-        source: 'none',
-        manufacturer: 'none',
-        caravan_name: '',
-        freight_value: '',
-        active_route: '',
-        seat_number: '',
-      })
-      loadData()
-    } catch (err) {
-      toast({
-        title: 'Erro ao registrar',
-        description: getErrorMessage(err),
-        variant: 'destructive',
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const openWhatsApp = (customer: any) => {
-    if (!customer.phone) return
-    const text = encodeURIComponent(
-      `Olá ${customer.name}, sou seu Guia de Compras / Transportador e gostaria de te ajudar...`,
+  if (loading)
+    return (
+      <div className="p-8 text-center text-muted-foreground animate-fade-in">
+        Carregando painel do guia...
+      </div>
     )
-    window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${text}`, '_blank')
-  }
-
-  const openNotes = (customer: any) => {
-    setEditingNotesId(customer.id)
-    setNotesContent(customer.notes || '')
-  }
-
-  const saveNotes = async () => {
-    if (!editingNotesId) return
-    try {
-      await pb.collection('customers').update(editingNotesId, { notes: notesContent })
-      toast({ title: 'Sucesso', description: 'Anotações salvas com sucesso.' })
-      setEditingNotesId(null)
-      loadData()
-    } catch (err) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível salvar as anotações.',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleLogisticsStatusChange = async (id: string, newStatus: string) => {
-    try {
-      await updateCustomer(id, { logistics_status: newStatus })
-      toast({ title: 'Status Atualizado', description: 'Status logístico atualizado.' })
-      loadData()
-    } catch (err) {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao atualizar o status logístico.',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const assignCustomerToSeat = async (customerId: string, seat: number) => {
-    try {
-      await pb.collection('customers').update(customerId, { seat_number: seat })
-      toast({ title: 'Assento confirmado!', description: 'Passageiro alocado no ônibus.' })
-      setIsSeatMapDialogOpen(false)
-      setSelectedCustomerForSeat('')
-      loadData()
-    } catch (e) {
-      toast({ title: 'Erro', description: 'Erro ao alocar passageiro.', variant: 'destructive' })
-    }
-  }
-
-  const removeCustomerFromSeat = async (customerId: string) => {
-    try {
-      await pb.collection('customers').update(customerId, { seat_number: null })
-      toast({
-        title: 'Assento liberado!',
-        description: 'Assento do ônibus está disponível novamente.',
-      })
-      setIsSeatMapDialogOpen(false)
-      loadData()
-    } catch (e) {
-      toast({ title: 'Erro', description: 'Erro ao liberar assento.', variant: 'destructive' })
-    }
-  }
-
-  const seatsGrid = Array.from({ length: 50 }, (_, i) => i + 1)
-  const selectedSeatCustomer = selectedSeat
-    ? customers.find((c) => c.seat_number === selectedSeat)
-    : null
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto animate-fade-in-up">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <h1 className="text-3xl font-serif font-bold tracking-tight uppercase">
-          Painel do Guia de Compras/Transportador
-        </h1>
-        <Button asChild className="shrink-0 bg-primary/10 text-primary hover:bg-primary/20">
-          <Link to="/dashboard/media-kit">
-            <ImageIcon className="w-4 h-4 mr-2" />
-            Acessar Media Kit
-          </Link>
-        </Button>
+    <div className="space-y-6 animate-fade-in-up">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Painel do Guia / Transporter</h1>
+        <p className="text-muted-foreground">
+          Acompanhe suas comissões, leads gerados e hubs de moda populares na sua caravana.
+        </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Meus Clientes</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{customers.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Meta de Conversões</CardTitle>
-            <Target className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {conversions} / {nextGoal}
-            </div>
-            <Progress value={progressPercent} className="mt-2 h-2" />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium text-amber-600">Comissão Pendente</CardTitle>
-            <Clock className="h-4 w-4 text-amber-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-600">R$ {pending.toFixed(2)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium text-emerald-600">
-              Comissão Acumulada (2%)
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+              Total de Cliques <Link2 className="w-4 h-4" />
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">R$ {earned.toFixed(2)}</div>
+            <div className="text-3xl font-bold">{metrics.clicks}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+              Leads da Caravana <Users className="w-4 h-4" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{metrics.leads}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+              Vendas (Conversões) <TrendingUp className="w-4 h-4" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-primary">{metrics.conversions}</div>
+            <p className="text-xs text-muted-foreground mt-1">Taxa: {metrics.conversionRate}%</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 border-green-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-green-800 dark:text-green-400 flex items-center justify-between">
+              Comissões Estimadas <DollarSign className="w-4 h-4" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-700 dark:text-green-300">
+              R${' '}
+              {metrics.estimatedCommissions.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
+            <p className="text-xs text-green-600/80 mt-1">
+              Baseado na taxa de {user?.commission_rate || 10}%
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-primary" /> Hubs de Moda Populares
+            </CardTitle>
+            <CardDescription>Regiões com mais engajamento através da sua atuação</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {metrics.topHubs.length > 0 ? (
+              <div className="h-[250px] w-full mt-4">
+                <ChartContainer config={{ value: { label: 'Acessos' } }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={metrics.topHubs}
+                      layout="vertical"
+                      margin={{ top: 0, right: 0, left: 20, bottom: 0 }}
+                    >
+                      <XAxis type="number" hide />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        axisLine={false}
+                        tickLine={false}
+                        fontSize={12}
+                        width={100}
+                      />
+                      <ChartTooltip
+                        cursor={{ fill: 'transparent' }}
+                        content={<ChartTooltipContent />}
+                      />
+                      <Bar
+                        dataKey="value"
+                        radius={[0, 4, 4, 0]}
+                        fill="hsl(var(--primary))"
+                        barSize={32}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </div>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-muted-foreground border-2 border-dashed rounded-xl">
+                Dados insuficientes de localização.
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {user.is_transporter && (
-          <Card>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium text-blue-600">Total de Fretes</CardTitle>
-              <BusFront className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">R$ {totalFreight.toFixed(2)}</div>
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Meu Link & Ferramentas</CardTitle>
+            <CardDescription>Recursos Exclusivos de Logística</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Link de Indicação Único</label>
+              <div className="flex gap-2">
+                <div className="flex-1 bg-muted p-2.5 rounded-md text-sm font-mono truncate border">
+                  {window.location.origin}/afiliados?ref={user?.affiliate_code || '...'}
+                </div>
+                <Button onClick={copyAffiliateLink}>Copiar</Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Compartilhe nos grupos de WhatsApp da sua caravana.
+              </p>
+            </div>
+
+            <div className="pt-4 border-t space-y-4">
+              <h3 className="font-medium text-sm flex items-center gap-2">
+                <QrCode className="w-4 h-4" /> Check-in de Embarque & Logística
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Acesse o Mini CRM para gerar o QR Code dos lojistas, organizar a lista de poltronas
+                e verificar a entrega das mercadorias.
+              </p>
+              <Button variant="outline" className="w-full" asChild>
+                <a href="/beneficios">Acessar Mini CRM (Logística)</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Gerador de Links</CardTitle>
-          <CardDescription>
-            Crie links rastreáveis para compartilhar nos seus canais e registrar clientes
-            automaticamente.
-          </CardDescription>
+          <CardTitle>Últimos Lojistas Registrados</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-4 items-end flex-wrap">
-            <div className="space-y-2 flex-1 min-w-[200px]">
-              <span className="text-sm font-medium">Origem do Tráfego</span>
-              <Select value={source} onValueChange={setSource}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="social_profile">Perfil Social (Instagram, etc)</SelectItem>
-                  <SelectItem value="whatsapp_group">Grupo de WhatsApp</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={copyLink} className="mb-[2px] whitespace-nowrap">
-              <Copy className="w-4 h-4 mr-2" /> Copiar Link
-            </Button>
+        <CardContent>
+          <div className="space-y-4">
+            {referrals.slice(0, 5).map((ref) => (
+              <div
+                key={ref.id}
+                className="flex items-center justify-between p-3 border rounded-lg bg-card hover:bg-muted/50 transition-colors"
+              >
+                <div>
+                  <p className="font-medium text-sm">
+                    {ref.expand?.brand?.name || 'Cliente Oculto'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(ref.created).toLocaleString('pt-BR')}
+                  </p>
+                </div>
+                <Badge
+                  variant={ref.type === 'conversion' ? 'default' : 'secondary'}
+                  className="capitalize"
+                >
+                  {ref.type}
+                </Badge>
+              </div>
+            ))}
+            {referrals.length === 0 && (
+              <p className="text-center text-muted-foreground py-4 border-dashed border-2 rounded-xl">
+                Nenhuma indicação registrada na sua rede ainda.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
-
-      <Tabs defaultValue="leads" className="w-full mt-8">
-        <TabsList className="mb-4">
-          <TabsTrigger value="leads">Meus Clientes</TabsTrigger>
-          {user.is_transporter && <TabsTrigger value="logistics">Logística de Ônibus</TabsTrigger>}
-        </TabsList>
-        <TabsContent value="leads" className="m-0">
-          <Card>
-            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 pb-4">
-              <div>
-                <CardTitle>Mini CRM - Meus Clientes</CardTitle>
-                <CardDescription>
-                  Acompanhe, gerencie e contate os lojistas e sacoleiras indicados.
-                </CardDescription>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
-                  <Upload className="w-4 h-4 mr-2" /> Importar
-                </Button>
-                <Button variant="outline" onClick={exportCSV} disabled={customers.length === 0}>
-                  <Download className="w-4 h-4 mr-2" /> Exportar Lista
-                </Button>
-
-                <ImportLeadsDialog
-                  open={isImportDialogOpen}
-                  onOpenChange={setIsImportDialogOpen}
-                  onImportStateChange={setIsImporting}
-                  onImportComplete={loadData}
-                />
-
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" /> Cadastrar Cliente
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                      <DialogTitle>Registrar Cliente Manualmente</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleManualRegistration} className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Nome *</Label>
-                        <Input
-                          id="name"
-                          required
-                          value={formData.name}
-                          onChange={(e) => setFormData((f) => ({ ...f, name: e.target.value }))}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData((f) => ({ ...f, email: e.target.value }))}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Telefone / WhatsApp *</Label>
-                        <Input
-                          id="phone"
-                          required
-                          value={formData.phone}
-                          onChange={(e) => setFormData((f) => ({ ...f, phone: e.target.value }))}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="city">Cidade</Label>
-                          <Input
-                            id="city"
-                            value={formData.city}
-                            onChange={(e) => setFormData((f) => ({ ...f, city: e.target.value }))}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="state">Estado</Label>
-                          <Input
-                            id="state"
-                            value={formData.state}
-                            onChange={(e) => setFormData((f) => ({ ...f, state: e.target.value }))}
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="caravan_name">Excursão / Ônibus</Label>
-                          <Input
-                            id="caravan_name"
-                            value={formData.caravan_name}
-                            onChange={(e) =>
-                              setFormData((f) => ({ ...f, caravan_name: e.target.value }))
-                            }
-                            placeholder="Ex: Excursão Brás - 15/10"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="freight_value">Valor do Frete (R$)</Label>
-                          <Input
-                            id="freight_value"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={formData.freight_value}
-                            onChange={(e) =>
-                              setFormData((f) => ({ ...f, freight_value: e.target.value }))
-                            }
-                            placeholder="Ex: 150.00"
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="active_route">Rota / Destino</Label>
-                          <Input
-                            id="active_route"
-                            value={formData.active_route}
-                            onChange={(e) =>
-                              setFormData((f) => ({ ...f, active_route: e.target.value }))
-                            }
-                            placeholder="Ex: Goiânia 44"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="seat_number">Assento do Ônibus</Label>
-                          <Input
-                            id="seat_number"
-                            type="number"
-                            min="1"
-                            max="60"
-                            value={formData.seat_number}
-                            onChange={(e) =>
-                              setFormData((f) => ({ ...f, seat_number: e.target.value }))
-                            }
-                            placeholder="Ex: 12"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Origem (Opcional)</Label>
-                        <Select
-                          value={formData.source}
-                          onValueChange={(v) => setFormData((f) => ({ ...f, source: v }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a origem" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Não informada</SelectItem>
-                            <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                            <SelectItem value="instagram">Instagram</SelectItem>
-                            <SelectItem value="email">Email</SelectItem>
-                            <SelectItem value="manual">Manual</SelectItem>
-                            <SelectItem value="site">Site</SelectItem>
-                            <SelectItem value="whatsapp_group">Grupo de WhatsApp</SelectItem>
-                            <SelectItem value="social_profile">Perfil Social</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button type="submit" className="w-full" disabled={isSubmitting}>
-                        {isSubmitting ? 'Registrando...' : 'Registrar Cliente'}
-                      </Button>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Contato</TableHead>
-                      <TableHead>Local</TableHead>
-                      <TableHead>Origem</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {customers.map((customer) => (
-                      <TableRow key={customer.id}>
-                        <TableCell className="font-medium">
-                          {customer.name}
-                          {customer.notes && (
-                            <FileText
-                              className="inline-block w-3 h-3 ml-2 text-muted-foreground"
-                              title="Possui anotações"
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">{customer.email || '-'}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {customer.phone || '-'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {customer.city ? `${customer.city}/${customer.state || '-'}` : '-'}
-                        </TableCell>
-                        <TableCell>{customer.source || '-'}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={customer.status === 'converted' ? 'default' : 'secondary'}
-                            className={
-                              customer.status === 'converted'
-                                ? 'bg-emerald-500 hover:bg-emerald-600'
-                                : 'bg-amber-100 text-amber-800'
-                            }
-                          >
-                            {customer.status === 'converted' ? 'Convertido' : 'Pendente'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openWhatsApp(customer)}
-                              disabled={!customer.phone}
-                              title="Chamar no WhatsApp"
-                            >
-                              <MessageCircle className="w-4 h-4 text-green-500" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openNotes(customer)}
-                              title="Anotações / CRM"
-                            >
-                              <FileText className="w-4 h-4 text-blue-500" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {customers.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-                          Nenhum cliente registrado.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {user.is_transporter && (
-          <TabsContent value="logistics" className="m-0">
-            <Tabs defaultValue="list" className="w-full">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4 bg-card p-4 rounded-xl border shadow-sm">
-                <div>
-                  <h3 className="text-lg font-bold flex items-center gap-2">
-                    <BusFront className="w-5 h-5 text-primary" /> Gestão do Ônibus e Coletas
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Organize passageiros, assentos e fretes da sua excursão.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2 items-center">
-                  <TabsList>
-                    <TabsTrigger value="list">Lista e Fretes</TabsTrigger>
-                    <TabsTrigger value="map">Mapa de Assentos</TabsTrigger>
-                  </TabsList>
-                  <Button
-                    onClick={exportManifest}
-                    variant="default"
-                    className="bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
-                  >
-                    <FileText className="w-4 h-4 mr-2" /> Gerar Manifesto
-                  </Button>
-                </div>
-              </div>
-
-              <TabsContent value="list" className="m-0">
-                <Card>
-                  <CardContent className="p-0 sm:p-6">
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Passageiro / Cliente</TableHead>
-                            <TableHead>Assento</TableHead>
-                            <TableHead>Rota / Destino</TableHead>
-                            <TableHead>Frete</TableHead>
-                            <TableHead>Status Logístico</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {customers.map((c) => (
-                            <TableRow key={c.id}>
-                              <TableCell className="font-medium">
-                                {c.name}
-                                <div className="text-xs text-muted-foreground font-normal">
-                                  {c.caravan_name || 'Sem Ônibus Atribuído'}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {c.seat_number ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-primary/10 text-primary border-primary/30"
-                                  >
-                                    {c.seat_number}
-                                  </Badge>
-                                ) : (
-                                  <span className="text-muted-foreground text-xs">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-sm">{c.active_route || '-'}</TableCell>
-                              <TableCell className="font-medium text-blue-600">
-                                R$ {c.freight_value ? c.freight_value.toFixed(2) : '0.00'}
-                              </TableCell>
-                              <TableCell>
-                                <Select
-                                  value={c.logistics_status || 'Aguardando Ônibus'}
-                                  onValueChange={(val) => handleLogisticsStatusChange(c.id, val)}
-                                >
-                                  <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Aguardando Ônibus">
-                                      Aguardando Ônibus
-                                    </SelectItem>
-                                    <SelectItem value="Em Trânsito no Ônibus">
-                                      Em Trânsito no Ônibus
-                                    </SelectItem>
-                                    <SelectItem value="Entregue">Entregue</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditingLogisticsId(c.id)
-                                    setLogisticsNotes(c.logistics_notes || '')
-                                    setFreightValue(
-                                      c.freight_value ? c.freight_value.toString() : '',
-                                    )
-                                    setEditingActiveRoute(c.active_route || '')
-                                    setEditingSeatNumber(
-                                      c.seat_number ? c.seat_number.toString() : '',
-                                    )
-                                  }}
-                                >
-                                  <FileText className="w-4 h-4 mr-2" /> Editar
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          {customers.length === 0 && (
-                            <TableRow>
-                              <TableCell
-                                colSpan={6}
-                                className="text-center py-6 text-muted-foreground"
-                              >
-                                Nenhum passageiro ou frete registrado.
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="map" className="m-0">
-                <Card>
-                  <CardContent className="p-6 md:p-12 flex flex-col items-center justify-center overflow-x-auto bg-muted/20">
-                    <div className="mb-8 text-center max-w-md">
-                      <h3 className="text-xl font-bold font-serif mb-2">
-                        Mapa de Assentos do Ônibus
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Visualize a ocupação da sua excursão. Clique em um assento para alocar ou
-                        remover passageiros da lista.
-                      </p>
-                    </div>
-
-                    <div className="relative p-6 md:p-8 bg-card rounded-[3rem] border-[12px] border-muted-foreground/10 shadow-xl min-w-[340px]">
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-muted-foreground/20 px-10 py-1.5 rounded-b-xl font-bold text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                        Frente / Motorista
-                      </div>
-
-                      <div className="mt-8 grid grid-cols-5 gap-3 relative z-10">
-                        {seatsGrid.reduce((acc: any[], seat) => {
-                          const cust = customers.find((c) => c.seat_number === seat)
-                          acc.push(
-                            <Button
-                              key={seat}
-                              variant={cust ? 'default' : 'outline'}
-                              onClick={() => {
-                                setSelectedSeat(seat)
-                                setIsSeatMapDialogOpen(true)
-                              }}
-                              className={cn(
-                                'h-12 w-12 p-0 rounded-t-xl rounded-b-md border-2 font-bold text-base transition-all relative',
-                                cust
-                                  ? 'bg-primary border-primary text-primary-foreground shadow-md hover:bg-primary/90'
-                                  : 'bg-background border-muted-foreground/30 hover:border-primary text-muted-foreground',
-                              )}
-                            >
-                              {seat}
-                              {cust && (
-                                <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5">
-                                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-green-500 border-2 border-card"></span>
-                                </span>
-                              )}
-                            </Button>,
-                          )
-                          // Adiciona corredor (coluna vazia) no meio
-                          if (seat % 4 === 2 && seat !== 50) {
-                            acc.push(<div key={`aisle-${seat}`} className="w-8" />)
-                          }
-                          return acc
-                        }, [])}
-                      </div>
-                    </div>
-
-                    <div className="mt-8 flex gap-6 text-sm font-medium">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded-sm bg-primary border-2 border-primary"></div>
-                        <span>Ocupado ({customers.filter((c) => c.seat_number).length})</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded-sm bg-background border-2 border-muted-foreground/30"></div>
-                        <span>Livre ({50 - customers.filter((c) => c.seat_number).length})</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-        )}
-      </Tabs>
-
-      <Sheet open={!!editingNotesId} onOpenChange={(open) => !open && setEditingNotesId(null)}>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>Anotações do Cliente</SheetTitle>
-            <SheetDescription>
-              Registre preferências, tamanhos, histórico de conversas ou interesses específicos.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="py-6 space-y-4">
-            <Textarea
-              value={notesContent}
-              onChange={(e) => setNotesContent(e.target.value)}
-              placeholder="Ex: Cliente prefere vestidos tamanho M..."
-              className="min-h-[250px] resize-none"
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditingNotesId(null)}>
-                Cancelar
-              </Button>
-              <Button onClick={saveNotes}>Salvar Anotações</Button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      <Dialog
-        open={!!editingLogisticsId}
-        onOpenChange={(open) => !open && setEditingLogisticsId(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Detalhes Logísticos (Ônibus e Frete)</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Valor do Frete (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={freightValue}
-                  onChange={(e) => setFreightValue(e.target.value)}
-                  placeholder="Ex: 150.00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Assento do Ônibus</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="60"
-                  value={editingSeatNumber}
-                  onChange={(e) => setEditingSeatNumber(e.target.value)}
-                  placeholder="Ex: 12"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Rota Ativa / Destino</Label>
-              <Input
-                value={editingActiveRoute}
-                onChange={(e) => setEditingActiveRoute(e.target.value)}
-                placeholder="Ex: Goiânia - Setor Fama"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Notas de Coleta / Logística</Label>
-              <Textarea
-                value={logisticsNotes}
-                onChange={(e) => setLogisticsNotes(e.target.value)}
-                placeholder="Ex: Coletar 5 volumes na loja X do Setor Fama para o Ônibus."
-                className="min-h-[120px] resize-none"
-              />
-            </div>
-            <Button
-              onClick={async () => {
-                if (!editingLogisticsId) return
-                try {
-                  await pb.collection('customers').update(editingLogisticsId, {
-                    logistics_notes: logisticsNotes,
-                    freight_value: freightValue ? parseFloat(freightValue) : 0,
-                    active_route: editingActiveRoute,
-                    seat_number: editingSeatNumber ? parseInt(editingSeatNumber) : null,
-                  })
-                  toast({ title: 'Sucesso', description: 'Detalhes logísticos salvos.' })
-                  setEditingLogisticsId(null)
-                  loadData()
-                } catch (err) {
-                  toast({
-                    title: 'Erro',
-                    variant: 'destructive',
-                    description: 'Não foi possível salvar.',
-                  })
-                }
-              }}
-              className="w-full"
-            >
-              Salvar Notas
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isSeatMapDialogOpen} onOpenChange={setIsSeatMapDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <BusFront className="w-5 h-5 text-primary" /> Gerenciar Assento {selectedSeat}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            {selectedSeatCustomer ? (
-              <div className="space-y-6">
-                <div className="bg-muted p-4 rounded-xl border">
-                  <h4 className="font-bold text-lg">{selectedSeatCustomer.name}</h4>
-                  <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> {selectedSeatCustomer.phone || 'Sem telefone'}
-                  </p>
-                  <div className="mt-4 pt-4 border-t flex flex-col gap-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Rota:</span>
-                      <span className="font-medium">
-                        {selectedSeatCustomer.active_route || 'Não definida'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Status:</span>
-                      <span className="font-medium">
-                        {selectedSeatCustomer.logistics_status || 'Pendente'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => setIsSeatMapDialogOpen(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    className="flex-1"
-                    onClick={() => removeCustomerFromSeat(selectedSeatCustomer.id)}
-                  >
-                    Liberar Assento
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Atribuir Passageiro para a Poltrona {selectedSeat}</Label>
-                  <Select
-                    value={selectedCustomerForSeat}
-                    onValueChange={setSelectedCustomerForSeat}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione um cliente da sua lista..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers
-                        .filter((c) => !c.seat_number)
-                        .map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      {customers.filter((c) => !c.seat_number).length === 0 && (
-                        <SelectItem value="none" disabled>
-                          Todos os clientes já possuem assento.
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  onClick={() =>
-                    selectedSeat && assignCustomerToSeat(selectedCustomerForSeat, selectedSeat)
-                  }
-                  disabled={!selectedCustomerForSeat || selectedCustomerForSeat === 'none'}
-                  className="w-full"
-                >
-                  Confirmar Passageiro
-                </Button>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
