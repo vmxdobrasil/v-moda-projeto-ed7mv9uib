@@ -1,9 +1,34 @@
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { BookOpen, Download, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
+import { getResources, type Resource } from '@/services/resources'
+import { useRealtime } from '@/hooks/use-realtime'
 
 export function DigitalContent() {
+  const [resources, setResources] = useState<Resource[]>([])
+
+  const loadData = async () => {
+    try {
+      const data = await getResources()
+      setResources(data)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  useRealtime('resources', () => {
+    loadData()
+  })
+
+  const magazines = resources.filter((r) => r.type === 'magazine')
+  const ebooks = resources.filter((r) => r.type === 'ebook')
+
   return (
     <div className="grid md:grid-cols-2 gap-6">
       <Card className="overflow-hidden border-primary/20 shadow-lg flex flex-col">
@@ -24,13 +49,24 @@ export function DigitalContent() {
             mercado.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button
-            className="w-full bg-gradient-to-r from-primary to-purple-600 hover:opacity-90"
-            onClick={() => toast.success('Abrindo leitor digital em nova aba...')}
-          >
-            <ExternalLink className="w-4 h-4 mr-2" /> Ler Agora
-          </Button>
+        <CardContent className="space-y-3">
+          {magazines.map((mag) => (
+            <Button
+              key={mag.id}
+              className="w-full bg-gradient-to-r from-primary to-purple-600 hover:opacity-90"
+              onClick={() => window.open(mag.url, '_blank')}
+            >
+              <ExternalLink className="w-4 h-4 mr-2" /> Ler {mag.name}
+            </Button>
+          ))}
+          {magazines.length === 0 && (
+            <Button
+              className="w-full bg-gradient-to-r from-primary to-purple-600 hover:opacity-90"
+              onClick={() => toast.success('Abrindo leitor digital em nova aba...')}
+            >
+              <ExternalLink className="w-4 h-4 mr-2" /> Ler Agora
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -52,28 +88,31 @@ export function DigitalContent() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
-            <span className="font-medium text-sm">Guia Prático para Sacoleiras de Sucesso</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => toast.success('Download do Ebook iniciado')}
+          {ebooks.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Nenhum e-book disponível no momento.
+            </p>
+          )}
+          {ebooks.map((ebook) => (
+            <div
+              key={ebook.id}
+              className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
             >
-              <Download className="w-4 h-4" />
-            </Button>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
-            <span className="font-medium text-sm">
-              Vendas pelo WhatsApp 2.0 (O Guia Definitivo)
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => toast.success('Download do Ebook iniciado')}
-            >
-              <Download className="w-4 h-4" />
-            </Button>
-          </div>
+              <span className="font-medium text-sm flex-1 mr-4 truncate" title={ebook.name}>
+                {ebook.name}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  toast.success('Download do Ebook iniciado')
+                  window.open(ebook.url, '_blank')
+                }}
+              >
+                <Download className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>

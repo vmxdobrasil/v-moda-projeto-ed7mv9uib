@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-05T14:23:20.604Z",
+  "generatedAt": "2026-04-05T14:32:04.600Z",
   "collections": [
     {
       "name": "users",
@@ -1016,6 +1016,65 @@
         "CREATE INDEX idx_referrals_brand ON referrals (brand)",
         "CREATE INDEX idx_referrals_type ON referrals (type)"
       ]
+    },
+    {
+      "name": "resources",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ebook", "magazine", "video", "course"]
+        },
+        {
+          "name": "url",
+          "type": "url",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "thumbnail",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
     }
   ]
 }

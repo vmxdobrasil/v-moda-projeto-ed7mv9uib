@@ -25,6 +25,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Loader2, CheckCircle2, XCircle, Smartphone } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { WhatsappTemplatesManager } from './components/WhatsappTemplatesManager'
 
 const schema = z.object({
   api_url: z.string().url('A URL deve ser válida (ex: https://api.meozap.com)'),
@@ -136,138 +138,151 @@ export default function WhatsappSettings() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-fade-in-up">
+    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in-up">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Integração WhatsApp API</h1>
         <p className="text-muted-foreground">
-          Configure a conexão com seu servidor MEO Zap ou Hostinger VPS.
+          Configure a conexão com seu servidor MEO Zap ou Hostinger VPS e gerencie automações.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Smartphone className="w-5 h-5" /> Credenciais da API
-          </CardTitle>
-          <CardDescription>
-            Insira os dados de conexão do seu servidor para sincronizar leads automaticamente com o
-            CRM.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="api_url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL da API (Hostinger VPS)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://api.seudominio.com" {...field} />
-                    </FormControl>
-                    <FormDescription>A URL base da sua instância do WhatsApp.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
+      <Tabs defaultValue="api" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="api">Configurações de API</TabsTrigger>
+          <TabsTrigger value="templates">Modelos de Mensagem (Templates)</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="api" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="w-5 h-5" /> Credenciais da API
+              </CardTitle>
+              <CardDescription>
+                Insira os dados de conexão do seu servidor para sincronizar leads automaticamente
+                com o CRM.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="api_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>URL da API (Hostinger VPS)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://api.seudominio.com" {...field} />
+                        </FormControl>
+                        <FormDescription>A URL base da sua instância do WhatsApp.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="instance_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>ID da Instância</FormLabel>
+                          <FormControl>
+                            <Input placeholder="ex: inst_12345" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="token"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Token de Autenticação</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Seu token de acesso" type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="pt-4 flex flex-col sm:flex-row gap-3">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={testConnection}
+                      disabled={testing || saving}
+                    >
+                      {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      Testar Conexão
+                    </Button>
+                    <Button type="submit" disabled={saving || testing}>
+                      {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      Salvar Configurações
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </CardContent>
+            {status !== 'idle' && (
+              <CardFooter className="bg-muted/50 border-t p-4 flex items-center gap-2">
+                {status === 'success' ? (
+                  <>
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    <span className="text-sm font-medium text-green-700">
+                      Conexão verificada com sucesso! Seu CRM está pronto.
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-5 h-5 text-destructive" />
+                    <span className="text-sm font-medium text-destructive">
+                      Não foi possível conectar. Verifique seus dados.
+                    </span>
+                  </>
                 )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="instance_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ID da Instância</FormLabel>
-                      <FormControl>
-                        <Input placeholder="ex: inst_12345" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="token"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Token de Autenticação</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Seu token de acesso" type="password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="pt-4 flex flex-col sm:flex-row gap-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={testConnection}
-                  disabled={testing || saving}
-                >
-                  {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Testar Conexão
-                </Button>
-                <Button type="submit" disabled={saving || testing}>
-                  {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Salvar Configurações
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-        {status !== 'idle' && (
-          <CardFooter className="bg-muted/50 border-t p-4 flex items-center gap-2">
-            {status === 'success' ? (
-              <>
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
-                <span className="text-sm font-medium text-green-700">
-                  Conexão verificada com sucesso! Seu CRM está pronto.
-                </span>
-              </>
-            ) : (
-              <>
-                <XCircle className="w-5 h-5 text-destructive" />
-                <span className="text-sm font-medium text-destructive">
-                  Não foi possível conectar. Verifique seus dados.
-                </span>
-              </>
+              </CardFooter>
             )}
-          </CardFooter>
-        )}
-      </Card>
+          </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Webhook para Recebimento</CardTitle>
-          <CardDescription>
-            Configure esta URL no seu servidor VPS para enviar novos leads e mensagens recebidas
-            para o CRM.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="p-3 bg-muted rounded-md flex items-center justify-between">
-            <code className="text-sm break-all">{webhookUrl}</code>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                navigator.clipboard.writeText(webhookUrl)
-                toast.success('URL copiada!')
-              }}
-            >
-              Copiar
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-4">
-            O payload deve ser enviado via POST (application/json) contendo <code>name</code>,{' '}
-            <code>phone</code> e <code>instance_id</code>.
-          </p>
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Webhook para Recebimento</CardTitle>
+              <CardDescription>
+                Configure esta URL no seu servidor VPS para enviar novos leads e mensagens recebidas
+                para o CRM.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="p-3 bg-muted rounded-md flex items-center justify-between">
+                <code className="text-sm break-all">{webhookUrl}</code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(webhookUrl)
+                    toast.success('URL copiada!')
+                  }}
+                >
+                  Copiar
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-4">
+                O payload deve ser enviado via POST (application/json) contendo <code>name</code>,{' '}
+                <code>phone</code> e <code>instance_id</code>.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="templates">
+          <WhatsappTemplatesManager />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

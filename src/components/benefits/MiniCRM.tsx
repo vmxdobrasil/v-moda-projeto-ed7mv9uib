@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getCustomers, updateCustomer, createCustomer, Customer } from '@/services/customers'
+import { getCustomers, updateCustomer, createCustomer, type Customer } from '@/services/customers'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -29,6 +29,7 @@ import {
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Pencil } from 'lucide-react'
+import { useRealtime } from '@/hooks/use-realtime'
 
 export function MiniCRM() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -41,6 +42,9 @@ export function MiniCRM() {
     status: 'new',
     logistics_status: 'Aguardando Ônibus',
     notes: '',
+    seat_number: undefined,
+    active_route: '',
+    freight_value: undefined,
   })
 
   const loadData = async () => {
@@ -57,6 +61,10 @@ export function MiniCRM() {
   useEffect(() => {
     loadData()
   }, [])
+
+  useRealtime('customers', () => {
+    loadData()
+  })
 
   const handleSave = async () => {
     if (!formData.name) return toast.error('Nome é obrigatório')
@@ -76,6 +84,9 @@ export function MiniCRM() {
         status: 'new',
         logistics_status: 'Aguardando Ônibus',
         notes: '',
+        seat_number: undefined,
+        active_route: '',
+        freight_value: undefined,
       })
       loadData()
     } catch (err) {
@@ -91,6 +102,9 @@ export function MiniCRM() {
       status: c.status,
       logistics_status: c.logistics_status,
       notes: c.notes,
+      seat_number: c.seat_number,
+      active_route: c.active_route,
+      freight_value: c.freight_value,
     })
   }
 
@@ -100,7 +114,7 @@ export function MiniCRM() {
         <div>
           <h2 className="text-xl font-bold">Meus Clientes</h2>
           <p className="text-sm text-muted-foreground">
-            Acompanhe suas vendas, interessados e logística.
+            Acompanhe suas vendas, interessados e detalhes de logística.
           </p>
         </div>
         <Dialog
@@ -115,6 +129,9 @@ export function MiniCRM() {
                 status: 'new',
                 logistics_status: 'Aguardando Ônibus',
                 notes: '',
+                seat_number: undefined,
+                active_route: '',
+                freight_value: undefined,
               })
             } else setIsNewOpen(true)
           }}
@@ -124,7 +141,7 @@ export function MiniCRM() {
               <Plus className="w-4 h-4 mr-2" /> Novo Cliente
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingCustomer ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
             </DialogHeader>
@@ -165,7 +182,7 @@ export function MiniCRM() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Logística</Label>
+                  <Label>Status de Logística</Label>
                   <Select
                     value={formData.logistics_status || ''}
                     onValueChange={(v) => setFormData({ ...formData, logistics_status: v as any })}
@@ -181,12 +198,52 @@ export function MiniCRM() {
                   </Select>
                 </div>
               </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Poltrona</Label>
+                  <Input
+                    type="number"
+                    value={formData.seat_number || ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        seat_number: parseInt(e.target.value) || undefined,
+                      })
+                    }
+                    placeholder="Ex: 12"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Rota</Label>
+                  <Input
+                    value={formData.active_route || ''}
+                    onChange={(e) => setFormData({ ...formData, active_route: e.target.value })}
+                    placeholder="Ex: SP-GO"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor Frete (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.freight_value || ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        freight_value: parseFloat(e.target.value) || undefined,
+                      })
+                    }
+                    placeholder="Ex: 50.00"
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
-                <Label>Anotações Gerais</Label>
+                <Label>Anotações Gerais (Preferências, medidas, etc.)</Label>
                 <Textarea
                   placeholder="Medidas, preferências de peça, etc."
                   value={formData.notes || ''}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="min-h-[100px]"
                 />
               </div>
               <Button className="w-full mt-2" onClick={handleSave}>
@@ -197,13 +254,13 @@ export function MiniCRM() {
         </Dialog>
       </div>
       <div className="border rounded-lg bg-card overflow-x-auto">
-        <Table className="min-w-[700px]">
+        <Table className="min-w-[900px]">
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Contato</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Logística</TableHead>
+              <TableHead>Logística & Rota</TableHead>
               <TableHead>Notas</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -234,9 +291,24 @@ export function MiniCRM() {
                       {c.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm">{c.logistics_status || '-'}</TableCell>
+                  <TableCell>
+                    <div className="text-sm">{c.logistics_status || '-'}</div>
+                    {(c.active_route || c.seat_number || c.freight_value) && (
+                      <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-2">
+                        {c.active_route && (
+                          <span className="bg-muted px-1.5 rounded">{c.active_route}</span>
+                        )}
+                        {c.seat_number && (
+                          <span className="bg-muted px-1.5 rounded">Poltrona {c.seat_number}</span>
+                        )}
+                        {c.freight_value && (
+                          <span className="bg-muted px-1.5 rounded">R$ {c.freight_value}</span>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell
-                    className="text-sm text-muted-foreground max-w-[150px] truncate"
+                    className="text-sm text-muted-foreground max-w-[200px] truncate"
                     title={c.notes}
                   >
                     {c.notes || '-'}
