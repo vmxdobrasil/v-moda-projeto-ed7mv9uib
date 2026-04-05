@@ -9,8 +9,10 @@ import {
   Settings,
   Megaphone,
   Tags,
+  Image as ImageIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BrandLogo } from '@/components/BrandLogo'
 
 export default function AdminLayout() {
   const location = useLocation()
@@ -50,6 +52,12 @@ export default function AdminLayout() {
       icon: Tags,
       roles: ['administrador', 'gerente'],
     },
+    {
+      name: 'Mídia',
+      href: '/admin/midia',
+      icon: ImageIcon,
+      roles: ['administrador', 'gerente'],
+    },
     { name: 'Relatórios', href: '/admin/relatorios', icon: BarChart, roles: ['administrador'] },
     {
       name: 'Configurações',
@@ -84,8 +92,8 @@ export default function AdminLayout() {
       {/* Sidebar */}
       <aside className="w-64 bg-background border-r flex-col hidden md:flex print:hidden">
         <div className="h-16 flex items-center px-6 border-b">
-          <Link to="/" className="font-serif text-2xl font-bold tracking-widest uppercase">
-            V Moda
+          <Link to="/" className="flex items-center">
+            <BrandLogo className="h-8 w-auto" fallbackClassName="text-2xl" />
           </Link>
           <span className="ml-2 text-[10px] font-bold tracking-wider bg-primary text-primary-foreground px-2 py-0.5 rounded uppercase">
             ADMIN
@@ -133,8 +141,8 @@ export default function AdminLayout() {
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden print:overflow-visible">
         <header className="h-16 bg-background border-b flex items-center justify-between px-4 md:px-8 print:hidden">
           <div className="flex items-center gap-4 md:hidden">
-            <Link to="/" className="font-serif text-xl font-bold tracking-widest uppercase">
-              V Moda
+            <Link to="/" className="flex items-center">
+              <BrandLogo className="h-6 w-auto" fallbackClassName="text-xl" />
             </Link>
           </div>
           <h1 className="text-xl font-semibold hidden md:block">Painel Administrativo</h1>

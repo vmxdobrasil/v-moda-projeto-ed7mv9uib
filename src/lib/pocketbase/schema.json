@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-05T17:25:29.464Z",
+  "generatedAt": "2026-04-05T20:27:06.989Z",
   "collections": [
     {
       "name": "users",
@@ -1023,9 +1023,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": null,
-        "update": null,
-        "delete": null
+        "create": "@request.auth.id != '' && @request.auth.role = 'manufacturer'",
+        "update": "@request.auth.id != '' && @request.auth.role = 'manufacturer'",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'manufacturer'"
       },
       "fields": [
         {
@@ -1072,9 +1072,67 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "content_file",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "brand_settings",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.role = 'manufacturer'",
+        "update": "@request.auth.role = 'manufacturer'",
+        "delete": "@request.auth.role = 'manufacturer'"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "key",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "value_file",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "value_text",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_brand_settings_key ON brand_settings (key)"]
     }
   ]
 }

@@ -39,6 +39,7 @@ import AdminReviews from './pages/admin/Reviews'
 import AdminMarketing from './pages/admin/Marketing'
 import AdminCategories from './pages/admin/Categories'
 import AdminAffiliates from './pages/admin/Affiliates'
+import AdminMedia from './pages/admin/Media'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import CRM from './pages/dashboard/CRM'
 import MediaKit from './pages/dashboard/MediaKit'
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="marketing" element={<AdminMarketing />} />
             <Route path="categorias" element={<AdminCategories />} />
             <Route path="afiliados" element={<AdminAffiliates />} />
+            <Route path="midia" element={<AdminMedia />} />
             <Route path="configuracoes" element={<AdminSettings />} />
           </Route>
           <Route path="/dashboard" element={<DashboardLayout />}>
