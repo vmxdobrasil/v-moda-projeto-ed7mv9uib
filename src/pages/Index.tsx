@@ -23,6 +23,8 @@ import Autoplay from 'embla-carousel-autoplay'
 import { FadeIn } from '@/components/FadeIn'
 import { ProductCard } from '@/components/ProductCard'
 import { PRODUCTS } from '@/lib/data'
+import { useNavigate } from 'react-router-dom'
+import { FavoriteButton } from '@/components/FavoriteButton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -39,14 +41,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
-
 const HERO_SLIDES = [
   {
     image: 'https://img.usecurling.com/p/1920/1080?q=high%20fashion%20editorial%20dark',
@@ -98,12 +92,8 @@ export default function Index() {
   const [selectedReseller, setSelectedReseller] = useState<any>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid')
 
-  const [leadName, setLeadName] = useState('')
-  const [leadEmail, setLeadEmail] = useState('')
-  const [leadMessage, setLeadMessage] = useState('')
-  const [isSubmittingLead, setIsSubmittingLead] = useState(false)
-
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   const handleWhatsAppClick = async (e: React.MouseEvent, reseller: any) => {
     e.stopPropagation()
@@ -207,42 +197,6 @@ export default function Index() {
   const activeConversations = new Set(
     messages.filter((m) => new Date(m.created).getTime() > sevenDaysAgo).map((m) => m.sender_id),
   ).size
-
-  const handleLeadSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!leadName || !leadEmail || !selectedReseller?.manufacturer) return
-
-    setIsSubmittingLead(true)
-    try {
-      await pb.send('/backend/v1/partners/lead', {
-        method: 'POST',
-        body: JSON.stringify({
-          manufacturer: selectedReseller.manufacturer,
-          partnerName: selectedReseller.name,
-          name: leadName,
-          email: leadEmail,
-          message: leadMessage,
-        }),
-      })
-      toast({
-        title: 'Sucesso!',
-        description: 'Your interest has been sent to the manufacturer!',
-      })
-      setLeadName('')
-      setLeadEmail('')
-      setLeadMessage('')
-      setSelectedReseller(null)
-    } catch (err) {
-      console.error(err)
-      toast({
-        title: 'Erro',
-        description: 'Could not send your interest. Please try again.',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsSubmittingLead(false)
-    }
-  }
 
   return (
     <main className="w-full pb-24">
@@ -555,9 +509,12 @@ export default function Index() {
               <FadeIn
                 key={partner.id}
                 delay={i * 100}
-                className="relative text-center group cursor-pointer hover:bg-muted/50 p-6 rounded-2xl border shadow-sm transition-all hover:-translate-y-1"
-                onClick={() => setSelectedReseller(partner)}
+                className="relative text-center group cursor-pointer hover:bg-muted/50 p-6 rounded-2xl border shadow-sm transition-all hover:-translate-y-1 block"
+                onClick={() => navigate(`/marcas/${partner.id}`)}
               >
+                <div className="absolute top-2 right-2 z-20">
+                  <FavoriteButton brandId={partner.id} />
+                </div>
                 {i < 3 && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground text-[10px] uppercase font-bold tracking-wider py-1 px-3 rounded-full shadow-md z-10">
                     Trending
@@ -661,8 +618,11 @@ export default function Index() {
                         <Card
                           key={brand.id}
                           className="relative overflow-hidden group cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1 border-border/50"
-                          onClick={() => setSelectedReseller(brand)}
+                          onClick={() => navigate(`/marcas/${brand.id}`)}
                         >
+                          <div className="absolute top-2 right-2 z-20">
+                            <FavoriteButton brandId={brand.id} />
+                          </div>
                           <div
                             className={`absolute top-0 left-0 w-12 h-12 flex items-start justify-start p-2 rounded-br-2xl shadow-sm z-10 ${getMedalColor(
                               brand.ranking_position,
@@ -844,9 +804,12 @@ export default function Index() {
                     <FadeIn
                       key={reseller.id}
                       delay={i * 100}
-                      className="text-center group cursor-pointer hover:bg-muted/50 p-4 rounded-xl transition-colors"
-                      onClick={() => setSelectedReseller(reseller)}
+                      className="relative text-center group cursor-pointer hover:bg-muted/50 p-4 rounded-xl transition-colors block"
+                      onClick={() => navigate(`/marcas/${reseller.id}`)}
                     >
+                      <div className="absolute top-2 right-2 z-20">
+                        <FavoriteButton brandId={reseller.id} />
+                      </div>
                       <div className="relative mx-auto mb-4 w-28 h-28 md:w-36 md:h-36 rounded-full overflow-hidden border-4 border-background shadow-lg">
                         {reseller.avatar ? (
                           <img
@@ -935,7 +898,7 @@ export default function Index() {
                         key={reseller.id}
                         className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-20"
                         style={{ left: `${x}%`, top: `${y}%` }}
-                        onClick={() => setSelectedReseller(reseller)}
+                        onClick={() => navigate(`/marcas/${reseller.id}`)}
                       >
                         <MapPin className="w-8 h-8 text-primary drop-shadow-lg group-hover:scale-125 group-hover:-translate-y-2 group-hover:text-accent transition-all duration-300" />
                         {reseller.is_verified && (
@@ -970,120 +933,6 @@ export default function Index() {
           </FadeIn>
         </div>
       </section>
-
-      {/* Partner Detail Modal */}
-      <Dialog open={!!selectedReseller} onOpenChange={(open) => !open && setSelectedReseller(null)}>
-        <DialogContent className="sm:max-w-[425px]">
-          {selectedReseller && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="sr-only">Detalhes do Parceiro</DialogTitle>
-                <DialogDescription className="sr-only">
-                  Informações sobre {selectedReseller.name}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex flex-col items-center text-center space-y-4 pt-4">
-                <Avatar className="w-32 h-32 border-4 border-background shadow-lg">
-                  <AvatarImage
-                    src={
-                      selectedReseller.avatar
-                        ? pb.files.getUrl(selectedReseller, selectedReseller.avatar, {
-                            thumb: '200x200',
-                          })
-                        : `https://img.usecurling.com/ppl/medium?seed=99&gender=female`
-                    }
-                    className="object-cover"
-                  />
-                  <AvatarFallback className="text-2xl">
-                    {selectedReseller.name.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-2xl font-serif flex items-center justify-center gap-2">
-                    {selectedReseller.name}
-                    {selectedReseller.is_verified && (
-                      <BadgeCheck className="w-6 h-6 text-green-500" title="Parceiro Verificado" />
-                    )}
-                  </h3>
-                  <p className="text-sm text-muted-foreground capitalize mt-1">
-                    {selectedReseller.ranking_category
-                      ? selectedReseller.ranking_category.replace(/_/g, ' ')
-                      : 'Varejo / Revenda'}
-                  </p>
-                </div>
-                {selectedReseller.bio && (
-                  <p className="text-sm text-foreground/80 leading-relaxed max-w-sm">
-                    {selectedReseller.bio}
-                  </p>
-                )}
-
-                <div className="w-full mt-6 text-left border-t pt-6">
-                  <h4 className="font-semibold mb-4 text-sm">I'm Interested (Express Interest)</h4>
-                  <form onSubmit={handleLeadSubmit} className="space-y-3">
-                    <div className="space-y-1">
-                      <Label htmlFor="leadName" className="text-xs">
-                        Name *
-                      </Label>
-                      <Input
-                        id="leadName"
-                        required
-                        value={leadName}
-                        onChange={(e) => setLeadName(e.target.value)}
-                        placeholder="Your full name"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="leadEmail" className="text-xs">
-                        Email *
-                      </Label>
-                      <Input
-                        id="leadEmail"
-                        type="email"
-                        required
-                        value={leadEmail}
-                        onChange={(e) => setLeadEmail(e.target.value)}
-                        placeholder="you@example.com"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="leadMessage" className="text-xs">
-                        Message / Product Interest
-                      </Label>
-                      <Textarea
-                        id="leadMessage"
-                        value={leadMessage}
-                        onChange={(e) => setLeadMessage(e.target.value)}
-                        placeholder="What are you interested in?"
-                        className="resize-none h-16 text-sm"
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      disabled={isSubmittingLead}
-                      className="w-full h-8 text-xs"
-                    >
-                      {isSubmittingLead ? 'Sending...' : 'Express Interest'}
-                    </Button>
-                  </form>
-                </div>
-
-                {selectedReseller.phone && (
-                  <Button
-                    className="w-full mt-2 bg-[#25D366] hover:bg-[#128C7E] text-white"
-                    size="lg"
-                    onClick={(e) => handleWhatsAppClick(e, selectedReseller)}
-                  >
-                    <MessageCircle className="w-5 h-5 mr-2" />
-                    Contact on WhatsApp
-                  </Button>
-                )}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Nossa Equipe Section */}
       <section className="py-24 bg-muted/30 border-y border-border">

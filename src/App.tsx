@@ -42,59 +42,64 @@ import Analytics from './pages/dashboard/Analytics'
 import Billing from './pages/dashboard/Billing'
 import Performance from './pages/dashboard/Performance'
 import WhatsappSettings from './pages/dashboard/WhatsappSettings'
+import { FavoritesProvider } from '@/contexts/FavoritesContext'
+import BrandProfile from './pages/BrandProfile'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Routes>
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="pedidos" element={<AdminOrders />} />
-          <Route path="produtos" element={<AdminProducts />} />
-          <Route path="clientes" element={<AdminCustomers />} />
-          <Route path="relatorios" element={<AdminReports />} />
-          <Route path="avaliacoes" element={<AdminReviews />} />
-          <Route path="marketing" element={<AdminMarketing />} />
-          <Route path="configuracoes" element={<AdminSettings />} />
-        </Route>
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Navigate to="/dashboard/crm" replace />} />
-          <Route path="crm" element={<CRM />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="billing" element={<Billing />} />
-          <Route path="performance" element={<Performance />} />
-          <Route path="settings/whatsapp" element={<WhatsappSettings />} />
-        </Route>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Index />} />
-          <Route path="/colecoes" element={<Collections />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/produto/:id" element={<ProductDetail />} />
-          <Route path="/favoritos" element={<Wishlist />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/cadastro" element={<Register />} />
-          <Route path="/recuperar-senha" element={<ForgotPassword />} />
-          <Route path="/perfil" element={<Profile />} />
-          <Route path="/finalizar-compra" element={<Checkout />} />
-          <Route path="/pedido-realizado" element={<OrderConfirmation />} />
-          <Route path="/meus-pedidos" element={<Orders />} />
-          <Route path="/revista" element={<Revista />} />
-          <Route path="/conhecimento" element={<Academy />} />
-          <Route path="/curso/:id" element={<CourseDetail />} />
-          <Route path="/sobre-nos" element={<AboutUs />} />
-          <Route path="/contato" element={<Contact />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/guia-de-moda" element={<FashionGuide />} />
-          <Route path="/revenda" element={<ResellerApplication />} />
-          <Route path="/painel-fabricante" element={<ManufacturerDashboard />} />
-          <Route path="/credito-moda" element={<Navigate to="/" replace />} />
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </TooltipProvider>
+    <FavoritesProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Routes>
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="pedidos" element={<AdminOrders />} />
+            <Route path="produtos" element={<AdminProducts />} />
+            <Route path="clientes" element={<AdminCustomers />} />
+            <Route path="relatorios" element={<AdminReports />} />
+            <Route path="avaliacoes" element={<AdminReviews />} />
+            <Route path="marketing" element={<AdminMarketing />} />
+            <Route path="configuracoes" element={<AdminSettings />} />
+          </Route>
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Navigate to="/dashboard/crm" replace />} />
+            <Route path="crm" element={<CRM />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="billing" element={<Billing />} />
+            <Route path="performance" element={<Performance />} />
+            <Route path="settings/whatsapp" element={<WhatsappSettings />} />
+          </Route>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/marcas/:id" element={<BrandProfile />} />
+            <Route path="/colecoes" element={<Collections />} />
+            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/produto/:id" element={<ProductDetail />} />
+            <Route path="/favoritos" element={<Wishlist />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/cadastro" element={<Register />} />
+            <Route path="/recuperar-senha" element={<ForgotPassword />} />
+            <Route path="/perfil" element={<Profile />} />
+            <Route path="/finalizar-compra" element={<Checkout />} />
+            <Route path="/pedido-realizado" element={<OrderConfirmation />} />
+            <Route path="/meus-pedidos" element={<Orders />} />
+            <Route path="/revista" element={<Revista />} />
+            <Route path="/conhecimento" element={<Academy />} />
+            <Route path="/curso/:id" element={<CourseDetail />} />
+            <Route path="/sobre-nos" element={<AboutUs />} />
+            <Route path="/contato" element={<Contact />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/guia-de-moda" element={<FashionGuide />} />
+            <Route path="/revenda" element={<ResellerApplication />} />
+            <Route path="/painel-fabricante" element={<ManufacturerDashboard />} />
+            <Route path="/credito-moda" element={<Navigate to="/" replace />} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </TooltipProvider>
+    </FavoritesProvider>
   </BrowserRouter>
 )
 
