@@ -108,6 +108,21 @@ export default function BrandProfile() {
     if (brand.id) {
       try {
         await pb.send(`/backend/v1/partners/${brand.id}/click`, { method: 'POST' })
+
+        const ref = sessionStorage.getItem('vmoda_affiliate_ref')
+        if (ref) {
+          await pb
+            .send('/backend/v1/referrals/track', {
+              method: 'POST',
+              body: JSON.stringify({
+                code: ref,
+                brandId: brand.id,
+                type: 'lead',
+                metadata: { source: 'whatsapp_click' },
+              }),
+            })
+            .catch(console.error)
+        }
       } catch (e) {
         console.error('Error tracking click', e)
       }

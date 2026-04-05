@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-05T10:29:56.649Z",
+  "generatedAt": "2026-04-05T10:59:56.421Z",
   "collections": [
     {
       "name": "users",
@@ -43,11 +43,25 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["manufacturer", "retailer", "affiliate"]
+        },
+        {
+          "name": "affiliate_code",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
-        "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+        "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''",
+        "CREATE INDEX `idx_users_affiliate_code` ON `users` (affiliate_code)"
       ]
     },
     {
@@ -841,6 +855,65 @@
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_categories_slug ON categories (slug)"]
+    },
+    {
+      "name": "referrals",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && affiliate = @request.auth.id",
+        "view": "@request.auth.id != '' && affiliate = @request.auth.id",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "affiliate",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "customers"
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["click", "lead", "conversion"]
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_referrals_affiliate ON referrals (affiliate)",
+        "CREATE INDEX idx_referrals_brand ON referrals (brand)",
+        "CREATE INDEX idx_referrals_type ON referrals (type)"
+      ]
     }
   ]
 }

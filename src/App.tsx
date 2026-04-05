@@ -44,11 +44,15 @@ import Analytics from './pages/dashboard/Analytics'
 import Billing from './pages/dashboard/Billing'
 import Performance from './pages/dashboard/Performance'
 import WhatsappSettings from './pages/dashboard/WhatsappSettings'
+import AffiliateDashboard from './pages/dashboard/AffiliateDashboard'
+import Affiliates from './pages/Affiliates'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import BrandProfile from './pages/BrandProfile'
+import { GlobalTracking } from './components/GlobalTracking'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+    <GlobalTracking />
     <FavoritesProvider>
       <TooltipProvider>
         <Toaster />
@@ -73,6 +77,7 @@ const App = () => (
             <Route path="billing" element={<Billing />} />
             <Route path="performance" element={<Performance />} />
             <Route path="settings/whatsapp" element={<WhatsappSettings />} />
+            <Route path="affiliate" element={<AffiliateDashboard />} />
           </Route>
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
@@ -96,6 +101,7 @@ const App = () => (
             <Route path="/faq" element={<FAQ />} />
             <Route path="/guia-de-moda" element={<FashionGuide />} />
             <Route path="/revenda" element={<ResellerApplication />} />
+            <Route path="/afiliados" element={<Affiliates />} />
             <Route path="/painel-fabricante" element={<ManufacturerDashboard />} />
             <Route path="/meu-painel" element={<RetailerDashboard />} />
             <Route path="/credito-moda" element={<Navigate to="/" replace />} />

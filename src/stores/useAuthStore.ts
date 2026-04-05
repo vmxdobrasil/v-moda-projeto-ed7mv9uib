@@ -6,6 +6,8 @@ export interface User {
   email: string
   type?: 'Varejo' | 'Atacado' | 'Lojista Fabricante'
   manufacturerId?: string
+  role?: 'manufacturer' | 'retailer' | 'affiliate'
+  affiliate_code?: string
 }
 
 interface AuthState {
