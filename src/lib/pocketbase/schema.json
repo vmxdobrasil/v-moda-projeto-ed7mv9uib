@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-05T10:59:56.421Z",
+  "generatedAt": "2026-04-05T11:12:10.117Z",
   "collections": [
     {
       "name": "users",
@@ -54,6 +54,12 @@
         {
           "name": "affiliate_code",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "commission_rate",
+          "type": "number",
           "required": false,
           "system": false
         }
@@ -369,6 +375,13 @@
           "required": false,
           "system": false,
           "collectionRef": "categories"
+        },
+        {
+          "name": "affiliate_referrer",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": [
@@ -907,6 +920,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "source_channel",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["whatsapp_group", "social_profile"]
         }
       ],
       "indexes": [

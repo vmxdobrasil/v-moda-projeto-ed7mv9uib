@@ -38,6 +38,7 @@ import AdminSettings from './pages/admin/Settings'
 import AdminReviews from './pages/admin/Reviews'
 import AdminMarketing from './pages/admin/Marketing'
 import AdminCategories from './pages/admin/Categories'
+import AdminAffiliates from './pages/admin/Affiliates'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import CRM from './pages/dashboard/CRM'
 import Analytics from './pages/dashboard/Analytics'
@@ -49,6 +50,7 @@ import Affiliates from './pages/Affiliates'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import BrandProfile from './pages/BrandProfile'
 import { GlobalTracking } from './components/GlobalTracking'
+import AffiliateLeadForm from './pages/AffiliateLeadForm'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -68,6 +70,7 @@ const App = () => (
             <Route path="avaliacoes" element={<AdminReviews />} />
             <Route path="marketing" element={<AdminMarketing />} />
             <Route path="categorias" element={<AdminCategories />} />
+            <Route path="afiliados" element={<AdminAffiliates />} />
             <Route path="configuracoes" element={<AdminSettings />} />
           </Route>
           <Route path="/dashboard" element={<DashboardLayout />}>
@@ -102,6 +105,7 @@ const App = () => (
             <Route path="/guia-de-moda" element={<FashionGuide />} />
             <Route path="/revenda" element={<ResellerApplication />} />
             <Route path="/afiliados" element={<Affiliates />} />
+            <Route path="/parceiro" element={<AffiliateLeadForm />} />
             <Route path="/painel-fabricante" element={<ManufacturerDashboard />} />
             <Route path="/meu-painel" element={<RetailerDashboard />} />
             <Route path="/credito-moda" element={<Navigate to="/" replace />} />

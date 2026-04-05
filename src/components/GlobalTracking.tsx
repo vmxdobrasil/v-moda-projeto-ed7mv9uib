@@ -6,8 +6,13 @@ export function GlobalTracking() {
 
   useEffect(() => {
     const ref = searchParams.get('ref')
+    const src = searchParams.get('src')
+
     if (ref) {
       sessionStorage.setItem('vmoda_affiliate_ref', ref)
+    }
+    if (src) {
+      sessionStorage.setItem('vmoda_affiliate_src', src)
     }
   }, [searchParams])
 
