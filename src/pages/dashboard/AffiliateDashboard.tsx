@@ -28,11 +28,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
-import { Copy, DollarSign, Clock, Users, Download, Plus } from 'lucide-react'
+import { Copy, DollarSign, Clock, Users, Download, Plus, Upload } from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import pb from '@/lib/pocketbase/client'
 import { createCustomer } from '@/services/customers'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import ImportLeadsDialog from './components/ImportLeadsDialog'
 
 export default function AffiliateDashboard() {
   const { user } = useAuthStore()
@@ -41,6 +42,8 @@ export default function AffiliateDashboard() {
   const [customers, setCustomers] = useState<any[]>([])
   const [source, setSource] = useState('social_profile')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -224,10 +227,20 @@ export default function AffiliateDashboard() {
             <CardTitle>Meus Leads</CardTitle>
             <CardDescription>Acompanhe e gerencie os clientes indicados.</CardDescription>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
+              <Upload className="w-4 h-4 mr-2" /> Importar
+            </Button>
             <Button variant="outline" onClick={exportCSV} disabled={customers.length === 0}>
               <Download className="w-4 h-4 mr-2" /> Exportar Lista
             </Button>
+
+            <ImportLeadsDialog
+              open={isImportDialogOpen}
+              onOpenChange={setIsImportDialogOpen}
+              onImportStateChange={setIsImporting}
+              onImportComplete={loadData}
+            />
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>

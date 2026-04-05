@@ -21,7 +21,7 @@ import {
 import { toast } from 'sonner'
 import { parseCSV } from '@/lib/csv-parser'
 import { useBulkImport } from '@/hooks/use-bulk-import'
-import { UploadCloud, CheckCircle2, FileSpreadsheet } from 'lucide-react'
+import { UploadCloud, CheckCircle2, FileSpreadsheet, DownloadCloud } from 'lucide-react'
 
 export default function ImportLeadsDialog({
   open,
@@ -98,6 +98,14 @@ export default function ImportLeadsDialog({
     setStep(4)
   }
 
+  useEffect(() => {
+    if (step === 4 && stats) {
+      toast.success(
+        `Importação concluída! ${stats.success} importados, ${stats.skipped} duplicados/ignorados, ${stats.error} erros.`,
+      )
+    }
+  }, [step, stats])
+
   const renderMappingRow = (field: string, label: string, required = false) => (
     <div className="flex items-center justify-between p-3 border rounded-lg bg-card">
       <Label className="font-medium">
@@ -121,6 +129,18 @@ export default function ImportLeadsDialog({
     </div>
   )
 
+  const downloadTemplate = () => {
+    const csv =
+      'Nome,Telefone,Email,Origem\nJoão Silva,11999999999,joao@email.com,manual\nMaria Souza,11888888888,maria@email.com,whatsapp_group'
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'modelo_importacao_leads.csv'
+    a.click()
+    window.URL.revokeObjectURL(url)
+  }
+
   return (
     <Dialog open={open} onOpenChange={(v) => !isImporting && (v ? setStep(1) : reset())}>
       <DialogContent className="sm:max-w-[650px]">
@@ -129,20 +149,28 @@ export default function ImportLeadsDialog({
         </DialogHeader>
 
         {step === 1 && (
-          <div
-            className="flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <UploadCloud className="w-12 h-12 text-muted-foreground mb-4" />
-            <p className="text-base font-medium">Clique para selecionar ou arraste o arquivo</p>
-            <p className="text-sm text-muted-foreground mt-1">Suporta .csv e .xlsx</p>
-            <input
-              type="file"
-              className="hidden"
-              accept=".csv, .xlsx"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-            />
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" onClick={downloadTemplate}>
+                <DownloadCloud className="w-4 h-4 mr-2" />
+                Baixar Template CSV
+              </Button>
+            </div>
+            <div
+              className="flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <UploadCloud className="w-12 h-12 text-muted-foreground mb-4" />
+              <p className="text-base font-medium">Clique para selecionar ou arraste o arquivo</p>
+              <p className="text-sm text-muted-foreground mt-1">Suporta .csv e .xlsx</p>
+              <input
+                type="file"
+                className="hidden"
+                accept=".csv, .xlsx"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+              />
+            </div>
           </div>
         )}
 

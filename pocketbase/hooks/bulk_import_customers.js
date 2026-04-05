@@ -14,6 +14,9 @@ routerAdd(
       throw new UnauthorizedError('Authentication required')
     }
 
+    const role = user.getString('role')
+    const isAffiliate = role === 'affiliate'
+
     const customersCol = $app.findCollectionByNameOrId('customers')
 
     let success = 0
@@ -22,11 +25,11 @@ routerAdd(
 
     const existingRecords = $app.findRecordsByFilter(
       'customers',
-      'manufacturer = {:manufacturer}',
+      isAffiliate ? 'affiliate_referrer = {:userId}' : 'manufacturer = {:userId}',
       '',
       100000,
       0,
-      { manufacturer: user.id },
+      { userId: user.id },
     )
 
     const phones = new Set()
@@ -62,12 +65,23 @@ routerAdd(
           const record = new Record(customersCol)
           record.set('name', name)
           record.set('phone', rawPhone)
-          if (email) record.set('email', email)
+          if (email) {
+            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+              record.set('email', email)
+            } else {
+              throw new Error('Invalid email format')
+            }
+          }
           record.set('source', row.source || 'manual')
           record.set('exclusivity_zone', row.exclusivity_zone || '')
           record.set('ranking_category', row.ranking_category || '')
           record.set('status', 'new')
-          record.set('manufacturer', user.id)
+
+          if (isAffiliate) {
+            record.set('affiliate_referrer', user.id)
+          } else {
+            record.set('manufacturer', user.id)
+          }
 
           txApp.save(record)
           phones.add(phone)
