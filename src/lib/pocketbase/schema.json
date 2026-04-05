@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-05T02:50:37.552Z",
+  "generatedAt": "2026-04-05T02:54:38.211Z",
   "collections": [
     {
       "name": "users",
@@ -37,6 +37,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "is_verified",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -334,6 +340,13 @@
           "type": "number",
           "required": false,
           "system": false
+        },
+        {
+          "name": "price_level",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["$", "$$", "$$$"]
         }
       ],
       "indexes": [
@@ -747,6 +760,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "images",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

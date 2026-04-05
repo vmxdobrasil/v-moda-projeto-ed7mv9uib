@@ -15,6 +15,8 @@ import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { FadeIn } from '@/components/FadeIn'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { ReviewDialog } from '@/components/ReviewDialog'
@@ -162,6 +164,14 @@ export default function BrandProfile() {
                         ? brand.ranking_category.replace(/_/g, ' ')
                         : 'Varejo / Revenda'}
                     </span>
+                    {brand.price_level && (
+                      <>
+                        <span className="w-1 h-1 rounded-full bg-muted-foreground/30 hidden sm:block"></span>
+                        <span className="text-green-600 font-bold tracking-wider">
+                          {brand.price_level}
+                        </span>
+                      </>
+                    )}
                     <span className="w-1 h-1 rounded-full bg-muted-foreground/30 hidden sm:block"></span>
                     {brand.rating_count > 0 ? (
                       <div className="flex items-center gap-1.5 font-medium">
@@ -314,15 +324,26 @@ export default function BrandProfile() {
                             {review.expand?.user?.name?.substring(0, 2).toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <p className="font-medium text-sm">
-                            {review.expand?.user?.name || 'Usuário'}
-                          </p>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm">
+                              {review.expand?.user?.name || 'Usuário'}
+                            </p>
+                            {review.expand?.user?.is_verified && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-green-100 text-green-800 hover:bg-green-100 text-[10px] h-5 px-1.5 py-0 border-green-200"
+                              >
+                                <BadgeCheck className="w-3 h-3 mr-1" />
+                                Lojista Verificado
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             {new Date(review.created).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
-                      </div>
+                      </div>{' '}
                       <div className="flex">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
@@ -340,6 +361,30 @@ export default function BrandProfile() {
                       <p className="text-muted-foreground/50 text-sm italic">
                         Avaliação sem comentário.
                       </p>
+                    )}
+                    {review.images && review.images.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border/50">
+                        {review.images.map((img: string, idx: number) => (
+                          <Dialog key={idx}>
+                            <DialogTrigger asChild>
+                              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity">
+                                <img
+                                  src={pb.files.getUrl(review, img, { thumb: '100x100' })}
+                                  className="w-full h-full object-cover"
+                                  alt={`Foto ${idx + 1}`}
+                                />
+                              </div>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-3xl w-[95vw] p-0 bg-transparent border-none shadow-none flex justify-center [&>button]:text-white [&>button]:bg-black/50 [&>button]:rounded-full [&>button]:p-2 [&>button]:hover:bg-black/80">
+                              <img
+                                src={pb.files.getUrl(review, img)}
+                                className="max-w-full h-auto max-h-[85vh] object-contain rounded-lg"
+                                alt={`Foto ampliada ${idx + 1}`}
+                              />
+                            </DialogContent>
+                          </Dialog>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </FadeIn>
