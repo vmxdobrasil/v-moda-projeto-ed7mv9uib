@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-05T13:56:33.395Z",
+  "generatedAt": "2026-04-05T14:03:06.552Z",
   "collections": [
     {
       "name": "users",
@@ -81,6 +81,12 @@
           "required": false,
           "system": false,
           "selectValues": ["44_goiania", "fama_goiania", "bras_sp", "bom_retiro_sp", "outros"]
+        },
+        {
+          "name": "operating_cities",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -434,6 +440,12 @@
           "required": false,
           "system": false,
           "selectValues": ["Aguardando Ônibus", "Em Trânsito no Ônibus", "Entregue"]
+        },
+        {
+          "name": "freight_value",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

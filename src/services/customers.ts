@@ -26,6 +26,7 @@ export interface Customer {
   is_verified?: boolean
   bio?: string
   whatsapp_clicks?: number
+  freight_value?: number
 }
 
 export const getCustomers = async () => {

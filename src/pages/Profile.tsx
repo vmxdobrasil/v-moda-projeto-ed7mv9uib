@@ -35,6 +35,7 @@ const profileSchema = z.object({
   email: z.string().email('E-mail inválido'),
   is_transporter: z.boolean().optional(),
   operating_regions: z.string().optional(),
+  operating_cities: z.string().optional(),
   fashion_hubs: z.array(z.string()).optional(),
 })
 
@@ -56,6 +57,7 @@ export default function Profile() {
       email: user?.email || '',
       is_transporter: user?.is_transporter || false,
       operating_regions: user?.operating_regions || '',
+      operating_cities: user?.operating_cities || '',
       fashion_hubs: user?.fashion_hubs || [],
     },
   })
@@ -69,6 +71,7 @@ export default function Profile() {
         email: user.email,
         is_transporter: user.is_transporter || false,
         operating_regions: user.operating_regions || '',
+        operating_cities: user.operating_cities || '',
         fashion_hubs: user.fashion_hubs || [],
       })
       if (user.avatar) {
@@ -97,6 +100,7 @@ export default function Profile() {
       if (user.role === 'affiliate') {
         formData.append('is_transporter', data.is_transporter ? 'true' : 'false')
         formData.append('operating_regions', data.operating_regions || '')
+        formData.append('operating_cities', data.operating_cities || '')
         if (data.fashion_hubs && data.fashion_hubs.length > 0) {
           data.fashion_hubs.forEach((hub) => formData.append('fashion_hubs', hub))
         } else {
@@ -266,26 +270,50 @@ export default function Profile() {
 
                       {form.watch('is_transporter') && (
                         <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <FormField
-                            control={form.control}
-                            name="operating_regions"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Regiões de Atuação (Origem)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    {...field}
-                                    disabled={!isEditing}
-                                    placeholder="Ex: Interior de SP, Sul de Minas..."
-                                  />
-                                </FormControl>
-                                <FormDescription>
-                                  De onde você traz suas sacoleiras?
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          <div className="space-y-6">
+                            <FormField
+                              control={form.control}
+                              name="operating_regions"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Estado / Região Principal</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      disabled={!isEditing}
+                                      placeholder="Ex: Interior de SP, Sul de Minas..."
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    De onde você traz suas sacoleiras no ônibus?
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="operating_cities"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Rota de Atuação / Cidades</FormLabel>
+                                  <FormControl>
+                                    <Textarea
+                                      {...field}
+                                      disabled={!isEditing}
+                                      placeholder="Ex: Campinas, Ribeirão Preto, Franca..."
+                                      className="resize-none min-h-[100px]"
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Liste as cidades e a rota detalhada do seu ônibus.
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
 
                           <FormField
                             control={form.control}

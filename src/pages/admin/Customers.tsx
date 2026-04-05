@@ -35,6 +35,8 @@ import {
   Phone,
   MessageCircle,
   Zap,
+  BusFront,
+  MapPin,
 } from 'lucide-react'
 import { Customer, getCustomers } from '@/services/customers'
 import { sendManualWhatsapp, sendReactivationCampaign } from '@/services/whatsapp'
@@ -566,6 +568,34 @@ export default function Customers() {
                         </span>
                         <span className="text-3xl font-bold text-primary">
                           R$ {getDerivedData(selectedCustomer).totalSpent.toFixed(2)}
+                        </span>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card>
+                      <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                        <span className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
+                          <MapPin className="w-4 h-4" /> Origem (Rota do Ônibus)
+                        </span>
+                        <span className="text-lg font-medium mt-1">
+                          {selectedCustomer.city
+                            ? `${selectedCustomer.city} / ${selectedCustomer.state || '-'}`
+                            : 'Não informada'}
+                        </span>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                        <span className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
+                          <BusFront className="w-4 h-4" /> Custo de Logística (Frete)
+                        </span>
+                        <span className="text-lg font-medium text-blue-600 mt-1">
+                          R${' '}
+                          {selectedCustomer.freight_value
+                            ? selectedCustomer.freight_value.toFixed(2)
+                            : '0.00'}
                         </span>
                       </CardContent>
                     </Card>

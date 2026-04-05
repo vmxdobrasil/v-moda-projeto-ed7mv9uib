@@ -76,6 +76,7 @@ export default function AffiliateDashboard() {
 
   const [editingLogisticsId, setEditingLogisticsId] = useState<string | null>(null)
   const [logisticsNotes, setLogisticsNotes] = useState('')
+  const [freightValue, setFreightValue] = useState<string>('')
 
   const [formData, setFormData] = useState({
     name: '',
@@ -86,6 +87,7 @@ export default function AffiliateDashboard() {
     source: 'none',
     manufacturer: 'none',
     caravan_name: '',
+    freight_value: '',
   })
 
   const loadData = useCallback(async () => {
@@ -133,12 +135,17 @@ export default function AffiliateDashboard() {
 
   const commissionRate = (user.commission_rate || 2.0) / 100
   let earned = 0,
-    pending = 0
+    pending = 0,
+    totalFreight = 0
 
   referrals.forEach((ref) => {
     const val = ref.metadata?.amount || ref.metadata?.value || 0
     if (ref.type === 'conversion') earned += val * commissionRate
     else if (ref.type === 'lead') pending += val * commissionRate
+  })
+
+  customers.forEach((c) => {
+    if (c.freight_value) totalFreight += c.freight_value
   })
 
   const conversions = referrals.filter((r) => r.type === 'conversion').length
@@ -232,6 +239,7 @@ export default function AffiliateDashboard() {
       if (formData.source !== 'none') payload.source = formData.source
       if (formData.manufacturer !== 'none') payload.manufacturer = formData.manufacturer
       if (formData.caravan_name) payload.caravan_name = formData.caravan_name
+      if (formData.freight_value) payload.freight_value = parseFloat(formData.freight_value)
 
       await createCustomer(payload)
       toast({ title: 'Cliente registrado!', description: 'Cliente adicionado com sucesso.' })
@@ -245,6 +253,7 @@ export default function AffiliateDashboard() {
         source: 'none',
         manufacturer: 'none',
         caravan_name: '',
+        freight_value: '',
       })
       loadData()
     } catch (err) {
@@ -313,7 +322,7 @@ export default function AffiliateDashboard() {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Meus Clientes</CardTitle>
@@ -355,6 +364,18 @@ export default function AffiliateDashboard() {
             <div className="text-2xl font-bold text-emerald-600">R$ {earned.toFixed(2)}</div>
           </CardContent>
         </Card>
+
+        {user.is_transporter && (
+          <Card>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-medium text-blue-600">Receita de Frete</CardTitle>
+              <BusFront className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">R$ {totalFreight.toFixed(2)}</div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Card>
@@ -471,16 +492,32 @@ export default function AffiliateDashboard() {
                           />
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="caravan_name">Nome do Ônibus / Excursão (Opcional)</Label>
-                        <Input
-                          id="caravan_name"
-                          value={formData.caravan_name}
-                          onChange={(e) =>
-                            setFormData((f) => ({ ...f, caravan_name: e.target.value }))
-                          }
-                          placeholder="Ex: Excursão Brás - 15/10"
-                        />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="caravan_name">Nome do Ônibus (Opcional)</Label>
+                          <Input
+                            id="caravan_name"
+                            value={formData.caravan_name}
+                            onChange={(e) =>
+                              setFormData((f) => ({ ...f, caravan_name: e.target.value }))
+                            }
+                            placeholder="Ex: Excursão Brás - 15/10"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="freight_value">Valor do Frete (R$)</Label>
+                          <Input
+                            id="freight_value"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={formData.freight_value}
+                            onChange={(e) =>
+                              setFormData((f) => ({ ...f, freight_value: e.target.value }))
+                            }
+                            placeholder="Ex: 150.00"
+                          />
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label>Origem (Opcional)</Label>
@@ -613,6 +650,7 @@ export default function AffiliateDashboard() {
                       <TableRow>
                         <TableHead>Lojista / Sacoleira</TableHead>
                         <TableHead>Ônibus / Excursão</TableHead>
+                        <TableHead>Frete</TableHead>
                         <TableHead>Status Logístico</TableHead>
                         <TableHead>Notas de Coleta</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
@@ -623,6 +661,9 @@ export default function AffiliateDashboard() {
                         <TableRow key={c.id}>
                           <TableCell className="font-medium">{c.name}</TableCell>
                           <TableCell>{c.caravan_name || '-'}</TableCell>
+                          <TableCell className="font-medium text-blue-600">
+                            R$ {c.freight_value ? c.freight_value.toFixed(2) : '0.00'}
+                          </TableCell>
                           <TableCell>
                             <Select
                               value={c.logistics_status || 'Aguardando Ônibus'}
@@ -650,16 +691,17 @@ export default function AffiliateDashboard() {
                               onClick={() => {
                                 setEditingLogisticsId(c.id)
                                 setLogisticsNotes(c.logistics_notes || '')
+                                setFreightValue(c.freight_value ? c.freight_value.toString() : '')
                               }}
                             >
-                              <FileText className="w-4 h-4 mr-2" /> Notas
+                              <FileText className="w-4 h-4 mr-2" /> Editar
                             </Button>
                           </TableCell>
                         </TableRow>
                       ))}
                       {customers.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                          <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
                             Nenhum registro logístico.
                           </TableCell>
                         </TableRow>
@@ -704,23 +746,38 @@ export default function AffiliateDashboard() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Notas de Logística / Coleta</DialogTitle>
+            <DialogTitle>Detalhes Logísticos (Ônibus e Frete)</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <Textarea
-              value={logisticsNotes}
-              onChange={(e) => setLogisticsNotes(e.target.value)}
-              placeholder="Ex: Coletar 5 volumes na loja X do Setor Fama para o Ônibus."
-              className="min-h-[150px] resize-none"
-            />
+            <div className="space-y-2">
+              <Label>Valor do Frete (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={freightValue}
+                onChange={(e) => setFreightValue(e.target.value)}
+                placeholder="Ex: 150.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Notas de Coleta / Logística</Label>
+              <Textarea
+                value={logisticsNotes}
+                onChange={(e) => setLogisticsNotes(e.target.value)}
+                placeholder="Ex: Coletar 5 volumes na loja X do Setor Fama para o Ônibus."
+                className="min-h-[150px] resize-none"
+              />
+            </div>
             <Button
               onClick={async () => {
                 if (!editingLogisticsId) return
                 try {
-                  await pb
-                    .collection('customers')
-                    .update(editingLogisticsId, { logistics_notes: logisticsNotes })
-                  toast({ title: 'Sucesso', description: 'Notas salvas.' })
+                  await pb.collection('customers').update(editingLogisticsId, {
+                    logistics_notes: logisticsNotes,
+                    freight_value: freightValue ? parseFloat(freightValue) : 0,
+                  })
+                  toast({ title: 'Sucesso', description: 'Detalhes logísticos salvos.' })
                   setEditingLogisticsId(null)
                   loadData()
                 } catch (err) {
