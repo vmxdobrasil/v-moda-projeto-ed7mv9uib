@@ -7,22 +7,43 @@ import {
   Trophy,
   ArrowLeft,
   Image as ImageIcon,
+  Star,
+  MessageSquareQuote,
 } from 'lucide-react'
 import { useSEO } from '@/hooks/useSEO'
+import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { FadeIn } from '@/components/FadeIn'
 import { FavoriteButton } from '@/components/FavoriteButton'
+import { ReviewDialog } from '@/components/ReviewDialog'
+import useAuthStore from '@/stores/useAuthStore'
 
 export default function BrandProfile() {
   const { id } = useParams<{ id: string }>()
+  const { user } = useAuthStore()
   const [brand, setBrand] = useState<any>(null)
   const [projects, setProjects] = useState<any[]>([])
+  const [reviews, setReviews] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
   useSEO({ title: brand ? `${brand.name} - Perfil da Marca` : 'Perfil da Marca' })
+
+  const loadReviews = async () => {
+    if (!id) return
+    try {
+      const r = await pb.collection('reviews').getFullList({
+        filter: `brand="${id}"`,
+        sort: '-created',
+        expand: 'user',
+      })
+      setReviews(r)
+    } catch (e) {
+      console.error('Error loading reviews:', e)
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -37,6 +58,7 @@ export default function BrandProfile() {
           })
           setProjects(p)
         }
+        await loadReviews()
       } catch (e) {
         console.error(e)
       } finally {
@@ -45,6 +67,20 @@ export default function BrandProfile() {
     }
     loadData()
   }, [id])
+
+  useRealtime('reviews', (e) => {
+    if (e.record.brand === id) {
+      loadReviews()
+      // Reload brand to update average rating display
+      pb.collection('customers').getOne(id).then(setBrand).catch(console.error)
+    }
+  })
+
+  useRealtime('customers', (e) => {
+    if (e.record.id === id) {
+      setBrand(e.record)
+    }
+  })
 
   if (loading) {
     return (
@@ -63,6 +99,7 @@ export default function BrandProfile() {
   }
 
   const isTop60 = (brand.ranking_position > 0 && brand.ranking_position <= 60) || brand.is_exclusive
+  const existingReview = reviews.find((r) => r.user === user?.id)
 
   const handleWhatsAppClick = async () => {
     if (brand.id) {
@@ -112,35 +149,57 @@ export default function BrandProfile() {
 
               <div className="flex-1 space-y-4">
                 <div>
-                  <h1 className="text-3xl md:text-5xl font-serif flex items-center justify-center md:justify-start gap-2">
+                  <h1 className="text-3xl md:text-5xl font-serif flex items-center justify-center md:justify-start gap-2 mb-2">
                     {brand.name}
                     {brand.is_verified && (
                       <BadgeCheck className="w-6 h-6 text-green-500" title="Verificado" />
                     )}
                   </h1>
-                  <p className="text-muted-foreground uppercase tracking-wider text-sm mt-2">
-                    {brand.ranking_category
-                      ? brand.ranking_category.replace(/_/g, ' ')
-                      : 'Varejo / Revenda'}
-                  </p>
+
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm mt-3">
+                    <span className="text-muted-foreground uppercase tracking-wider font-semibold">
+                      {brand.ranking_category
+                        ? brand.ranking_category.replace(/_/g, ' ')
+                        : 'Varejo / Revenda'}
+                    </span>
+                    <span className="w-1 h-1 rounded-full bg-muted-foreground/30 hidden sm:block"></span>
+                    {brand.rating_count > 0 ? (
+                      <div className="flex items-center gap-1.5 font-medium">
+                        <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                        <span>{brand.rating_average?.toFixed(1)}</span>
+                        <a
+                          href="#avaliacoes"
+                          className="text-muted-foreground font-normal hover:underline hover:text-foreground transition-colors"
+                        >
+                          ({brand.rating_count}{' '}
+                          {brand.rating_count === 1 ? 'avaliação' : 'avaliações'})
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Star className="w-4 h-4" /> Novo
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {brand.exclusivity_zone && (
-                  <div className="flex items-center justify-center md:justify-start gap-1 text-sm text-muted-foreground">
-                    <MapPin className="w-4 h-4" /> {brand.exclusivity_zone}
-                  </div>
-                )}
+                <div className="flex items-center justify-center md:justify-start gap-1 text-sm text-muted-foreground">
+                  <MapPin className="w-4 h-4" />
+                  {brand.city && brand.state
+                    ? `${brand.city}, ${brand.state}`
+                    : brand.exclusivity_zone || 'Localização não informada'}
+                </div>
 
                 <p className="text-foreground/80 leading-relaxed max-w-2xl">
                   {brand.bio ||
                     'Esta marca ainda não adicionou uma biografia ao seu perfil. Entre em contato diretamente para saber mais sobre seus produtos e coleções exclusivas.'}
                 </p>
 
-                <div className="pt-4">
+                <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
                   {brand.phone ? (
                     <Button
                       size="lg"
-                      className="w-full md:w-auto bg-[#25D366] hover:bg-[#128C7E] text-white"
+                      className="w-full sm:w-auto bg-[#25D366] hover:bg-[#128C7E] text-white"
                       onClick={handleWhatsAppClick}
                     >
                       <MessageCircle className="w-5 h-5 mr-2" /> Falar no WhatsApp
@@ -150,10 +209,22 @@ export default function BrandProfile() {
                       size="lg"
                       disabled
                       variant="outline"
-                      className="w-full md:w-auto bg-muted/50"
+                      className="w-full sm:w-auto bg-muted/50"
                     >
                       Contato Indisponível
                     </Button>
+                  )}
+                  {user && (
+                    <ReviewDialog
+                      brandId={brand.id}
+                      userId={user.id}
+                      existingReview={existingReview}
+                    >
+                      <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                        <Star className="w-5 h-5 mr-2" />
+                        {existingReview ? 'Editar Avaliação' : 'Avaliar Marca'}
+                      </Button>
+                    </ReviewDialog>
                   )}
                 </div>
               </div>
@@ -189,6 +260,87 @@ export default function BrandProfile() {
                         <p className="text-white/80 text-sm line-clamp-2">{project.description}</p>
                       )}
                     </div>
+                  </div>
+                </FadeIn>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div id="avaliacoes" className="mt-20 scroll-mt-24">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl md:text-3xl font-serif flex items-center gap-2">
+              <MessageSquareQuote className="w-6 h-6 text-primary" /> Avaliações da Comunidade
+            </h2>
+            {user && !existingReview && (
+              <ReviewDialog brandId={brand.id} userId={user.id}>
+                <Button variant="outline" size="sm">
+                  Deixar Avaliação
+                </Button>
+              </ReviewDialog>
+            )}
+          </div>
+
+          {reviews.length === 0 ? (
+            <div className="text-center py-16 bg-background rounded-xl border border-dashed">
+              <Star className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">Esta marca ainda não possui avaliações.</p>
+              {user ? (
+                <ReviewDialog brandId={brand.id} userId={user.id}>
+                  <Button variant="default">Seja o primeiro a avaliar</Button>
+                </ReviewDialog>
+              ) : (
+                <Button variant="outline" onClick={() => navigate('/login')}>
+                  Faça login para avaliar
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {reviews.map((review, i) => (
+                <FadeIn key={review.id} delay={i * 50}>
+                  <div className="bg-background p-6 rounded-xl border shadow-sm h-full flex flex-col">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-10 h-10 border">
+                          <AvatarImage
+                            src={
+                              review.expand?.user?.avatar
+                                ? pb.files.getUrl(review.expand.user, review.expand.user.avatar)
+                                : undefined
+                            }
+                          />
+                          <AvatarFallback>
+                            {review.expand?.user?.name?.substring(0, 2).toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {review.expand?.user?.name || 'Usuário'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(review.created).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`w-4 h-4 ${review.rating >= star ? 'fill-amber-500 text-amber-500' : 'fill-muted text-muted'}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {review.comment ? (
+                      <p className="text-muted-foreground text-sm leading-relaxed italic">
+                        "{review.comment}"
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground/50 text-sm italic">
+                        Avaliação sem comentário.
+                      </p>
+                    )}
                   </div>
                 </FadeIn>
               ))}

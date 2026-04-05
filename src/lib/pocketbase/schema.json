@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-05T02:42:42.291Z",
+  "generatedAt": "2026-04-05T02:50:37.552Z",
   "collections": [
     {
       "name": "users",
@@ -310,12 +310,38 @@
           "type": "number",
           "required": false,
           "system": false
+        },
+        {
+          "name": "city",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rating_average",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rating_count",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_customers_manufacturer ON customers (manufacturer)",
         "CREATE INDEX idx_customers_status ON customers (status)",
-        "CREATE INDEX `idx_customers_phone` ON `customers` (phone)"
+        "CREATE INDEX `idx_customers_phone` ON `customers` (phone)",
+        "CREATE INDEX `idx_customers_city` ON `customers` (city)",
+        "CREATE INDEX `idx_customers_state` ON `customers` (state)"
       ]
     },
     {
@@ -670,6 +696,64 @@
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_favorites_user_brand ON favorites (user, brand)"]
+    },
+    {
+      "name": "reviews",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user = @request.auth.id",
+        "delete": "@request.auth.id != '' && user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "brand",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "customers"
+        },
+        {
+          "name": "rating",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "comment",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_reviews_brand ON reviews (brand)",
+        "CREATE INDEX idx_reviews_user ON reviews (user)",
+        "CREATE UNIQUE INDEX idx_reviews_user_brand ON reviews (user, brand)"
+      ]
     }
   ]
 }

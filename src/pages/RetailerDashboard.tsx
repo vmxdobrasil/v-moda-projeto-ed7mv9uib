@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, Activity, Heart, ArrowRight } from 'lucide-react'
+import { User, Activity, Heart, ArrowRight, Star } from 'lucide-react'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import useAuthStore from '@/stores/useAuthStore'
 import { BrandCard } from '@/components/BrandCard'
@@ -13,6 +13,7 @@ export default function RetailerDashboard() {
   const { favorites } = useFavorites()
   const navigate = useNavigate()
   const [favoriteBrands, setFavoriteBrands] = useState<any[]>([])
+  const [recommendedBrands, setRecommendedBrands] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -21,28 +22,48 @@ export default function RetailerDashboard() {
       return
     }
 
-    const loadFavoriteBrands = async () => {
+    const loadData = async () => {
       const brandIds = Object.keys(favorites)
       if (brandIds.length === 0) {
         setFavoriteBrands([])
+        setRecommendedBrands([])
         setLoading(false)
         return
       }
 
       try {
+        // Load favorite brands
         const filterStr = brandIds.map((id) => `id="${id}"`).join(' || ')
         const brands = await pb.collection('customers').getFullList({
           filter: filterStr,
         })
         setFavoriteBrands(brands)
+
+        // Load recommended brands based on favorite categories and high rating
+        const categories = [...new Set(brands.map((b) => b.ranking_category).filter(Boolean))]
+        if (categories.length > 0) {
+          const catFilter = categories.map((c) => `ranking_category="${c}"`).join(' || ')
+          const favIds = brandIds.map((id) => `id!="${id}"`).join(' && ')
+
+          let recFilter = `(${catFilter}) && rating_average >= 4.0 && status='converted'`
+          if (favIds) recFilter += ` && (${favIds})`
+
+          const recs = await pb.collection('customers').getList(1, 4, {
+            filter: recFilter,
+            sort: '-rating_average,-rating_count',
+          })
+          setRecommendedBrands(recs.items)
+        } else {
+          setRecommendedBrands([])
+        }
       } catch (err) {
-        console.error('Error loading favorite brands', err)
+        console.error('Error loading dashboard data', err)
       } finally {
         setLoading(false)
       }
     }
 
-    loadFavoriteBrands()
+    loadData()
   }, [favorites, isAuthenticated, navigate])
 
   if (!isAuthenticated || !user) return null
@@ -51,7 +72,7 @@ export default function RetailerDashboard() {
   const engagementLevel = favoritesCount > 10 ? 'Alto' : favoritesCount > 0 ? 'Médio' : 'Iniciante'
 
   return (
-    <main className="w-full pt-24 pb-12 bg-muted/10 min-h-screen">
+    <main className="w-full pt-24 pb-24 bg-muted/10 min-h-screen">
       <div className="container">
         <FadeIn>
           <div className="mb-12">
@@ -62,7 +83,7 @@ export default function RetailerDashboard() {
           </div>
         </FadeIn>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           <FadeIn delay={100}>
             <Card className="bg-background h-full">
               <CardContent className="p-6 flex items-center gap-4 h-full">
@@ -153,6 +174,32 @@ export default function RetailerDashboard() {
             </Card>
           )}
         </FadeIn>
+
+        {/* Recommended Brands Section */}
+        {!loading && favoriteBrands.length > 0 && (
+          <FadeIn delay={500}>
+            <div className="mb-6 flex items-center justify-between mt-20">
+              <h2 className="text-2xl font-serif flex items-center gap-2">
+                <Star className="w-6 h-6 text-amber-500 fill-amber-500" /> Recomendados para Você
+              </h2>
+            </div>
+
+            {recommendedBrands.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {recommendedBrands.map((brand) => (
+                  <BrandCard key={brand.id} brand={brand} />
+                ))}
+              </div>
+            ) : (
+              <Card className="bg-background/50 border-dashed">
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  Não encontramos recomendações no momento. Continue explorando e favoritando mais
+                  marcas!
+                </CardContent>
+              </Card>
+            )}
+          </FadeIn>
+        )}
       </div>
     </main>
   )

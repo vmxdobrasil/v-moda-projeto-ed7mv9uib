@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { BadgeCheck, MessageCircle, MapPin, Trophy } from 'lucide-react'
+import { BadgeCheck, MessageCircle, MapPin, Trophy, Star } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -65,15 +65,34 @@ export function BrandCard({ brand }: { brand: any }) {
           )}
         </h3>
 
-        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-4">
+        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
           {brand.ranking_category ? brand.ranking_category.replace(/_/g, ' ') : 'Varejo / Revenda'}
         </div>
 
-        {brand.exclusivity_zone && (
+        {brand.rating_count > 0 && (
+          <div className="flex items-center gap-1 text-sm font-medium text-amber-500 mb-2">
+            <Star className="w-4 h-4 fill-amber-500" />
+            {brand.rating_average?.toFixed(1)}
+            <span className="text-muted-foreground text-xs font-normal">
+              ({brand.rating_count})
+            </span>
+          </div>
+        )}
+
+        {brand.city && brand.state ? (
+          <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-4">
+            <MapPin className="w-3 h-3" />
+            <span className="truncate max-w-[150px]">
+              {brand.city}, {brand.state}
+            </span>
+          </div>
+        ) : brand.exclusivity_zone ? (
           <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-4">
             <MapPin className="w-3 h-3" />
             <span className="truncate max-w-[150px]">{brand.exclusivity_zone}</span>
           </div>
+        ) : (
+          <div className="h-4 mb-4" /> // spacing filler
         )}
 
         <div className="mt-auto pt-4 w-full relative z-20">

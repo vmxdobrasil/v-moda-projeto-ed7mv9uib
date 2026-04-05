@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   Map as MapIcon,
   Trophy,
+  Star,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
@@ -545,9 +546,26 @@ export default function Index() {
                     <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
                   )}
                 </h3>
-                <div className="flex items-center justify-center gap-1.5 text-[10px] md:text-xs font-medium text-muted-foreground mb-4">
-                  <MessageCircle className="w-3 h-3 text-green-500" />
-                  {partner.whatsapp_clicks || 0} cliques
+                {partner.rating_count > 0 ? (
+                  <div className="flex items-center justify-center gap-1 text-xs font-medium text-amber-500 mb-1">
+                    <Star className="w-3 h-3 fill-amber-500" />
+                    {partner.rating_average?.toFixed(1)}
+                  </div>
+                ) : (
+                  <div className="h-4 mb-1" />
+                )}
+                <div className="flex items-center justify-center gap-1 text-[10px] md:text-xs text-muted-foreground mb-4">
+                  {partner.city && partner.state ? (
+                    <>
+                      <MapPin className="w-3 h-3" />
+                      <span className="truncate">{partner.city}</span>
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="w-3 h-3 text-green-500" />
+                      {partner.whatsapp_clicks || 0} cliques
+                    </>
+                  )}
                 </div>
                 {partner.phone && (
                   <Button
@@ -658,8 +676,16 @@ export default function Index() {
                                 <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
                               )}
                             </h4>
+                            {brand.rating_count > 0 && (
+                              <div className="flex items-center justify-center gap-1 text-xs font-medium text-amber-500 mt-1">
+                                <Star className="w-3 h-3 fill-amber-500" />
+                                {brand.rating_average?.toFixed(1)}
+                              </div>
+                            )}
                             <p className="text-xs text-muted-foreground capitalize mt-1">
-                              {brand.ranking_category.replace(/_/g, ' ')}
+                              {brand.city && brand.state
+                                ? `${brand.city}, ${brand.state}`
+                                : brand.ranking_category.replace(/_/g, ' ')}
                             </p>
                           </CardContent>
                         </Card>
@@ -827,7 +853,7 @@ export default function Index() {
                         )}
                       </div>
                       <h3
-                        className="font-serif text-base md:text-lg truncate px-2 flex items-center justify-center gap-1"
+                        className="font-serif text-base md:text-lg truncate px-2 flex items-center justify-center gap-1 mb-1"
                         title={reseller.name}
                       >
                         {reseller.name}
@@ -835,10 +861,25 @@ export default function Index() {
                           <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
                         )}
                       </h3>
-                      <p className="text-xs text-muted-foreground capitalize mb-3">
-                        {reseller.ranking_category
-                          ? reseller.ranking_category.replace(/_/g, ' ')
-                          : 'Varejo / Revenda'}
+                      {reseller.rating_count > 0 && (
+                        <div className="flex items-center justify-center gap-1 text-xs font-medium text-amber-500 mb-1">
+                          <Star className="w-3 h-3 fill-amber-500" />
+                          {reseller.rating_average?.toFixed(1)}
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground capitalize mb-3 flex items-center justify-center gap-1">
+                        {reseller.city && reseller.state ? (
+                          <>
+                            <MapPin className="w-3 h-3" />{' '}
+                            <span className="truncate">
+                              {reseller.city}, {reseller.state}
+                            </span>
+                          </>
+                        ) : reseller.ranking_category ? (
+                          reseller.ranking_category.replace(/_/g, ' ')
+                        ) : (
+                          'Varejo / Revenda'
+                        )}
                       </p>
                       {reseller.phone && (
                         <Button

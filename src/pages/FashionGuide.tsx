@@ -1,14 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Search, BadgeCheck, MessageCircle, MapPin, Loader2, Trophy } from 'lucide-react'
+import { Search, Loader2 } from 'lucide-react'
 import { useSEO } from '@/hooks/useSEO'
 import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Select,
   SelectContent,
@@ -34,6 +30,22 @@ const CATEGORIES = [
   { id: 'calcados', label: 'Calçados' },
 ]
 
+const STATES = [
+  { id: 'all', label: 'Todos os Estados' },
+  { id: 'GO', label: 'Goiás' },
+  { id: 'DF', label: 'Distrito Federal' },
+  { id: 'SP', label: 'São Paulo' },
+  { id: 'MG', label: 'Minas Gerais' },
+  { id: 'RJ', label: 'Rio de Janeiro' },
+  { id: 'MT', label: 'Mato Grosso' },
+  { id: 'MS', label: 'Mato Grosso do Sul' },
+  { id: 'TO', label: 'Tocantins' },
+  { id: 'BA', label: 'Bahia' },
+  { id: 'PR', label: 'Paraná' },
+  { id: 'SC', label: 'Santa Catarina' },
+  { id: 'RS', label: 'Rio Grande do Sul' },
+]
+
 export default function FashionGuide() {
   useSEO({
     title: 'Guia de Moda - Revista Moda Atual Digital',
@@ -47,6 +59,8 @@ export default function FashionGuide() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [category, setCategory] = useState('all')
+  const [cityFilter, setCityFilter] = useState('')
+  const [stateFilter, setStateFilter] = useState('all')
   const [totalItems, setTotalItems] = useState(0)
 
   const loadBrands = async (pageNumber: number, reset: boolean = false) => {
@@ -62,6 +76,12 @@ export default function FashionGuide() {
       }
       if (category !== 'all') {
         conditions.push(`ranking_category = "${category}"`)
+      }
+      if (cityFilter) {
+        conditions.push(`city ~ "${cityFilter.replace(/"/g, '')}"`)
+      }
+      if (stateFilter !== 'all') {
+        conditions.push(`state = "${stateFilter}"`)
       }
 
       const filterStr = conditions.join(' && ')
@@ -97,7 +117,7 @@ export default function FashionGuide() {
       loadBrands(1, true)
     }, 400)
     return () => clearTimeout(timeoutId)
-  }, [searchTerm, category])
+  }, [searchTerm, category, cityFilter, stateFilter])
 
   // Keep list updated with realtime changes
   useRealtime('customers', () => {
@@ -109,16 +129,6 @@ export default function FashionGuide() {
       const nextPage = page + 1
       setPage(nextPage)
       loadBrands(nextPage, false)
-    }
-  }
-
-  const handleWhatsAppClick = (e: React.MouseEvent, phone: string, id: string) => {
-    e.stopPropagation()
-    if (id) {
-      pb.send(`/backend/v1/partners/${id}/click`, { method: 'POST' }).catch(console.error)
-    }
-    if (phone) {
-      window.open(`https://wa.me/${phone.replace(/\D/g, '')}`, '_blank')
     }
   }
 
@@ -143,8 +153,8 @@ export default function FashionGuide() {
 
       <section className="container mb-12">
         <FadeIn delay={100}>
-          <div className="bg-background p-6 rounded-xl shadow-sm border flex flex-col md:flex-row gap-4 items-end">
-            <div className="w-full md:flex-1 space-y-2">
+          <div className="bg-background p-6 rounded-xl shadow-sm border flex flex-col lg:flex-row gap-4 items-end">
+            <div className="w-full lg:flex-1 space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">
                 Buscar por Nome
               </label>
@@ -159,25 +169,57 @@ export default function FashionGuide() {
               </div>
             </div>
 
-            <div className="w-full md:w-72 space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">
-                Categoria
-              </label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="h-12 text-base">
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full lg:w-auto">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">
+                  Categoria
+                </label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="h-12 text-base lg:w-48">
+                    <SelectValue placeholder="Categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">
+                  Cidade
+                </label>
+                <Input
+                  value={cityFilter}
+                  onChange={(e) => setCityFilter(e.target.value)}
+                  placeholder="Ex: Goiânia"
+                  className="h-12 text-base lg:w-40"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">
+                  Estado
+                </label>
+                <Select value={stateFilter} onValueChange={setStateFilter}>
+                  <SelectTrigger className="h-12 text-base lg:w-40">
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATES.map((st) => (
+                      <SelectItem key={st.id} value={st.id}>
+                        {st.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="hidden lg:flex h-12 items-center px-4 bg-muted/50 rounded-lg text-sm text-muted-foreground whitespace-nowrap">
+            <div className="hidden xl:flex h-12 items-center px-4 bg-muted/50 rounded-lg text-sm text-muted-foreground whitespace-nowrap shrink-0">
               {isLoading && page === 1 ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {totalItems} {totalItems === 1 ? 'marca encontrada' : 'marcas encontradas'}
             </div>
@@ -193,7 +235,7 @@ export default function FashionGuide() {
               <h3 className="text-2xl font-serif mb-2">Nenhuma marca encontrada</h3>
               <p className="text-muted-foreground max-w-md">
                 Não conseguimos encontrar marcas com os filtros selecionados. Tente buscar por outro
-                nome ou mudar a categoria.
+                nome, localização ou mudar a categoria.
               </p>
               <Button
                 variant="outline"
@@ -201,6 +243,8 @@ export default function FashionGuide() {
                 onClick={() => {
                   setSearchTerm('')
                   setCategory('all')
+                  setCityFilter('')
+                  setStateFilter('all')
                 }}
               >
                 Limpar Filtros
