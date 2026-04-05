@@ -27,6 +27,9 @@ export interface Customer {
   bio?: string
   whatsapp_clicks?: number
   freight_value?: number
+  notes?: string
+  logistics_notes?: string
+  logistics_status?: 'Aguardando Ônibus' | 'Em Trânsito no Ônibus' | 'Entregue'
 }
 
 export const getCustomers = async () => {

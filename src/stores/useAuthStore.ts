@@ -8,6 +8,7 @@ export interface User {
   manufacturerId?: string
   role?: 'manufacturer' | 'retailer' | 'affiliate'
   affiliate_code?: string
+  unlocked_benefits?: Record<string, boolean> | null
 }
 
 interface AuthState {

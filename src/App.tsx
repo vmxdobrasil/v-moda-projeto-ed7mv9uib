@@ -52,6 +52,7 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import BrandProfile from './pages/BrandProfile'
 import { GlobalTracking } from './components/GlobalTracking'
 import AffiliateLeadForm from './pages/AffiliateLeadForm'
+import BenefitsHub from './pages/BenefitsHub'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -111,6 +112,7 @@ const App = () => (
             <Route path="/painel-fabricante" element={<ManufacturerDashboard />} />
             <Route path="/meu-painel" element={<RetailerDashboard />} />
             <Route path="/credito-moda" element={<Navigate to="/" replace />} />
+            <Route path="/beneficios" element={<BenefitsHub />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
