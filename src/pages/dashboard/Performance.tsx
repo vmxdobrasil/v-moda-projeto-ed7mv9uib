@@ -16,6 +16,7 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Zap,
+  Star,
 } from 'lucide-react'
 
 export default function Performance() {
@@ -148,6 +149,47 @@ export default function Performance() {
           </CardContent>
         </Card>
       )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Cliques no WhatsApp
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{myProfile?.whatsapp_clicks || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Cliques no perfil da marca</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Avaliação Média
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold flex items-center gap-2">
+              {myProfile?.rating_average?.toFixed(1) || '0.0'}
+              <Star className="w-6 h-6 fill-amber-500 text-amber-500" />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Baseado nas avaliações</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Total de Avaliações
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{myProfile?.rating_count || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Avaliações recebidas</p>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-2">

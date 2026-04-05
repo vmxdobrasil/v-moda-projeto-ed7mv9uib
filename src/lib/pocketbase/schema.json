@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-05T09:59:29.134Z",
+  "generatedAt": "2026-04-05T10:10:53.509Z",
   "collections": [
     {
       "name": "users",
@@ -260,7 +260,8 @@
             "moda_infantil",
             "bijouterias_semijoias",
             "calcados",
-            "moda_fitness"
+            "moda_fitness",
+            "plus_size"
           ]
         },
         {
@@ -655,7 +656,8 @@
             "moda_infantil",
             "bijouterias_semijoias",
             "calcados",
-            "moda_fitness"
+            "moda_fitness",
+            "plus_size"
           ]
         },
         {
