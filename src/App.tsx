@@ -41,6 +41,7 @@ import AdminCategories from './pages/admin/Categories'
 import AdminAffiliates from './pages/admin/Affiliates'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import CRM from './pages/dashboard/CRM'
+import MediaKit from './pages/dashboard/MediaKit'
 import Analytics from './pages/dashboard/Analytics'
 import Billing from './pages/dashboard/Billing'
 import Performance from './pages/dashboard/Performance'
@@ -81,6 +82,7 @@ const App = () => (
             <Route path="performance" element={<Performance />} />
             <Route path="settings/whatsapp" element={<WhatsappSettings />} />
             <Route path="affiliate" element={<AffiliateDashboard />} />
+            <Route path="media-kit" element={<MediaKit />} />
           </Route>
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />

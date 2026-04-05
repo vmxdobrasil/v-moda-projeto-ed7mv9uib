@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,11 +25,32 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Progress } from '@/components/ui/progress'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
-import { Copy, DollarSign, Clock, Users, Download, Plus, Upload } from 'lucide-react'
+import {
+  Copy,
+  DollarSign,
+  Clock,
+  Users,
+  Download,
+  Plus,
+  Upload,
+  MessageCircle,
+  FileText,
+  Target,
+  Image as ImageIcon,
+} from 'lucide-react'
 import useAuthStore from '@/stores/useAuthStore'
 import pb from '@/lib/pocketbase/client'
 import { createCustomer } from '@/services/customers'
@@ -46,6 +68,11 @@ export default function AffiliateDashboard() {
   const [isImporting, setIsImporting] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [manufacturers, setManufacturers] = useState<any[]>([])
+
+  // CRM Notes State
+  const [editingNotesId, setEditingNotesId] = useState<string | null>(null)
+  const [notesContent, setNotesContent] = useState('')
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -85,8 +112,17 @@ export default function AffiliateDashboard() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
   useRealtime('referrals', loadData)
   useRealtime('customers', loadData)
+  useRealtime('notifications', (e) => {
+    if (e.action === 'create' && e.record.user === user?.id) {
+      toast({
+        title: e.record.title || 'Nova Notificação',
+        description: e.record.message,
+      })
+    }
+  })
 
   if (!user || user.role !== 'affiliate') return null
 
@@ -99,6 +135,10 @@ export default function AffiliateDashboard() {
     if (ref.type === 'conversion') earned += val * commissionRate
     else if (ref.type === 'lead') pending += val * commissionRate
   })
+
+  const conversions = referrals.filter((r) => r.type === 'conversion').length
+  const nextGoal = Math.max(10, Math.ceil((conversions + 1) / 10) * 10)
+  const progressPercent = Math.min(100, (conversions / nextGoal) * 100)
 
   const copyLink = () => {
     const code = user.affiliate_code || user.id
@@ -216,11 +256,48 @@ export default function AffiliateDashboard() {
     }
   }
 
-  return (
-    <div className="p-4 md:p-8 space-y-6 max-w-6xl mx-auto animate-fade-in-up">
-      <h1 className="text-3xl font-serif font-bold">Painel de Afiliado</h1>
+  const openWhatsApp = (customer: any) => {
+    if (!customer.phone) return
+    const text = encodeURIComponent(
+      `Olá ${customer.name}, vi que você se interessou pela V Moda e gostaria de te ajudar...`,
+    )
+    window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${text}`, '_blank')
+  }
 
-      <div className="grid gap-4 md:grid-cols-3">
+  const openNotes = (customer: any) => {
+    setEditingNotesId(customer.id)
+    setNotesContent(customer.notes || '')
+  }
+
+  const saveNotes = async () => {
+    if (!editingNotesId) return
+    try {
+      await pb.collection('customers').update(editingNotesId, { notes: notesContent })
+      toast({ title: 'Sucesso', description: 'Anotações salvas com sucesso.' })
+      setEditingNotesId(null)
+      loadData()
+    } catch (err) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível salvar as anotações.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  return (
+    <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto animate-fade-in-up">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <h1 className="text-3xl font-serif font-bold">Painel de Afiliado</h1>
+        <Button asChild className="shrink-0 bg-primary/10 text-primary hover:bg-primary/20">
+          <Link to="/dashboard/media-kit">
+            <ImageIcon className="w-4 h-4 mr-2" />
+            Acessar Media Kit
+          </Link>
+        </Button>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Meus Leads</CardTitle>
@@ -230,6 +307,20 @@ export default function AffiliateDashboard() {
             <div className="text-2xl font-bold">{customers.length}</div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">Meta de Conversões</CardTitle>
+            <Target className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {conversions} / {nextGoal}
+            </div>
+            <Progress value={progressPercent} className="mt-2 h-2" />
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium text-amber-600">Comissão Pendente</CardTitle>
@@ -281,8 +372,8 @@ export default function AffiliateDashboard() {
       <Card>
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between space-y-4 md:space-y-0 pb-4">
           <div>
-            <CardTitle>Meus Leads</CardTitle>
-            <CardDescription>Acompanhe e gerencie os clientes indicados.</CardDescription>
+            <CardTitle>Mini CRM - Meus Leads</CardTitle>
+            <CardDescription>Acompanhe, gerencie e contate os clientes indicados.</CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
@@ -403,71 +494,127 @@ export default function AffiliateDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Contato</TableHead>
-                <TableHead>Local</TableHead>
-                <TableHead>Origem</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {customers.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell className="font-medium">{customer.name}</TableCell>
-                  <TableCell>
-                    <div className="text-sm">{customer.email || '-'}</div>
-                    <div className="text-sm text-muted-foreground">{customer.phone || '-'}</div>
-                  </TableCell>
-                  <TableCell>
-                    {customer.city ? `${customer.city}/${customer.state || '-'}` : '-'}
-                  </TableCell>
-                  <TableCell>
-                    {customer.source === 'whatsapp_group'
-                      ? 'Grupo WhatsApp'
-                      : customer.source === 'social_profile'
-                        ? 'Rede Social'
-                        : customer.source === 'manual'
-                          ? 'Manual'
-                          : customer.source === 'whatsapp'
-                            ? 'WhatsApp'
-                            : customer.source === 'instagram'
-                              ? 'Instagram'
-                              : customer.source === 'email'
-                                ? 'Email'
-                                : customer.source === 'site'
-                                  ? 'Site'
-                                  : customer.source || 'Não informada'}
-                  </TableCell>
-                  <TableCell>{new Date(customer.created).toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={customer.status === 'converted' ? 'default' : 'secondary'}
-                      className={
-                        customer.status === 'converted'
-                          ? 'bg-emerald-500 hover:bg-emerald-600'
-                          : 'bg-amber-100 text-amber-800'
-                      }
-                    >
-                      {customer.status === 'converted' ? 'Convertido' : 'Pendente'}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {customers.length === 0 && (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-                    Nenhum lead registrado.
-                  </TableCell>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Contato</TableHead>
+                  <TableHead>Local</TableHead>
+                  <TableHead>Origem</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {customers.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell className="font-medium">
+                      {customer.name}
+                      {customer.notes && (
+                        <FileText
+                          className="inline-block w-3 h-3 ml-2 text-muted-foreground"
+                          title="Possui anotações"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">{customer.email || '-'}</div>
+                      <div className="text-sm text-muted-foreground">{customer.phone || '-'}</div>
+                    </TableCell>
+                    <TableCell>
+                      {customer.city ? `${customer.city}/${customer.state || '-'}` : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {customer.source === 'whatsapp_group'
+                        ? 'Grupo WhatsApp'
+                        : customer.source === 'social_profile'
+                          ? 'Rede Social'
+                          : customer.source === 'manual'
+                            ? 'Manual'
+                            : customer.source === 'whatsapp'
+                              ? 'WhatsApp'
+                              : customer.source === 'instagram'
+                                ? 'Instagram'
+                                : customer.source === 'email'
+                                  ? 'Email'
+                                  : customer.source === 'site'
+                                    ? 'Site'
+                                    : customer.source || 'Não informada'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={customer.status === 'converted' ? 'default' : 'secondary'}
+                        className={
+                          customer.status === 'converted'
+                            ? 'bg-emerald-500 hover:bg-emerald-600'
+                            : 'bg-amber-100 text-amber-800'
+                        }
+                      >
+                        {customer.status === 'converted' ? 'Convertido' : 'Pendente'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openWhatsApp(customer)}
+                          disabled={!customer.phone}
+                          title="Chamar no WhatsApp"
+                        >
+                          <MessageCircle className="w-4 h-4 text-green-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openNotes(customer)}
+                          title="Anotações / CRM"
+                        >
+                          <FileText className="w-4 h-4 text-blue-500" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {customers.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                      Nenhum lead registrado.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
+
+      {/* CRM Notes Sheet */}
+      <Sheet open={!!editingNotesId} onOpenChange={(open) => !open && setEditingNotesId(null)}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Anotações do Cliente</SheetTitle>
+            <SheetDescription>
+              Registre preferências, tamanhos, histórico de conversas ou interesses específicos.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="py-6 space-y-4">
+            <Textarea
+              value={notesContent}
+              onChange={(e) => setNotesContent(e.target.value)}
+              placeholder="Ex: Cliente prefere vestidos tamanho M, gosta de estampas florais. Entrar em contato dia 15..."
+              className="min-h-[250px] resize-none"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditingNotesId(null)}>
+                Cancelar
+              </Button>
+              <Button onClick={saveNotes}>Salvar Anotações</Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
