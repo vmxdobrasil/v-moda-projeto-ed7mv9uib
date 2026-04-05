@@ -23,6 +23,7 @@ import Revista from './pages/Revista'
 import ResellerApplication from './pages/ResellerApplication'
 import FashionGuide from './pages/FashionGuide'
 import ManufacturerDashboard from './pages/ManufacturerDashboard'
+import RetailerDashboard from './pages/RetailerDashboard'
 import Academy from './pages/Academy'
 import CreditoModa from './pages/CreditoModa'
 import Layout from './components/Layout'
@@ -94,6 +95,7 @@ const App = () => (
             <Route path="/guia-de-moda" element={<FashionGuide />} />
             <Route path="/revenda" element={<ResellerApplication />} />
             <Route path="/painel-fabricante" element={<ManufacturerDashboard />} />
+            <Route path="/meu-painel" element={<RetailerDashboard />} />
             <Route path="/credito-moda" element={<Navigate to="/" replace />} />
           </Route>
           <Route path="*" element={<NotFound />} />

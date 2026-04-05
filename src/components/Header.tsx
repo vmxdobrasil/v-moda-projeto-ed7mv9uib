@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Search, Heart, User, Menu, ShoppingCart, X, Instagram } from 'lucide-react'
+import { Search, Heart, User, Menu, ShoppingCart, X, Instagram, Bell } from 'lucide-react'
+import {
+  getMyNotifications,
+  markNotificationRead,
+  type Notification,
+} from '@/services/notifications'
+import { useRealtime } from '@/hooks/use-realtime'
 import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
@@ -35,6 +41,41 @@ export function Header() {
   const { items: cartItems, removeFromCart, updateQuantity } = useCartStore()
   const { items: wishlistItems } = useWishlistStore()
   const { user, isAuthenticated, logout } = useAuthStore()
+
+  const [notifications, setNotifications] = useState<Notification[]>([])
+
+  const loadNotifications = async () => {
+    if (!isAuthenticated) return
+    try {
+      const data = await getMyNotifications()
+      setNotifications(data)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  useEffect(() => {
+    loadNotifications()
+  }, [isAuthenticated, user])
+
+  useRealtime(
+    'notifications',
+    () => {
+      loadNotifications()
+    },
+    isAuthenticated,
+  )
+
+  const unreadCount = notifications.filter((n) => !n.read).length
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await markNotificationRead(id)
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   const totalCartItems = cartItems.reduce((acc, item) => acc + item.quantity, 0)
   const cartTotal = cartItems.reduce((acc, item) => {
@@ -129,6 +170,14 @@ export function Header() {
 
                 {isAuthenticated ? (
                   <>
+                    <SheetClose asChild>
+                      <Link
+                        to="/meu-painel"
+                        className="text-2xl font-serif text-primary hover:text-accent transition-colors"
+                      >
+                        Meu Painel
+                      </Link>
+                    </SheetClose>
                     <SheetClose asChild>
                       <Link
                         to="/perfil"
@@ -245,6 +294,71 @@ export function Header() {
             )}
           </Link>
 
+          {isAuthenticated && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button aria-label="Notificações" className="p-1 relative hidden md:block">
+                  <Bell className={iconClasses} />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end" sideOffset={20}>
+                <div className="p-4 border-b flex items-center justify-between">
+                  <h4 className="font-medium text-sm">Notificações</h4>
+                  {unreadCount > 0 && (
+                    <span className="text-xs text-muted-foreground">{unreadCount} não lidas</span>
+                  )}
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground text-sm">
+                      Nenhuma notificação
+                    </div>
+                  ) : (
+                    <div className="flex flex-col">
+                      {notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className={cn(
+                            'p-4 border-b last:border-0 hover:bg-muted/50 transition-colors cursor-pointer flex gap-3',
+                            !notification.read && 'bg-primary/5',
+                          )}
+                          onClick={() => !notification.read && handleMarkAsRead(notification.id)}
+                        >
+                          <div className="flex-1 space-y-1">
+                            <p
+                              className={cn(
+                                'text-sm',
+                                !notification.read && 'font-medium text-primary',
+                              )}
+                            >
+                              {notification.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {notification.message}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground/70">
+                              {new Date(notification.created).toLocaleString('pt-BR')}
+                            </p>
+                          </div>
+                          {!notification.read && (
+                            <div className="shrink-0 flex items-center pt-1">
+                              <div className="w-2 h-2 rounded-full bg-primary" />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button aria-label="Minha Conta" className="p-1 hidden md:block">
@@ -265,6 +379,9 @@ export function Header() {
                   <div className="px-2 py-1.5 text-sm font-medium border-b mb-1 truncate">
                     Olá, {user?.name.split(' ')[0]}
                   </div>
+                  <DropdownMenuItem asChild className="rounded-none cursor-pointer">
+                    <Link to="/meu-painel">Meu Painel</Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-none cursor-pointer">
                     <Link to="/perfil">Meu Perfil</Link>
                   </DropdownMenuItem>

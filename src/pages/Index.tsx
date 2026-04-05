@@ -133,7 +133,7 @@ export default function Index() {
       const data = await pb.collection('customers').getFullList({
         sort: '-whatsapp_clicks',
       })
-      setTopPartners(data.slice(0, 5))
+      setTopPartners(data.slice(0, 10))
     } catch (e) {
       console.error('Error loading top partners', e)
     }
@@ -493,23 +493,24 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Top Partners Section */}
+      {/* Marcas em Destaque Section */}
       <section className="py-24 bg-background border-t border-border">
         <div className="container">
           <FadeIn>
             <div className="flex flex-col items-center mb-16 text-center">
-              <h2 className="text-3xl md:text-4xl font-serif mb-4">Top Partners</h2>
+              <h2 className="text-3xl md:text-4xl font-serif mb-4">Marcas em Destaque</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Os parceiros mais procurados e engajados da nossa plataforma.
+                As marcas mais populares e engajadas da nossa plataforma, baseadas em interações
+                reais.
               </p>
             </div>
           </FadeIn>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8">
             {topPartners.map((partner, i) => (
               <FadeIn
                 key={partner.id}
-                delay={i * 100}
-                className="relative text-center group cursor-pointer hover:bg-muted/50 p-6 rounded-2xl border shadow-sm transition-all hover:-translate-y-1 block"
+                delay={(i % 5) * 100}
+                className="relative text-center group cursor-pointer hover:bg-muted/50 p-4 md:p-6 rounded-2xl border shadow-sm transition-all hover:-translate-y-1 block"
                 onClick={() => navigate(`/marcas/${partner.id}`)}
               >
                 <div className="absolute top-2 right-2 z-20">
@@ -520,7 +521,7 @@ export default function Index() {
                     Trending
                   </div>
                 )}
-                <div className="relative mx-auto mb-4 w-24 h-24 rounded-full overflow-hidden border-4 border-background shadow-lg">
+                <div className="relative mx-auto mb-4 w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-background shadow-lg">
                   {partner.avatar ? (
                     <img
                       src={pb.files.getUrl(partner, partner.avatar, { thumb: '200x200' })}
@@ -536,17 +537,17 @@ export default function Index() {
                   )}
                 </div>
                 <h3
-                  className="font-serif text-lg truncate px-2 flex items-center justify-center gap-1 mb-1"
+                  className="font-serif text-base md:text-lg truncate px-1 flex items-center justify-center gap-1 mb-1"
                   title={partner.name}
                 >
-                  {partner.name}
+                  <span className="truncate">{partner.name}</span>
                   {partner.is_verified && (
                     <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
                   )}
                 </h3>
-                <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground mb-4">
-                  <MessageCircle className="w-3.5 h-3.5 text-green-500" />
-                  {partner.whatsapp_clicks || 0} contatos
+                <div className="flex items-center justify-center gap-1.5 text-[10px] md:text-xs font-medium text-muted-foreground mb-4">
+                  <MessageCircle className="w-3 h-3 text-green-500" />
+                  {partner.whatsapp_clicks || 0} cliques
                 </div>
                 {partner.phone && (
                   <Button
@@ -555,7 +556,7 @@ export default function Index() {
                     className="w-full h-8 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                     onClick={(e) => handleWhatsAppClick(e, partner)}
                   >
-                    <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
+                    <MessageCircle className="w-3 h-3 md:w-3.5 md:h-3.5 mr-1 md:mr-1.5" />
                     WhatsApp
                   </Button>
                 )}
