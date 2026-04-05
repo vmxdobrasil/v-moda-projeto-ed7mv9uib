@@ -10,6 +10,7 @@ import {
   Megaphone,
   Tags,
   Image as ImageIcon,
+  Presentation,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BrandLogo } from '@/components/BrandLogo'
@@ -63,6 +64,12 @@ export default function AdminLayout() {
       name: 'Configurações',
       href: '/admin/configuracoes',
       icon: Settings,
+      roles: ['administrador'],
+    },
+    {
+      name: 'Proposta Zoop',
+      href: '/admin/proposta-zoop',
+      icon: Presentation,
       roles: ['administrador'],
     },
   ]

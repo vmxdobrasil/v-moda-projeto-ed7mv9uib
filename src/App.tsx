@@ -40,6 +40,7 @@ import AdminMarketing from './pages/admin/Marketing'
 import AdminCategories from './pages/admin/Categories'
 import AdminAffiliates from './pages/admin/Affiliates'
 import AdminMedia from './pages/admin/Media'
+import ZoopProposal from './pages/admin/ZoopProposal'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import CRM from './pages/dashboard/CRM'
 import MediaKit from './pages/dashboard/MediaKit'
@@ -76,6 +77,7 @@ const App = () => (
             <Route path="afiliados" element={<AdminAffiliates />} />
             <Route path="midia" element={<AdminMedia />} />
             <Route path="configuracoes" element={<AdminSettings />} />
+            <Route path="proposta-zoop" element={<ZoopProposal />} />
           </Route>
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Navigate to="/dashboard/crm" replace />} />
