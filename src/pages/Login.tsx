@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -28,18 +28,9 @@ type LoginForm = z.infer<typeof loginSchema>
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const { toast } = useToast()
-  const { login, isAuthenticated, user } = useAuthStore()
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      if (user?.role === 'manufacturer' || user?.email === 'valterpmendonca@gmail.com') {
-        navigate('/dashboard/crm')
-      } else {
-        navigate('/perfil')
-      }
-    }
-  }, [isAuthenticated, user, navigate])
+  const { login } = useAuthStore()
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -61,15 +52,20 @@ export default function Login() {
         description: 'Bem-vindo de volta à V Moda!',
       })
 
-      const role = authData.record.role
-      if (
-        role === 'manufacturer' ||
-        role === 'admin' ||
-        data.email === 'valterpmendonca@gmail.com'
-      ) {
-        navigate('/dashboard/crm')
+      const from = location.state?.from?.pathname
+      if (from) {
+        navigate(from, { replace: true })
       } else {
-        navigate('/perfil')
+        const role = authData.record.role
+        if (
+          role === 'manufacturer' ||
+          role === 'admin' ||
+          data.email === 'valterpmendonca@gmail.com'
+        ) {
+          navigate('/dashboard/crm', { replace: true })
+        } else {
+          navigate('/perfil', { replace: true })
+        }
       }
     } catch (err: any) {
       toast({

@@ -65,9 +65,7 @@ export default function Profile() {
   })
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login')
-    } else if (user) {
+    if (user) {
       form.reset({
         name: user.name,
         email: user.email,
@@ -80,7 +78,7 @@ export default function Profile() {
         setAvatarPreview(pb.files.getUrl(user as any, user.avatar))
       }
     }
-  }, [isAuthenticated, navigate, user, form])
+  }, [user, form])
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -168,7 +166,7 @@ export default function Profile() {
     navigate('/')
   }
 
-  if (!isAuthenticated || !user) return null
+  if (!user) return null
 
   return (
     <div className="container max-w-3xl mx-auto py-24 md:py-32">

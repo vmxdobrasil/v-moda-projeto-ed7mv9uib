@@ -20,14 +20,17 @@ export interface User {
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
+  isInitialized: boolean
   login: (user: User) => void
   logout: () => void
   updateUser: (data: Partial<User>) => void
+  initialize: () => Promise<void>
 }
 
 const initialState = {
   user: (pb.authStore.record as unknown as User) || null,
   isAuthenticated: pb.authStore.isValid,
+  isInitialized: false,
 }
 
 const useAuthStore = create<AuthState>((set) => {
@@ -50,6 +53,23 @@ const useAuthStore = create<AuthState>((set) => {
       set((state) => ({
         user: state.user ? { ...state.user, ...data } : null,
       })),
+    initialize: async () => {
+      if (pb.authStore.isValid) {
+        try {
+          const authData = await pb.collection('users').authRefresh()
+          set({
+            user: (authData.record as unknown as User) || null,
+            isAuthenticated: true,
+            isInitialized: true,
+          })
+        } catch (err) {
+          pb.authStore.clear()
+          set({ user: null, isAuthenticated: false, isInitialized: true })
+        }
+      } else {
+        set({ isInitialized: true })
+      }
+    },
   }
 })
 
