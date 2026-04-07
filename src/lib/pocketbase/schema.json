@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-04-07T10:35:09.681Z",
+  "generatedAt": "2026-04-07T10:50:36.536Z",
   "collections": [
     {
       "name": "users",
       "type": "auth",
       "apiRules": {
-        "list": "id = @request.auth.id",
-        "view": "id = @request.auth.id",
+        "list": "id = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com'",
+        "view": "id = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com'",
         "create": "",
-        "update": "id = @request.auth.id",
-        "delete": "id = @request.auth.id"
+        "update": "id = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com'",
+        "delete": "id = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com'"
       },
       "fields": [
         {
@@ -229,11 +229,11 @@
       "name": "customers",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)",
-        "view": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)",
+        "list": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')",
+        "view": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')",
         "create": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)",
-        "update": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)",
-        "delete": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)"
+        "update": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')",
+        "delete": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')"
       },
       "fields": [
         {

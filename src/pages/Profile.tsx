@@ -97,7 +97,10 @@ export default function Profile() {
     try {
       let updatePayload: any = {
         name: data.name,
-        email: data.email,
+      }
+
+      if (data.email !== user.email) {
+        updatePayload.email = data.email
       }
 
       if (user.role === 'affiliate') {

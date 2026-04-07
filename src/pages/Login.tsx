@@ -13,8 +13,10 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import useAuthStore from '@/stores/useAuthStore'
+import pb from '@/lib/pocketbase/client'
 
 const loginSchema = z.object({
   email: z.string().email('E-mail inválido'),
@@ -27,7 +29,17 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { login } = useAuthStore()
+  const { login, isAuthenticated, user } = useAuthStore()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (user?.role === 'manufacturer' || user?.email === 'valterpmendonca@gmail.com') {
+        navigate('/dashboard/crm')
+      } else {
+        navigate('/perfil')
+      }
+    }
+  }, [isAuthenticated, user, navigate])
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -37,25 +49,37 @@ export default function Login() {
     },
   })
 
-  function onSubmit(data: LoginForm) {
+  async function onSubmit(data: LoginForm) {
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      login({
-        id: '1',
-        name: 'Usuário Teste',
-        email: data.email,
-      })
+    try {
+      const authData = await pb.collection('users').authWithPassword(data.email, data.password)
+      login(authData.record as any)
 
       toast({
         title: 'Login realizado',
         description: 'Bem-vindo de volta à V Moda!',
       })
 
+      const role = authData.record.role
+      if (
+        role === 'manufacturer' ||
+        role === 'admin' ||
+        data.email === 'valterpmendonca@gmail.com'
+      ) {
+        navigate('/dashboard/crm')
+      } else {
+        navigate('/perfil')
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao fazer login',
+        description: 'E-mail ou senha incorretos. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
       setIsLoading(false)
-      navigate('/perfil')
-    }, 1000)
+    }
   }
 
   return (
