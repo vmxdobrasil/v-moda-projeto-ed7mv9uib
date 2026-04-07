@@ -38,7 +38,7 @@ import {
   BusFront,
   MapPin,
 } from 'lucide-react'
-import { Customer, getCustomers } from '@/services/customers'
+import { Customer, getCustomers, updateCustomer } from '@/services/customers'
 import { sendManualWhatsapp, sendReactivationCampaign } from '@/services/whatsapp'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -206,6 +206,38 @@ export default function Customers() {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
   }
 
+  const handleGenerateDiscount = async (customer: Customer) => {
+    let discount = '5%'
+    if (customer.status === 'converted') {
+      if (customer.ranking_position && customer.ranking_position <= 10) {
+        discount = '30%'
+      } else if (customer.is_exclusive) {
+        discount = '20%'
+      } else {
+        discount = '15%'
+      }
+    } else {
+      if (customer.is_exclusive) {
+        discount = '10%'
+      }
+    }
+
+    const newBenefits = {
+      ...(customer.unlocked_benefits || {}),
+      discount_active: true,
+      discount_value: discount,
+      generated_at: new Date().toISOString(),
+    }
+
+    try {
+      await updateCustomer(customer.id, { unlocked_benefits: newBenefits })
+      toast({ description: `Desconto de ${discount} gerado com sucesso para ${customer.name}!` })
+      loadData()
+    } catch (err) {
+      toast({ description: 'Erro ao gerar desconto', variant: 'destructive' })
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -290,9 +322,9 @@ export default function Customers() {
                     />
                   </TableHead>
                   <TableHead className="w-[60px] text-center">Foto</TableHead>
-                  <TableHead>Nome do Cliente</TableHead>
+                  <TableHead>Nome e Local</TableHead>
+                  <TableHead>Ranking / Categoria</TableHead>
                   <TableHead>E-mail</TableHead>
-                  <TableHead>Tipo</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Último Contato</TableHead>
                   <TableHead
@@ -347,20 +379,33 @@ export default function Customers() {
                           </AvatarFallback>
                         </Avatar>
                       </TableCell>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
-                      <TableCell>{customer.email || 'Sem email'}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={derived.type === 'Atacado' ? 'secondary' : 'outline'}
-                          className={
-                            derived.type === 'Atacado'
-                              ? 'bg-accent/10 text-accent hover:bg-accent/20 border-transparent'
-                              : ''
-                          }
-                        >
-                          {derived.type}
-                        </Badge>
+                        <div className="font-medium">{customer.name}</div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-3 h-3" />
+                          {customer.city
+                            ? `${customer.city} / ${customer.state || '-'}`
+                            : 'Local não informado'}
+                        </div>
                       </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 items-start">
+                          {customer.ranking_position ? (
+                            <Badge
+                              variant="outline"
+                              className="bg-amber-50 text-amber-700 border-amber-200 font-bold text-[10px]"
+                            >
+                              Top {customer.ranking_position}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                          <span className="text-xs font-medium capitalize text-muted-foreground">
+                            {customer.ranking_category?.replace('_', ' ') || 'Sem categoria'}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{customer.email || 'Sem email'}</TableCell>
                       <TableCell>
                         <Badge
                           variant={
@@ -378,7 +423,11 @@ export default function Customers() {
                                 : ''
                           }
                         >
-                          {customerInactive ? 'Inativo' : derived.displayStatus}
+                          {customerInactive
+                            ? 'Inativo'
+                            : customer.status === 'converted'
+                              ? 'Convertido'
+                              : derived.displayStatus}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
@@ -405,6 +454,15 @@ export default function Customers() {
                               <Zap className="w-4 h-4 text-amber-500" />
                             </Button>
                           )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleGenerateDiscount(customer)}
+                            title="Gerar Desconto Automático"
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                          >
+                            <span className="font-bold text-[10px]">%</span>
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"

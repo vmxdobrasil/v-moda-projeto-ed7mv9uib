@@ -49,8 +49,20 @@ export default function AdminLogin() {
       }
     } catch (err: any) {
       pb.authStore.clear()
-      let msg = 'Credenciais inválidas.'
 
+      const fieldErrors = err.response?.data || {}
+      if (typeof fieldErrors === 'object' && Object.keys(fieldErrors).length > 0) {
+        const msgs = Object.values(fieldErrors)
+          .map((v: any) => v?.message)
+          .filter(Boolean)
+        if (msgs.length > 0) {
+          toast.error(`Erro: ${msgs.join(' ')}`)
+          setLoading(false)
+          return
+        }
+      }
+
+      let msg = 'Credenciais inválidas.'
       if (err.status === 400) {
         msg = 'Dados inválidos ou credenciais incorretas.'
       } else if (err.status === 403 || err.status === 401) {

@@ -1190,8 +1190,29 @@ function SubscriptionsTab() {
                   </TableCell>
                   <TableCell>{sub.expand?.user?.email || '-'}</TableCell>
                   <TableCell className="capitalize">{sub.expand?.user?.role || '-'}</TableCell>
-                  <TableCell className="capitalize font-semibold text-primary">
-                    {sub.plan_tier}
+                  <TableCell>
+                    <Select
+                      value={sub.plan_tier}
+                      onValueChange={async (val) => {
+                        try {
+                          await pb.collection('subscriptions').update(sub.id, { plan_tier: val })
+                          setSubs(subs.map((s) => (s.id === sub.id ? { ...s, plan_tier: val } : s)))
+                          toast.success(`Plano atualizado para ${val} com sucesso!`)
+                        } catch (e) {
+                          toast.error('Erro ao atualizar plano.')
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-[130px] h-8 font-semibold capitalize text-primary">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="free">Free</SelectItem>
+                        <SelectItem value="basic">Basic</SelectItem>
+                        <SelectItem value="pro">Pro</SelectItem>
+                        <SelectItem value="enterprise">Enterprise</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>
                     <span

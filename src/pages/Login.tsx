@@ -69,23 +69,43 @@ export default function Login() {
       }
     } catch (err: any) {
       pb.authStore.clear()
-      let description = 'E-mail ou senha incorretos. Tente novamente.'
 
-      if (err.status === 400) {
-        description = 'Dados inválidos ou credenciais incorretas.'
-      } else if (err.status === 403 || err.status === 401) {
-        description = 'Permissão negada ou credenciais incorretas.'
-      } else if (err.status === 0) {
-        description = 'Erro de rede. Verifique sua conexão com a internet.'
-      } else if (err.message) {
-        description = err.message
+      const fieldErrors = err.response?.data || {}
+      let hasFieldErrors = false
+
+      if (typeof fieldErrors === 'object' && Object.keys(fieldErrors).length > 0) {
+        Object.entries(fieldErrors).forEach(([field, detail]: [string, any]) => {
+          if (detail?.message) {
+            form.setError(field as any, { type: 'manual', message: detail.message })
+            hasFieldErrors = true
+          }
+        })
       }
 
-      toast({
-        title: 'Erro ao fazer login',
-        description,
-        variant: 'destructive',
-      })
+      if (hasFieldErrors) {
+        toast({
+          title: 'Erro de validação',
+          description: 'Verifique os campos destacados no formulário.',
+          variant: 'destructive',
+        })
+      } else {
+        let description = 'E-mail ou senha incorretos. Tente novamente.'
+        if (err.status === 400) {
+          description = 'Dados inválidos ou credenciais incorretas.'
+        } else if (err.status === 403 || err.status === 401) {
+          description = 'Permissão negada ou credenciais incorretas.'
+        } else if (err.status === 0) {
+          description = 'Erro de rede. Verifique sua conexão com a internet.'
+        } else if (err.message) {
+          description = err.message
+        }
+
+        toast({
+          title: 'Erro ao fazer login',
+          description,
+          variant: 'destructive',
+        })
+      }
     } finally {
       setIsLoading(false)
     }

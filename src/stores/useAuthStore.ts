@@ -89,17 +89,28 @@ const useAuthStore = create<AuthState>((set, get) => {
             if (err?.status >= 400 && err?.status < 500) {
               // Prevent clearing the store if the user logged in concurrently
               if (pb.authStore.token === initialToken) {
-                pb.authStore.clear()
-                set({ user: null, isAuthenticated: false, isInitialized: true })
-                // We suppress the "Dados inválidos" toast here to avoid annoying users
-                // whose session simply expired naturally between visits.
+                if (err.status === 401) {
+                  pb.authStore.clear()
+                  set({ user: null, isAuthenticated: false, isInitialized: true })
+                } else {
+                  // Maintain session persistence for admins or temporary errors (403/404)
+                  set({
+                    isInitialized: true,
+                    isAuthenticated: true,
+                    user: (pb.authStore.record as unknown as User) || null,
+                  })
+                }
               } else {
                 // User logged in concurrently with a new token, keep initialized true
                 set({ isInitialized: true })
               }
             } else {
               // Keep authenticated state for network errors or server crashes
-              set({ isInitialized: true })
+              set({
+                isInitialized: true,
+                isAuthenticated: true,
+                user: (pb.authStore.record as unknown as User) || null,
+              })
             }
           }
         } else {
