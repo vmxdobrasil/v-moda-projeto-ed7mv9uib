@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-07T01:37:04.092Z",
+  "generatedAt": "2026-04-07T01:44:04.232Z",
   "collections": [
     {
       "name": "users",
@@ -461,6 +461,12 @@
         },
         {
           "name": "active_route",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "whatsapp_group_name",
           "type": "text",
           "required": false,
           "system": false
