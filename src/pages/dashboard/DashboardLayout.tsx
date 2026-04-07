@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Outlet, Link, useLocation, Navigate } from 'react-router-dom'
 import { Users, CreditCard, BarChart, Bell, BusFront, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useEffect, useMemo } from 'react'
@@ -77,6 +77,10 @@ export default function DashboardLayout() {
 
     return baseLinks
   }, [userRecord?.role, userRecord?.type])
+
+  if (!pb.authStore.isValid) {
+    return <Navigate to="/login" replace />
+  }
 
   return (
     <div className="flex h-screen bg-muted/20">

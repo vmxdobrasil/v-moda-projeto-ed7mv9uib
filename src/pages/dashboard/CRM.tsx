@@ -36,6 +36,8 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import {
   UserPlus,
@@ -56,6 +58,7 @@ import ImportLeadsDialog from './components/ImportLeadsDialog'
 import AnalyticsTab from './components/AnalyticsTab'
 import InsightsTab from './components/InsightsTab'
 import ImportHistoryTab from './components/ImportHistoryTab'
+import { getMySubscription, Subscription } from '@/services/subscriptions'
 
 export default function CRM() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -117,11 +120,13 @@ export default function CRM() {
 
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
 
   const loadData = async () => {
     try {
-      const data = await getCustomers()
+      const [data, sub] = await Promise.all([getCustomers(), getMySubscription()])
       setCustomers(data)
+      setSubscription(sub)
 
       const msgs = await pb.collection('messages').getFullList({
         filter: `direction = 'inbound'`,
@@ -191,6 +196,15 @@ export default function CRM() {
       toast.error('Nome é obrigatório')
       return
     }
+
+    const limit = subscription?.import_limit ?? (subscription?.plan_tier === 'free' ? 50 : 10000)
+    if (customers.length >= limit) {
+      toast.error(
+        `Você atingiu o limite de ${limit} leads para o plano ${subscription?.plan_tier || 'Free'}.`,
+      )
+      return
+    }
+
     try {
       if (avatarFile) {
         const formData = new FormData()
@@ -257,6 +271,14 @@ export default function CRM() {
   }
 
   const handleAcceptSuggestion = async (suggestion: any) => {
+    const limit = subscription?.import_limit ?? (subscription?.plan_tier === 'free' ? 50 : 10000)
+    if (customers.length >= limit) {
+      toast.error(
+        `Você atingiu o limite de ${limit} leads para o plano ${subscription?.plan_tier || 'Free'}.`,
+      )
+      return
+    }
+
     try {
       await createCustomer({
         name: suggestion.name,
@@ -297,6 +319,11 @@ export default function CRM() {
     bijouterias_semijoias: 'Bijouterias / Semijoias',
     calcados: 'Calçados',
   }
+
+  const limit =
+    subscription?.import_limit ??
+    (subscription?.plan_tier === 'free' ? 50 : subscription?.plan_tier ? 10000 : 50)
+  const usagePercent = Math.min(100, Math.round((customers.length / limit) * 100))
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -342,6 +369,8 @@ export default function CRM() {
             onOpenChange={setIsImportOpen}
             onImportStateChange={setIsImporting}
             onImportComplete={loadData}
+            subscription={subscription}
+            customerCount={customers.length}
           />
 
           <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
@@ -583,6 +612,36 @@ export default function CRM() {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Card className="col-span-1 md:col-span-3 lg:col-span-1 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center justify-between">
+              Uso do Plano
+              <span className="capitalize text-primary bg-primary/10 px-2 py-0.5 rounded-full text-xs">
+                {subscription?.plan_tier || 'Free'}
+              </span>
+            </CardTitle>
+            <CardDescription className="text-2xl font-bold text-foreground">
+              {customers.length}{' '}
+              <span className="text-sm font-normal text-muted-foreground">
+                de {limit === 10000 ? 'Ilimitado' : limit} leads
+              </span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Progress
+              value={usagePercent}
+              className={usagePercent >= 100 ? '[&>div]:bg-destructive' : ''}
+            />
+            {usagePercent >= 100 && (
+              <p className="text-xs text-destructive mt-2 font-medium">
+                Você atingiu o limite do seu plano. Faça upgrade para importar mais.
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="leads" className="w-full">

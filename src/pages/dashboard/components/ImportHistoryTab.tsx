@@ -136,9 +136,17 @@ export default function ImportHistoryTab() {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-2 mt-4">
             {selectedLog?.error_summary && (
-              <p className="text-sm font-medium text-red-600 mb-4 p-3 bg-red-50 rounded-md border border-red-100">
-                {selectedLog.error_summary}
-              </p>
+              <div className="mb-4 p-3 bg-red-50 rounded-md border border-red-100">
+                <p className="text-sm font-medium text-red-600">{selectedLog.error_summary}</p>
+                {(selectedLog.error_summary.toLowerCase().includes('quota') ||
+                  selectedLog.error_summary.toLowerCase().includes('limite') ||
+                  selectedLog.error_summary.toLowerCase().includes('exceed')) && (
+                  <p className="text-xs font-bold text-red-700 mt-1">
+                    Dica: Você atingiu o limite do seu plano. Faça upgrade para continuar
+                    importando.
+                  </p>
+                )}
+              </div>
             )}
 
             {selectedLog?.error_details && Array.isArray(selectedLog.error_details) ? (

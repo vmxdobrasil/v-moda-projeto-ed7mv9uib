@@ -28,11 +28,15 @@ export default function ImportLeadsDialog({
   onOpenChange,
   onImportStateChange,
   onImportComplete,
+  subscription,
+  customerCount,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onImportStateChange: (state: boolean) => void
   onImportComplete: () => void
+  subscription: any
+  customerCount: number
 }) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [headers, setHeaders] = useState<string[]>([])
@@ -104,6 +108,17 @@ export default function ImportLeadsDialog({
       toast.error('É obrigatório mapear a coluna de Telefone/WhatsApp.')
       return
     }
+
+    const limit =
+      subscription?.import_limit ??
+      (subscription?.plan_tier === 'free' ? 50 : subscription?.plan_tier ? 10000 : 50)
+    if (customerCount + rows.length > limit) {
+      toast.error(
+        `Você atingiu o limite de ${limit} leads para o plano ${subscription?.plan_tier || 'Free'}. Faça upgrade para importar mais.`,
+      )
+      return
+    }
+
     setStep(3)
     await startImport(rows, mapping, defaultSource)
     setStep(4)

@@ -6,6 +6,7 @@ export interface Subscription {
   plan_tier: 'free' | 'basic' | 'pro' | 'enterprise'
   status: 'active' | 'past_due' | 'canceled'
   next_billing_date: string
+  import_limit?: number
   created: string
   updated: string
 }

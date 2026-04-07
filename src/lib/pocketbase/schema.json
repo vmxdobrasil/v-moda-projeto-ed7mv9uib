@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-07T01:44:04.232Z",
+  "generatedAt": "2026-04-07T10:04:33.323Z",
   "collections": [
     {
       "name": "users",
@@ -531,6 +531,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "import_limit",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_subscriptions_user ON subscriptions (user)"]
