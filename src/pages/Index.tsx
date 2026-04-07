@@ -235,12 +235,21 @@ export default function Index() {
                     </h1>
                   </FadeIn>
                   <FadeIn delay={600}>
-                    <Link
-                      to="/colecoes"
-                      className="inline-flex items-center justify-center bg-white text-black px-8 py-4 uppercase tracking-widest text-sm font-medium transition-all hover:bg-black hover:text-white hover:scale-105 duration-300"
-                    >
-                      Ver Coleção
-                    </Link>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                      <Link
+                        to="/colecoes"
+                        className="inline-flex items-center justify-center bg-white text-black px-8 py-4 uppercase tracking-widest text-sm font-medium transition-all hover:bg-black hover:text-white hover:scale-105 duration-300"
+                      >
+                        Ver Coleção
+                      </Link>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-black px-8 py-4 h-auto uppercase tracking-widest text-sm font-medium transition-all hover:scale-105 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black duration-300 rounded-none"
+                      >
+                        <Link to="/dashboard/crm">Acessar CRM</Link>
+                      </Button>
+                    </div>
                   </FadeIn>
                 </div>
               </CarouselItem>
