@@ -14,11 +14,17 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BrandLogo } from '@/components/BrandLogo'
+import pb from '@/lib/pocketbase/client'
 
 export default function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
-  const isAuthenticated = localStorage.getItem('admin_auth') === '1'
+
+  const isAdmin =
+    pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
+    pb.authStore.record?.role === 'manufacturer'
+  const isAuthenticated =
+    pb.authStore.isValid && (isAdmin || localStorage.getItem('admin_auth') === '1')
   const role = localStorage.getItem('admin_role') || 'administrador' // 'administrador' or 'gerente'
 
   const navigation = [
@@ -87,11 +93,12 @@ export default function AdminLayout() {
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault()
     localStorage.removeItem('admin_auth')
+    pb.authStore.clear()
     navigate('/admin/login')
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/admin/login" replace />
+    return <Navigate to="/admin/login" state={{ from: location }} replace />
   }
 
   return (

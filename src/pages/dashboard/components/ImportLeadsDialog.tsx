@@ -22,6 +22,7 @@ import { toast } from 'sonner'
 import { parseCSV } from '@/lib/csv-parser'
 import { useBulkImport } from '@/hooks/use-bulk-import'
 import { UploadCloud, CheckCircle2, FileSpreadsheet, DownloadCloud } from 'lucide-react'
+import pb from '@/lib/pocketbase/client'
 
 export default function ImportLeadsDialog({
   open,
@@ -109,10 +110,15 @@ export default function ImportLeadsDialog({
       return
     }
 
-    const limit =
-      subscription?.import_limit ??
-      (subscription?.plan_tier === 'free' ? 50 : subscription?.plan_tier ? 10000 : 50)
-    if (customerCount + rows.length > limit) {
+    const isAdmin =
+      pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
+      pb.authStore.record?.role === 'manufacturer'
+    const limit = isAdmin
+      ? Infinity
+      : (subscription?.import_limit ??
+        (subscription?.plan_tier === 'free' ? 50 : subscription?.plan_tier ? 10000 : 50))
+
+    if (customerCount + rows.length > limit && limit !== Infinity) {
       toast.error(
         `Você atingiu o limite de ${limit} leads para o plano ${subscription?.plan_tier || 'Free'}. Faça upgrade para importar mais.`,
       )

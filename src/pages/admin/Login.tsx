@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Card,
   CardContent,
@@ -12,32 +12,41 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Lock } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
+import pb from '@/lib/pocketbase/client'
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
-  const { toast } = useToast()
+  const location = useLocation()
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email || !password) {
-      toast({
-        title: 'Erro de validação',
-        description: 'Por favor, preencha o e-mail e a senha.',
-        variant: 'destructive',
-      })
+      toast.error('Por favor, preencha o e-mail e a senha.')
       return
     }
 
-    // Mock login success
-    localStorage.setItem('admin_auth', '1')
-    toast({
-      title: 'Login bem-sucedido',
-      description: 'Bem-vindo ao painel administrativo.',
-    })
-    navigate('/admin')
+    setLoading(true)
+    try {
+      await pb.collection('users').authWithPassword(email, password)
+      localStorage.setItem('admin_auth', '1')
+
+      const isAdmin =
+        pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
+        pb.authStore.record?.role === 'manufacturer'
+
+      toast.success('Login bem-sucedido. Bem-vindo ao painel.')
+
+      const from = location.state?.from?.pathname || (isAdmin ? '/dashboard/crm' : '/admin')
+      navigate(from, { replace: true })
+    } catch (err: any) {
+      toast.error(err.message || 'Credenciais inválidas.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -80,8 +89,8 @@ export default function AdminLogin() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full">
-              Entrar
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Entrando...' : 'Entrar'}
             </Button>
           </CardFooter>
         </form>

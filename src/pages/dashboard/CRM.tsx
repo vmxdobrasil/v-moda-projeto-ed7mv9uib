@@ -197,8 +197,13 @@ export default function CRM() {
       return
     }
 
-    const limit = subscription?.import_limit ?? (subscription?.plan_tier === 'free' ? 50 : 10000)
-    if (customers.length >= limit) {
+    const isAdmin =
+      pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
+      pb.authStore.record?.role === 'manufacturer'
+    const limit = isAdmin
+      ? Infinity
+      : (subscription?.import_limit ?? (subscription?.plan_tier === 'free' ? 50 : 10000))
+    if (customers.length >= limit && limit !== Infinity) {
       toast.error(
         `Você atingiu o limite de ${limit} leads para o plano ${subscription?.plan_tier || 'Free'}.`,
       )
@@ -271,8 +276,13 @@ export default function CRM() {
   }
 
   const handleAcceptSuggestion = async (suggestion: any) => {
-    const limit = subscription?.import_limit ?? (subscription?.plan_tier === 'free' ? 50 : 10000)
-    if (customers.length >= limit) {
+    const isAdmin =
+      pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
+      pb.authStore.record?.role === 'manufacturer'
+    const limit = isAdmin
+      ? Infinity
+      : (subscription?.import_limit ?? (subscription?.plan_tier === 'free' ? 50 : 10000))
+    if (customers.length >= limit && limit !== Infinity) {
       toast.error(
         `Você atingiu o limite de ${limit} leads para o plano ${subscription?.plan_tier || 'Free'}.`,
       )
@@ -320,10 +330,15 @@ export default function CRM() {
     calcados: 'Calçados',
   }
 
-  const limit =
-    subscription?.import_limit ??
-    (subscription?.plan_tier === 'free' ? 50 : subscription?.plan_tier ? 10000 : 50)
-  const usagePercent = Math.min(100, Math.round((customers.length / limit) * 100))
+  const isAdmin =
+    pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
+    pb.authStore.record?.role === 'manufacturer'
+  const limit = isAdmin
+    ? Infinity
+    : (subscription?.import_limit ??
+      (subscription?.plan_tier === 'free' ? 50 : subscription?.plan_tier ? 10000 : 50))
+  const usagePercent =
+    limit === Infinity ? 0 : Math.min(100, Math.round((customers.length / limit) * 100))
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -620,25 +635,33 @@ export default function CRM() {
             <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center justify-between">
               Uso do Plano
               <span className="capitalize text-primary bg-primary/10 px-2 py-0.5 rounded-full text-xs">
-                {subscription?.plan_tier || 'Free'}
+                {isAdmin ? 'Admin / Ilimitado' : subscription?.plan_tier || 'Free'}
               </span>
             </CardTitle>
             <CardDescription className="text-2xl font-bold text-foreground">
               {customers.length}{' '}
               <span className="text-sm font-normal text-muted-foreground">
-                de {limit === 10000 ? 'Ilimitado' : limit} leads
+                de {limit === Infinity ? 'Ilimitado' : limit === 10000 ? 'Ilimitado' : limit} leads
               </span>
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Progress
-              value={usagePercent}
-              className={usagePercent >= 100 ? '[&>div]:bg-destructive' : ''}
-            />
-            {usagePercent >= 100 && (
-              <p className="text-xs text-destructive mt-2 font-medium">
-                Você atingiu o limite do seu plano. Faça upgrade para importar mais.
-              </p>
+            {isAdmin ? (
+              <div className="mt-2 text-sm text-muted-foreground">
+                Acesso sem restrições de importação.
+              </div>
+            ) : (
+              <>
+                <Progress
+                  value={usagePercent}
+                  className={usagePercent >= 100 ? '[&>div]:bg-destructive' : ''}
+                />
+                {usagePercent >= 100 && (
+                  <p className="text-xs text-destructive mt-2 font-medium">
+                    Você atingiu o limite do seu plano. Faça upgrade para importar mais.
+                  </p>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
