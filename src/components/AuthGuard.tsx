@@ -63,18 +63,14 @@ export function PublicRoute() {
   }
 
   if (isAuthenticated) {
-    const isAdmin = user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
-    const isManufacturer = user?.role === 'manufacturer'
-
     // If we have a stored location to return to, go there (unless it's a login page)
     const from = location.state?.from?.pathname
     if (from && from !== '/login' && from !== '/admin/login' && from !== '/cadastro') {
       return <Navigate to={from} replace />
     }
 
-    // Default redirect based on user role
-    const defaultRedirect = isAdmin || isManufacturer ? '/dashboard/crm' : '/perfil'
-    return <Navigate to={defaultRedirect} replace />
+    // Automatically redirect authenticated users to the CRM bypass to avoid the login page
+    return <Navigate to="/dashboard/crm" replace />
   }
 
   return <Outlet />

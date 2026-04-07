@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import pb from '@/lib/pocketbase/client'
+import { toast } from '@/hooks/use-toast'
 
 export interface User {
   id: string
@@ -56,15 +57,26 @@ const useAuthStore = create<AuthState>((set) => {
     initialize: async () => {
       if (pb.authStore.isValid) {
         try {
-          const authData = await pb.collection('users').authRefresh()
+          const collection = pb.authStore.record?.collectionName || 'users'
+          const authData = await pb.collection(collection).authRefresh()
           set({
             user: (authData.record as unknown as User) || null,
             isAuthenticated: true,
             isInitialized: true,
           })
-        } catch (err) {
-          pb.authStore.clear()
-          set({ user: null, isAuthenticated: false, isInitialized: true })
+        } catch (err: any) {
+          if (err?.status === 401 || err?.status === 403 || err?.status === 404) {
+            pb.authStore.clear()
+            set({ user: null, isAuthenticated: false, isInitialized: true })
+            toast({
+              title: 'Sessão expirada',
+              description: 'Sua sessão expirou. Por favor, faça login novamente.',
+              variant: 'destructive',
+            })
+          } else {
+            // Keep authenticated state if it's a transient network error
+            set({ isInitialized: true })
+          }
         }
       } else {
         set({ isInitialized: true })

@@ -136,6 +136,11 @@ export default function Profile() {
         updatedRecord = await pb.collection('users').update(user.id, updatePayload)
       }
 
+      // Sync the updated record back to the PocketBase authStore so it persists across tabs immediately
+      if (pb.authStore.token) {
+        pb.authStore.save(pb.authStore.token, updatedRecord)
+      }
+
       updateUser(updatedRecord as any)
       setIsEditing(false)
 
