@@ -18,9 +18,11 @@ import {
 } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
 import useAuthStore from '@/stores/useAuthStore'
-import { LogOut, User, Upload } from 'lucide-react'
+import { LogOut, User, Upload, Loader2 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 
 const HUB_OPTIONS = [
   { id: '44_goiania', label: 'Região da 44 (Goiânia)' },
@@ -75,7 +77,7 @@ export default function Profile() {
         fashion_hubs: user.fashion_hubs || [],
       })
       if (user.avatar) {
-        setAvatarPreview(pb.files.getUrl(user, user.avatar))
+        setAvatarPreview(pb.files.getUrl(user as any, user.avatar))
       }
     }
   }, [isAuthenticated, navigate, user, form])
@@ -93,37 +95,64 @@ export default function Profile() {
     setIsLoading(true)
 
     try {
-      const formData = new FormData()
-      formData.append('name', data.name)
-      formData.append('email', data.email)
+      let updatePayload: any = {
+        name: data.name,
+        email: data.email,
+      }
 
       if (user.role === 'affiliate') {
-        formData.append('is_transporter', data.is_transporter ? 'true' : 'false')
-        formData.append('operating_regions', data.operating_regions || '')
-        formData.append('operating_cities', data.operating_cities || '')
-        if (data.fashion_hubs && data.fashion_hubs.length > 0) {
-          data.fashion_hubs.forEach((hub) => formData.append('fashion_hubs', hub))
-        } else {
-          formData.append('fashion_hubs', '')
+        updatePayload = {
+          ...updatePayload,
+          is_transporter: data.is_transporter || false,
+          operating_regions: data.operating_regions || '',
+          operating_cities: data.operating_cities || '',
+          fashion_hubs: data.fashion_hubs || [],
         }
       }
 
+      let updatedRecord
+
       if (avatarFile) {
+        // Use FormData only when sending a file
+        const formData = new FormData()
+        for (const key in updatePayload) {
+          if (Array.isArray(updatePayload[key])) {
+            if (updatePayload[key].length === 0) {
+              formData.append(key, '')
+            } else {
+              updatePayload[key].forEach((v: string) => formData.append(key, v))
+            }
+          } else if (typeof updatePayload[key] === 'boolean') {
+            formData.append(key, updatePayload[key] ? 'true' : 'false')
+          } else if (updatePayload[key] !== undefined && updatePayload[key] !== null) {
+            formData.append(key, updatePayload[key].toString())
+          }
+        }
         formData.append('avatar', avatarFile)
+        updatedRecord = await pb.collection('users').update(user.id, formData)
+      } else {
+        // Safe JSON update if no file is present
+        updatedRecord = await pb.collection('users').update(user.id, updatePayload)
       }
 
-      const updatedRecord = await pb.collection('users').update(user.id, formData)
-      updateUser(updatedRecord)
-
+      updateUser(updatedRecord as any)
       setIsEditing(false)
+
       toast({
         title: 'Perfil atualizado',
-        description: 'Suas informações foram salvas com sucesso.',
+        description: 'Suas informações foram salvas com sucesso!',
       })
     } catch (err) {
+      const fieldErrors = extractFieldErrors(err)
+      const msg = getErrorMessage(err)
+
+      Object.entries(fieldErrors).forEach(([field, message]) => {
+        form.setError(field as any, { type: 'server', message })
+      })
+
       toast({
         title: 'Erro ao atualizar',
-        description: 'Ocorreu um erro ao salvar suas informações.',
+        description: msg || 'Verifique as informações preenchidas e tente novamente.',
         variant: 'destructive',
       })
     } finally {
@@ -380,7 +409,13 @@ export default function Profile() {
                       className="rounded-md h-11 uppercase tracking-widest px-8"
                       disabled={isLoading}
                     >
-                      {isLoading ? 'Salvando...' : 'Salvar Alterações'}
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Salvando...
+                        </>
+                      ) : (
+                        'Salvar Alterações'
+                      )}
                     </Button>
                     <Button
                       type="button"
@@ -391,7 +426,7 @@ export default function Profile() {
                         form.reset()
                         setAvatarFile(null)
                         if (user?.avatar) {
-                          setAvatarPreview(pb.files.getUrl(user, user.avatar))
+                          setAvatarPreview(pb.files.getUrl(user as any, user.avatar))
                         } else {
                           setAvatarPreview(null)
                         }

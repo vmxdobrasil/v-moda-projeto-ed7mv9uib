@@ -23,9 +23,13 @@ export default function AdminLayout() {
   const isAdmin =
     pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
     pb.authStore.record?.role === 'manufacturer'
-  const isAuthenticated =
-    pb.authStore.isValid && (isAdmin || localStorage.getItem('admin_auth') === '1')
-  const role = localStorage.getItem('admin_role') || 'administrador' // 'administrador' or 'gerente'
+
+  // Rely exclusively on standard auth check to prevent loops and bypasses
+  const isAuthenticated = pb.authStore.isValid && isAdmin
+
+  // Determine internal admin role securely from record
+  const role =
+    pb.authStore.record?.email === 'valterpmendonca@gmail.com' ? 'administrador' : 'gerente'
 
   const navigation = [
     {
@@ -92,7 +96,6 @@ export default function AdminLayout() {
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault()
-    localStorage.removeItem('admin_auth')
     pb.authStore.clear()
     navigate('/admin/login')
   }

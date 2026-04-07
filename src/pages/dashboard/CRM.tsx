@@ -337,6 +337,11 @@ export default function CRM() {
     ? Infinity
     : (subscription?.import_limit ??
       (subscription?.plan_tier === 'free' ? 50 : subscription?.plan_tier ? 10000 : 50))
+
+  const effectiveSubscription = isAdmin
+    ? ({ ...subscription, plan_tier: 'enterprise', import_limit: Infinity } as any)
+    : subscription
+
   const usagePercent =
     limit === Infinity ? 0 : Math.min(100, Math.round((customers.length / limit) * 100))
 
@@ -384,7 +389,7 @@ export default function CRM() {
             onOpenChange={setIsImportOpen}
             onImportStateChange={setIsImporting}
             onImportComplete={loadData}
-            subscription={subscription}
+            subscription={effectiveSubscription}
             customerCount={customers.length}
           />
 
