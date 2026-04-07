@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Users, CreditCard, BarChart, Bell, BusFront } from 'lucide-react'
+import { Users, CreditCard, BarChart, Bell, BusFront, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useEffect, useMemo } from 'react'
 import { getMyNotifications, markNotificationRead, Notification } from '@/services/notifications'
@@ -52,18 +52,31 @@ export default function DashboardLayout() {
   }
 
   const links = useMemo(() => {
+    const baseLinks = []
+
     if (userRecord?.role === 'affiliate') {
-      return [
+      baseLinks.push(
         { href: '/dashboard/affiliate', label: 'Painel do Guia / Transportador', icon: BusFront },
+        { href: '/dashboard/indicacoes', label: 'Indicações', icon: Share2 },
         { href: '/dashboard/performance', label: 'Performance', icon: BarChart },
-      ]
+      )
+    } else if (userRecord?.role === 'manufacturer' || userRecord?.type === 'Lojista Fabricante') {
+      baseLinks.push(
+        { href: '/dashboard/crm', label: 'CRM', icon: Users },
+        { href: '/dashboard/indicacoes', label: 'Indicações', icon: Share2 },
+        { href: '/dashboard/performance', label: 'Performance', icon: BarChart },
+        { href: '/dashboard/billing', label: 'Meu Plano', icon: CreditCard },
+      )
+    } else {
+      baseLinks.push(
+        { href: '/dashboard/crm', label: 'CRM', icon: Users },
+        { href: '/dashboard/performance', label: 'Performance', icon: BarChart },
+        { href: '/dashboard/billing', label: 'Meu Plano', icon: CreditCard },
+      )
     }
-    return [
-      { href: '/dashboard/crm', label: 'CRM', icon: Users },
-      { href: '/dashboard/performance', label: 'Performance', icon: BarChart },
-      { href: '/dashboard/billing', label: 'Meu Plano', icon: CreditCard },
-    ]
-  }, [userRecord?.role])
+
+    return baseLinks
+  }, [userRecord?.role, userRecord?.type])
 
   return (
     <div className="flex h-screen bg-muted/20">

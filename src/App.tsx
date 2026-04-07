@@ -49,6 +49,7 @@ import Billing from './pages/dashboard/Billing'
 import Performance from './pages/dashboard/Performance'
 import WhatsappSettings from './pages/dashboard/WhatsappSettings'
 import AffiliateDashboard from './pages/dashboard/AffiliateDashboard'
+import Indications from './pages/dashboard/Indications'
 import Affiliates from './pages/Affiliates'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import BrandProfile from './pages/BrandProfile'
@@ -88,6 +89,7 @@ const App = () => (
             <Route path="settings/whatsapp" element={<WhatsappSettings />} />
             <Route path="affiliate" element={<AffiliateDashboard />} />
             <Route path="media-kit" element={<MediaKit />} />
+            <Route path="indicacoes" element={<Indications />} />
           </Route>
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
