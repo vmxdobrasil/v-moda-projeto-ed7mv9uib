@@ -49,6 +49,7 @@ import {
   BadgeCheck,
   MessageCircle,
   Download,
+  TicketPercent,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -688,6 +689,7 @@ export default function CRM() {
           <TabsTrigger value="analytics">Relatórios</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
           <TabsTrigger value="import-history">Histórico de Importação</TabsTrigger>
+          {isAdmin && <TabsTrigger value="subscriptions">Planos e Membros</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="funnel" className="h-[calc(100vh-250px)]">
@@ -748,6 +750,14 @@ export default function CRM() {
                               {c.source}
                             </span>
                           </div>
+                          {c.unlocked_benefits?.discount_active && (
+                            <div className="flex items-center mb-1.5">
+                              <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-800">
+                                <TicketPercent className="w-2.5 h-2.5 mr-1" />
+                                {c.unlocked_benefits.discount_value} OFF
+                              </span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-1 text-[10px] text-muted-foreground bg-muted/50 w-fit px-1.5 py-0.5 rounded">
                             <Clock className="w-3 h-3" />
                             {(() => {
@@ -888,6 +898,14 @@ export default function CRM() {
                                 )}
                               </div>
                             )}
+                            {customer.unlocked_benefits?.discount_active && (
+                              <div className="mt-1">
+                                <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+                                  <TicketPercent className="w-3 h-3 mr-1" />
+                                  Desconto: {customer.unlocked_benefits.discount_value}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </TableCell>
@@ -971,6 +989,61 @@ export default function CRM() {
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={async () => {
+                            let discount = '10%'
+                            if (customer.ranking_position && customer.ranking_position <= 10) {
+                              discount = '30%'
+                            } else if (customer.is_exclusive) {
+                              discount = '20%'
+                            }
+
+                            const newBenefits = {
+                              ...(customer.unlocked_benefits || {}),
+                              discount_active: true,
+                              discount_value: discount,
+                              generated_at: new Date().toISOString(),
+                            }
+
+                            try {
+                              await updateCustomer(customer.id, { unlocked_benefits: newBenefits })
+
+                              // Check if there is a referral for this customer and update its metadata
+                              if (customer.affiliate_referrer) {
+                                try {
+                                  const refs = await pb.collection('referrals').getList(1, 1, {
+                                    filter: `brand = "${customer.id}" && affiliate = "${customer.affiliate_referrer}"`,
+                                  })
+                                  if (refs.items.length > 0) {
+                                    const ref = refs.items[0]
+                                    await pb.collection('referrals').update(ref.id, {
+                                      metadata: {
+                                        ...(ref.metadata || {}),
+                                        discount_generated: true,
+                                        discount_value: discount,
+                                        generated_at: new Date().toISOString(),
+                                      },
+                                    })
+                                  }
+                                } catch (e) {
+                                  console.error('Erro ao atualizar referral', e)
+                                }
+                              }
+
+                              toast.success(
+                                `Desconto de ${discount} gerado com sucesso para ${customer.name}!`,
+                              )
+                            } catch (err) {
+                              toast.error('Erro ao gerar desconto')
+                            }
+                          }}
+                          className="text-amber-500 hover:text-amber-600 hover:bg-amber-50 ml-1"
+                          title="Gerar Desconto Automático"
+                        >
+                          <TicketPercent className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -1044,7 +1117,98 @@ export default function CRM() {
         <TabsContent value="import-history">
           <ImportHistoryTab />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="subscriptions">
+            <SubscriptionsTab />
+          </TabsContent>
+        )}
       </Tabs>
+    </div>
+  )
+}
+
+function SubscriptionsTab() {
+  const [subs, setSubs] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchSubs = async () => {
+      try {
+        const records = await pb.collection('subscriptions').getFullList({
+          expand: 'user',
+          sort: '-created',
+        })
+        setSubs(records)
+      } catch (err: any) {
+        console.error(err)
+        if (err.status === 403) {
+          toast.error('Apenas administradores podem ver todos os planos.')
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchSubs()
+  }, [])
+
+  if (loading)
+    return <div className="p-8 text-center text-muted-foreground">Carregando planos...</div>
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">Gestão de Planos de Membros</h2>
+        <p className="text-sm text-muted-foreground">
+          Gerencie assinaturas de varejistas e afiliados.
+        </p>
+      </div>
+      <div className="rounded-md border bg-card shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Membro</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Função</TableHead>
+              <TableHead>Plano</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Criado em</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {subs.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  Nenhuma assinatura encontrada.
+                </TableCell>
+              </TableRow>
+            ) : (
+              subs.map((sub) => (
+                <TableRow key={sub.id}>
+                  <TableCell className="font-medium">
+                    {sub.expand?.user?.name || 'Sem nome'}
+                  </TableCell>
+                  <TableCell>{sub.expand?.user?.email || '-'}</TableCell>
+                  <TableCell className="capitalize">{sub.expand?.user?.role || '-'}</TableCell>
+                  <TableCell className="capitalize font-semibold text-primary">
+                    {sub.plan_tier}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${sub.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                    >
+                      {sub.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {new Date(sub.created).toLocaleDateString('pt-BR')}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

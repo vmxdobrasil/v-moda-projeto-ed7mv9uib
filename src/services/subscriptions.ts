@@ -34,3 +34,10 @@ export const createMySubscription = async (plan_tier: Subscription['plan_tier'])
     status: 'active',
   })
 }
+
+export const getAllSubscriptions = async () => {
+  return pb.collection('subscriptions').getFullList<Subscription & { expand: { user: any } }>({
+    expand: 'user',
+    sort: '-created',
+  })
+}
