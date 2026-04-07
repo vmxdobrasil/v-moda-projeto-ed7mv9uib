@@ -63,15 +63,15 @@ export default function AdminSubscriptions() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Gerenciamento de Assinaturas</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Gestão de Planos</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Gerencie os planos e limites de importação dos membros (varejistas e afiliados).
+          Gerencie as assinaturas e limites de importação dos membros (varejistas e afiliados).
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Assinaturas Ativas</CardTitle>
+          <CardTitle>Planos Ativos</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-x-auto">

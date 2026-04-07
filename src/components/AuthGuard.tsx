@@ -71,7 +71,7 @@ export function PublicRoute() {
 
     // Automatically redirect authenticated users to dashboard if they are admins/manufacturers
     if (user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin') {
-      return <Navigate to="/admin" replace />
+      return <Navigate to="/" replace />
     }
     if (user?.role === 'manufacturer') {
       return <Navigate to="/dashboard/crm" replace />

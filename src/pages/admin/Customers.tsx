@@ -206,41 +206,49 @@ export default function Customers() {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
   }
 
-  const handleGenerateDiscount = async (customer: Customer) => {
+  const [discountCustomer, setDiscountCustomer] = useState<Customer | null>(null)
+  const [calculatedDiscount, setCalculatedDiscount] = useState<number>(0)
+
+  const handleCalculateDiscount = (customer: Customer) => {
     let baseDiscount = 0
 
-    // Loyalty bonuses for converted or negotiating
     if (customer.status === 'converted' || customer.status === 'negotiating') {
       baseDiscount += 10
     }
 
-    // Ranking position logic (lower number = higher discount)
     if (customer.ranking_position && customer.ranking_position > 0) {
       if (customer.ranking_position <= 3) baseDiscount += 25
       else if (customer.ranking_position <= 10) baseDiscount += 15
       else baseDiscount += 5
     }
 
-    // Exclusive additional benefit
     if (customer.is_exclusive) {
       baseDiscount += 15
     }
 
-    // Default fallback if no conditions met
     if (baseDiscount === 0) baseDiscount = 5
 
-    const discountStr = `${baseDiscount}%`
+    setCalculatedDiscount(baseDiscount)
+    setDiscountCustomer(customer)
+  }
 
+  const handleConfirmDiscount = async () => {
+    if (!discountCustomer) return
+
+    const discountStr = `${calculatedDiscount}%`
     const newBenefits = {
-      ...(customer.unlocked_benefits || {}),
+      ...(discountCustomer.unlocked_benefits || {}),
       discount_active: true,
       discount_value: discountStr,
       generated_at: new Date().toISOString(),
     }
 
     try {
-      await updateCustomer(customer.id, { unlocked_benefits: newBenefits })
-      toast({ description: `Desconto de ${discountStr} gerado com sucesso para ${customer.name}!` })
+      await updateCustomer(discountCustomer.id, { unlocked_benefits: newBenefits })
+      toast({
+        description: `Desconto de ${discountStr} aplicado com sucesso para ${discountCustomer.name}!`,
+      })
+      setDiscountCustomer(null)
       loadData()
     } catch (err) {
       toast({ description: 'Erro ao gerar desconto', variant: 'destructive' })
@@ -489,7 +497,7 @@ export default function Customers() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleGenerateDiscount(customer)}
+                            onClick={() => handleCalculateDiscount(customer)}
                             title="Gerar Desconto Automático"
                             className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                           >
@@ -520,6 +528,38 @@ export default function Customers() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={!!discountCustomer} onOpenChange={(open) => !open && setDiscountCustomer(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Desconto Automático</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Baseado na categoria de ranking, posição e exclusividade do cliente{' '}
+              <strong className="text-foreground">{discountCustomer?.name}</strong>, o desconto
+              calculado foi de:
+            </p>
+            <div className="flex justify-center my-6">
+              <span className="text-5xl font-bold text-emerald-600">{calculatedDiscount}%</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Deseja aplicar este desconto aos benefícios do cliente?
+            </p>
+          </div>
+          <div className="flex justify-end gap-3 mt-2">
+            <Button variant="outline" onClick={() => setDiscountCustomer(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmDiscount}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              Aplicar Desconto
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={bulkCampaignOpen} onOpenChange={setBulkCampaignOpen}>
         <DialogContent>

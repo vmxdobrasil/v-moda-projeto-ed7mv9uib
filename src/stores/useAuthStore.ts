@@ -31,13 +31,18 @@ const isAdmin =
   pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
   pb.authStore.record?.collectionName === '_superusers'
 
-const initialState = {
-  user: (pb.authStore.record as unknown as User) || null,
-  isAuthenticated: pb.authStore.isValid,
-  isInitialized: !!(isAdmin && pb.authStore.isValid),
+const getInitialState = () => {
+  const isValid = pb.authStore.isValid
+  return {
+    user: (pb.authStore.record as unknown as User) || null,
+    isAuthenticated: isValid,
+    // Initialize synchronously to prevent blank screens/flashes
+    isInitialized: true,
+  }
 }
 
 let initPromise: Promise<void> | null = null
+let hasRefreshed = false
 
 const useAuthStore = create<AuthState>((set, get) => {
   // Sync with external auth changes (like login/logout from other tabs or components)
@@ -45,11 +50,12 @@ const useAuthStore = create<AuthState>((set, get) => {
     set({
       user: (record as unknown as User) || null,
       isAuthenticated: pb.authStore.isValid,
+      isInitialized: true,
     })
   })
 
   return {
-    ...initialState,
+    ...getInitialState(),
     login: (user) => set({ user, isAuthenticated: true }),
     logout: () => {
       pb.authStore.clear()
@@ -60,7 +66,9 @@ const useAuthStore = create<AuthState>((set, get) => {
         user: state.user ? { ...state.user, ...data } : null,
       })),
     initialize: async () => {
-      if (get().isInitialized) return
+      if (hasRefreshed) return
+      hasRefreshed = true
+
       if (initPromise) {
         await initPromise
         return

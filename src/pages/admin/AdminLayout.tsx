@@ -76,7 +76,7 @@ export default function AdminLayout() {
       icon: ImageIcon,
       roles: ['administrador', 'gerente'],
     },
-    { name: 'Assinaturas', href: '/admin/assinaturas', icon: Award, roles: ['administrador'] },
+    { name: 'Gestão de Planos', href: '/admin/assinaturas', icon: Award, roles: ['administrador'] },
     {
       name: 'Logs de Importação',
       href: '/admin/logs-importacao',
