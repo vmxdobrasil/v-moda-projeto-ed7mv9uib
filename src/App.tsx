@@ -72,6 +72,7 @@ const AppContent = () => {
       <Route element={<PublicRoute />}>
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route element={<Layout />}>
+          <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Register />} />
           <Route path="/recuperar-senha" element={<ForgotPassword />} />
@@ -121,7 +122,6 @@ const AppContent = () => {
       </Route>
 
       <Route element={<Layout />}>
-        <Route path="/" element={<Index />} />
         <Route path="/marcas/:id" element={<BrandProfile />} />
         <Route path="/colecoes" element={<Collections />} />
         <Route path="/portfolio" element={<Portfolio />} />

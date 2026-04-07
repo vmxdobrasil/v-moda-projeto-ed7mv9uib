@@ -34,7 +34,7 @@ const initialState = {
   isInitialized: false,
 }
 
-const useAuthStore = create<AuthState>((set) => {
+const useAuthStore = create<AuthState>((set, get) => {
   // Sync with external auth changes (like login/logout from other tabs or components)
   pb.authStore.onChange((token, record) => {
     set({
@@ -55,7 +55,9 @@ const useAuthStore = create<AuthState>((set) => {
         user: state.user ? { ...state.user, ...data } : null,
       })),
     initialize: async () => {
-      if (pb.authStore.isValid) {
+      if (get().isInitialized) return
+
+      if (pb.authStore.isValid && pb.authStore.token) {
         try {
           const collection = pb.authStore.record?.collectionName || 'users'
           const authData = await pb.collection(collection).authRefresh()
@@ -65,21 +67,23 @@ const useAuthStore = create<AuthState>((set) => {
             isInitialized: true,
           })
         } catch (err: any) {
-          if (err?.status === 401 || err?.status === 403 || err?.status === 404) {
+          if (err?.status >= 400 && err?.status < 500) {
             pb.authStore.clear()
             set({ user: null, isAuthenticated: false, isInitialized: true })
             toast({
               title: 'Sessão expirada',
-              description: 'Sua sessão expirou. Por favor, faça login novamente.',
+              description:
+                'Sua sessão expirou ou os dados são inválidos. Por favor, faça login novamente.',
               variant: 'destructive',
             })
           } else {
-            // Keep authenticated state if it's a transient network error
+            // Keep authenticated state for network errors or server crashes
             set({ isInitialized: true })
           }
         }
       } else {
-        set({ isInitialized: true })
+        pb.authStore.clear()
+        set({ user: null, isAuthenticated: false, isInitialized: true })
       }
     },
   }

@@ -68,9 +68,22 @@ export default function Login() {
         }
       }
     } catch (err: any) {
+      pb.authStore.clear()
+      let description = 'E-mail ou senha incorretos. Tente novamente.'
+
+      if (err.status === 400) {
+        description = 'Dados inválidos ou credenciais incorretas.'
+      } else if (err.status === 403 || err.status === 401) {
+        description = 'Permissão negada ou credenciais incorretas.'
+      } else if (err.status === 0) {
+        description = 'Erro de rede. Verifique sua conexão com a internet.'
+      } else if (err.message) {
+        description = err.message
+      }
+
       toast({
         title: 'Erro ao fazer login',
-        description: 'E-mail ou senha incorretos. Tente novamente.',
+        description,
         variant: 'destructive',
       })
     } finally {

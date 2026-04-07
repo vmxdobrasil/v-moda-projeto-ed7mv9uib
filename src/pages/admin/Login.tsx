@@ -43,7 +43,20 @@ export default function AdminLogin() {
       const from = location.state?.from?.pathname || (isAdmin ? '/dashboard/crm' : '/admin')
       navigate(from, { replace: true })
     } catch (err: any) {
-      toast.error(err.message || 'Credenciais inválidas.')
+      pb.authStore.clear()
+      let msg = 'Credenciais inválidas.'
+
+      if (err.status === 400) {
+        msg = 'Dados inválidos ou credenciais incorretas.'
+      } else if (err.status === 403 || err.status === 401) {
+        msg = 'Permissão negada ou credenciais incorretas.'
+      } else if (err.status === 0) {
+        msg = 'Erro de rede. Verifique sua conexão com a internet.'
+      } else if (err.message) {
+        msg = err.message
+      }
+
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
