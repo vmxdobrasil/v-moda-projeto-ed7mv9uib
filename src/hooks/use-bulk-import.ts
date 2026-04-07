@@ -88,7 +88,9 @@ export function useBulkImport() {
             await pb.collection('import_logs').update(logId, {
               processed_records: totalSuccess + totalSkipped + totalError,
             })
-          } catch (e) {}
+          } catch (e) {
+            console.error('Failed to update import log progress', e)
+          }
         }
 
         setProgress(Math.min(100, Math.round(((i + BATCH_SIZE) / rows.length) * 100)))
@@ -109,7 +111,9 @@ export function useBulkImport() {
             error_summary: totalError > 0 ? `${totalError} registros com erro.` : '',
             error_details: allErrors.length > 0 ? allErrors : null,
           })
-        } catch (e) {}
+        } catch (e) {
+          console.error('Failed to update import log final status', e)
+        }
       }
 
       setProgress(100)
