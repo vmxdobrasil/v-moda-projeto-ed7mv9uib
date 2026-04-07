@@ -40,6 +40,15 @@ export const getCustomers = async () => {
   })
 }
 
+export const getReferredCustomers = async () => {
+  const user = pb.authStore.record
+  if (!user) return []
+  return pb.collection('customers').getFullList<Customer>({
+    filter: `affiliate_referrer = "${user.id}"`,
+    sort: '-created',
+  })
+}
+
 export const createCustomer = async (data: Partial<Customer> | FormData) => {
   const user = pb.authStore.record
   if (data instanceof FormData) {

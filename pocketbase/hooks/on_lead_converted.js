@@ -4,14 +4,31 @@ onRecordUpdateRequest((e) => {
     try {
       const oldRecord = $app.findRecordById('customers', e.record.id)
       if (oldRecord.get('status') !== 'converted') {
-        const notif = new Record($app.findCollectionByNameOrId('notifications'))
-        notif.set('user', e.record.get('manufacturer'))
-        notif.set('title', '🚀 Meta Alcançada: Venda Concluída!')
-        notif.set(
-          'message',
-          `O lead ${e.record.get('name')} foi convertido com sucesso para o status de Venda Concluída.`,
-        )
-        $app.saveNoValidate(notif)
+        // Notify Manufacturer
+        const manufacturerId = e.record.get('manufacturer')
+        if (manufacturerId) {
+          const notifMan = new Record($app.findCollectionByNameOrId('notifications'))
+          notifMan.set('user', manufacturerId)
+          notifMan.set('title', '🚀 Meta Alcançada: Venda Concluída!')
+          notifMan.set(
+            'message',
+            `O lead ${e.record.get('name')} foi convertido com sucesso para o status de Venda Concluída.`,
+          )
+          $app.saveNoValidate(notifMan)
+        }
+
+        // Notify Affiliate
+        const affiliateId = e.record.get('affiliate_referrer')
+        if (affiliateId) {
+          const notifAff = new Record($app.findCollectionByNameOrId('notifications'))
+          notifAff.set('user', affiliateId)
+          notifAff.set('title', 'Nova Conversão Realizada!')
+          notifAff.set(
+            'message',
+            `O lead ${e.record.get('name')} acaba de ser convertido com sucesso!`,
+          )
+          $app.saveNoValidate(notifAff)
+        }
       }
     } catch (err) {
       // Ignore if record doesn't exist yet
