@@ -38,6 +38,7 @@ export default function ImportLeadsDialog({
   const [headers, setHeaders] = useState<string[]>([])
   const [rows, setRows] = useState<any[]>([])
   const [mapping, setMapping] = useState<Record<string, string>>({})
+  const [defaultSource, setDefaultSource] = useState<string>('whatsapp_group')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { progress, isImporting, stats, startImport } = useBulkImport()
@@ -74,9 +75,19 @@ export default function ImportLeadsDialog({
       data.headers.forEach((h) => {
         const n = norm(h)
         if (n.includes('nome') || n === 'name') autoMap.name = h
-        if (n.includes('telefone') || n.includes('celular') || n === 'phone') autoMap.phone = h
+        if (
+          n.includes('telefone') ||
+          n.includes('celular') ||
+          n === 'phone' ||
+          n.includes('whatsapp') ||
+          n.includes('wpp')
+        )
+          autoMap.phone = h
+        if (n.includes('grupo') || n.includes('caravana') || n.includes('group'))
+          autoMap.caravan_name = h
         if (n.includes('email') || n === 'e-mail') autoMap.email = h
-        if (n.includes('origem') || n === 'source') autoMap.source = h
+        if (n.includes('cidade') || n === 'city') autoMap.city = h
+        if (n === 'uf' || n === 'estado' || n === 'state') autoMap.state = h
         if (n.includes('categoria') || n.includes('ranking')) autoMap.ranking_category = h
         if (n.includes('zona') || n.includes('exclusividade')) autoMap.exclusivity_zone = h
       })
@@ -89,12 +100,12 @@ export default function ImportLeadsDialog({
   }
 
   const handleStart = async () => {
-    if (!mapping.name || !mapping.phone) {
-      toast.error('Mapeie pelo menos os campos Nome e Telefone.')
+    if (!mapping.phone) {
+      toast.error('É obrigatório mapear a coluna de Telefone/WhatsApp.')
       return
     }
     setStep(3)
-    await startImport(rows, mapping)
+    await startImport(rows, mapping, defaultSource)
     setStep(4)
   }
 
@@ -211,11 +222,29 @@ export default function ImportLeadsDialog({
               </div>
             )}
 
-            <div className="max-h-[250px] overflow-y-auto space-y-2 pr-2">
-              {renderMappingRow('name', 'Nome do Lead', true)}
+            <div className="flex flex-col gap-2 p-3 border rounded-lg bg-card">
+              <Label className="font-medium text-primary">Origem Padrão dos Leads</Label>
+              <Select value={defaultSource} onValueChange={setDefaultSource}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a origem..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="whatsapp_group">Grupo de WhatsApp</SelectItem>
+                  <SelectItem value="manual">Importação Manual</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp Individual</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="site">Site / Landing Page</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="max-h-[250px] overflow-y-auto space-y-2 pr-2 mt-4">
               {renderMappingRow('phone', 'WhatsApp / Telefone', true)}
+              {renderMappingRow('name', 'Nome do Lead')}
+              {renderMappingRow('caravan_name', 'Nome do Grupo / Caravana')}
               {renderMappingRow('email', 'E-mail')}
-              {renderMappingRow('source', 'Origem (Ex: manual)')}
+              {renderMappingRow('city', 'Cidade')}
+              {renderMappingRow('state', 'Estado (UF)')}
               {renderMappingRow('ranking_category', 'Categoria de Ranking')}
               {renderMappingRow('exclusivity_zone', 'Zona de Exclusividade')}
             </div>
@@ -235,7 +264,7 @@ export default function ImportLeadsDialog({
 
         {step === 4 && stats && (
           <div className="space-y-6 py-4">
-            <div className="flex flex-col items-center justify-center mb-6">
+            <div className="flex flex-col items-center justify-center mb-4">
               <CheckCircle2 className="w-16 h-16 text-green-500 mb-2" />
               <h3 className="text-xl font-bold">Importação Concluída</h3>
             </div>
@@ -253,7 +282,29 @@ export default function ImportLeadsDialog({
                 <p className="text-sm font-medium text-red-600 mt-1">Erros</p>
               </div>
             </div>
-            <Button className="w-full mt-6" variant="outline" onClick={reset}>
+
+            {stats.errorDetails && stats.errorDetails.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-bold mb-2">Detalhes dos Erros (amostra):</h4>
+                <div className="max-h-[120px] overflow-y-auto text-xs bg-muted p-3 rounded border">
+                  <ul className="list-disc pl-4 space-y-1">
+                    {stats.errorDetails.slice(0, 50).map((err, idx) => (
+                      <li key={idx} className="text-red-600">
+                        <span className="font-semibold text-foreground">Linha {err.row}:</span>{' '}
+                        {err.reason}
+                      </li>
+                    ))}
+                    {stats.errorDetails.length > 50 && (
+                      <li className="text-muted-foreground mt-2">
+                        ...e mais {stats.errorDetails.length - 50} erros.
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            <Button className="w-full mt-4" variant="outline" onClick={reset}>
               Fechar
             </Button>
           </div>

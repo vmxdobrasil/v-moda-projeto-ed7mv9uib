@@ -4,6 +4,7 @@ routerAdd(
   (e) => {
     const body = e.requestInfo().body
     const records = body.records || []
+    const defaultSource = body.defaultSource || 'manual'
 
     if (!Array.isArray(records)) {
       throw new BadRequestError('records must be an array')
@@ -22,6 +23,7 @@ routerAdd(
     let success = 0
     let skipped = 0
     let errorCount = 0
+    const errorDetails = []
 
     const existingRecords = $app.findRecordsByFilter(
       'customers',
@@ -46,13 +48,22 @@ routerAdd(
     $app.runInTransaction((txApp) => {
       for (let i = 0; i < records.length; i++) {
         const row = records[i]
-        const name = row.name
-        const rawPhone = row.phone
-        const phone = rawPhone ? rawPhone.replace(/\D/g, '') : ''
+
+        let name = row.name || row.caravan_name || ''
+        const rawPhone = row.phone || ''
+        const phone = rawPhone ? rawPhone.toString().replace(/\D/g, '') : ''
         const email = row.email
+
+        if (!name && phone) {
+          name = `Lead ${phone}`
+        }
 
         if (!name || !phone) {
           errorCount++
+          errorDetails.push({
+            index: i,
+            reason: 'Telefone é obrigatório e nenhum nome foi fornecido ou deduzido',
+          })
           continue
         }
 
@@ -64,17 +75,24 @@ routerAdd(
         try {
           const record = new Record(customersCol)
           record.set('name', name)
-          record.set('phone', rawPhone)
+          record.set('phone', rawPhone.toString())
+
           if (email) {
             if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
               record.set('email', email)
             } else {
-              throw new Error('Invalid email format')
+              throw new Error('Formato de e-mail inválido')
             }
           }
-          record.set('source', row.source || 'manual')
-          record.set('exclusivity_zone', row.exclusivity_zone || '')
-          record.set('ranking_category', row.ranking_category || '')
+
+          record.set('source', row.source || defaultSource)
+          if (row.exclusivity_zone) record.set('exclusivity_zone', row.exclusivity_zone)
+          if (row.ranking_category) record.set('ranking_category', row.ranking_category)
+          if (row.caravan_name) record.set('caravan_name', row.caravan_name)
+          if (row.city) record.set('city', row.city)
+          if (row.state) record.set('state', row.state)
+          if (row.notes) record.set('notes', row.notes)
+
           record.set('status', 'new')
 
           if (isAffiliate) {
@@ -89,11 +107,15 @@ routerAdd(
           success++
         } catch (err) {
           errorCount++
+          errorDetails.push({
+            index: i,
+            reason: err.message || 'Erro ao salvar registro no banco de dados',
+          })
         }
       }
     })
 
-    return e.json(200, { success, skipped, error: errorCount })
+    return e.json(200, { success, skipped, error: errorCount, errorDetails })
   },
   $apis.requireAuth(),
 )
