@@ -55,6 +55,7 @@ import RankingTab from './components/RankingTab'
 import ImportLeadsDialog from './components/ImportLeadsDialog'
 import AnalyticsTab from './components/AnalyticsTab'
 import InsightsTab from './components/InsightsTab'
+import ImportHistoryTab from './components/ImportHistoryTab'
 
 export default function CRM() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -599,6 +600,7 @@ export default function CRM() {
           <TabsTrigger value="rankings">Rankings & Exclusividade</TabsTrigger>
           <TabsTrigger value="analytics">Relatórios</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
+          <TabsTrigger value="import-history">Histórico de Importação</TabsTrigger>
         </TabsList>
 
         <TabsContent value="funnel" className="h-[calc(100vh-250px)]">
@@ -950,6 +952,10 @@ export default function CRM() {
 
         <TabsContent value="insights">
           <InsightsTab customers={customers} />
+        </TabsContent>
+
+        <TabsContent value="import-history">
+          <ImportHistoryTab />
         </TabsContent>
       </Tabs>
     </div>

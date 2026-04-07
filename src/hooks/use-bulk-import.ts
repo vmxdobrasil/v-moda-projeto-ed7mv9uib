@@ -17,6 +17,7 @@ export function useBulkImport() {
     rows: any[],
     mapping: Record<string, string>,
     defaultSource: string = 'whatsapp_group',
+    filename: string = 'importacao_leads.csv',
   ) => {
     setIsImporting(true)
     setProgress(0)
@@ -26,6 +27,22 @@ export function useBulkImport() {
     let totalSkipped = 0
     let totalError = 0
     let allErrors: Array<{ row: number; reason: string }> = []
+
+    let logId = ''
+    try {
+      if (pb.authStore.record?.id) {
+        const log = await pb.collection('import_logs').create({
+          user: pb.authStore.record.id,
+          filename,
+          status: 'processing',
+          total_records: rows.length,
+          processed_records: 0,
+        })
+        logId = log.id
+      }
+    } catch (e) {
+      console.error('Failed to create import log', e)
+    }
 
     try {
       const BATCH_SIZE = 1000
@@ -66,12 +83,35 @@ export function useBulkImport() {
           allErrors.push({ row: i + 2, reason: err.message || 'Erro de comunicação no lote' })
         }
 
+        if (logId) {
+          try {
+            await pb.collection('import_logs').update(logId, {
+              processed_records: totalSuccess + totalSkipped + totalError,
+            })
+          } catch (e) {}
+        }
+
         setProgress(Math.min(100, Math.round(((i + BATCH_SIZE) / rows.length) * 100)))
         await new Promise((r) => setTimeout(r, 50)) // yield to UI thread
       }
     } catch (err) {
       console.error('Bulk import error', err)
     } finally {
+      if (logId) {
+        let finalStatus = 'success'
+        if (totalError > 0 && totalSuccess > 0) finalStatus = 'partial_success'
+        if (totalError > 0 && totalSuccess === 0) finalStatus = 'failed'
+
+        try {
+          await pb.collection('import_logs').update(logId, {
+            status: finalStatus,
+            processed_records: totalSuccess + totalSkipped + totalError,
+            error_summary: totalError > 0 ? `${totalError} registros com erro.` : '',
+            error_details: allErrors.length > 0 ? allErrors : null,
+          })
+        } catch (e) {}
+      }
+
       setProgress(100)
       setIsImporting(false)
       setStats({
