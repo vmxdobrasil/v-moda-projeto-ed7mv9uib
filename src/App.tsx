@@ -53,6 +53,7 @@ import WhatsappSettings from './pages/dashboard/WhatsappSettings'
 import AffiliateDashboard from './pages/dashboard/AffiliateDashboard'
 import Indications from './pages/dashboard/Indications'
 import MockCRMPage from './pages/MockCRMPage'
+import DashboardHub from './pages/dashboard/DashboardHub'
 import Affiliates from './pages/Affiliates'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import BrandProfile from './pages/BrandProfile'
@@ -84,7 +85,7 @@ const AppContent = () => {
             user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin' ? (
               <Navigate to="/admin" replace />
             ) : user?.role === 'manufacturer' ? (
-              <Navigate to="/dashboard/crm" replace />
+              <Navigate to="/dashboard" replace />
             ) : (
               <Navigate to="/perfil" replace />
             )
@@ -131,9 +132,10 @@ const AppContent = () => {
           <Route path="/channels" element={<MockCRMPage />} />
           <Route path="/subscriptions" element={<MockCRMPage />} />
           <Route path="/projects" element={<MockCRMPage />} />
+          <Route path="/recursos" element={<MockCRMPage />} />
         </Route>
         <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Navigate to="/dashboard/crm" replace />} />
+          <Route index element={<DashboardHub />} />
           <Route path="crm" element={<CRM />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="billing" element={<Billing />} />
