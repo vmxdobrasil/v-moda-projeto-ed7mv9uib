@@ -21,6 +21,8 @@ import { FadeIn } from '@/components/FadeIn'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { ReviewDialog } from '@/components/ReviewDialog'
 import useAuthStore from '@/stores/useAuthStore'
+import { Video } from 'lucide-react'
+import { toast } from '@/hooks/use-toast'
 
 export default function BrandProfile() {
   const { id } = useParams<{ id: string }>()
@@ -103,6 +105,44 @@ export default function BrandProfile() {
 
   const isTop60 = (brand.ranking_position > 0 && brand.ranking_position <= 60) || brand.is_exclusive
   const existingReview = reviews.find((r) => r.user === user?.id)
+
+  const handleVideoCall = async () => {
+    if (!user) {
+      toast({
+        title: 'Atenção',
+        description: 'Você precisa estar logado para iniciar uma videochamada.',
+        variant: 'default',
+      })
+      navigate('/login')
+      return
+    }
+    if (!brand.manufacturer) {
+      toast({
+        title: 'Atenção',
+        description: 'Esta marca ainda não possui um representante vinculado para videochamadas.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      const roomName = `Negociação - ${brand.name}`
+      const session = await pb.collection('video_sessions').create({
+        host: user.id,
+        participant: brand.manufacturer,
+        status: 'pending',
+        room_name: roomName,
+      })
+      navigate(`/negotiation/video/${session.id}`)
+    } catch (err) {
+      console.error('Error starting video call:', err)
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível iniciar a chamada.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   const handleWhatsAppClick = async () => {
     if (brand.id) {
@@ -252,6 +292,17 @@ export default function BrandProfile() {
                         {existingReview ? 'Editar Avaliação' : 'Avaliar Marca'}
                       </Button>
                     </ReviewDialog>
+                  )}
+                  {user && brand.manufacturer && brand.manufacturer !== user.id && (
+                    <Button
+                      size="lg"
+                      variant="default"
+                      className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
+                      onClick={handleVideoCall}
+                    >
+                      <Video className="w-5 h-5 mr-2" />
+                      Videochamada
+                    </Button>
                   )}
                 </div>
               </div>

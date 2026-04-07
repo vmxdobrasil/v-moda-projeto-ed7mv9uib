@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-07T13:24:05.647Z",
+  "generatedAt": "2026-04-07T22:22:24.088Z",
   "collections": [
     {
       "name": "users",
@@ -1220,6 +1220,97 @@
         "CREATE INDEX idx_import_logs_user ON import_logs (user)",
         "CREATE INDEX idx_import_logs_created ON import_logs (created DESC)"
       ]
+    },
+    {
+      "name": "video_sessions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (host = @request.auth.id || participant = @request.auth.id)",
+        "view": "@request.auth.id != '' && (host = @request.auth.id || participant = @request.auth.id)",
+        "create": "@request.auth.id != '' && host = @request.auth.id",
+        "update": "@request.auth.id != '' && (host = @request.auth.id || participant = @request.auth.id)",
+        "delete": "@request.auth.id != '' && (host = @request.auth.id || participant = @request.auth.id)"
+      },
+      "fields": [
+        {
+          "name": "host",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "participant",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pending", "active", "ended", "declined"]
+        },
+        {
+          "name": "room_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "started_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ended_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "offer",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "answer",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "host_candidates",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "participant_candidates",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
     }
   ]
 }

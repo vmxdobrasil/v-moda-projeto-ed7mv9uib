@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, Activity, Heart, ArrowRight, Star } from 'lucide-react'
+import { User, Activity, Heart, ArrowRight, Star, Video, Calendar } from 'lucide-react'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import useAuthStore from '@/stores/useAuthStore'
 import { BrandCard } from '@/components/BrandCard'
@@ -14,6 +14,7 @@ export default function RetailerDashboard() {
   const navigate = useNavigate()
   const [favoriteBrands, setFavoriteBrands] = useState<any[]>([])
   const [recommendedBrands, setRecommendedBrands] = useState<any[]>([])
+  const [videoHistory, setVideoHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -55,6 +56,15 @@ export default function RetailerDashboard() {
           setRecommendedBrands(recs.items)
         } else {
           setRecommendedBrands([])
+        }
+
+        if (user) {
+          const sessions = await pb.collection('video_sessions').getList(1, 5, {
+            filter: `host="${user.id}" || participant="${user.id}"`,
+            sort: '-created',
+            expand: 'host,participant',
+          })
+          setVideoHistory(sessions.items)
         }
       } catch (err) {
         console.error('Error loading dashboard data', err)
@@ -174,6 +184,87 @@ export default function RetailerDashboard() {
             </Card>
           )}
         </FadeIn>
+
+        {!loading && (
+          <FadeIn delay={450}>
+            <div className="mb-6 flex items-center justify-between mt-20">
+              <h2 className="text-2xl font-serif flex items-center gap-2">
+                <Video className="w-6 h-6 text-primary" /> Histórico de Negociações
+              </h2>
+            </div>
+            {videoHistory.length > 0 ? (
+              <div className="bg-background rounded-xl border shadow-sm overflow-hidden">
+                <div className="divide-y">
+                  {videoHistory.map((session) => {
+                    const isHost = session.host === user?.id
+                    const partner = isHost ? session.expand?.participant : session.expand?.host
+                    return (
+                      <div
+                        key={session.id}
+                        className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            {partner?.avatar ? (
+                              <img
+                                src={pb.files.getUrl(partner, partner.avatar, { thumb: '100x100' })}
+                                className="w-full h-full rounded-full object-cover"
+                                alt=""
+                              />
+                            ) : (
+                              <User className="w-6 h-6 text-primary" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium">{session.room_name}</p>
+                            <p className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />{' '}
+                              {new Date(session.created).toLocaleDateString('pt-BR')} às{' '}
+                              {new Date(session.created).toLocaleTimeString('pt-BR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                              <span className="mx-1">•</span>
+                              Com {partner?.name || 'Usuário'}
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                              session.status === 'active'
+                                ? 'bg-green-100 text-green-800 border-green-200'
+                                : session.status === 'ended'
+                                  ? 'bg-neutral-100 text-neutral-800 border-neutral-200'
+                                  : session.status === 'declined'
+                                    ? 'bg-red-100 text-red-800 border-red-200'
+                                    : 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                            }`}
+                          >
+                            {session.status === 'active'
+                              ? 'Ativa'
+                              : session.status === 'ended'
+                                ? 'Finalizada'
+                                : session.status === 'declined'
+                                  ? 'Recusada'
+                                  : 'Pendente'}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : (
+              <Card className="bg-background/50 border-dashed">
+                <CardContent className="p-8 text-center text-muted-foreground flex flex-col items-center">
+                  <Video className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                  Nenhuma negociação em vídeo realizada ainda.
+                </CardContent>
+              </Card>
+            )}
+          </FadeIn>
+        )}
 
         {/* Recommended Brands Section */}
         {!loading && favoriteBrands.length > 0 && (

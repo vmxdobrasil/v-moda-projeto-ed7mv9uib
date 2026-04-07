@@ -27,6 +27,8 @@ import RetailerDashboard from './pages/RetailerDashboard'
 import Academy from './pages/Academy'
 import CreditoModa from './pages/CreditoModa'
 import Layout from './components/Layout'
+import VideoNegotiation from './pages/VideoNegotiation'
+import { VideoCallListener } from './components/VideoCallListener'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminOrders from './pages/admin/Orders'
@@ -158,6 +160,14 @@ const AppContent = () => {
         </Route>
       </Route>
 
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={['manufacturer', 'retailer', 'affiliate', 'admin']} />
+        }
+      >
+        <Route path="/negotiation/video/:sessionId" element={<VideoNegotiation />} />
+      </Route>
+
       <Route element={<Layout />}>
         <Route path="/marcas/:id" element={<BrandProfile />} />
         <Route path="/colecoes" element={<Collections />} />
@@ -190,6 +200,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <VideoCallListener />
         <AppContent />
       </TooltipProvider>
     </FavoritesProvider>
