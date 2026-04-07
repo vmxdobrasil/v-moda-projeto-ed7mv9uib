@@ -52,6 +52,7 @@ import Performance from './pages/dashboard/Performance'
 import WhatsappSettings from './pages/dashboard/WhatsappSettings'
 import AffiliateDashboard from './pages/dashboard/AffiliateDashboard'
 import Indications from './pages/dashboard/Indications'
+import MockCRMPage from './pages/MockCRMPage'
 import Affiliates from './pages/Affiliates'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import BrandProfile from './pages/BrandProfile'
@@ -124,6 +125,13 @@ const AppContent = () => {
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['manufacturer']} />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/customers" element={<MockCRMPage />} />
+          <Route path="/messages" element={<MockCRMPage />} />
+          <Route path="/channels" element={<MockCRMPage />} />
+          <Route path="/subscriptions" element={<MockCRMPage />} />
+          <Route path="/projects" element={<MockCRMPage />} />
+        </Route>
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Navigate to="/dashboard/crm" replace />} />
           <Route path="crm" element={<CRM />} />
