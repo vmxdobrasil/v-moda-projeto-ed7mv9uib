@@ -59,9 +59,10 @@ import BenefitsHub from './pages/BenefitsHub'
 import { AuthGuard, PublicRoute, ProtectedRoute } from './components/AuthGuard'
 import useAuthStore from './stores/useAuthStore'
 import { useEffect } from 'react'
+import { Loader2 } from 'lucide-react'
 
 const AppContent = () => {
-  const { initialize } = useAuthStore()
+  const { initialize, isAuthenticated, user, isInitialized } = useAuthStore()
 
   useEffect(() => {
     initialize()
@@ -69,10 +70,32 @@ const AppContent = () => {
 
   return (
     <Routes>
+      <Route
+        path="/"
+        element={
+          !isInitialized ? (
+            <div className="min-h-screen flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : isAuthenticated ? (
+            user?.role === 'admin' ||
+            user?.role === 'manufacturer' ||
+            user?.email === 'valterpmendonca@gmail.com' ? (
+              <Navigate to="/dashboard/crm" replace />
+            ) : (
+              <Navigate to="/perfil" replace />
+            )
+          ) : (
+            <Layout>
+              <Index />
+            </Layout>
+          )
+        }
+      />
+
       <Route element={<PublicRoute />}>
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route element={<Layout />}>
-          <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Register />} />
           <Route path="/recuperar-senha" element={<ForgotPassword />} />

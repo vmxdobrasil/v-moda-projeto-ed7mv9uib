@@ -832,6 +832,7 @@ export default function CRM() {
                   <TableHead>Categoria / Zona</TableHead>
                   <TableHead>Origem</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Logística</TableHead>
                   <TableHead>Cliques WA</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -944,6 +945,23 @@ export default function CRM() {
                         </Select>
                       </TableCell>
                       <TableCell>
+                        {customer.logistics_status ? (
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                              customer.logistics_status === 'Aguardando Ônibus'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : customer.logistics_status === 'Em Trânsito no Ônibus'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-green-100 text-green-800'
+                            }`}
+                          >
+                            {customer.logistics_status}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <div className="flex items-center gap-1.5 text-sm font-medium">
                           <MessageCircle className="w-4 h-4 text-green-500" />
                           {customer.whatsapp_clicks || 0}
@@ -994,10 +1012,28 @@ export default function CRM() {
                           size="icon"
                           onClick={async () => {
                             let discount = '10%'
-                            if (customer.ranking_position && customer.ranking_position <= 10) {
+
+                            // Automated Discount Engine Logic
+                            if (customer.ranking_position && customer.ranking_position <= 5) {
+                              discount = '40%'
+                            } else if (
+                              customer.ranking_position &&
+                              customer.ranking_position <= 10
+                            ) {
                               discount = '30%'
+                            } else if (
+                              customer.ranking_position &&
+                              customer.ranking_position <= 15
+                            ) {
+                              discount = '20%'
                             } else if (customer.is_exclusive) {
                               discount = '20%'
+                            }
+
+                            if (customer.unlocked_benefits?.crm_enabled) {
+                              // Extra 5% for loyal users using the CRM
+                              const base = parseInt(discount.replace('%', ''))
+                              discount = `${base + 5}%`
                             }
 
                             const newBenefits = {
@@ -1132,25 +1168,30 @@ function SubscriptionsTab() {
   const [subs, setSubs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchSubs = async () => {
-      try {
-        const records = await pb.collection('subscriptions').getFullList({
-          expand: 'user',
-          sort: '-created',
-        })
-        setSubs(records)
-      } catch (err: any) {
-        console.error(err)
-        if (err.status === 403) {
-          toast.error('Apenas administradores podem ver todos os planos.')
-        }
-      } finally {
-        setLoading(false)
+  const fetchSubs = async () => {
+    try {
+      const records = await pb.collection('subscriptions').getFullList({
+        expand: 'user',
+        sort: '-created',
+      })
+      setSubs(records)
+    } catch (err: any) {
+      console.error(err)
+      if (err.status === 403) {
+        toast.error('Apenas administradores podem ver todos os planos.')
       }
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchSubs()
   }, [])
+
+  useRealtime('subscriptions', () => {
+    fetchSubs()
+  })
 
   if (loading)
     return <div className="p-8 text-center text-muted-foreground">Carregando planos...</div>
@@ -1215,11 +1256,35 @@ function SubscriptionsTab() {
                     </Select>
                   </TableCell>
                   <TableCell>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${sub.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                    <Select
+                      value={sub.status}
+                      onValueChange={async (val) => {
+                        try {
+                          await pb.collection('subscriptions').update(sub.id, { status: val })
+                          setSubs(subs.map((s) => (s.id === sub.id ? { ...s, status: val } : s)))
+                          toast.success(`Status atualizado para ${val} com sucesso!`)
+                        } catch (e) {
+                          toast.error('Erro ao atualizar status.')
+                        }
+                      }}
                     >
-                      {sub.status}
-                    </span>
+                      <SelectTrigger
+                        className={`w-[110px] h-8 font-medium text-xs ${
+                          sub.status === 'active'
+                            ? 'bg-green-50 text-green-700 border-green-200'
+                            : sub.status === 'past_due'
+                              ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                              : 'bg-red-50 text-red-700 border-red-200'
+                        }`}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Ativo</SelectItem>
+                        <SelectItem value="past_due">Pendente</SelectItem>
+                        <SelectItem value="canceled">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {new Date(sub.created).toLocaleDateString('pt-BR')}

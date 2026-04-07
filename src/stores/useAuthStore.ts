@@ -27,10 +27,14 @@ interface AuthState {
   initialize: () => Promise<void>
 }
 
+const isAdmin =
+  pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
+  pb.authStore.record?.collectionName === '_superusers'
+
 const initialState = {
   user: (pb.authStore.record as unknown as User) || null,
   isAuthenticated: pb.authStore.isValid,
-  isInitialized: false,
+  isInitialized: !!(isAdmin && pb.authStore.isValid),
 }
 
 let initPromise: Promise<void> | null = null
@@ -69,8 +73,11 @@ const useAuthStore = create<AuthState>((set, get) => {
           try {
             const collection = pb.authStore.record?.collectionName || 'users'
 
-            // Bypass refresh for superusers as they use a different flow
-            if (collection === '_superusers') {
+            // Bypass refresh for superusers or specific admin as they use a different flow
+            if (
+              collection === '_superusers' ||
+              pb.authStore.record?.email === 'valterpmendonca@gmail.com'
+            ) {
               set({
                 user: (pb.authStore.record as unknown as User) || null,
                 isAuthenticated: true,
