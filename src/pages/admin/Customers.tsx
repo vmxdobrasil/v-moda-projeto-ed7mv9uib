@@ -207,34 +207,56 @@ export default function Customers() {
   }
 
   const handleGenerateDiscount = async (customer: Customer) => {
-    let discount = '5%'
-    if (customer.status === 'converted') {
-      if (customer.ranking_position && customer.ranking_position <= 10) {
-        discount = '30%'
-      } else if (customer.is_exclusive) {
-        discount = '20%'
-      } else {
-        discount = '15%'
-      }
-    } else {
-      if (customer.is_exclusive) {
-        discount = '10%'
-      }
+    let baseDiscount = 0
+
+    // Loyalty bonuses for converted or negotiating
+    if (customer.status === 'converted' || customer.status === 'negotiating') {
+      baseDiscount += 10
     }
+
+    // Ranking position logic (lower number = higher discount)
+    if (customer.ranking_position && customer.ranking_position > 0) {
+      if (customer.ranking_position <= 3) baseDiscount += 25
+      else if (customer.ranking_position <= 10) baseDiscount += 15
+      else baseDiscount += 5
+    }
+
+    // Exclusive additional benefit
+    if (customer.is_exclusive) {
+      baseDiscount += 15
+    }
+
+    // Default fallback if no conditions met
+    if (baseDiscount === 0) baseDiscount = 5
+
+    const discountStr = `${baseDiscount}%`
 
     const newBenefits = {
       ...(customer.unlocked_benefits || {}),
       discount_active: true,
-      discount_value: discount,
+      discount_value: discountStr,
       generated_at: new Date().toISOString(),
     }
 
     try {
       await updateCustomer(customer.id, { unlocked_benefits: newBenefits })
-      toast({ description: `Desconto de ${discount} gerado com sucesso para ${customer.name}!` })
+      toast({ description: `Desconto de ${discountStr} gerado com sucesso para ${customer.name}!` })
       loadData()
     } catch (err) {
       toast({ description: 'Erro ao gerar desconto', variant: 'destructive' })
+    }
+  }
+
+  const handleLogisticsUpdate = async (
+    customerId: string,
+    status: Customer['logistics_status'],
+  ) => {
+    try {
+      await updateCustomer(customerId, { logistics_status: status })
+      toast({ description: `Status de logística atualizado para: ${status}` })
+      loadData()
+    } catch (err) {
+      toast({ description: 'Erro ao atualizar logística', variant: 'destructive' })
     }
   }
 
@@ -325,7 +347,7 @@ export default function Customers() {
                   <TableHead>Nome e Local</TableHead>
                   <TableHead>Ranking / Categoria</TableHead>
                   <TableHead>E-mail</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Status / Logística</TableHead>
                   <TableHead>Último Contato</TableHead>
                   <TableHead
                     className="cursor-pointer hover:bg-muted/50"
@@ -407,28 +429,38 @@ export default function Customers() {
                       </TableCell>
                       <TableCell>{customer.email || 'Sem email'}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={
-                            customerInactive
-                              ? 'secondary'
-                              : derived.displayStatus === 'Ativo'
-                                ? 'default'
-                                : 'secondary'
-                          }
-                          className={
-                            customerInactive
-                              ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
-                              : derived.displayStatus === 'Ativo'
-                                ? 'bg-emerald-500 hover:bg-emerald-600'
-                                : ''
-                          }
-                        >
-                          {customerInactive
-                            ? 'Inativo'
-                            : customer.status === 'converted'
-                              ? 'Convertido'
-                              : derived.displayStatus}
-                        </Badge>
+                        <div className="flex flex-col gap-1 items-start">
+                          <Badge
+                            variant={
+                              customerInactive
+                                ? 'secondary'
+                                : derived.displayStatus === 'Ativo'
+                                  ? 'default'
+                                  : 'secondary'
+                            }
+                            className={
+                              customerInactive
+                                ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                                : derived.displayStatus === 'Ativo'
+                                  ? 'bg-emerald-500 hover:bg-emerald-600'
+                                  : ''
+                            }
+                          >
+                            {customerInactive
+                              ? 'Inativo'
+                              : customer.status === 'converted'
+                                ? 'Convertido'
+                                : derived.displayStatus}
+                          </Badge>
+                          {customer.logistics_status && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] whitespace-nowrap bg-blue-50 text-blue-700 border-blue-200"
+                            >
+                              {customer.logistics_status}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                         {lastContactedAt
@@ -579,8 +611,23 @@ export default function Customers() {
                         </span>
                       </div>
 
-                      {(selectedCustomer as any).phone && selectedCustomer.ranking_position && (
-                        <div className="mt-3 flex gap-2">
+                      <div className="mt-3 flex flex-wrap gap-2 items-center">
+                        {(selectedCustomer as any).phone && (
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() =>
+                              window.open(
+                                `https://wa.me/${(selectedCustomer as any).phone.replace(/\D/g, '')}`,
+                                '_blank',
+                              )
+                            }
+                          >
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            WhatsApp
+                          </Button>
+                        )}
+                        {(selectedCustomer as any).phone && selectedCustomer.ranking_position && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -589,25 +636,44 @@ export default function Customers() {
                             disabled={sendingWa}
                           >
                             <MessageCircle className="w-4 h-4 mr-2" />
-                            Boas-vindas (WhatsApp)
+                            Boas-vindas (Auto)
                           </Button>
-
-                          {isInactive(selectedCustomer.updated) && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700"
-                              onClick={() => handleReactivate(selectedCustomer.id)}
-                              disabled={sendingWa}
-                            >
-                              <Zap className="w-4 h-4 mr-2" />
-                              Campanha Reativação
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                        )}
+                        {isInactive(selectedCustomer.updated) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700"
+                            onClick={() => handleReactivate(selectedCustomer.id)}
+                            disabled={sendingWa}
+                          >
+                            <Zap className="w-4 h-4 mr-2" />
+                            Reativar
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
+
+                  <div className="flex flex-col gap-2 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                    <Label className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                      <BusFront className="w-4 h-4" /> Status de Logística
+                    </Label>
+                    <Select
+                      value={selectedCustomer.logistics_status || ''}
+                      onValueChange={(val: any) => handleLogisticsUpdate(selectedCustomer.id, val)}
+                    >
+                      <SelectTrigger className="w-full sm:w-[250px] bg-white">
+                        <SelectValue placeholder="Selecione o status..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Aguardando Ônibus">Aguardando Ônibus</SelectItem>
+                        <SelectItem value="Em Trânsito no Ônibus">Em Trânsito no Ônibus</SelectItem>
+                        <SelectItem value="Entregue">Entregue</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <Card>
                       <CardContent className="p-4 flex flex-col items-center justify-center text-center">

@@ -41,6 +41,8 @@ import AdminCategories from './pages/admin/Categories'
 import AdminAffiliates from './pages/admin/Affiliates'
 import AdminMedia from './pages/admin/Media'
 import ZoopProposal from './pages/admin/ZoopProposal'
+import AdminSubscriptions from './pages/admin/Subscriptions'
+import AdminImportLogs from './pages/admin/ImportLogs'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import CRM from './pages/dashboard/CRM'
 import MediaKit from './pages/dashboard/MediaKit'
@@ -78,9 +80,9 @@ const AppContent = () => {
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : isAuthenticated ? (
-            user?.role === 'admin' ||
-            user?.role === 'manufacturer' ||
-            user?.email === 'valterpmendonca@gmail.com' ? (
+            user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin' ? (
+              <Navigate to="/admin" replace />
+            ) : user?.role === 'manufacturer' ? (
               <Navigate to="/dashboard/crm" replace />
             ) : (
               <Navigate to="/perfil" replace />
@@ -116,6 +118,8 @@ const AppContent = () => {
           <Route path="midia" element={<AdminMedia />} />
           <Route path="configuracoes" element={<AdminSettings />} />
           <Route path="proposta-zoop" element={<ZoopProposal />} />
+          <Route path="assinaturas" element={<AdminSubscriptions />} />
+          <Route path="logs-importacao" element={<AdminImportLogs />} />
         </Route>
       </Route>
 
