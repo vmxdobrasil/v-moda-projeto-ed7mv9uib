@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import pb from '@/lib/pocketbase/client'
-import { toast } from '@/hooks/use-toast'
 
 export interface User {
   id: string
@@ -8,7 +7,7 @@ export interface User {
   email: string
   type?: 'Varejo' | 'Atacado' | 'Lojista Fabricante'
   manufacturerId?: string
-  role?: 'manufacturer' | 'retailer' | 'affiliate'
+  role?: 'manufacturer' | 'retailer' | 'affiliate' | 'admin'
   affiliate_code?: string
   unlocked_benefits?: Record<string, boolean> | null
   avatar?: string
@@ -34,6 +33,8 @@ const initialState = {
   isInitialized: false,
 }
 
+let initPromise: Promise<void> | null = null
+
 const useAuthStore = create<AuthState>((set, get) => {
   // Sync with external auth changes (like login/logout from other tabs or components)
   pb.authStore.onChange((token, record) => {
@@ -56,35 +57,63 @@ const useAuthStore = create<AuthState>((set, get) => {
       })),
     initialize: async () => {
       if (get().isInitialized) return
+      if (initPromise) {
+        await initPromise
+        return
+      }
 
-      if (pb.authStore.isValid && pb.authStore.token) {
-        try {
-          const collection = pb.authStore.record?.collectionName || 'users'
-          const authData = await pb.collection(collection).authRefresh()
-          set({
-            user: (authData.record as unknown as User) || null,
-            isAuthenticated: true,
-            isInitialized: true,
-          })
-        } catch (err: any) {
-          if (err?.status >= 400 && err?.status < 500) {
-            pb.authStore.clear()
-            set({ user: null, isAuthenticated: false, isInitialized: true })
-            toast({
-              title: 'Sessão expirada',
-              description:
-                'Sua sessão expirou ou os dados são inválidos. Por favor, faça login novamente.',
-              variant: 'destructive',
+      initPromise = (async () => {
+        const initialToken = pb.authStore.token
+
+        if (pb.authStore.isValid && initialToken) {
+          try {
+            const collection = pb.authStore.record?.collectionName || 'users'
+
+            // Bypass refresh for superusers as they use a different flow
+            if (collection === '_superusers') {
+              set({
+                user: (pb.authStore.record as unknown as User) || null,
+                isAuthenticated: true,
+                isInitialized: true,
+              })
+              return
+            }
+
+            const authData = await pb.collection(collection).authRefresh()
+            set({
+              user: (authData.record as unknown as User) || null,
+              isAuthenticated: true,
+              isInitialized: true,
             })
+          } catch (err: any) {
+            if (err?.status >= 400 && err?.status < 500) {
+              // Prevent clearing the store if the user logged in concurrently
+              if (pb.authStore.token === initialToken) {
+                pb.authStore.clear()
+                set({ user: null, isAuthenticated: false, isInitialized: true })
+                // We suppress the "Dados inválidos" toast here to avoid annoying users
+                // whose session simply expired naturally between visits.
+              } else {
+                // User logged in concurrently with a new token, keep initialized true
+                set({ isInitialized: true })
+              }
+            } else {
+              // Keep authenticated state for network errors or server crashes
+              set({ isInitialized: true })
+            }
+          }
+        } else {
+          // If there is no token or it is invalid locally, ensure consistency
+          if (!pb.authStore.isValid || !pb.authStore.token) {
+            set({ user: null, isAuthenticated: false, isInitialized: true })
           } else {
-            // Keep authenticated state for network errors or server crashes
             set({ isInitialized: true })
           }
         }
-      } else {
-        pb.authStore.clear()
-        set({ user: null, isAuthenticated: false, isInitialized: true })
-      }
+      })()
+
+      await initPromise
+      initPromise = null
     },
   }
 })

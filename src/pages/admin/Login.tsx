@@ -36,12 +36,17 @@ export default function AdminLogin() {
 
       const isAdmin =
         pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
-        pb.authStore.record?.role === 'manufacturer'
+        pb.authStore.record?.role === 'manufacturer' ||
+        pb.authStore.record?.role === 'admin'
 
       toast.success('Login bem-sucedido. Bem-vindo ao painel.')
 
-      const from = location.state?.from?.pathname || (isAdmin ? '/dashboard/crm' : '/admin')
-      navigate(from, { replace: true })
+      const from = location.state?.from?.pathname
+      if (from && !['/login', '/admin/login', '/cadastro', '/'].includes(from)) {
+        navigate(from, { replace: true })
+      } else {
+        navigate(isAdmin ? '/dashboard/crm' : '/admin', { replace: true })
+      }
     } catch (err: any) {
       pb.authStore.clear()
       let msg = 'Credenciais inválidas.'

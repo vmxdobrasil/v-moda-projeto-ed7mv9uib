@@ -53,7 +53,7 @@ export default function Login() {
       })
 
       const from = location.state?.from?.pathname
-      if (from) {
+      if (from && !['/login', '/admin/login', '/cadastro', '/'].includes(from)) {
         navigate(from, { replace: true })
       } else {
         const role = authData.record.role
