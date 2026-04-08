@@ -28,6 +28,7 @@ import Academy from './pages/Academy'
 import CreditoModa from './pages/CreditoModa'
 import Layout from './components/Layout'
 import VideoNegotiation from './pages/VideoNegotiation'
+import NegotiationSummary from './pages/NegotiationSummary'
 import { VideoCallListener } from './components/VideoCallListener'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/Dashboard'
@@ -166,6 +167,9 @@ const AppContent = () => {
         }
       >
         <Route path="/negotiation/video/:sessionId" element={<VideoNegotiation />} />
+        <Route element={<Layout />}>
+          <Route path="/negotiation/summary/:sessionId" element={<NegotiationSummary />} />
+        </Route>
       </Route>
 
       <Route element={<Layout />}>

@@ -8,6 +8,8 @@ import {
   PhoneOff,
   User,
   AlertCircle,
+  Circle,
+  Square,
 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import useAuthStore from '@/stores/useAuthStore'
@@ -16,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
+import { Textarea } from '@/components/ui/textarea'
 
 export default function VideoNegotiation() {
   const { sessionId } = useParams<{ sessionId: string }>()
@@ -34,6 +37,30 @@ export default function VideoNegotiation() {
   const [error, setError] = useState<string | null>(null)
 
   const [mockRemoteConnected, setMockRemoteConnected] = useState(false)
+
+  const [notes, setNotes] = useState('')
+  const [isRecording, setIsRecording] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<BlobPart[]>([])
+
+  useEffect(() => {
+    if (session?.negotiation_notes && !notes) {
+      setNotes(session.negotiation_notes)
+    }
+  }, [session?.negotiation_notes])
+
+  useEffect(() => {
+    if (!sessionId || !session) return
+    if (notes === session.negotiation_notes) return
+
+    const timer = setTimeout(() => {
+      pb.collection('video_sessions')
+        .update(sessionId, { negotiation_notes: notes })
+        .catch(console.error)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [notes, sessionId, session])
 
   useEffect(() => {
     if (!sessionId) return
@@ -101,7 +128,10 @@ export default function VideoNegotiation() {
           title: 'Chamada Encerrada',
           description: 'A sessão de negociação foi finalizada.',
         })
-        setTimeout(() => navigate(-1), 1500)
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop()
+        }
+        setTimeout(() => navigate(`/negotiation/summary/${sessionId}`), 1500)
       }
     }
   })
@@ -131,18 +161,79 @@ export default function VideoNegotiation() {
     }
   }
 
+  const startRecording = () => {
+    if (!localStream) return
+    chunksRef.current = []
+
+    try {
+      let options = { mimeType: 'video/webm;codecs=vp9,opus' }
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options = { mimeType: 'video/webm;codecs=vp8,opus' }
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          options = { mimeType: 'video/webm' }
+        }
+      }
+
+      const recorder = new MediaRecorder(localStream, options)
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+      recorder.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: options.mimeType })
+        const formData = new FormData()
+        formData.append('recording', blob, `recording-${sessionId}.webm`)
+        try {
+          await pb.collection('video_sessions').update(sessionId!, formData)
+          toast({ title: 'Sucesso', description: 'Gravação salva com sucesso.' })
+        } catch (err) {
+          console.error('Error uploading recording', err)
+          toast({ title: 'Erro', description: 'Erro ao salvar a gravação.' })
+        }
+      }
+      recorder.start()
+      mediaRecorderRef.current = recorder
+      setIsRecording(true)
+      toast({ title: 'Gravando', description: 'A sessão está sendo gravada.' })
+    } catch (err) {
+      console.error('Error starting recording', err)
+      toast({ title: 'Erro', description: 'Seu navegador não suporta gravação.' })
+    }
+  }
+
+  const stopRecordingFn = () => {
+    return new Promise<void>((resolve) => {
+      if (mediaRecorderRef.current && isRecording) {
+        const originalOnStop = mediaRecorderRef.current.onstop
+        mediaRecorderRef.current.onstop = async (e) => {
+          if (originalOnStop) await (originalOnStop as any)(e)
+          resolve()
+        }
+        mediaRecorderRef.current.stop()
+        setIsRecording(false)
+      } else {
+        resolve()
+      }
+    })
+  }
+
   const endCall = async () => {
     if (!sessionId) return
     try {
+      if (isRecording) {
+        toast({ title: 'Finalizando', description: 'Salvando a gravação...' })
+        await stopRecordingFn()
+      }
+
       await pb.collection('video_sessions').update(sessionId, {
         status: 'ended',
         ended_at: new Date().toISOString(),
+        negotiation_notes: notes,
       })
       setCallStatus('ended')
       if (localStream) {
         localStream.getTracks().forEach((track) => track.stop())
       }
-      navigate(-1)
+      navigate(`/negotiation/summary/${sessionId}`)
     } catch (err) {
       console.error('Error ending call', err)
     }
@@ -240,18 +331,26 @@ export default function VideoNegotiation() {
             </div>
           </div>
 
-          <Card className="bg-neutral-900 border-neutral-800 text-neutral-200 shadow-xl">
-            <CardContent className="p-5 space-y-4">
-              <h3 className="font-medium text-white flex items-center gap-2 font-serif text-lg">
-                Detalhes da Sessão
-              </h3>
-              <p className="text-sm text-neutral-400 leading-relaxed">
-                Esta é uma sala segura de negociação. Mostre as peças ao vivo, feche valores e
-                alinhe as logísticas de envio diretamente pelo vídeo.
-              </p>
+          <Card className="bg-neutral-900 border-neutral-800 text-neutral-200 shadow-xl flex-1 flex flex-col min-h-[300px]">
+            <CardContent className="p-5 flex-1 flex flex-col gap-4">
+              <div className="space-y-1">
+                <h3 className="font-medium text-white flex items-center gap-2 font-serif text-lg">
+                  Anotações da Negociação
+                </h3>
+                <p className="text-xs text-neutral-400">
+                  Registre acordos, preços e termos. Salvo automaticamente.
+                </p>
+              </div>
+
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Ex: 50 peças a R$ 35. Frete por conta do cliente..."
+                className="flex-1 bg-neutral-950/50 border-neutral-800 text-neutral-200 resize-none placeholder:text-neutral-600 focus-visible:ring-neutral-700 min-h-[150px]"
+              />
 
               {partner && (
-                <div className="p-3 bg-neutral-950 rounded-lg border border-neutral-800 flex items-center gap-3">
+                <div className="p-3 bg-neutral-950 rounded-lg border border-neutral-800 flex items-center gap-3 mt-auto">
                   <img
                     src={partnerAvatar}
                     alt="Partner"
@@ -289,6 +388,20 @@ export default function VideoNegotiation() {
           onClick={toggleCamera}
         >
           {isCameraOn ? <VideoIcon className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+        </Button>
+
+        <Button
+          variant={isRecording ? 'destructive' : 'secondary'}
+          size="icon"
+          className={`w-14 h-14 rounded-full ${isRecording ? 'bg-red-600 animate-pulse hover:bg-red-700 text-white' : 'bg-neutral-800 hover:bg-neutral-700 text-white'}`}
+          onClick={isRecording ? stopRecordingFn : startRecording}
+          title={isRecording ? 'Parar Gravação' : 'Gravar Sessão'}
+        >
+          {isRecording ? (
+            <Square className="w-6 h-6 fill-current" />
+          ) : (
+            <Circle className="w-6 h-6 fill-current text-red-500" />
+          )}
         </Button>
 
         <Button

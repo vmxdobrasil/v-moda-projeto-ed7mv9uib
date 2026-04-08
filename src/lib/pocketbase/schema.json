@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-07T22:22:24.088Z",
+  "generatedAt": "2026-04-08T21:37:15.285Z",
   "collections": [
     {
       "name": "users",
@@ -1308,6 +1308,18 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "negotiation_notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recording",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
