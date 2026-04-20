@@ -1,114 +1,208 @@
-import { Link } from 'react-router-dom'
-import {
-  Users,
-  MessageSquare,
-  Share2,
-  CreditCard,
-  Briefcase,
-  GraduationCap,
-  BookOpen,
-  FolderKanban,
-  Truck,
-  Video,
-} from 'lucide-react'
+import { useState, useEffect } from 'react'
+import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { FadeIn } from '@/components/FadeIn'
-
-const HUB_LINKS = [
-  {
-    title: 'CRM / Leads',
-    icon: Users,
-    path: '/dashboard/crm',
-    description: 'Gerencie seus clientes e acompanhe as negociações ativas.',
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-500/10',
-  },
-  {
-    title: 'Catálogo / Vitrine',
-    icon: FolderKanban,
-    path: '/dashboard/projects',
-    description: 'Gerencie suas coleções, portfólio e produtos.',
-    color: 'text-pink-500',
-    bgColor: 'bg-pink-500/10',
-  },
-  {
-    title: 'Logística',
-    icon: Truck,
-    path: '/dashboard/logistics',
-    description: 'Acompanhe excursões, fretes e entregas.',
-    color: 'text-indigo-500',
-    bgColor: 'bg-indigo-500/10',
-  },
-  {
-    title: 'Vídeo Negociação',
-    icon: Video,
-    path: '/dashboard/video-sessions',
-    description: 'Realize vendas e demonstrações por vídeo chamada.',
-    color: 'text-rose-500',
-    bgColor: 'bg-rose-500/10',
-  },
-  {
-    title: 'Academy',
-    icon: GraduationCap,
-    path: '/dashboard/recursos',
-    description: 'Acesse trilhas de conhecimento e treinamentos.',
-    color: 'text-teal-500',
-    bgColor: 'bg-teal-500/10',
-  },
-  {
-    title: 'Integrações',
-    icon: MessageSquare,
-    path: '/dashboard/settings/whatsapp',
-    description: 'Configure seu WhatsApp API e templates.',
-    color: 'text-green-500',
-    bgColor: 'bg-green-500/10',
-  },
-  {
-    title: 'Planos e Faturamento',
-    icon: CreditCard,
-    path: '/dashboard/billing',
-    description: 'Gerencie sua assinatura, limites e pagamentos.',
-    color: 'text-orange-500',
-    bgColor: 'bg-orange-500/10',
-  },
-]
+import { Users, FolderKanban, Truck, Share2, Activity } from 'lucide-react'
+import { useRealtime } from '@/hooks/use-realtime'
+import { format } from 'date-fns'
 
 export default function DashboardHub() {
+  const [stats, setStats] = useState({
+    leads: 0,
+    projects: 0,
+    caravans: 0,
+    conversions: 0,
+  })
+  const [recentActivity, setRecentActivity] = useState<any[]>([])
+
+  const loadData = async () => {
+    const user = pb.authStore.record
+    if (!user) return
+
+    const isAdmin = user.email === 'valterpmendonca@gmail.com' || user.role === 'admin'
+    const isAffiliate = user.role === 'affiliate'
+    const isManufacturer = user.role === 'manufacturer' || user.type === 'Lojista Fabricante'
+
+    try {
+      // 1. Leads
+      let leadsRes
+      if (isAdmin) {
+        leadsRes = await pb.collection('customers').getList(1, 1)
+      } else if (isManufacturer) {
+        leadsRes = await pb
+          .collection('customers')
+          .getList(1, 1, { filter: `manufacturer = "${user.id}"` })
+      } else {
+        leadsRes = await pb
+          .collection('customers')
+          .getList(1, 1, { filter: `affiliate_referrer = "${user.id}"` })
+      }
+
+      // 2. Projects
+      let projectsRes
+      if (isAdmin) {
+        projectsRes = await pb.collection('projects').getList(1, 1)
+      } else if (isManufacturer) {
+        projectsRes = await pb
+          .collection('projects')
+          .getList(1, 1, { filter: `manufacturer = "${user.id}"` })
+      } else {
+        projectsRes = { totalItems: 0 } as any
+      }
+
+      // 3. Caravans
+      let caravansRes
+      if (isAdmin) {
+        caravansRes = await pb
+          .collection('customers')
+          .getList(1, 1, { filter: `logistics_status != ""` })
+      } else if (isManufacturer) {
+        caravansRes = await pb
+          .collection('customers')
+          .getList(1, 1, { filter: `manufacturer = "${user.id}" && logistics_status != ""` })
+      } else {
+        caravansRes = { totalItems: 0 } as any
+      }
+
+      // 4. Conversions
+      let conversionsRes
+      if (isAdmin) {
+        conversionsRes = await pb
+          .collection('referrals')
+          .getList(1, 1, { filter: `type = "conversion"` })
+      } else if (isAffiliate) {
+        conversionsRes = await pb
+          .collection('referrals')
+          .getList(1, 1, { filter: `affiliate = "${user.id}" && type = "conversion"` })
+      } else {
+        conversionsRes = { totalItems: 0 } as any
+      }
+
+      setStats({
+        leads: leadsRes.totalItems,
+        projects: projectsRes.totalItems,
+        caravans: caravansRes.totalItems,
+        conversions: conversionsRes.totalItems,
+      })
+
+      // Recent Activity
+      let activityRes
+      if (isAdmin) {
+        activityRes = await pb.collection('customers').getList(1, 5, { sort: '-created' })
+      } else if (isManufacturer) {
+        activityRes = await pb
+          .collection('customers')
+          .getList(1, 5, { filter: `manufacturer = "${user.id}"`, sort: '-created' })
+      } else {
+        activityRes = await pb
+          .collection('customers')
+          .getList(1, 5, { filter: `affiliate_referrer = "${user.id}"`, sort: '-created' })
+      }
+      setRecentActivity(activityRes.items)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  useRealtime('customers', loadData)
+  useRealtime('projects', loadData)
+  useRealtime('referrals', loadData)
+
   return (
-    <div className="p-6 md:p-8 w-full max-w-7xl mx-auto animate-fade-in">
+    <div className="p-2 md:p-6 w-full max-w-7xl mx-auto animate-fade-in">
       <div className="mb-8">
-        <h1 className="text-3xl font-serif font-bold text-foreground">Início</h1>
+        <h1 className="text-3xl font-serif font-bold text-foreground">Dashboard Hub</h1>
         <p className="text-muted-foreground mt-2 max-w-2xl">
-          Bem-vindo ao seu painel principal. Acesse rapidamente todos os módulos do seu CRM e
-          ferramentas disponíveis.
+          Visão geral consolidada dos seus indicadores e atividades recentes.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {HUB_LINKS.map((link, index) => (
-          <FadeIn key={link.title} delay={index * 50}>
-            <Link to={link.path} className="block h-full group outline-none">
-              <Card className="h-full border border-border/60 hover:border-primary/50 hover:shadow-md transition-all duration-300 hover:-translate-y-1 bg-card cursor-pointer">
-                <CardHeader className="pb-3">
-                  <div
-                    className={`w-12 h-12 rounded-xl ${link.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    <link.icon className={`w-6 h-6 ${link.color}`} />
-                  </div>
-                  <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors">
-                    {link.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {link.description}
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-          </FadeIn>
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card className="hover:border-primary/50 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Leads</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.leads}</div>
+            <p className="text-xs text-muted-foreground mt-1">Leads gerenciados no CRM</p>
+          </CardContent>
+        </Card>
+        <Card className="hover:border-primary/50 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Projetos Ativos</CardTitle>
+            <FolderKanban className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.projects}</div>
+            <p className="text-xs text-muted-foreground mt-1">Catálogos e vitrines publicados</p>
+          </CardContent>
+        </Card>
+        <Card className="hover:border-primary/50 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Status de Caravanas</CardTitle>
+            <Truck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.caravans}</div>
+            <p className="text-xs text-muted-foreground mt-1">Entregas e rotas em andamento</p>
+          </CardContent>
+        </Card>
+        <Card className="hover:border-primary/50 transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Conversões de Afiliados</CardTitle>
+            <Share2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.conversions}</div>
+            <p className="text-xs text-muted-foreground mt-1">Negócios fechados via indicação</p>
+          </CardContent>
+        </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Activity className="h-5 w-5 text-primary" /> Atividade Recente
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {recentActivity.length === 0 ? (
+              <div className="text-sm text-muted-foreground text-center py-8 flex flex-col items-center gap-2">
+                <Activity className="h-8 w-8 text-muted-foreground/30" />
+                Nenhuma atividade recente no sistema.
+              </div>
+            ) : (
+              recentActivity.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0 group hover:bg-muted/30 p-2 rounded-lg transition-colors"
+                >
+                  <div>
+                    <p className="text-sm font-medium">
+                      Novo lead registrado: {activity.name || 'Sem nome'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Status:{' '}
+                      <span className="font-medium text-primary">
+                        {activity.status === 'new' ? 'Novo' : activity.status || 'Novo'}
+                      </span>
+                      {activity.source && ` • Origem: ${activity.source}`}
+                    </p>
+                  </div>
+                  <div className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+                    {format(new Date(activity.created), 'dd/MM/yyyy HH:mm')}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

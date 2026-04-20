@@ -89,18 +89,19 @@ const AppContent = () => {
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : isAuthenticated ? (
-            user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin' ? (
-              <Navigate to="/admin" replace />
-            ) : user?.role === 'manufacturer' ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <Navigate to="/perfil" replace />
-            )
+            <Navigate to="/dashboard" replace />
           ) : (
-            <Layout>
-              <Index />
-            </Layout>
+            <Navigate to="/login" replace />
           )
+        }
+      />
+
+      <Route
+        path="/home"
+        element={
+          <Layout>
+            <Index />
+          </Layout>
         }
       />
 
@@ -132,7 +133,11 @@ const AppContent = () => {
         </Route>
       </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={['manufacturer', 'retailer', 'affiliate']} />}>
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'manufacturer', 'retailer', 'affiliate']} />
+        }
+      >
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardHub />} />
           <Route path="crm" element={<CRM />} />
