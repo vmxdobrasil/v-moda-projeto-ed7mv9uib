@@ -55,8 +55,12 @@ import Performance from './pages/dashboard/Performance'
 import WhatsappSettings from './pages/dashboard/WhatsappSettings'
 import AffiliateDashboard from './pages/dashboard/AffiliateDashboard'
 import Indications from './pages/dashboard/Indications'
-import MockCRMPage from './pages/MockCRMPage'
+
 import DashboardHub from './pages/dashboard/DashboardHub'
+import DashboardProjects from './pages/dashboard/Projects'
+import DashboardLogistics from './pages/dashboard/Logistics'
+import DashboardVideoSessions from './pages/dashboard/VideoSessions'
+import DashboardResources from './pages/dashboard/Resources'
 import Affiliates from './pages/Affiliates'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import BrandProfile from './pages/BrandProfile'
@@ -128,18 +132,14 @@ const AppContent = () => {
         </Route>
       </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={['manufacturer']} />}>
-        <Route element={<DashboardLayout />}>
-          <Route path="/customers" element={<MockCRMPage />} />
-          <Route path="/messages" element={<MockCRMPage />} />
-          <Route path="/channels" element={<MockCRMPage />} />
-          <Route path="/subscriptions" element={<MockCRMPage />} />
-          <Route path="/projects" element={<MockCRMPage />} />
-          <Route path="/recursos" element={<MockCRMPage />} />
-        </Route>
+      <Route element={<ProtectedRoute allowedRoles={['manufacturer', 'retailer', 'affiliate']} />}>
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardHub />} />
           <Route path="crm" element={<CRM />} />
+          <Route path="projects" element={<DashboardProjects />} />
+          <Route path="logistics" element={<DashboardLogistics />} />
+          <Route path="video-sessions" element={<DashboardVideoSessions />} />
+          <Route path="recursos" element={<DashboardResources />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="billing" element={<Billing />} />
           <Route path="performance" element={<Performance />} />

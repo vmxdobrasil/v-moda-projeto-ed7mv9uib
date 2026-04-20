@@ -10,6 +10,9 @@ import {
   MessageSquare,
   Megaphone,
   FolderKanban,
+  Truck,
+  Video,
+  GraduationCap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useEffect, useMemo } from 'react'
@@ -93,21 +96,32 @@ export default function DashboardLayout() {
 
     if (userRecord?.role === 'affiliate') {
       baseLinks.push(
-        { href: '/dashboard/affiliate', label: 'Painel do Guia / Transportador', icon: BusFront },
+        { href: '/dashboard/affiliate', label: 'Painel do Guia', icon: BusFront },
+        { href: '/dashboard/logistics', label: 'Logística', icon: Truck },
         { href: '/dashboard/indicacoes', label: 'Indicações', icon: Share2 },
         { href: '/dashboard/performance', label: 'Performance', icon: BarChart },
       )
     } else if (userRecord?.role === 'manufacturer' || userRecord?.type === 'Lojista Fabricante') {
       baseLinks.push(
-        { href: '/dashboard/crm', label: 'CRM', icon: Users },
+        { href: '/dashboard/crm', label: 'CRM / Leads', icon: Users },
+        { href: '/dashboard/projects', label: 'Catálogo / Vitrine', icon: FolderKanban },
+        { href: '/dashboard/logistics', label: 'Logística', icon: Truck },
+        { href: '/dashboard/video-sessions', label: 'Vídeo Negociação', icon: Video },
+        { href: '/dashboard/recursos', label: 'Academy', icon: GraduationCap },
+        {
+          href: '/dashboard/settings/whatsapp',
+          label: 'Integrações (WhatsApp)',
+          icon: MessageSquare,
+        },
         { href: '/dashboard/indicacoes', label: 'Indicações', icon: Share2 },
-        { href: '/dashboard/performance', label: 'Performance', icon: BarChart },
         { href: '/dashboard/billing', label: 'Meu Plano', icon: CreditCard },
       )
     } else {
       baseLinks.push(
-        { href: '/dashboard/crm', label: 'CRM', icon: Users },
-        { href: '/dashboard/performance', label: 'Performance', icon: BarChart },
+        { href: '/dashboard/crm', label: 'CRM / Leads', icon: Users },
+        { href: '/dashboard/logistics', label: 'Minhas Entregas', icon: Truck },
+        { href: '/dashboard/video-sessions', label: 'Vídeo Negociação', icon: Video },
+        { href: '/dashboard/recursos', label: 'Academy', icon: GraduationCap },
         { href: '/dashboard/billing', label: 'Meu Plano', icon: CreditCard },
       )
     }
@@ -232,26 +246,30 @@ export default function DashboardLayout() {
         <CommandInput placeholder="Buscar módulos (ex: Customers, Messages)..." />
         <CommandList>
           <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
-          <CommandGroup heading="CRM & Management">
-            <CommandItem onSelect={() => handleSearchSelect('/customers')}>
+          <CommandGroup heading="Módulos">
+            <CommandItem onSelect={() => handleSearchSelect('/dashboard/crm')}>
               <Users className="mr-2 h-4 w-4" />
-              <span>Customers</span>
+              <span>CRM / Leads</span>
             </CommandItem>
-            <CommandItem onSelect={() => handleSearchSelect('/messages')}>
-              <MessageSquare className="mr-2 h-4 w-4" />
-              <span>Messages</span>
-            </CommandItem>
-            <CommandItem onSelect={() => handleSearchSelect('/channels')}>
-              <Megaphone className="mr-2 h-4 w-4" />
-              <span>Channels</span>
-            </CommandItem>
-            <CommandItem onSelect={() => handleSearchSelect('/subscriptions')}>
-              <CreditCard className="mr-2 h-4 w-4" />
-              <span>Subscriptions/Plans</span>
-            </CommandItem>
-            <CommandItem onSelect={() => handleSearchSelect('/projects')}>
+            <CommandItem onSelect={() => handleSearchSelect('/dashboard/projects')}>
               <FolderKanban className="mr-2 h-4 w-4" />
-              <span>Projects</span>
+              <span>Catálogo / Vitrine</span>
+            </CommandItem>
+            <CommandItem onSelect={() => handleSearchSelect('/dashboard/logistics')}>
+              <Truck className="mr-2 h-4 w-4" />
+              <span>Logística</span>
+            </CommandItem>
+            <CommandItem onSelect={() => handleSearchSelect('/dashboard/video-sessions')}>
+              <Video className="mr-2 h-4 w-4" />
+              <span>Vídeo Negociação</span>
+            </CommandItem>
+            <CommandItem onSelect={() => handleSearchSelect('/dashboard/recursos')}>
+              <GraduationCap className="mr-2 h-4 w-4" />
+              <span>Academy</span>
+            </CommandItem>
+            <CommandItem onSelect={() => handleSearchSelect('/dashboard/settings/whatsapp')}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              <span>Integrações (WhatsApp)</span>
             </CommandItem>
           </CommandGroup>
         </CommandList>
