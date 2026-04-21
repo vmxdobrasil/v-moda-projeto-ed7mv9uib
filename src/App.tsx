@@ -25,7 +25,6 @@ import FashionGuide from './pages/FashionGuide'
 import ManufacturerDashboard from './pages/ManufacturerDashboard'
 import RetailerDashboard from './pages/RetailerDashboard'
 import Academy from './pages/Academy'
-import CreditoModa from './pages/CreditoModa'
 import Layout from './components/Layout'
 import Unauthorized from './pages/Unauthorized'
 import VideoNegotiation from './pages/VideoNegotiation'
@@ -74,7 +73,7 @@ import { useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 
 const AppContent = () => {
-  const { initialize, isAuthenticated, user, isInitialized } = useAuthStore()
+  const { initialize, isAuthenticated, isInitialized } = useAuthStore()
 
   useEffect(() => {
     initialize()
@@ -195,7 +194,6 @@ const AppContent = () => {
         <Route path="/revenda" element={<ResellerApplication />} />
         <Route path="/afiliados" element={<Affiliates />} />
         <Route path="/parceiro" element={<AffiliateLeadForm />} />
-        <Route path="/credito-moda" element={<Navigate to="/" replace />} />
         <Route path="/beneficios" element={<BenefitsHub />} />
       </Route>
 

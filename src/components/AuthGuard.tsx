@@ -51,7 +51,7 @@ export function ProtectedRoute({ allowedRoles = [] }: { allowedRoles?: string[] 
 }
 
 export function PublicRoute() {
-  const { isAuthenticated, isInitialized, user } = useAuthStore()
+  const { isAuthenticated, isInitialized } = useAuthStore()
   const location = useLocation()
 
   if (!isInitialized) {
