@@ -8,8 +8,9 @@ export function AuthGuard() {
 
   if (!isInitialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+        <p className="text-sm text-muted-foreground animate-pulse">Verificando sessão...</p>
       </div>
     )
   }
@@ -27,8 +28,9 @@ export function ProtectedRoute({ allowedRoles = [] }: { allowedRoles?: string[] 
 
   if (!isInitialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+        <p className="text-sm text-muted-foreground animate-pulse">Verificando permissões...</p>
       </div>
     )
   }
@@ -56,8 +58,9 @@ export function PublicRoute() {
 
   if (!isInitialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+        <p className="text-sm text-muted-foreground animate-pulse">Carregando...</p>
       </div>
     )
   }

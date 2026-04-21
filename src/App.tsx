@@ -70,13 +70,22 @@ import BenefitsHub from './pages/BenefitsHub'
 import { AuthGuard, PublicRoute, ProtectedRoute } from './components/AuthGuard'
 import useAuthStore from './stores/useAuthStore'
 import { useEffect } from 'react'
+import { Loader2 } from 'lucide-react'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const RootRoute = () => {
-  return pb.authStore.isValid ? (
-    <Navigate to="/dashboard" replace />
-  ) : (
-    <Navigate to="/login" replace />
-  )
+  const { isAuthenticated, isInitialized } = useAuthStore()
+
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+        <p className="text-sm text-muted-foreground animate-pulse">Carregando V Moda...</p>
+      </div>
+    )
+  }
+
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
 }
 
 const AppContent = () => {
@@ -197,16 +206,18 @@ const AppContent = () => {
 }
 
 const App = () => (
-  <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-    <FavoritesProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <VideoCallListener />
-        <AppContent />
-      </TooltipProvider>
-    </FavoritesProvider>
-  </BrowserRouter>
+  <ErrorBoundary>
+    <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+      <FavoritesProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <VideoCallListener />
+          <AppContent />
+        </TooltipProvider>
+      </FavoritesProvider>
+    </BrowserRouter>
+  </ErrorBoundary>
 )
 
 export default App
