@@ -8,6 +8,9 @@ export interface Project {
   manufacturer: string
   category: string
   price?: number
+  wholesale_price?: number
+  retail_price?: number
+  min_quantity_wholesale?: number
   stock_quantity?: number
   created: string
   updated: string

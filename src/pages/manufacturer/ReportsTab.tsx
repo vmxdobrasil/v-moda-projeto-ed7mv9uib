@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import {
   Select,
@@ -8,38 +8,46 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import { formatPrice } from '@/lib/data'
-
-const mockSalesData = [
-  { date: '01/05', sales: 4500, quantity: 45, orders: 3 },
-  { date: '08/05', sales: 6200, quantity: 60, orders: 4 },
-  { date: '15/05', sales: 3100, quantity: 28, orders: 2 },
-  { date: '22/05', sales: 8400, quantity: 82, orders: 6 },
-  { date: '29/05', sales: 5900, quantity: 55, orders: 5 },
-]
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, LineChart } from 'recharts'
 
 export function ReportsTab() {
   const [range, setRange] = useState('30days')
+  const [leadsData, setLeadsData] = useState<any[]>([])
+  const [conversionData, setConversionData] = useState<any[]>([])
 
-  const { totalSales, totalQty, totalOrders } = useMemo(() => {
-    const factor = range === '7days' ? 0.3 : range === 'month' ? 0.8 : 1
-    const ts = mockSalesData.reduce((acc, curr) => acc + curr.sales, 0) * factor
-    const tq = mockSalesData.reduce((acc, curr) => acc + curr.quantity, 0) * factor
-    const to = mockSalesData.reduce((acc, curr) => acc + curr.orders, 0) * factor
-    return { totalSales: ts, totalQty: Math.round(tq), totalOrders: Math.round(to) }
+  useEffect(() => {
+    // Analytics Mock Data for the Partner Dashboard
+    setLeadsData([
+      { month: 'Jan', leads: 45 },
+      { month: 'Fev', leads: 52 },
+      { month: 'Mar', leads: 38 },
+      { month: 'Abr', leads: 65 },
+      { month: 'Mai', leads: 80 },
+      { month: 'Jun', leads: 95 },
+    ])
+
+    setConversionData([
+      { date: 'Sem 1', rate: 12 },
+      { date: 'Sem 2', rate: 15 },
+      { date: 'Sem 3', rate: 14 },
+      { date: 'Sem 4', rate: 18 },
+    ])
   }, [range])
 
-  const chartConfig = {
-    sales: { label: 'Vendas (R$)', color: 'hsl(var(--primary))' },
+  const leadsConfig = {
+    leads: { label: 'Novos Leads', color: 'hsl(var(--primary))' },
+  }
+
+  const conversionConfig = {
+    rate: { label: 'Taxa de Conversão (%)', color: 'hsl(var(--accent))' },
   }
 
   return (
     <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Desempenho</h2>
-          <p className="text-muted-foreground">Acompanhe suas vendas no atacado.</p>
+          <h2 className="text-2xl font-bold tracking-tight">Desempenho & Analytics</h2>
+          <p className="text-muted-foreground">Acompanhe a geração de leads e conversão.</p>
         </div>
         <Select value={range} onValueChange={setRange}>
           <SelectTrigger className="w-[180px]">
@@ -48,54 +56,52 @@ export function ReportsTab() {
           <SelectContent>
             <SelectItem value="7days">Últimos 7 dias</SelectItem>
             <SelectItem value="30days">Últimos 30 dias</SelectItem>
-            <SelectItem value="month">Mês Atual</SelectItem>
+            <SelectItem value="year">Este Ano</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Vendas</CardTitle>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">Leads por Mês</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPrice(totalSales)}</div>
+            <ChartContainer config={leadsConfig} className="min-h-[250px] w-full">
+              <BarChart data={leadsData}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="leads" fill="var(--color-leads)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Peças Vendidas</CardTitle>
+
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">Taxa de Conversão (%)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalQty} un</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pedidos Recebidos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalOrders}</div>
+            <ChartContainer config={conversionConfig} className="min-h-[250px] w-full">
+              <LineChart data={conversionData}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line
+                  type="monotone"
+                  dataKey="rate"
+                  stroke="var(--color-rate)"
+                  strokeWidth={3}
+                  dot={{ r: 5 }}
+                />
+              </LineChart>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Vendas por Período</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-            <BarChart accessibilityLayer data={mockSalesData}>
-              <CartesianGrid vertical={false} />
-              <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
-              <YAxis tickFormatter={(val) => `R$${val}`} axisLine={false} tickLine={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="sales" fill="var(--color-sales)" radius={4} />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
     </div>
   )
 }

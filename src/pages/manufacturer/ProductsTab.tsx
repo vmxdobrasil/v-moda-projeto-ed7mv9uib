@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
+import pb from '@/lib/pocketbase/client'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import {
   Table,
@@ -8,146 +9,138 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
-import { useProductStore } from '@/stores/useProductStore'
 import { formatPrice } from '@/lib/data'
+import { Download } from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { Project } from '@/services/projects'
 
 export function ProductsTab({ manufacturerName }: { manufacturerName: string }) {
-  const { products, updateWholesalePrices } = useProductStore()
-  const { toast } = useToast()
+  const [products, setProducts] = useState<Project[]>([])
+  const [viewMode, setViewMode] = useState<'wholesale' | 'retail'>('wholesale')
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [bulkValue, setBulkValue] = useState('')
-  const [bulkType, setBulkType] = useState('percentage')
+  useEffect(() => {
+    loadProducts()
+  }, [])
 
-  const myProducts = useMemo(
-    () => products.filter((p) => p.manufacturer === manufacturerName),
-    [products, manufacturerName],
-  )
+  const loadProducts = async () => {
+    try {
+      const userId = pb.authStore.record?.id
+      if (!userId) return
 
-  const toggleAll = () => {
-    if (selectedIds.size === myProducts.length) setSelectedIds(new Set())
-    else setSelectedIds(new Set(myProducts.map((p) => p.id)))
+      const items = await pb.collection('projects').getFullList<Project>({
+        filter: `manufacturer = "${userId}"`,
+        sort: '-created',
+      })
+      setProducts(items)
+    } catch (err) {
+      console.error(err)
+    }
   }
 
-  const toggleOne = (id: string) => {
-    const next = new Set(selectedIds)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    setSelectedIds(next)
-  }
+  const exportCSV = () => {
+    const headers = [
+      'ID',
+      'Produto',
+      'Preço Atacado',
+      'Preço Varejo',
+      'Qtd Min. Atacado',
+      'Estoque',
+    ]
+    const rows = products.map(
+      (p) =>
+        `"${p.id}","${p.name}",${p.wholesale_price || 0},${p.retail_price || p.price || 0},${p.min_quantity_wholesale || 1},${p.stock_quantity || 0}`,
+    )
+    const csv = [headers.join(','), ...rows].join('\n')
 
-  const handleApply = () => {
-    if (selectedIds.size === 0) {
-      toast({ title: 'Nenhum produto selecionado', variant: 'destructive' })
-      return
-    }
-    const val = parseFloat(bulkValue)
-    if (isNaN(val)) {
-      toast({ title: 'Valor inválido', variant: 'destructive' })
-      return
-    }
-
-    if (
-      window.confirm(
-        `Tem certeza que deseja aplicar esta alteração em ${selectedIds.size} produtos?`,
-      )
-    ) {
-      updateWholesalePrices(Array.from(selectedIds), bulkType as any, val)
-      toast({ title: 'Preços atualizados com sucesso!' })
-      setSelectedIds(new Set())
-      setBulkValue('')
-    }
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'catalogo-produtos.csv'
+    link.click()
   }
 
   return (
     <Card className="animate-in fade-in zoom-in-95 duration-300">
-      <CardHeader>
-        <CardTitle>Meus Produtos</CardTitle>
-        <CardDescription>Gerencie os preços de atacado dos seus produtos em massa.</CardDescription>
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <CardTitle>Catálogo de Produtos</CardTitle>
+          <CardDescription>
+            Gerencie seu catálogo e alternância de preços B2B e B2C.
+          </CardDescription>
+        </div>
+        <Button onClick={exportCSV} variant="outline" className="shrink-0">
+          <Download className="w-4 h-4 mr-2" /> Exportar Catálogo CSV
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/50 rounded-lg items-end">
-          <div className="space-y-2 flex-1">
-            <label className="text-sm font-medium">Ação em Massa</label>
-            <div className="flex gap-2">
-              <Select value={bulkType} onValueChange={setBulkType}>
-                <SelectTrigger className="w-[180px] bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="percentage">Ajuste Percentual (%)</SelectItem>
-                  <SelectItem value="fixed">Preço Fixo (R$)</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                type="number"
-                placeholder="Ex: 10 ou -10"
-                value={bulkValue}
-                onChange={(e) => setBulkValue(e.target.value)}
-                className="w-[120px] bg-background"
-              />
-            </div>
-          </div>
-          <Button onClick={handleApply} disabled={selectedIds.size === 0}>
-            Aplicar em {selectedIds.size} itens
-          </Button>
+        <div className="flex justify-end">
+          <Tabs
+            value={viewMode}
+            onValueChange={(v) => setViewMode(v as 'wholesale' | 'retail')}
+            className="w-full sm:w-auto"
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="wholesale">Visão Atacado (B2B)</TabsTrigger>
+              <TabsTrigger value="retail">Visão Varejo (B2C)</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
-        <div className="border rounded-md">
+        <div className="border rounded-md overflow-x-auto">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="w-[50px]">
-                  <Checkbox
-                    checked={selectedIds.size === myProducts.length && myProducts.length > 0}
-                    onCheckedChange={toggleAll}
-                  />
-                </TableHead>
                 <TableHead>Produto</TableHead>
-                <TableHead>Preço Varejo</TableHead>
-                <TableHead>Preço Atacado</TableHead>
+                <TableHead>{viewMode === 'wholesale' ? 'Preço Atacado' : 'Preço Varejo'}</TableHead>
+                {viewMode === 'wholesale' && <TableHead>Qtd. Mínima</TableHead>}
+                <TableHead>Estoque Disponível</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {myProducts.length === 0 ? (
+              {products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center">
-                    Nenhum produto encontrado.
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    Nenhum produto cadastrado em seu catálogo.
                   </TableCell>
                 </TableRow>
               ) : (
-                myProducts.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedIds.has(p.id)}
-                        onCheckedChange={() => toggleOne(p.id)}
-                      />
-                    </TableCell>
+                products.map((p) => (
+                  <TableRow key={p.id} className="hover:bg-muted/30">
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={p.image}
-                          alt={p.name}
-                          className="w-8 h-8 rounded-sm object-cover"
-                        />
-                        {p.name}
+                        {p.image ? (
+                          <img
+                            src={pb.files.getUrl(p, p.image, { thumb: '100x100' })}
+                            alt={p.name}
+                            className="w-10 h-10 rounded-md object-cover bg-secondary"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-md bg-secondary flex items-center justify-center text-muted-foreground text-xs">
+                            Sem Img
+                          </div>
+                        )}
+                        <span className="line-clamp-1">{p.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{formatPrice(p.price)}</TableCell>
                     <TableCell className="font-semibold text-primary">
-                      {p.wholesalePrice ? formatPrice(p.wholesalePrice) : '-'}
+                      {viewMode === 'wholesale'
+                        ? formatPrice(p.wholesale_price || 0)
+                        : formatPrice(p.retail_price || p.price || 0)}
+                    </TableCell>
+                    {viewMode === 'wholesale' && (
+                      <TableCell>{p.min_quantity_wholesale || 1} un.</TableCell>
+                    )}
+                    <TableCell>
+                      <span
+                        className={
+                          p.stock_quantity && p.stock_quantity > 5
+                            ? 'text-green-600'
+                            : 'text-amber-600'
+                        }
+                      >
+                        {p.stock_quantity || 0} un.
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))

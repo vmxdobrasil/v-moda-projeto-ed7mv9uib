@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { PRODUCTS } from '@/lib/data'
+import { useState, useEffect } from 'react'
+import pb from '@/lib/pocketbase/client'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,57 +12,92 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { Search, Save } from 'lucide-react'
+import { Search, Save, Download } from 'lucide-react'
+import type { Project } from '@/services/projects'
 
 export function InventoryTab({ manufacturerName }: { manufacturerName: string }) {
   const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
+  const [inventory, setInventory] = useState<Project[]>([])
 
-  // Create mock inventory state
-  const [inventory, setInventory] = useState(() => {
-    return PRODUCTS.filter((p) => p.manufacturer === manufacturerName || !manufacturerName).map(
-      (p, i) => ({
-        id: p.id,
-        name: p.name,
-        sku: `SKU-${p.id.toUpperCase()}-${1000 + i}`,
-        stock: i === 1 ? 3 : 24 + i * 5, // mock some low stock
-      }),
-    )
-  })
+  useEffect(() => {
+    loadInventory()
+  }, [])
+
+  const loadInventory = async () => {
+    const userId = pb.authStore.record?.id
+    if (!userId) return
+    try {
+      const items = await pb.collection('projects').getFullList<Project>({
+        filter: `manufacturer = "${userId}"`,
+        sort: '-created',
+      })
+      setInventory(items)
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   const filteredInventory = inventory.filter(
     (item) =>
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchQuery.toLowerCase()),
+      item.id.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   const handleStockChange = (id: string, value: string) => {
     setInventory(
-      inventory.map((item) => (item.id === id ? { ...item, stock: parseInt(value) || 0 } : item)),
+      inventory.map((item) =>
+        item.id === id ? { ...item, stock_quantity: parseInt(value) || 0 } : item,
+      ),
     )
   }
 
-  const handleSave = (id: string) => {
-    toast({
-      title: 'Estoque Atualizado',
-      description: 'As alterações foram salvas com sucesso.',
-    })
+  const handleSave = async (id: string) => {
+    try {
+      const item = inventory.find((i) => i.id === id)
+      if (!item) return
+
+      await pb.collection('projects').update(id, { stock_quantity: item.stock_quantity })
+      toast({
+        title: 'Estoque Atualizado',
+        description: 'As alterações foram salvas com sucesso.',
+      })
+    } catch (err) {
+      toast({ title: 'Erro ao salvar', variant: 'destructive' })
+    }
+  }
+
+  const exportCSV = () => {
+    const headers = ['ID', 'Produto', 'Estoque Atual']
+    const rows = filteredInventory.map((p) => `"${p.id}","${p.name}",${p.stock_quantity || 0}`)
+    const csv = [headers.join(','), ...rows].join('\n')
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'relatorio-estoque.csv'
+    link.click()
   }
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <div>
-        <h2 className="text-2xl font-serif mb-1">Gestão de Estoque</h2>
-        <p className="text-muted-foreground text-sm">
-          Atualize os níveis de estoque dos seus produtos no sistema.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between gap-4 sm:items-end">
+        <div>
+          <h2 className="text-2xl font-serif mb-1">Gestão de Estoque</h2>
+          <p className="text-muted-foreground text-sm">
+            Atualize os níveis de estoque dos seus produtos no sistema.
+          </p>
+        </div>
+        <Button onClick={exportCSV} variant="secondary">
+          <Download className="w-4 h-4 mr-2" /> Exportar Inventário CSV
+        </Button>
       </div>
 
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome ou SKU..."
+            placeholder="Buscar por nome..."
             className="pl-9"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -72,10 +107,10 @@ export function InventoryTab({ manufacturerName }: { manufacturerName: string })
 
       <div className="border rounded-md">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead>Produto</TableHead>
-              <TableHead>SKU</TableHead>
+              <TableHead className="hidden sm:table-cell">ID Referência</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[150px]">Quantidade</TableHead>
               <TableHead className="w-[100px] text-right">Ação</TableHead>
@@ -85,9 +120,11 @@ export function InventoryTab({ manufacturerName }: { manufacturerName: string })
             {filteredInventory.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell className="text-muted-foreground">{item.sku}</TableCell>
+                <TableCell className="text-muted-foreground text-xs hidden sm:table-cell">
+                  {item.id}
+                </TableCell>
                 <TableCell>
-                  {item.stock < 5 ? (
+                  {(item.stock_quantity || 0) < 5 ? (
                     <Badge
                       variant="destructive"
                       className="bg-red-500/10 text-red-600 border-red-500/20 hover:bg-red-500/20"
@@ -106,7 +143,7 @@ export function InventoryTab({ manufacturerName }: { manufacturerName: string })
                 <TableCell>
                   <Input
                     type="number"
-                    value={item.stock}
+                    value={item.stock_quantity || 0}
                     onChange={(e) => handleStockChange(item.id, e.target.value)}
                     className="h-8 w-24"
                   />
