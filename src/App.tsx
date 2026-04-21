@@ -64,7 +64,6 @@ import DashboardResources from './pages/dashboard/Resources'
 import Affiliates from './pages/Affiliates'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import BrandProfile from './pages/BrandProfile'
-import { GlobalTracking } from './components/GlobalTracking'
 import AffiliateLeadForm from './pages/AffiliateLeadForm'
 import BenefitsHub from './pages/BenefitsHub'
 import { AuthGuard, PublicRoute, ProtectedRoute } from './components/AuthGuard'
@@ -204,7 +203,6 @@ const AppContent = () => {
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-    <GlobalTracking />
     <FavoritesProvider>
       <TooltipProvider>
         <Toaster />
