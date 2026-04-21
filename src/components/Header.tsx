@@ -30,6 +30,7 @@ import useCartStore from '@/stores/useCartStore'
 import useWishlistStore from '@/stores/useWishlistStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { formatPrice } from '@/lib/data'
+import { BrandLogo } from '@/components/BrandLogo'
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -235,8 +236,13 @@ export function Header() {
 
         {/* Logo */}
         <div className="flex-1 md:flex-none flex justify-center md:justify-start">
-          <Link to="/" className="font-serif text-2xl font-bold tracking-widest uppercase">
-            V Moda
+          <Link to="/" className="flex items-center">
+            <BrandLogo
+              type="brand_logo"
+              fallbackText="V MODA"
+              className="h-8 md:h-10 w-auto object-contain"
+              fallbackClassName="font-serif text-2xl font-bold tracking-widest uppercase"
+            />
           </Link>
         </div>
 

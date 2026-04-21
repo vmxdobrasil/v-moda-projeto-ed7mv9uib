@@ -33,6 +33,7 @@ import { Shield, Trash2, Plus, Globe, MessageCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useMagazineStore } from '@/stores/useMagazineStore'
 import { useManufacturerStore } from '@/stores/useManufacturerStore'
+import { BrandAssetsManager } from '@/components/media/BrandAssetsManager'
 import {
   getWhatsappConfig,
   saveWhatsappConfig,
@@ -177,6 +178,21 @@ export default function Settings() {
           Gerencie acessos e permissões da equipe.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Globe className="w-4 h-4 text-primary" />
+            Identidade Visual (Logos)
+          </CardTitle>
+          <CardDescription>
+            Gerencie os logotipos da sua marca para exibição no site.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BrandAssetsManager />
+        </CardContent>
+      </Card>
 
       <Card className="border-primary/50 bg-primary/5">
         <CardHeader className="pb-3">

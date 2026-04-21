@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 interface BrandLogoProps {
   className?: string
   fallbackClassName?: string
-  type?: 'v_moda_logo' | 'magazine_logo'
+  type?: 'v_moda_logo' | 'magazine_logo' | 'brand_logo'
   fallbackText?: string
 }
 
@@ -14,8 +14,9 @@ export function BrandLogo({
   type = 'v_moda_logo',
   fallbackText = 'V Moda',
 }: BrandLogoProps) {
-  const { vModaLogo, magazineLogo } = useBrand()
-  const logoUrl = type === 'v_moda_logo' ? vModaLogo : magazineLogo
+  const { vModaLogo, magazineLogo, brandLogo } = useBrand()
+  const logoUrl =
+    type === 'brand_logo' ? brandLogo : type === 'v_moda_logo' ? vModaLogo : magazineLogo
 
   if (logoUrl) {
     return <img src={logoUrl} alt="Brand Logo" className={cn('object-contain', className)} />

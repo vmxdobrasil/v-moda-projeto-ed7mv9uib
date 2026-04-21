@@ -34,6 +34,7 @@ export function useBrand() {
   return {
     vModaLogo: getLogoUrl('v_moda_logo'),
     magazineLogo: getLogoUrl('magazine_logo'),
+    brandLogo: getLogoUrl('brand_logo'),
     settings,
   }
 }
