@@ -1,259 +1,269 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Store, TrendingUp, ShieldCheck, Video, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, ShoppingBag, Store, Users, CheckCircle2 } from 'lucide-react'
 
 export default function Index() {
   return (
-    <div className="flex flex-col min-h-screen w-full bg-background font-sans overflow-x-hidden">
+    <div className="flex flex-col w-full min-h-screen">
       {/* Hero Section */}
-      <section className="relative w-full py-28 md:py-40 flex flex-col items-center justify-center overflow-hidden bg-black text-white">
-        <div className="absolute inset-0 w-full h-full">
+      <section className="relative w-full h-[85vh] min-h-[650px] flex items-center justify-center overflow-hidden bg-black">
+        <div className="absolute inset-0 z-0">
           <img
-            src="https://img.usecurling.com/p/1920/1080?q=fashion%20runway&color=black"
-            alt="V Moda Hero"
-            className="w-full h-full object-cover opacity-40 scale-105 animate-fade-in"
+            src="https://img.usecurling.com/p/1920/1080?q=fashion%20editorial&dpr=2"
+            alt="Fashion Editorial"
+            className="w-full h-full object-cover object-top opacity-50 transition-transform duration-10000 hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/90" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80" />
         </div>
 
-        <div className="container relative z-10 px-6 mx-auto text-center space-y-8 max-w-5xl animate-slide-up">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm text-sm font-medium mb-4">
-            <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />A plataforma
-            definitiva para atacadistas
+        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto flex flex-col items-center mt-12">
+          <div className="px-5 py-2 rounded-full bg-white/10 text-white text-sm font-medium backdrop-blur-md mb-8 border border-white/20 animate-fade-in-up">
+            A Plataforma B2B Definitiva de Moda
           </div>
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight drop-shadow-lg">
-            O Maior Hub de Moda{' '}
-            <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-              B2B
-            </span>{' '}
-            do Brasil
+
+          <h1
+            className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 tracking-tight animate-fade-in-up"
+            style={{ animationDelay: '100ms' }}
+          >
+            O Polo da Moda, <br className="hidden md:block" /> Conectado.
           </h1>
-          <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed drop-shadow">
-            Conectamos atacadistas, fabricantes e lojistas em um ecossistema único. Negocie por
-            vídeo, expanda suas vendas e descubra coleções exclusivas.
+
+          <p
+            className="text-lg md:text-2xl text-gray-200 mb-10 max-w-2xl mx-auto font-light leading-relaxed animate-fade-in-up"
+            style={{ animationDelay: '200ms' }}
+          >
+            Descubra as melhores marcas do Brasil, compre no atacado diretamente da fábrica e
+            expanda o seu negócio com segurança.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-8">
+
+          <div
+            className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center animate-fade-in-up"
+            style={{ animationDelay: '300ms' }}
+          >
             <Button
               size="lg"
-              className="w-full sm:w-auto text-lg h-14 px-8 shadow-xl shadow-primary/25 transition-transform hover:scale-105"
               asChild
+              className="text-lg px-8 h-14 rounded-full bg-white text-black hover:bg-gray-100 hover:text-black"
             >
-              <Link to="/cadastro">
-                Começar Agora
-                <ArrowRight className="ml-2 h-5 w-5" />
+              <Link to="/colecoes">
+                Explorar Marcas <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             <Button
               size="lg"
               variant="outline"
-              className="w-full sm:w-auto text-lg h-14 px-8 border-white text-white hover:bg-white hover:text-black transition-transform hover:scale-105 backdrop-blur-sm bg-black/20"
               asChild
+              className="text-lg px-8 h-14 rounded-full bg-black/20 text-white hover:bg-white/30 hover:text-white border-white/30 backdrop-blur-sm"
             >
-              <Link to="/colecoes">Explorar Catálogo</Link>
+              <Link to="/revenda">Seja um Revendedor</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Stats/Social Proof */}
-      <section className="py-16 bg-white border-b">
-        <div className="container px-6 mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-center divide-x divide-gray-100">
-            <div className="space-y-3 px-4">
-              <h3 className="text-4xl md:text-5xl font-black text-primary">500+</h3>
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                Fabricantes
-              </p>
-            </div>
-            <div className="space-y-3 px-4">
-              <h3 className="text-4xl md:text-5xl font-black text-primary">10k+</h3>
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                Lojistas Ativos
-              </p>
-            </div>
-            <div className="space-y-3 px-4">
-              <h3 className="text-4xl md:text-5xl font-black text-primary">50k+</h3>
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                Produtos
-              </p>
-            </div>
-            <div className="space-y-3 px-4">
-              <h3 className="text-4xl md:text-5xl font-black text-primary">100%</h3>
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                Garantia
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-24 bg-gray-50/50">
-        <div className="container px-6 mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <h2 className="text-4xl font-bold tracking-tight">
-              Tudo que você precisa para crescer
+      {/* Features / Value Proposition */}
+      <section className="py-24 bg-white px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16 max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
+              Soluções para Todo o Ecossistema
             </h2>
-            <p className="text-xl text-muted-foreground">
-              Ferramentas de ponta projetadas especificamente para o mercado de moda atacadista.
+            <p className="text-lg text-muted-foreground">
+              A V Moda foi desenvolvida para potencializar vendas, facilitar o acesso aos
+              fornecedores e modernizar a jornada de compra e venda no mercado fashion.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
-            <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="h-16 w-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-8">
-                <Store className="h-8 w-8" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Manufacturer Card */}
+            <div className="flex flex-col items-center text-center p-10 rounded-3xl bg-gray-50 border border-gray-100 hover:shadow-xl hover:border-primary/20 transition-all duration-300 group">
+              <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-8 text-primary group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                <Store className="h-10 w-10" />
               </div>
-              <h3 className="text-2xl font-bold mb-4">Catálogos Digitais</h3>
-              <p className="text-muted-foreground text-lg leading-relaxed">
-                Crie catálogos interativos, gerencie estoques e receba pedidos de forma automatizada
-                e profissional diretamente pelo WhatsApp.
+              <h3 className="text-2xl font-bold mb-4">Para Fabricantes</h3>
+              <p className="text-muted-foreground mb-8 leading-relaxed">
+                Expanda sua distribuição, gerencie pedidos de atacado com facilidade e alcance
+                milhares de lojistas verificados em todo o Brasil.
               </p>
-              <ul className="mt-6 space-y-3">
-                <li className="flex items-center gap-3 text-sm font-medium text-gray-700">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" /> Gestão simplificada
+              <ul className="text-sm text-left w-full space-y-3 mb-8 text-muted-foreground">
+                <li className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-primary mr-2" /> Vitrine digital customizada
                 </li>
-                <li className="flex items-center gap-3 text-sm font-medium text-gray-700">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" /> Pedidos no WhatsApp
+                <li className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-primary mr-2" /> Gestão de pedidos e
+                  logística
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-primary mr-2" /> Acesso a painel de métricas
                 </li>
               </ul>
+              <Button variant="link" asChild className="mt-auto font-semibold">
+                <Link to="/parceiro">
+                  Seja um Fabricante <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
             </div>
 
-            <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="h-16 w-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-8">
-                <Video className="h-8 w-8" />
+            {/* Retailer Card */}
+            <div className="flex flex-col items-center text-center p-10 rounded-3xl bg-gray-50 border border-gray-100 hover:shadow-xl hover:border-primary/20 transition-all duration-300 group relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-bold px-4 py-1 rounded-bl-xl z-10">
+                Mais Buscado
               </div>
-              <h3 className="text-2xl font-bold mb-4">Salas de Negociação</h3>
-              <p className="text-muted-foreground text-lg leading-relaxed">
-                Apresente seus produtos em tempo real com vídeo HD. Feche negócios enquanto o
-                cliente visualiza peças com detalhes.
+              <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-8 text-primary group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                <ShoppingBag className="h-10 w-10" />
+              </div>
+              <h3 className="text-2xl font-bold mb-4">Para Lojistas</h3>
+              <p className="text-muted-foreground mb-8 leading-relaxed">
+                Acesso direto ao preço de fábrica de mais de 500 marcas, compras unificadas em um
+                único carrinho e suporte especializado.
               </p>
-              <ul className="mt-6 space-y-3">
-                <li className="flex items-center gap-3 text-sm font-medium text-gray-700">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" /> Vídeo integrado
+              <ul className="text-sm text-left w-full space-y-3 mb-8 text-muted-foreground">
+                <li className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-primary mr-2" /> Preços direto da fábrica
                 </li>
-                <li className="flex items-center gap-3 text-sm font-medium text-gray-700">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" /> Zero fricção
+                <li className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-primary mr-2" /> Compra unificada 100%
+                  online
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-primary mr-2" /> Frete otimizado e seguro
                 </li>
               </ul>
+              <Button variant="link" asChild className="mt-auto font-semibold">
+                <Link to="/revenda">
+                  Quero Comprar no Atacado <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
             </div>
 
-            <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="h-16 w-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-8">
-                <TrendingUp className="h-8 w-8" />
+            {/* Affiliate Card */}
+            <div className="flex flex-col items-center text-center p-10 rounded-3xl bg-gray-50 border border-gray-100 hover:shadow-xl hover:border-primary/20 transition-all duration-300 group">
+              <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-8 text-primary group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                <Users className="h-10 w-10" />
               </div>
-              <h3 className="text-2xl font-bold mb-4">Rede de Afiliados</h3>
-              <p className="text-muted-foreground text-lg leading-relaxed">
-                Indique lojistas e fabricantes e ganhe comissões recorrentes. Monetize sua rede de
-                contatos com rastreamento completo.
+              <h3 className="text-2xl font-bold mb-4">Para Afiliados</h3>
+              <p className="text-muted-foreground mb-8 leading-relaxed">
+                Indique novos lojistas, guias e excursões ou promova coleções e ganhe comissões
+                atrativas em todas as vendas geradas pela sua rede.
               </p>
-              <ul className="mt-6 space-y-3">
-                <li className="flex items-center gap-3 text-sm font-medium text-gray-700">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" /> Comissões automáticas
+              <ul className="text-sm text-left w-full space-y-3 mb-8 text-muted-foreground">
+                <li className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-primary mr-2" /> Comissionamento recorrente
                 </li>
-                <li className="flex items-center gap-3 text-sm font-medium text-gray-700">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" /> Dashboard de vendas
+                <li className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-primary mr-2" /> Links personalizados
+                </li>
+                <li className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-primary mr-2" /> Material de marketing
+                  exclusivo
                 </li>
               </ul>
+              <Button variant="link" asChild className="mt-auto font-semibold">
+                <Link to="/afiliados">
+                  Programa de Afiliados <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Featured Categories */}
-      <section className="py-24 bg-white">
-        <div className="container px-6 mx-auto">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-12 gap-6">
-            <div className="space-y-3 max-w-2xl">
-              <h2 className="text-4xl font-bold tracking-tight">Polos de Moda & Categorias</h2>
-              <p className="text-xl text-muted-foreground">
-                Explore os principais segmentos e encontre fornecedores de Goiânia, São Paulo e
-                mais.
+      {/* Categories Preview */}
+      <section className="py-24 bg-gray-50 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+            <div className="max-w-2xl">
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+                Descubra as Tendências
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Navegue pelas categorias mais buscadas e encontre os produtos que são sucesso de
+                vendas no mercado nacional.
               </p>
             </div>
-            <Button variant="ghost" className="hidden sm:flex self-start md:self-auto" asChild>
+            <Button variant="outline" size="lg" className="hidden md:flex rounded-full" asChild>
               <Link to="/colecoes">
-                Ver todas <ArrowRight className="ml-2 h-4 w-4" />
+                Ver catálogo completo <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { title: 'Moda Feminina', image: 'women fashion model outfit', color: 'pink' },
-              { title: 'Jeanswear', image: 'denim fashion catalog', color: 'blue' },
-              { title: 'Moda Praia', image: 'beachwear fashion summer', color: 'cyan' },
-              { title: 'Plus Size', image: 'plus size fashion elegant', color: 'purple' },
-            ].map((category, idx) => (
+              {
+                name: 'Moda Feminina',
+                image: 'https://img.usecurling.com/p/600/800?q=women%20fashion&dpr=2',
+              },
+              {
+                name: 'Jeanswear',
+                image: 'https://img.usecurling.com/p/600/800?q=denim%20jeans&color=blue',
+              },
+              {
+                name: 'Plus Size',
+                image: 'https://img.usecurling.com/p/600/800?q=plus%20size%20fashion',
+              },
+              {
+                name: 'Moda Praia',
+                image: 'https://img.usecurling.com/p/600/800?q=beachwear&dpr=2',
+              },
+            ].map((cat, i) => (
               <Link
-                key={idx}
-                to={`/colecoes?category=${category.title.toLowerCase()}`}
-                className="group block relative overflow-hidden rounded-3xl aspect-[4/5] shadow-lg"
+                key={i}
+                to="/colecoes"
+                className="group relative rounded-3xl overflow-hidden aspect-[3/4] block shadow-md"
               >
                 <img
-                  src={`https://img.usecurling.com/p/600/800?q=${encodeURIComponent(category.image)}&color=${category.color}&dpr=2`}
-                  alt={category.title}
+                  src={cat.image}
+                  alt={cat.name}
                   className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="absolute bottom-0 left-0 p-8 w-full translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                  <h3 className="text-white font-bold text-2xl lg:text-3xl drop-shadow-md">
-                    {category.title}
-                  </h3>
-                  <div className="mt-4 flex items-center text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
-                    <span className="font-medium">Explorar marcas</span>
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex items-end p-8">
+                  <div className="flex items-center justify-between w-full">
+                    <h3 className="text-2xl font-bold text-white">{cat.name}</h3>
+                    <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                      <ArrowRight className="h-5 w-5 text-white" />
+                    </div>
                   </div>
                 </div>
               </Link>
             ))}
           </div>
 
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full mt-10 sm:hidden h-14 text-lg"
-            asChild
-          >
-            <Link to="/colecoes">Ver todas as categorias</Link>
-          </Button>
+          <div className="mt-10 text-center md:hidden">
+            <Button size="lg" className="w-full rounded-full" asChild>
+              <Link to="/colecoes">Ver catálogo completo</Link>
+            </Button>
+          </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-32 bg-primary relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="pattern" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path
-                  d="M0 40L40 0H20L0 20M40 40V20L20 40"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  fill="none"
-                />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#pattern)" />
-          </svg>
-        </div>
-        <div className="container relative z-10 px-6 mx-auto text-center space-y-10 max-w-4xl text-primary-foreground">
-          <ShieldCheck className="h-20 w-20 mx-auto opacity-90 drop-shadow-lg" />
-          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight">
-            Pronto para transformar suas vendas?
+      {/* Call to Action Final */}
+      <section className="py-32 bg-primary text-primary-foreground px-4 text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://img.usecurling.com/p/1920/1080?q=abstract%20fabric&color=black')] opacity-10 mix-blend-multiply object-cover w-full h-full pointer-events-none" />
+        <div className="max-w-4xl mx-auto relative z-10">
+          <h2 className="text-4xl md:text-6xl font-bold mb-8 tracking-tight text-white drop-shadow-sm">
+            Pronto para transformar o seu negócio de moda?
           </h2>
-          <p className="text-xl md:text-2xl opacity-90 leading-relaxed font-medium">
-            Junte-se a milhares de profissionais da moda que já utilizam a V Moda para fazer
-            negócios de forma inteligente, rápida e segura.
+          <p className="text-xl md:text-2xl text-white/90 mb-12 font-light max-w-2xl mx-auto">
+            Junte-se a milhares de marcas e lojistas que já estão faturando mais com a plataforma V
+            Moda.
           </p>
-          <div className="pt-8 flex justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
               variant="secondary"
-              className="h-16 px-12 text-xl font-bold shadow-2xl hover:scale-105 transition-transform"
               asChild
+              className="text-lg px-10 h-16 rounded-full shadow-lg hover:shadow-xl transition-all"
             >
               <Link to="/cadastro">Criar Conta Gratuita</Link>
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              asChild
+              className="text-lg px-10 h-16 rounded-full border-white/40 text-white hover:bg-white/10 hover:text-white backdrop-blur-sm"
+            >
+              <Link to="/contato">Falar com Consultor</Link>
             </Button>
           </div>
         </div>
