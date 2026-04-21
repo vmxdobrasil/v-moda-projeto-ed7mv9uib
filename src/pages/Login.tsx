@@ -108,7 +108,7 @@ export default function Login() {
         <div className="text-center">
           <h1 className="text-3xl font-serif">Acesse sua conta</h1>
           <p className="text-muted-foreground mt-2">
-            Acesse sua conta e insira seu dados para continuar.
+            Acesse sua conta e insira seus dados para continuar.
           </p>
         </div>
 

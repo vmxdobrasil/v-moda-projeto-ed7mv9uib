@@ -123,14 +123,14 @@ export function Header() {
   )
 
   const navLinks = [
-    { name: 'Início', path: '/' },
-    { name: 'Coleções', path: '/colecoes' },
-    { name: 'Guia de Moda', path: '/guia-de-moda' },
-    { name: 'Conhecimento', path: '/conhecimento' },
-    { name: 'Revista Digital', path: '/revista' },
-    { name: 'Sobre Nós', path: '/sobre-nos' },
-    { name: 'Contato', path: '/contato' },
-    { name: 'Seja uma Revendedora', path: '/revenda' },
+    { name: 'INICIO', path: '/' },
+    { name: 'COLEÇÕES', path: '/colecoes' },
+    { name: 'GUIA DE MODA', path: '/guia-de-moda' },
+    { name: 'CONHECIMENTO', path: '/conhecimento' },
+    { name: 'REVISTA DIGITAL', path: '/revista' },
+    { name: 'SOBRE NÓS', path: '/sobre-nos' },
+    { name: 'CONTATO', path: '/contato' },
+    { name: 'SEJA UMA REVENDEDORA', path: '/revenda' },
   ]
 
   const mobileNavLinks = [

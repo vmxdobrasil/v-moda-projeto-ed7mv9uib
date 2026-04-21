@@ -1,17 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { SlidersHorizontal, X } from 'lucide-react'
 import { FadeIn } from '@/components/FadeIn'
-import { ProductCard } from '@/components/ProductCard'
-import { PRODUCTS } from '@/lib/data'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
 import {
   Select,
   SelectContent,
@@ -19,152 +11,88 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
-
-const CATEGORIES = ['Todos', 'Vestidos', 'Casacos', 'Calças', 'Acessórios', 'Calçados']
-const SIZES = ['P', 'M', 'G', 'GG', '36', '38', '40', '42', 'Único']
-const COLORS = [
-  { name: 'Preto', value: '#000000' },
-  { name: 'Branco', value: '#FFFFFF' },
-  { name: 'Bege', value: '#F5F5DC' },
-  { name: 'Dourado', value: '#C5A059' },
-  { name: 'Marrom', value: '#8B4513' },
-]
+import pb from '@/lib/pocketbase/client'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function Collections() {
   const [searchParams, setSearchParams] = useSearchParams()
   const searchQuery = searchParams.get('q') || ''
-  const [activeCategory, setActiveCategory] = useState('Todos')
-  const [selectedColors, setSelectedColors] = useState<string[]>([])
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([])
+  const [activeCategory, setActiveCategory] = useState('all')
   const [sortBy, setSortBy] = useState('newest')
 
-  const toggleColor = (colorHex: string) => {
-    setSelectedColors((prev) =>
-      prev.includes(colorHex) ? prev.filter((c) => c !== colorHex) : [...prev, colorHex],
-    )
-  }
+  const [categories, setCategories] = useState<any[]>([])
+  const [projects, setProjects] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const toggleSize = (size: string) => {
-    setSelectedSizes((prev) =>
-      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size],
-    )
-  }
+  useEffect(() => {
+    Promise.all([
+      pb.collection('categories').getFullList({ sort: 'name' }),
+      pb.collection('projects').getFullList({ sort: '-created', expand: 'category_id' }),
+    ])
+      .then(([cats, projs]) => {
+        setCategories(cats)
+        setProjects(projs)
+        setLoading(false)
+      })
+      .catch(console.error)
+  }, [])
 
   const clearFilters = () => {
-    setActiveCategory('Todos')
-    setSelectedColors([])
-    setSelectedSizes([])
+    setActiveCategory('all')
     if (searchQuery) {
       setSearchParams({})
     }
   }
 
-  const filteredProducts = useMemo(() => {
-    let result = [...PRODUCTS]
+  const filteredProjects = useMemo(() => {
+    let result = [...projects]
 
     if (searchQuery) {
       result = result.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
     }
 
-    if (activeCategory !== 'Todos') {
-      result = result.filter((p) => p.category === activeCategory)
+    if (activeCategory !== 'all') {
+      result = result.filter(
+        (p) => p.category_id === activeCategory || p.category === activeCategory,
+      )
     }
 
-    if (selectedColors.length > 0) {
-      result = result.filter((p) => p.colors.some((c) => selectedColors.includes(c)))
-    }
-
-    if (selectedSizes.length > 0) {
-      result = result.filter((p) => p.sizes.some((s) => selectedSizes.includes(s)))
-    }
-
-    if (sortBy === 'price-asc') {
-      result.sort((a, b) => a.price - b.price)
-    } else if (sortBy === 'price-desc') {
-      result.sort((a, b) => b.price - a.price)
+    if (sortBy === 'newest') {
+      result.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
+    } else if (sortBy === 'oldest') {
+      result.sort((a, b) => new Date(a.created).getTime() - new Date(b.created).getTime())
     }
 
     return result
-  }, [activeCategory, selectedColors, selectedSizes, sortBy])
+  }, [projects, activeCategory, searchQuery, sortBy])
 
   const FilterSidebar = () => (
     <div className="flex flex-col gap-8">
       <div>
         <h3 className="font-serif text-lg mb-4">Categorias</h3>
         <ul className="space-y-3">
-          {CATEGORIES.map((cat) => (
-            <li key={cat}>
+          <li>
+            <button
+              onClick={() => setActiveCategory('all')}
+              className={`text-sm tracking-wide transition-colors ${activeCategory === 'all' ? 'font-medium text-primary' : 'text-muted-foreground hover:text-primary'}`}
+            >
+              Todas as Categorias
+            </button>
+          </li>
+          {categories.map((cat) => (
+            <li key={cat.id}>
               <button
-                onClick={() => setActiveCategory(cat)}
-                className={`text-sm tracking-wide transition-colors ${activeCategory === cat ? 'font-medium text-primary' : 'text-muted-foreground hover:text-primary'}`}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`text-sm tracking-wide transition-colors ${activeCategory === cat.id ? 'font-medium text-primary' : 'text-muted-foreground hover:text-primary'}`}
               >
-                {cat}
+                {cat.name}
               </button>
             </li>
           ))}
         </ul>
       </div>
 
-      <Accordion type="multiple" defaultValue={['cores', 'tamanhos']} className="w-full">
-        <AccordionItem value="cores" className="border-b-0">
-          <AccordionTrigger className="font-serif text-lg py-4 hover:no-underline">
-            Cores
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="flex flex-wrap gap-3 pt-2">
-              {COLORS.map((color) => {
-                const isSelected = selectedColors.includes(color.value)
-                return (
-                  <button
-                    key={color.name}
-                    onClick={() => toggleColor(color.value)}
-                    className={cn(
-                      'w-8 h-8 rounded-full border shadow-sm transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-                      isSelected
-                        ? 'border-primary ring-2 ring-primary ring-offset-2'
-                        : 'border-border',
-                    )}
-                    style={{ backgroundColor: color.value }}
-                    title={color.name}
-                  />
-                )
-              })}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-        <AccordionItem value="tamanhos" className="border-b-0">
-          <AccordionTrigger className="font-serif text-lg py-4 hover:no-underline">
-            Tamanho
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="flex flex-wrap gap-2 pt-2">
-              {SIZES.map((size) => {
-                const isSelected = selectedSizes.includes(size)
-                return (
-                  <button
-                    key={size}
-                    onClick={() => toggleSize(size)}
-                    className={cn(
-                      'px-3 py-1 border text-xs tracking-wider transition-colors hover:border-primary hover:bg-primary/5',
-                      isSelected
-                        ? 'border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
-                        : 'border-border text-foreground',
-                    )}
-                  >
-                    {size}
-                  </button>
-                )
-              })}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-
-      {(searchQuery ||
-        activeCategory !== 'Todos' ||
-        selectedColors.length > 0 ||
-        selectedSizes.length > 0) && (
+      {(searchQuery || activeCategory !== 'all') && (
         <Button
           variant="ghost"
           className="w-full text-xs uppercase tracking-widest"
@@ -185,14 +113,14 @@ export default function Collections() {
           </h1>
           <p className="text-muted-foreground max-w-2xl">
             {searchQuery
-              ? 'Confira os produtos encontrados com base na sua busca.'
-              : 'Descubra nossa seleção completa de peças ready-to-wear e acessórios de luxo, projetados para a vida moderna.'}
+              ? 'Confira as coleções encontradas com base na sua busca.'
+              : 'Descubra nossa seleção completa de peças e projetos de luxo, gerenciados diretamente por nossos fabricantes.'}
           </p>
         </div>
       </FadeIn>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 pb-4 border-b border-border gap-4">
-        <p className="text-sm text-muted-foreground">{filteredProducts.length} Resultados</p>
+        <p className="text-sm text-muted-foreground">{filteredProjects.length} Resultados</p>
 
         <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
           {/* Mobile Filter Trigger */}
@@ -227,13 +155,10 @@ export default function Collections() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="newest" className="text-sm">
-                  Lançamentos
+                  Mais Recentes
                 </SelectItem>
-                <SelectItem value="price-asc" className="text-sm">
-                  Menor Preço
-                </SelectItem>
-                <SelectItem value="price-desc" className="text-sm">
-                  Maior Preço
+                <SelectItem value="oldest" className="text-sm">
+                  Mais Antigos
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -251,18 +176,39 @@ export default function Collections() {
 
         {/* Product Grid */}
         <div className="flex-1">
-          {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-10 sm:gap-x-6 sm:gap-y-12">
-              {filteredProducts.map((product, i) => (
-                <FadeIn key={product.id} delay={i * 50}>
-                  <ProductCard product={product} />
+          {loading ? (
+            <div className="py-20 text-center text-muted-foreground">Carregando coleções...</div>
+          ) : filteredProjects.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-x-6 gap-y-12">
+              {filteredProjects.map((project, i) => (
+                <FadeIn key={project.id} delay={i * 50}>
+                  <Card className="overflow-hidden group flex flex-col h-full rounded-none border-border/50 hover:border-primary/50 transition-colors">
+                    <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+                      <img
+                        src={pb.files.getUrl(project, project.image, { thumb: '600x800' })}
+                        alt={project.name}
+                        className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
+                      />
+                      {project.expand?.category_id && (
+                        <div className="absolute top-2 left-2 bg-background/90 px-2 py-1 text-[10px] uppercase tracking-wider">
+                          {project.expand.category_id.name}
+                        </div>
+                      )}
+                    </div>
+                    <CardHeader className="p-4 flex-1">
+                      <CardTitle className="font-serif text-lg">{project.name}</CardTitle>
+                      <CardDescription className="line-clamp-2">
+                        {project.description}
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
                 </FadeIn>
               ))}
             </div>
           ) : (
             <div className="py-20 text-center">
               <p className="text-muted-foreground text-lg">
-                Nenhum produto encontrado nesta coleção.
+                Nenhum projeto encontrado nesta categoria.
               </p>
               <Button
                 variant="outline"
