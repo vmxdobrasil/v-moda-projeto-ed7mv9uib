@@ -32,7 +32,7 @@ export default function Index() {
         setProducts(prods.items)
         setCategories(cats)
       } catch (err) {
-        console.error(err)
+        // Error is silently handled in UI
       } finally {
         setLoading(false)
       }
