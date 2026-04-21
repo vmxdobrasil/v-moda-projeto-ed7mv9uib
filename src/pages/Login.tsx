@@ -56,17 +56,7 @@ export default function Login() {
       if (from && !['/login', '/admin/login', '/cadastro', '/'].includes(from)) {
         navigate(from, { replace: true })
       } else {
-        const role = authData.record.role
-        if (
-          role === 'manufacturer' ||
-          role === 'admin' ||
-          role === 'affiliate' ||
-          data.email === 'valterpmendonca@gmail.com'
-        ) {
-          navigate('/dashboard', { replace: true })
-        } else {
-          navigate('/perfil', { replace: true })
-        }
+        navigate('/dashboard', { replace: true })
       }
     } catch (err: any) {
       pb.authStore.clear()
