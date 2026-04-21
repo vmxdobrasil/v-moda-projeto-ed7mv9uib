@@ -1,219 +1,247 @@
-import { useState, useEffect } from 'react'
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Store, User, LogOut, Menu, X, ShoppingBag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Menu, X, ShoppingBag, Heart } from 'lucide-react'
-import pb from '@/lib/pocketbase/client'
+import { useState } from 'react'
+import useAuthStore from '@/stores/useAuthStore'
+import { cn } from '@/lib/utils'
 
 export default function Layout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { user, signOut } = useAuthStore()
   const location = useLocation()
 
-  // PocketBase auth store state
-  const isAuth = pb.authStore.isValid
+  const handleSignOut = () => {
+    signOut()
+  }
 
-  useEffect(() => {
-    // Close mobile menu whenever the route changes
-    setIsMobileMenuOpen(false)
-    window.scrollTo(0, 0)
-  }, [location.pathname])
+  const navigation = [
+    { name: 'Coleções', href: '/colecoes' },
+    { name: 'Marcas', href: '/marcas/todas' },
+    { name: 'Benefícios', href: '/beneficios' },
+    { name: 'Revista', href: '/revista' },
+  ]
 
   return (
-    <div className="min-h-screen flex flex-col bg-background font-sans text-foreground">
+    <div className="flex flex-col min-h-screen bg-background">
+      {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 flex h-16 items-center justify-between">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link to="/" className="flex items-center space-x-2 group">
-              <ShoppingBag className="h-6 w-6 text-primary transition-transform group-hover:scale-110" />
-              <span className="font-bold text-xl tracking-tight">V MODA</span>
+            <Link to="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
+              <Store className="h-6 w-6 text-primary" />
+              <span>V Moda</span>
             </Link>
-            <nav className="hidden md:flex gap-6">
-              <Link
-                to="/colecoes"
-                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-              >
-                Coleções
-              </Link>
-              <Link
-                to="/guia-de-moda"
-                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-              >
-                Guia de Moda
-              </Link>
-              <Link
-                to="/beneficios"
-                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-              >
-                Benefícios
-              </Link>
+
+            <nav className="hidden md:flex items-center gap-6 ml-6">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={cn(
+                    'text-sm font-medium transition-colors hover:text-primary',
+                    location.pathname.startsWith(item.href)
+                      ? 'text-foreground'
+                      : 'text-muted-foreground',
+                  )}
+                >
+                  {item.name}
+                </Link>
+              ))}
             </nav>
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            {isAuth ? (
+            {user ? (
               <>
-                <Link
-                  to="/favoritos"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                  aria-label="Favoritos"
+                <Button variant="ghost" asChild>
+                  <Link to="/favoritos">Favoritos</Link>
+                </Button>
+                <Button variant="ghost" asChild>
+                  <Link to="/dashboard">Painel B2B</Link>
+                </Button>
+                <Button variant="outline" size="icon" asChild>
+                  <Link to="/perfil">
+                    <User className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSignOut}
+                  className="text-muted-foreground hover:text-destructive"
                 >
-                  <Heart className="h-5 w-5" />
-                </Link>
-                <Button asChild variant="default" className="rounded-full px-6">
-                  <Link to="/dashboard">Meu Painel</Link>
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </>
             ) : (
               <>
-                <Button asChild variant="ghost" className="font-medium">
+                <Button variant="ghost" asChild>
                   <Link to="/login">Entrar</Link>
                 </Button>
-                <Button asChild className="rounded-full px-6">
-                  <Link to="/cadastro">Criar Conta</Link>
+                <Button asChild>
+                  <Link to="/cadastro">Cadastrar</Link>
                 </Button>
               </>
             )}
           </div>
 
+          {/* Mobile Menu Toggle */}
           <button
-            className="md:hidden p-2 text-muted-foreground hover:text-primary transition-colors"
+            className="md:hidden p-2 text-foreground"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle menu"
           >
             {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
-      </header>
 
-      {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-16 z-40 bg-background border-b animate-fade-in-down overflow-y-auto">
-          <div className="container mx-auto px-4 py-6 flex flex-col gap-4">
-            <Link to="/colecoes" className="text-lg font-medium py-2 border-b border-border/50">
-              Coleções
-            </Link>
-            <Link to="/guia-de-moda" className="text-lg font-medium py-2 border-b border-border/50">
-              Guia de Moda
-            </Link>
-            <Link to="/beneficios" className="text-lg font-medium py-2 border-b border-border/50">
-              Benefícios
-            </Link>
-
-            <div className="mt-4 flex flex-col gap-3">
-              {isAuth ? (
+        {/* Mobile Nav */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-b bg-background px-4 py-4 space-y-4">
+            <nav className="flex flex-col gap-4">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className="text-sm font-medium"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </nav>
+            <div className="h-px bg-border w-full my-4" />
+            <div className="flex flex-col gap-3">
+              {user ? (
                 <>
-                  <Button asChild variant="outline" className="w-full justify-start h-12">
-                    <Link to="/favoritos">
-                      <Heart className="mr-2 h-4 w-4" /> Meus Favoritos
-                    </Link>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    asChild
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Link to="/dashboard">Acessar Painel B2B</Link>
                   </Button>
-                  <Button asChild className="w-full h-12">
-                    <Link to="/dashboard">Acessar Painel</Link>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    asChild
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Link to="/perfil">Meu Perfil</Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-destructive"
+                    onClick={() => {
+                      handleSignOut()
+                      setIsMobileMenuOpen(false)
+                    }}
+                  >
+                    Sair
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button asChild variant="outline" className="w-full h-12">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    asChild
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
                     <Link to="/login">Entrar</Link>
                   </Button>
-                  <Button asChild className="w-full h-12">
-                    <Link to="/cadastro">Criar Conta</Link>
+                  <Button className="w-full" asChild onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link to="/cadastro">Cadastrar</Link>
                   </Button>
                 </>
               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </header>
 
-      <main className="flex-1 flex flex-col w-full relative">
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col">
         <Outlet />
       </main>
 
-      <footer className="border-t bg-muted/30 pt-16 pb-8 text-center md:text-left">
-        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <Link to="/" className="flex items-center space-x-2">
-              <ShoppingBag className="h-6 w-6 text-primary" />
-              <span className="font-bold text-xl tracking-tight">V MODA</span>
+      {/* Footer */}
+      <footer className="border-t bg-zinc-50 py-12 mt-auto">
+        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="space-y-4">
+            <Link
+              to="/"
+              className="flex items-center gap-2 font-bold text-xl tracking-tight text-zinc-900"
+            >
+              <Store className="h-6 w-6 text-primary" />
+              <span>V Moda</span>
             </Link>
-            <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-              O maior polo de moda do Brasil, conectando fabricantes, revendedores e afiliados em
-              uma plataforma única.
+            <p className="text-sm text-zinc-500 leading-relaxed max-w-xs">
+              A plataforma que revoluciona o mercado atacadista de moda no Brasil, conectando quem
+              produz com quem vende.
             </p>
           </div>
-
-          <div className="flex flex-col gap-3">
-            <h4 className="font-semibold text-foreground mb-1">Links Rápidos</h4>
-            <Link
-              to="/sobre-nos"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              Sobre Nós
-            </Link>
-            <Link
-              to="/contato"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              Contato
-            </Link>
-            <Link
-              to="/faq"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              Perguntas Frequentes
-            </Link>
-            <Link
-              to="/revista"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              Revista V Moda
-            </Link>
+          <div>
+            <h4 className="font-semibold text-zinc-900 mb-4">Plataforma</h4>
+            <ul className="space-y-3 text-sm text-zinc-600">
+              <li>
+                <Link to="/sobre-nos" className="hover:text-primary transition-colors">
+                  Sobre Nós
+                </Link>
+              </li>
+              <li>
+                <Link to="/marcas/todas" className="hover:text-primary transition-colors">
+                  Marcas Parceiras
+                </Link>
+              </li>
+              <li>
+                <Link to="/afiliados" className="hover:text-primary transition-colors">
+                  Programa de Afiliados
+                </Link>
+              </li>
+              <li>
+                <Link to="/planos" className="hover:text-primary transition-colors">
+                  Planos e Preços
+                </Link>
+              </li>
+            </ul>
           </div>
-
-          <div className="flex flex-col gap-3">
-            <h4 className="font-semibold text-foreground mb-1">Para Negócios</h4>
-            <Link
-              to="/revenda"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              Seja um Revendedor
-            </Link>
-            <Link
-              to="/parceiro"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              Seja um Fabricante
-            </Link>
-            <Link
-              to="/afiliados"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              Programa de Afiliados
-            </Link>
-            <Link
-              to="/conhecimento"
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              Academy
-            </Link>
+          <div>
+            <h4 className="font-semibold text-zinc-900 mb-4">Ajuda</h4>
+            <ul className="space-y-3 text-sm text-zinc-600">
+              <li>
+                <Link to="/faq" className="hover:text-primary transition-colors">
+                  Perguntas Frequentes
+                </Link>
+              </li>
+              <li>
+                <Link to="/contato" className="hover:text-primary transition-colors">
+                  Fale Conosco
+                </Link>
+              </li>
+              <li>
+                <Link to="/termos" className="hover:text-primary transition-colors">
+                  Termos de Uso
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacidade" className="hover:text-primary transition-colors">
+                  Privacidade
+                </Link>
+              </li>
+            </ul>
           </div>
-
-          <div className="flex flex-col gap-3">
-            <h4 className="font-semibold text-foreground mb-1">Legal</h4>
-            <span className="text-sm text-muted-foreground cursor-pointer hover:text-primary transition-colors">
-              Termos de Serviço
-            </span>
-            <span className="text-sm text-muted-foreground cursor-pointer hover:text-primary transition-colors">
-              Política de Privacidade
-            </span>
-            <span className="text-sm text-muted-foreground cursor-pointer hover:text-primary transition-colors">
-              Trocas e Devoluções
-            </span>
+          <div>
+            <h4 className="font-semibold text-zinc-900 mb-4">Contato</h4>
+            <ul className="space-y-3 text-sm text-zinc-600">
+              <li>contato@vmoda.com.br</li>
+              <li>(11) 99999-9999</li>
+              <li>Goiânia, GO - Brasil</li>
+            </ul>
           </div>
         </div>
-
-        <div className="container mx-auto px-4 mt-16 pt-8 border-t border-border/50 text-sm text-muted-foreground/80 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p>&copy; {new Date().getFullYear()} V Moda. Todos os direitos reservados.</p>
-          <p className="text-xs">Feito com tecnologia para impulsionar o mercado de moda.</p>
+        <div className="container mx-auto px-4 mt-12 pt-8 border-t text-center text-sm text-zinc-500">
+          &copy; {new Date().getFullYear()} V Moda. Todos os direitos reservados.
         </div>
       </footer>
     </div>

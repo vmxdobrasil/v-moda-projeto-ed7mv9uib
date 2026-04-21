@@ -1,19 +1,28 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { Component, ReactNode, ErrorInfo } from 'react'
+import { AlertTriangle, RefreshCcw, Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card'
 
 interface Props {
-  children?: ReactNode
+  children: ReactNode
 }
 
 interface State {
   hasError: boolean
-  error?: Error
+  error: Error | null
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
+    error: null,
   }
 
   public static getDerivedStateFromError(error: Error): State {
@@ -21,40 +30,58 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo)
+    console.error('Uncaught error in application:', error, errorInfo)
+  }
+
+  private handleReset = () => {
+    window.location.reload()
+  }
+
+  private handleGoHome = () => {
+    window.location.href = '/'
   }
 
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background p-6 text-center">
-          <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mb-6">
-            <AlertTriangle className="w-10 h-10 text-destructive" />
-          </div>
-          <h1 className="text-3xl md:text-4xl font-serif mb-4">Ops! Algo deu errado.</h1>
-          <p className="text-muted-foreground max-w-md mx-auto mb-8 text-lg">
-            Ocorreu um erro inesperado ao carregar a interface da aplicação. Nossa equipe já foi
-            notificada.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button onClick={() => window.location.reload()} size="lg" className="gap-2">
-              <RefreshCw className="w-4 h-4" />
-              Recarregar Página
-            </Button>
-            <Button onClick={() => (window.location.href = '/')} variant="outline" size="lg">
-              Voltar ao Início
-            </Button>
-          </div>
-          {process.env.NODE_ENV === 'development' && this.state.error && (
-            <div className="mt-12 text-left w-full max-w-3xl">
-              <p className="text-sm font-semibold text-destructive mb-2">
-                Detalhes do Erro (Apenas em Dev):
-              </p>
-              <pre className="p-4 bg-muted/50 border border-border text-xs rounded-lg overflow-x-auto text-muted-foreground">
-                {this.state.error.toString()}
-              </pre>
-            </div>
-          )}
+        <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-4">
+          <Card className="w-full max-w-md shadow-lg border-destructive/20">
+            <CardHeader className="text-center space-y-4">
+              <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
+                <AlertTriangle className="h-8 w-8 text-destructive" />
+              </div>
+              <div className="space-y-2">
+                <CardTitle className="text-2xl text-zinc-900">Algo deu errado</CardTitle>
+                <CardDescription className="text-base">
+                  Não foi possível carregar o conteúdo solicitado. Nossa equipe técnica já foi
+                  notificada.
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {process.env.NODE_ENV === 'development' && this.state.error && (
+                <div className="mt-4 p-4 bg-zinc-900 rounded-md overflow-auto max-h-48 text-left">
+                  <p className="text-red-400 font-mono text-sm whitespace-pre-wrap">
+                    {this.state.error.toString()}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Button variant="outline" className="w-full" onClick={this.handleGoHome}>
+                <Home className="mr-2 h-4 w-4" />
+                Página Inicial
+              </Button>
+              <Button
+                variant="default"
+                className="w-full bg-zinc-900 text-white hover:bg-zinc-800"
+                onClick={this.handleReset}
+              >
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                Tentar Novamente
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
       )
     }
