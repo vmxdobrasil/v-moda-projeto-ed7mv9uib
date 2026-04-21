@@ -71,6 +71,12 @@ export default function AdminLayout() {
       roles: ['administrador', 'gerente'],
     },
     {
+      name: 'Coleções',
+      href: '/admin/colecoes',
+      icon: ImageIcon,
+      roles: ['administrador', 'gerente'],
+    },
+    {
       name: 'Mídia',
       href: '/admin/midia',
       icon: ImageIcon,

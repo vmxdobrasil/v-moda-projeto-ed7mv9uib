@@ -1,46 +1,108 @@
+import { useState, useEffect, useMemo } from 'react'
+import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  BarChart3,
-  TrendingUp,
-  Download,
-  Calendar,
-  Printer,
-  ShoppingCart,
-  Target,
-} from 'lucide-react'
+import { BarChart3, TrendingUp, Calendar, Printer, Target, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-
-const revenueData = [
-  { date: '01/10', revenue: 1200 },
-  { date: '05/10', revenue: 2100 },
-  { date: '10/10', revenue: 1800 },
-  { date: '15/10', revenue: 3200 },
-  { date: '20/10', revenue: 2800 },
-  { date: '25/10', revenue: 4500 },
-  { date: '30/10', revenue: 5100 },
-]
-
-const topProducts = [
-  { id: '1', name: 'Vestido Seda Longo', category: 'Vestidos', sold: 45, revenue: 56250 },
-  { id: '2', name: 'Calça Pantalona', category: 'Calças', sold: 38, revenue: 33820 },
-  { id: '3', name: 'Blazer Alfaiataria', category: 'Casacos', sold: 25, revenue: 37500 },
-  { id: '4', name: 'Camisa Linho', category: 'Camisas', sold: 22, revenue: 9900 },
-  { id: '5', name: 'Scarpin Verniz', category: 'Calçados', sold: 18, revenue: 19800 },
-]
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from '@/components/ui/chart'
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { format, subMonths, isAfter, parseISO } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 export default function Reports() {
+  const [customers, setCustomers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const records = await pb.collection('customers').getFullList({ sort: '-created' })
+        setCustomers(records)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
+
   const handlePrint = () => {
     window.print()
+  }
+
+  const { stats, conversionData, distributionData } = useMemo(() => {
+    const statusCounts = {
+      new: 0,
+      interested: 0,
+      negotiating: 0,
+      converted: 0,
+      inactive: 0,
+    }
+
+    const monthsMap: Record<string, { new: number; converted: number }> = {}
+    const sixMonthsAgo = subMonths(new Date(), 6)
+
+    customers.forEach((c) => {
+      if (c.status && statusCounts[c.status as keyof typeof statusCounts] !== undefined) {
+        statusCounts[c.status as keyof typeof statusCounts]++
+      }
+
+      const createdDate = parseISO(c.created)
+      if (isAfter(createdDate, sixMonthsAgo)) {
+        const monthKey = format(createdDate, 'MMM yyyy', { locale: ptBR })
+        if (!monthsMap[monthKey]) {
+          monthsMap[monthKey] = { new: 0, converted: 0 }
+        }
+        monthsMap[monthKey].new++
+        if (c.status === 'converted') {
+          monthsMap[monthKey].converted++
+        }
+      }
+    })
+
+    const chartData = Object.entries(monthsMap)
+      .map(([month, data]) => ({
+        month,
+        novos: data.new,
+        convertidos: data.converted,
+      }))
+      .reverse()
+
+    const distData = [
+      { name: 'Novos', value: statusCounts.new, fill: 'hsl(var(--chart-1))' },
+      { name: 'Interessados', value: statusCounts.interested, fill: 'hsl(var(--chart-2))' },
+      { name: 'Negociando', value: statusCounts.negotiating, fill: 'hsl(var(--chart-3))' },
+      { name: 'Convertidos', value: statusCounts.converted, fill: 'hsl(var(--chart-4))' },
+      { name: 'Inativos', value: statusCounts.inactive, fill: 'hsl(var(--chart-5))' },
+    ]
+
+    const totalLeads = customers.length
+    const convRate = totalLeads ? Math.round((statusCounts.converted / totalLeads) * 100) : 0
+
+    return {
+      stats: { total: totalLeads, converted: statusCounts.converted, rate: convRate },
+      conversionData: chartData,
+      distributionData: distData,
+    }
+  }, [customers])
+
+  const conversionConfig = {
+    novos: { label: 'Novos Leads', color: 'hsl(var(--chart-1))' },
+    convertidos: { label: 'Leads Convertidos', color: 'hsl(var(--chart-2))' },
+  }
+
+  const distributionConfig = {
+    value: { label: 'Leads' },
+  }
+
+  if (loading) {
+    return <div className="p-8 text-center text-muted-foreground">Carregando relatórios...</div>
   }
 
   return (
@@ -49,24 +111,24 @@ export default function Reports() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Relatórios Analíticos</h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            Visualize métricas avançadas e exporte dados do seu negócio.
+            Visualize métricas de conversão e crescimento de leads.
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">
             <Calendar className="w-4 h-4 mr-2" />
-            Últimos 30 Dias
+            Últimos 6 Meses
           </Button>
           <Button onClick={handlePrint}>
             <Printer className="w-4 h-4 mr-2" />
-            Versão para Impressão
+            Imprimir
           </Button>
         </div>
       </div>
 
       <div className="hidden print:block mb-8">
         <h1 className="text-3xl font-bold uppercase tracking-wider">V Moda</h1>
-        <h2 className="text-xl font-semibold mt-2">Resumo Mensal - Relatório de Desempenho</h2>
+        <h2 className="text-xl font-semibold mt-2">Relatório de Crescimento e Conversão</h2>
         <p className="text-sm text-muted-foreground">
           Gerado em: {new Date().toLocaleDateString('pt-BR')}
         </p>
@@ -75,139 +137,99 @@ export default function Reports() {
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Faturamento Total</CardTitle>
-            <TrendingUp className="w-4 h-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total de Leads</CardTitle>
+            <Users className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 157.270,00</div>
-            <p className="text-xs text-muted-foreground mt-1">+12.5% em relação ao mês anterior</p>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground mt-1">Registrados no sistema</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pedidos Realizados</CardTitle>
-            <ShoppingCart className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">342</div>
-            <p className="text-xs text-muted-foreground mt-1">+5.2% em relação ao mês anterior</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Conversão de Carrinho</CardTitle>
+            <CardTitle className="text-sm font-medium">Leads Convertidos</CardTitle>
             <Target className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">68.4%</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Dos carrinhos iniciados viraram pedidos
-            </p>
+            <div className="text-2xl font-bold">{stats.converted}</div>
+            <p className="text-xs text-muted-foreground mt-1">Clientes ativos</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Taxa de Conversão Global</CardTitle>
+            <TrendingUp className="w-4 h-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.rate}%</div>
+            <p className="text-xs text-muted-foreground mt-1">Dos leads se tornaram clientes</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="col-span-1 md:col-span-2 lg:col-span-1">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-primary" />
-              Tendência de Receita (Últimos 30 Dias)
+              Crescimento e Conversão Mensal
             </CardTitle>
             <CardDescription className="print:hidden">
-              Acompanhamento de faturamento diário.
+              Comparativo de novos leads x leads convertidos nos últimos 6 meses.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-4">
-            <ChartContainer
-              config={{
-                revenue: {
-                  label: 'Receita (R$)',
-                  color: 'hsl(var(--primary))',
-                },
-              }}
-              className="h-[300px] w-full"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                  <XAxis
-                    dataKey="date"
-                    axisLine={false}
-                    tickLine={false}
-                    tickMargin={10}
-                    fontSize={12}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tickMargin={10}
-                    fontSize={12}
-                    tickFormatter={(val) => `R$ ${val / 1000}k`}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorRevenue)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+            <ChartContainer config={conversionConfig} className="h-[300px] w-full">
+              <BarChart data={conversionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                <XAxis
+                  dataKey="month"
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={10}
+                  fontSize={12}
+                />
+                <YAxis axisLine={false} tickLine={false} tickMargin={10} fontSize={12} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar dataKey="novos" fill="var(--color-novos)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="convertidos" fill="var(--color-convertidos)" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
 
-        <Card className="col-span-1 md:col-span-2 lg:col-span-1">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-primary" />
-              Produtos Mais Vendidos
+              Distribuição por Status
             </CardTitle>
             <CardDescription className="print:hidden">
-              Itens mais vendidos no período selecionado.
+              Visão atual do funil de conversão.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Produto</TableHead>
-                    <TableHead className="text-center">Qtd</TableHead>
-                    <TableHead className="text-right">Receita</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topProducts.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <div className="font-medium">{product.name}</div>
-                        <div className="text-xs text-muted-foreground">{product.category}</div>
-                      </TableCell>
-                      <TableCell className="text-center font-medium">{product.sold}</TableCell>
-                      <TableCell className="text-right">
-                        R$ {product.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </TableCell>
-                    </TableRow>
+            <ChartContainer config={distributionConfig} className="h-[300px] w-full">
+              <PieChart>
+                <Pie
+                  data={distributionData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="value"
+                  nameKey="name"
+                >
+                  {distributionData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="mt-4 print:hidden">
-              <Button className="w-full" variant="secondary">
-                <Download className="w-4 h-4 mr-2" />
-                Exportar CSV
-              </Button>
-            </div>
+                </Pie>
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartLegend content={<ChartLegendContent />} />
+              </PieChart>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,9 +29,9 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { useRealtime } from '@/hooks/use-realtime'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Image as ImageIcon } from 'lucide-react'
 
-export default function DashboardProjects() {
+export default function AdminCollections() {
   const [projects, setProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isNewOpen, setIsNewOpen] = useState(false)
@@ -42,7 +42,8 @@ export default function DashboardProjects() {
     description: '',
     category: '',
   })
-  const [file, setFile] = useState<File | null>(null)
+
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const CATEGORIES = [
     { value: 'moda_feminina', label: 'Moda Feminina' },
@@ -57,16 +58,12 @@ export default function DashboardProjects() {
   const loadData = async () => {
     try {
       const records = await pb.collection('projects').getFullList({
-        filter:
-          pb.authStore.record?.role === 'manufacturer'
-            ? `manufacturer = "${pb.authStore.record.id}"`
-            : '',
         sort: '-created',
       })
       setProjects(records)
     } catch (e) {
       console.error(e)
-      toast.error('Erro ao carregar projetos')
+      toast.error('Erro ao carregar coleções')
     } finally {
       setLoading(false)
     }
@@ -79,7 +76,7 @@ export default function DashboardProjects() {
   useRealtime('projects', () => loadData())
 
   const handleCreate = async () => {
-    if (!formData.name || !file) {
+    if (!formData.name || !fileRef.current?.files?.[0]) {
       toast.error('Nome e imagem são obrigatórios')
       return
     }
@@ -88,17 +85,19 @@ export default function DashboardProjects() {
       data.append('name', formData.name)
       data.append('description', formData.description)
       if (formData.category) data.append('category', formData.category)
-      data.append('image', file)
+      data.append('image', fileRef.current.files[0])
+
       if (pb.authStore.record?.id) {
         data.append('manufacturer', pb.authStore.record.id)
       }
+
       await pb.collection('projects').create(data)
-      toast.success('Projeto criado com sucesso!')
+      toast.success('Coleção criada com sucesso!')
       setIsNewOpen(false)
       setFormData({ name: '', description: '', category: '' })
-      setFile(null)
+      if (fileRef.current) fileRef.current.value = ''
     } catch (e) {
-      toast.error('Erro ao criar projeto')
+      toast.error('Erro ao criar coleção')
     }
   }
 
@@ -109,49 +108,54 @@ export default function DashboardProjects() {
       data.append('name', editingProject.name)
       data.append('description', editingProject.description)
       if (editingProject.category) data.append('category', editingProject.category)
-      if (file) data.append('image', file)
+
+      if (fileRef.current?.files?.[0]) {
+        data.append('image', fileRef.current.files[0])
+      }
 
       await pb.collection('projects').update(editingProject.id, data)
-      toast.success('Projeto atualizado com sucesso!')
+      toast.success('Coleção atualizada com sucesso!')
       setEditingProject(null)
-      setFile(null)
+      if (fileRef.current) fileRef.current.value = ''
     } catch (e) {
-      toast.error('Erro ao atualizar projeto')
+      toast.error('Erro ao atualizar coleção')
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este projeto?')) {
+    if (confirm('Tem certeza que deseja excluir esta coleção?')) {
       try {
         await pb.collection('projects').delete(id)
-        toast.success('Projeto excluído')
+        toast.success('Coleção excluída')
       } catch (e) {
-        toast.error('Erro ao excluir projeto')
+        toast.error('Erro ao excluir coleção')
       }
     }
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Projetos & Coleções</h1>
-          <p className="text-muted-foreground">Gerencie o portfólio visual da sua marca.</p>
+          <h2 className="text-2xl font-bold tracking-tight">Gerenciar Coleções</h2>
+          <p className="text-muted-foreground mt-1">
+            Organize e publique galerias de produtos e coleções da marca.
+          </p>
         </div>
 
         <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="w-4 h-4 mr-2" /> Novo Projeto
+              <Plus className="w-4 h-4 mr-2" /> Nova Coleção
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Adicionar Novo Projeto</DialogTitle>
+              <DialogTitle>Adicionar Nova Coleção</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Nome do Projeto</Label>
+                <Label>Nome da Coleção</Label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -183,15 +187,11 @@ export default function DashboardProjects() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Imagem / Foto Principal</Label>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                />
+                <Label>Imagem de Capa</Label>
+                <Input type="file" accept="image/*" ref={fileRef} />
               </div>
               <Button className="w-full mt-4" onClick={handleCreate}>
-                Salvar
+                Salvar Coleção
               </Button>
             </div>
           </DialogContent>
@@ -202,39 +202,47 @@ export default function DashboardProjects() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Imagem</TableHead>
+              <TableHead className="w-[100px]">Capa</TableHead>
               <TableHead>Nome</TableHead>
-              <TableHead>Descrição</TableHead>
-              <TableHead>Data</TableHead>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Data de Criação</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  Carregando...
+                <TableCell colSpan={5} className="text-center py-8">
+                  Carregando coleções...
                 </TableCell>
               </TableRow>
             ) : projects.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  Nenhum projeto encontrado.
+                  Nenhuma coleção cadastrada.
                 </TableCell>
               </TableRow>
             ) : (
               projects.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
-                    <img
-                      src={pb.files.getUrl(p, p.image, { thumb: '100x100' })}
-                      alt={p.name}
-                      className="w-12 h-12 object-cover rounded"
-                    />
+                    {p.image ? (
+                      <img
+                        src={pb.files.getURL(p, p.image, { thumb: '100x100' })}
+                        alt={p.name}
+                        className="w-12 h-12 object-cover rounded-md"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
+                        <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell className="max-w-[300px] truncate">{p.description}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
+                  <TableCell>
+                    {CATEGORIES.find((c) => c.value === p.category)?.label || p.category || '-'}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
                     {new Date(p.created).toLocaleDateString('pt-BR')}
                   </TableCell>
                   <TableCell className="text-right">
@@ -245,7 +253,7 @@ export default function DashboardProjects() {
                       variant="ghost"
                       size="icon"
                       onClick={() => handleDelete(p.id)}
-                      className="text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive/90"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -260,12 +268,12 @@ export default function DashboardProjects() {
       <Dialog open={!!editingProject} onOpenChange={(open) => !open && setEditingProject(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Projeto</DialogTitle>
+            <DialogTitle>Editar Coleção</DialogTitle>
           </DialogHeader>
           {editingProject && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Nome do Projeto</Label>
+                <Label>Nome da Coleção</Label>
                 <Input
                   value={editingProject.name}
                   onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
@@ -299,15 +307,11 @@ export default function DashboardProjects() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Nova Imagem (opcional)</Label>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                />
+                <Label>Nova Imagem de Capa (opcional)</Label>
+                <Input type="file" accept="image/*" ref={fileRef} />
               </div>
               <Button className="w-full mt-4" onClick={handleUpdate}>
-                Atualizar
+                Salvar Alterações
               </Button>
             </div>
           )}

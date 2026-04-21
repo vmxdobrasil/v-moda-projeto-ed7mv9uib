@@ -43,6 +43,7 @@ import AdminMarketing from './pages/admin/Marketing'
 import AdminCategories from './pages/admin/Categories'
 import AdminAffiliates from './pages/admin/Affiliates'
 import AdminMedia from './pages/admin/Media'
+import AdminCollections from './pages/admin/Collections'
 import ZoopProposal from './pages/admin/ZoopProposal'
 import AdminSubscriptions from './pages/admin/Subscriptions'
 import AdminImportLogs from './pages/admin/ImportLogs'
@@ -111,6 +112,7 @@ const AppContent = () => {
           <Route path="categorias" element={<AdminCategories />} />
           <Route path="afiliados" element={<AdminAffiliates />} />
           <Route path="midia" element={<AdminMedia />} />
+          <Route path="colecoes" element={<AdminCollections />} />
           <Route path="configuracoes" element={<AdminSettings />} />
           <Route path="proposta-zoop" element={<ZoopProposal />} />
           <Route path="assinaturas" element={<AdminSubscriptions />} />
