@@ -1,251 +1,229 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import {
+  ArrowRight,
   ShoppingBag,
+  TrendingUp,
   Users,
   Truck,
-  TrendingUp,
-  ArrowRight,
-  Play,
-  Star,
   ShieldCheck,
+  PlayCircle,
 } from 'lucide-react'
-import useAuthStore from '@/stores/useAuthStore'
-import pb from '@/lib/pocketbase/client'
 
 export default function Index() {
-  const user = useAuthStore((state: any) => state.user)
-  const navigate = useNavigate()
-  const [stats, setStats] = useState({ brands: 0, products: 0 })
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [brandsRes, productsRes] = await Promise.all([
-          pb.collection('users').getList(1, 1, { filter: 'role="manufacturer"' }),
-          pb.collection('projects').getList(1, 1),
-        ])
-        setStats({
-          brands: brandsRes.totalItems || 150,
-          products: productsRes.totalItems || 3000,
-        })
-      } catch (err) {
-        console.error('Failed to fetch stats', err)
-        setStats({ brands: 150, products: 3000 })
-      }
-    }
-
-    fetchStats()
-  }, [])
-
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-background animate-in fade-in duration-500">
       {/* Hero Section */}
-      <section className="relative w-full py-20 md:py-32 lg:py-48 overflow-hidden bg-slate-50">
-        <div className="absolute inset-0 opacity-10 bg-[url('https://img.usecurling.com/p/1920/1080?q=fashion%20store')] bg-cover bg-center" />
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-50 via-slate-50/90 to-transparent" />
+      <section className="relative bg-zinc-950 text-white overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <img
+            src="https://img.usecurling.com/p/1920/1080?q=fashion%20models&color=black"
+            alt="V Moda Hero"
+            className="w-full h-full object-cover opacity-40"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
+        </div>
 
-        <div className="container relative z-10 px-4 md:px-6">
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-8 items-center">
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground">
-                  Lançamento V Moda
-                </div>
-                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-slate-900">
-                  O Futuro do <span className="text-primary">Atacado de Moda</span>
-                </h1>
-                <p className="max-w-[600px] text-slate-600 md:text-xl leading-relaxed">
-                  Conecte-se com os melhores fabricantes, gerencie suas compras, logística e aumente
-                  suas vendas. O ecossistema completo para o lojista e atacadista de moda.
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                {user ? (
-                  <Button
-                    size="lg"
-                    className="h-14 px-8 text-lg"
-                    onClick={() => navigate('/dashboard')}
-                  >
-                    Acessar Meu Painel <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      size="lg"
-                      className="h-14 px-8 text-lg"
-                      onClick={() => navigate('/cadastro')}
-                    >
-                      Criar Conta Grátis
-                    </Button>
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="h-14 px-8 text-lg bg-background"
-                      onClick={() => navigate('/sobre-nos')}
-                    >
-                      <Play className="mr-2 h-5 w-5" /> Conheça a Plataforma
-                    </Button>
-                  </>
-                )}
-              </div>
-
-              <div className="flex items-center gap-6 pt-4 text-sm text-slate-500">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-green-600" />
-                  <span>Compra 100% Segura</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Star className="h-5 w-5 text-yellow-500" />
-                  <span>Marcas Verificadas</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="relative hidden lg:block">
-              <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-primary/5 rounded-3xl transform rotate-3 scale-105" />
-              <img
-                src="https://img.usecurling.com/p/800/800?q=fashion%20models"
-                alt="Fashion Hub"
-                className="relative rounded-3xl object-cover shadow-2xl w-full aspect-square"
-              />
-
-              <Card className="absolute -bottom-6 -left-6 w-64 shadow-xl border-none">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-primary/10 rounded-full">
-                      <TrendingUp className="h-8 w-8 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-3xl font-bold">{stats.brands}+</p>
-                      <p className="text-sm text-slate-500">Marcas Ativas</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="absolute -top-6 -right-6 w-64 shadow-xl border-none">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-primary/10 rounded-full">
-                      <ShoppingBag className="h-8 w-8 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-3xl font-bold">{stats.products}+</p>
-                      <p className="text-sm text-slate-500">Produtos no Catálogo</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+        <div className="relative z-10 container mx-auto px-4 py-24 md:py-32 lg:py-48 flex flex-col items-center text-center">
+          <Badge className="mb-6 bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm px-4 py-1.5 text-sm font-medium">
+            O Maior Hub de Moda do Brasil
+          </Badge>
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 max-w-4xl leading-tight">
+            Conectando{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">
+              Fabricantes
+            </span>{' '}
+            e{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60">
+              Revendedores
+            </span>
+          </h1>
+          <p className="text-lg md:text-xl text-zinc-300 mb-10 max-w-2xl leading-relaxed">
+            Descubra as melhores marcas, negocie diretamente com fabricantes e impulsione suas
+            vendas com a plataforma V Moda.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <Button
+              size="lg"
+              className="text-base h-14 px-8 shadow-lg transition-transform hover:scale-105"
+              asChild
+            >
+              <Link to="/cadastro">
+                Começar Agora <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="text-base h-14 px-8 bg-transparent text-white border-white/30 hover:bg-white/10 transition-transform hover:scale-105"
+              asChild
+            >
+              <Link to="/colecoes">Explorar Coleções</Link>
+            </Button>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="w-full py-20 md:py-32 bg-white">
-        <div className="container px-4 md:px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-              Tudo o que você precisa para crescer
-            </h2>
-            <p className="text-slate-600 md:text-lg">
-              A V Moda oferece um conjunto completo de ferramentas para digitalizar, organizar e
-              escalar o seu negócio de moda.
+      <section className="py-24 bg-zinc-50 dark:bg-zinc-900/50">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Por que escolher a V Moda?</h2>
+            <p className="text-muted-foreground text-lg">
+              Oferecemos um ecossistema completo para o mercado atacadista de moda, unindo
+              tecnologia, logística e os melhores fornecedores.
             </p>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="border-none shadow-lg bg-slate-50 transition-transform hover:-translate-y-1">
-              <CardHeader>
-                <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
-                  <Users className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl">CRM & WhatsApp</CardTitle>
-                <CardDescription className="text-base mt-2">
-                  Gerencie todos os seus contatos, automatize mensagens de boas-vindas e nunca mais
-                  perca uma venda no WhatsApp.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-none shadow-lg bg-slate-50 transition-transform hover:-translate-y-1">
-              <CardHeader>
-                <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
-                  <ShoppingBag className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl">Catálogo Digital B2B</CardTitle>
-                <CardDescription className="text-base mt-2">
-                  Exiba seus produtos com fotos profissionais, grades de tamanhos e preços dinâmicos
-                  para atacado e varejo.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-none shadow-lg bg-slate-50 transition-transform hover:-translate-y-1">
-              <CardHeader>
-                <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
-                  <Truck className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl">Logística Inteligente</CardTitle>
-                <CardDescription className="text-base mt-2">
-                  Integração com excursões, acompanhamento de assentos e rastreamento de envios para
-                  lojistas de todo o Brasil.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-none shadow-lg bg-slate-50 transition-transform hover:-translate-y-1">
-              <CardHeader>
-                <div className="h-12 w-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
-                  <TrendingUp className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl">Rede de Afiliados</CardTitle>
-                <CardDescription className="text-base mt-2">
-                  Programa completo para guias de moda e representantes. Acompanhe comissões e
-                  indicações em tempo real.
-                </CardDescription>
-              </CardHeader>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <FeatureCard
+              icon={<ShoppingBag className="h-10 w-10 text-primary" />}
+              title="Acesso Direto"
+              description="Compre diretamente dos maiores polos de moda do Brasil (44 Goiânia, Brás, Bom Retiro) sem intermediários."
+            />
+            <FeatureCard
+              icon={<ShieldCheck className="h-10 w-10 text-primary" />}
+              title="Compra Segura"
+              description="Fornecedores verificados e avaliados pela comunidade para garantir a qualidade e entrega dos seus pedidos."
+            />
+            <FeatureCard
+              icon={<Truck className="h-10 w-10 text-primary" />}
+              title="Logística Integrada"
+              description="Acompanhamento em tempo real das suas mercadorias, das excursões até a sua loja."
+            />
+            <FeatureCard
+              icon={<TrendingUp className="h-10 w-10 text-primary" />}
+              title="Programa de Benefícios"
+              description="Desbloqueie vantagens exclusivas conforme seu volume de compras aumenta em nossa plataforma."
+            />
+            <FeatureCard
+              icon={<PlayCircle className="h-10 w-10 text-primary" />}
+              title="Negociação em Vídeo"
+              description="Converse ao vivo com os fabricantes, veja as peças em detalhes e feche negócios como se estivesse lá."
+            />
+            <FeatureCard
+              icon={<Users className="h-10 w-10 text-primary" />}
+              title="Programa de Afiliados"
+              description="Indique novos revendedores ou fabricantes e ganhe comissões recorrentes sobre as transações."
+            />
           </div>
+        </div>
+      </section>
+
+      {/* Popular Categories */}
+      <section className="py-24">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-end mb-12">
+            <div>
+              <h2 className="text-3xl font-bold mb-2">Categorias Populares</h2>
+              <p className="text-muted-foreground">Encontre exatamente o que seu público procura</p>
+            </div>
+            <Button variant="ghost" className="hidden sm:flex" asChild>
+              <Link to="/colecoes">
+                Ver todas <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <CategoryCard
+              title="Moda Feminina"
+              image="https://img.usecurling.com/p/400/500?q=women%20fashion"
+            />
+            <CategoryCard
+              title="Jeans"
+              image="https://img.usecurling.com/p/400/500?q=denim%20jeans"
+            />
+            <CategoryCard
+              title="Moda Fitness"
+              image="https://img.usecurling.com/p/400/500?q=fitness%20clothing"
+            />
+            <CategoryCard
+              title="Moda Evangélica"
+              image="https://img.usecurling.com/p/400/500?q=modest%20fashion"
+            />
+          </div>
+
+          <Button variant="ghost" className="w-full mt-8 sm:hidden" asChild>
+            <Link to="/colecoes">
+              Ver todas categorias <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="w-full py-20 bg-primary text-primary-foreground">
-        <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-center text-center space-y-8 max-w-3xl mx-auto">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-              Pronto para transformar suas vendas?
-            </h2>
-            <p className="text-primary-foreground/80 md:text-xl max-w-[600px]">
-              Junte-se a milhares de marcas e lojistas que já estão faturando mais com a plataforma
-              V Moda.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-              <Button
-                size="lg"
-                variant="secondary"
-                className="h-14 px-8 text-lg"
-                onClick={() => navigate('/cadastro')}
-              >
-                Criar Conta Grátis
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-14 px-8 text-lg bg-transparent border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
-                onClick={() => navigate('/contato')}
-              >
-                Falar com Consultor
-              </Button>
-            </div>
+      <section className="py-24 bg-primary text-primary-foreground relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://img.usecurling.com/p/1920/600?q=abstract%20texture')] mix-blend-overlay opacity-20 bg-cover bg-center" />
+        <div className="container mx-auto px-4 relative z-10 text-center">
+          <h2 className="text-3xl md:text-5xl font-bold mb-6">
+            Pronto para transformar seu negócio?
+          </h2>
+          <p className="text-xl opacity-90 mb-10 max-w-2xl mx-auto">
+            Junte-se a milhares de lojistas e fabricantes que já estão revolucionando o atacado de
+            moda no Brasil.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Button
+              size="lg"
+              variant="secondary"
+              className="text-primary h-14 px-8 text-lg font-semibold"
+              asChild
+            >
+              <Link to="/cadastro">Sou Revendedor</Link>
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="bg-transparent border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 h-14 px-8 text-lg font-semibold"
+              asChild
+            >
+              <Link to="/cadastro?role=manufacturer">Sou Fabricante</Link>
+            </Button>
           </div>
         </div>
       </section>
     </div>
+  )
+}
+
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode
+  title: string
+  description: string
+}) {
+  return (
+    <Card className="border-none shadow-md hover:shadow-lg transition-shadow bg-card/50 backdrop-blur-sm">
+      <CardContent className="p-8 text-center flex flex-col items-center">
+        <div className="mb-6 p-4 bg-primary/10 rounded-full inline-flex">{icon}</div>
+        <h3 className="text-xl font-semibold mb-3">{title}</h3>
+        <p className="text-muted-foreground leading-relaxed">{description}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function CategoryCard({ title, image }: { title: string; image: string }) {
+  return (
+    <Link to={`/colecoes`} className="group relative rounded-xl overflow-hidden aspect-[4/5] block">
+      <img
+        src={image}
+        alt={title}
+        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 p-6">
+        <h3 className="text-white text-xl font-semibold translate-y-2 group-hover:translate-y-0 transition-transform">
+          {title}
+        </h3>
+        <div className="h-0.5 w-12 bg-primary mt-3 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+      </div>
+    </Link>
   )
 }
