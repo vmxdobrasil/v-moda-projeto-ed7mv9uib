@@ -65,14 +65,22 @@ import Affiliates from './pages/Affiliates'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import BrandProfile from './pages/BrandProfile'
 import AffiliateLeadForm from './pages/AffiliateLeadForm'
+import pb from '@/lib/pocketbase/client'
 import BenefitsHub from './pages/BenefitsHub'
 import { AuthGuard, PublicRoute, ProtectedRoute } from './components/AuthGuard'
 import useAuthStore from './stores/useAuthStore'
 import { useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
+
+const RootRoute = () => {
+  return pb.authStore.isValid ? (
+    <Navigate to="/dashboard" replace />
+  ) : (
+    <Navigate to="/login" replace />
+  )
+}
 
 const AppContent = () => {
-  const { initialize, isAuthenticated, isInitialized } = useAuthStore()
+  const { initialize } = useAuthStore()
 
   useEffect(() => {
     initialize()
@@ -80,20 +88,7 @@ const AppContent = () => {
 
   return (
     <Routes>
-      <Route
-        path="/"
-        element={
-          !isInitialized ? (
-            <div className="min-h-screen flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          ) : isAuthenticated ? (
-            <Navigate to="/dashboard" replace />
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        }
-      />
+      <Route path="/" element={<RootRoute />} />
 
       <Route
         path="/home"
