@@ -7,6 +7,8 @@ export interface Project {
   image: string
   manufacturer: string
   category: string
+  price?: number
+  stock_quantity?: number
   created: string
   updated: string
   expand?: {

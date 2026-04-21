@@ -30,6 +30,7 @@ import {
 import { toast } from 'sonner'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 export default function DashboardProjects() {
   const [projects, setProjects] = useState<any[]>([])
@@ -41,6 +42,8 @@ export default function DashboardProjects() {
     name: '',
     description: '',
     category: '',
+    price: '',
+    stock_quantity: '',
   })
   const [file, setFile] = useState<File | null>(null)
 
@@ -54,13 +57,12 @@ export default function DashboardProjects() {
     { value: 'plus_size', label: 'Plus Size' },
   ]
 
+  const isManufacturer = pb.authStore.record?.role === 'manufacturer'
+
   const loadData = async () => {
     try {
       const records = await pb.collection('projects').getFullList({
-        filter:
-          pb.authStore.record?.role === 'manufacturer'
-            ? `manufacturer = "${pb.authStore.record.id}"`
-            : '',
+        filter: isManufacturer ? `manufacturer = "${pb.authStore.record?.id}"` : '',
         sort: '-created',
       })
       setProjects(records)
@@ -88,14 +90,18 @@ export default function DashboardProjects() {
       data.append('name', formData.name)
       data.append('description', formData.description)
       if (formData.category) data.append('category', formData.category)
+      if (formData.price) data.append('price', formData.price)
+      if (formData.stock_quantity) data.append('stock_quantity', formData.stock_quantity)
       data.append('image', file)
+
       if (pb.authStore.record?.id) {
         data.append('manufacturer', pb.authStore.record.id)
       }
+
       await pb.collection('projects').create(data)
       toast.success('Projeto criado com sucesso!')
       setIsNewOpen(false)
-      setFormData({ name: '', description: '', category: '' })
+      setFormData({ name: '', description: '', category: '', price: '', stock_quantity: '' })
       setFile(null)
     } catch (e) {
       toast.error('Erro ao criar projeto')
@@ -109,6 +115,9 @@ export default function DashboardProjects() {
       data.append('name', editingProject.name)
       data.append('description', editingProject.description)
       if (editingProject.category) data.append('category', editingProject.category)
+      if (editingProject.price !== undefined) data.append('price', String(editingProject.price))
+      if (editingProject.stock_quantity !== undefined)
+        data.append('stock_quantity', String(editingProject.stock_quantity))
       if (file) data.append('image', file)
 
       await pb.collection('projects').update(editingProject.id, data)
@@ -135,8 +144,14 @@ export default function DashboardProjects() {
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Projetos & Coleções</h1>
-          <p className="text-muted-foreground">Gerencie o portfólio visual da sua marca.</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {isManufacturer ? 'Meu Catálogo' : 'Projetos & Coleções'}
+          </h1>
+          <p className="text-muted-foreground">
+            {isManufacturer
+              ? 'Gerencie os produtos do seu catálogo.'
+              : 'Gerencie o portfólio visual da sua marca.'}
+          </p>
         </div>
 
         <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
@@ -145,7 +160,7 @@ export default function DashboardProjects() {
               <Plus className="w-4 h-4 mr-2" /> Novo Projeto
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Adicionar Novo Projeto</DialogTitle>
             </DialogHeader>
@@ -174,6 +189,29 @@ export default function DashboardProjects() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Preço (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Quantidade em Estoque</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={formData.stock_quantity}
+                    onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
@@ -204,21 +242,22 @@ export default function DashboardProjects() {
             <TableRow>
               <TableHead>Imagem</TableHead>
               <TableHead>Nome</TableHead>
+              <TableHead>Preço</TableHead>
+              <TableHead>Estoque</TableHead>
               <TableHead>Descrição</TableHead>
-              <TableHead>Data</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Carregando...
                 </TableCell>
               </TableRow>
             ) : projects.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Nenhum projeto encontrado.
                 </TableCell>
               </TableRow>
@@ -233,10 +272,21 @@ export default function DashboardProjects() {
                     />
                   </TableCell>
                   <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell className="max-w-[300px] truncate">{p.description}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {new Date(p.created).toLocaleDateString('pt-BR')}
+                  <TableCell>
+                    {p.price ? `R$ ${p.price.toFixed(2).replace('.', ',')}` : '-'}
                   </TableCell>
+                  <TableCell>
+                    {p.stock_quantity > 0 ? (
+                      <Badge variant="outline" className="bg-green-500/10 text-green-600">
+                        {p.stock_quantity} em estoque
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-red-500/10 text-red-600">
+                        Sem estoque
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="max-w-[200px] truncate">{p.description}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => setEditingProject(p)}>
                       <Pencil className="w-4 h-4" />
@@ -258,7 +308,7 @@ export default function DashboardProjects() {
       </Card>
 
       <Dialog open={!!editingProject} onOpenChange={(open) => !open && setEditingProject(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Projeto</DialogTitle>
           </DialogHeader>
@@ -288,6 +338,37 @@ export default function DashboardProjects() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Preço (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editingProject.price ?? ''}
+                    onChange={(e) =>
+                      setEditingProject({
+                        ...editingProject,
+                        price: e.target.value ? Number(e.target.value) : '',
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Quantidade em Estoque</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editingProject.stock_quantity ?? ''}
+                    onChange={(e) =>
+                      setEditingProject({
+                        ...editingProject,
+                        stock_quantity: e.target.value ? Number(e.target.value) : '',
+                      })
+                    }
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>

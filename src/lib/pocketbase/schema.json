@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-21T13:17:04.553Z",
+  "generatedAt": "2026-04-21T13:40:27.595Z",
   "collections": [
     {
       "name": "users",
@@ -229,11 +229,11 @@
       "name": "customers",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')",
-        "view": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')",
+        "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')",
+        "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')",
         "create": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)",
-        "update": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')",
-        "delete": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')"
+        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')"
       },
       "fields": [
         {
@@ -729,11 +729,11 @@
       "name": "projects",
       "type": "base",
       "apiRules": {
-        "list": "",
-        "view": "",
+        "list": "@request.auth.role != 'manufacturer' || manufacturer = @request.auth.id",
+        "view": "@request.auth.role != 'manufacturer' || manufacturer = @request.auth.id",
         "create": "@request.auth.id != '' && manufacturer = @request.auth.id",
-        "update": "@request.auth.id != '' && manufacturer = @request.auth.id",
-        "delete": "@request.auth.id != '' && manufacturer = @request.auth.id"
+        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || manufacturer = @request.auth.id)",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || manufacturer = @request.auth.id)"
       },
       "fields": [
         {
@@ -801,6 +801,18 @@
           "required": false,
           "system": false,
           "collectionRef": "categories"
+        },
+        {
+          "name": "price",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "stock_quantity",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

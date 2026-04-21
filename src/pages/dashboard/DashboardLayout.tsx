@@ -127,7 +127,11 @@ export default function DashboardLayout() {
     baseLinks.push({ href: '/home', label: 'Ranking TOP 60', icon: Trophy })
 
     if (isAdmin || isManufacturer) {
-      baseLinks.push({ href: '/dashboard/crm', label: 'CRM de Leads', icon: Users })
+      baseLinks.push({
+        href: '/dashboard/crm',
+        label: userRecord?.role === 'manufacturer' ? 'Meu CRM' : 'CRM de Leads',
+        icon: Users,
+      })
     }
 
     baseLinks.push({ href: '/dashboard/recursos', label: 'Portal Academy', icon: GraduationCap })
@@ -135,7 +139,11 @@ export default function DashboardLayout() {
     baseLinks.push({ href: '/dashboard/logistics', label: 'Logística', icon: Truck })
 
     if (isAdmin || isManufacturer) {
-      baseLinks.push({ href: '/dashboard/projects', label: 'Projetos', icon: FolderKanban })
+      baseLinks.push({
+        href: '/dashboard/projects',
+        label: userRecord?.role === 'manufacturer' ? 'Meu Catálogo' : 'Projetos',
+        icon: FolderKanban,
+      })
     }
 
     if (isAdmin || isManufacturer) {
@@ -295,11 +303,11 @@ export default function DashboardLayout() {
             <CommandGroup heading="Módulos">
               <CommandItem onSelect={() => handleSearchSelect('/dashboard/crm')}>
                 <Users className="mr-2 h-4 w-4" />
-                <span>CRM de Leads</span>
+                <span>{userRecord?.role === 'manufacturer' ? 'Meu CRM' : 'CRM de Leads'}</span>
               </CommandItem>
               <CommandItem onSelect={() => handleSearchSelect('/dashboard/projects')}>
                 <FolderKanban className="mr-2 h-4 w-4" />
-                <span>Projetos</span>
+                <span>{userRecord?.role === 'manufacturer' ? 'Meu Catálogo' : 'Projetos'}</span>
               </CommandItem>
               <CommandItem onSelect={() => handleSearchSelect('/dashboard/logistics')}>
                 <Truck className="mr-2 h-4 w-4" />
