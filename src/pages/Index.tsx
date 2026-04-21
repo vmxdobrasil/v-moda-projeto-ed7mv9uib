@@ -1,14 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import {
-  ArrowRight,
-  Store,
-  TrendingUp,
-  ShieldCheck,
-  MapPin,
-  Video,
-  CheckCircle2,
-} from 'lucide-react'
+import { ArrowRight, Store, TrendingUp, ShieldCheck, Video, CheckCircle2 } from 'lucide-react'
 
 export default function Index() {
   return (
