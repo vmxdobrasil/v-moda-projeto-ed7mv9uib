@@ -107,7 +107,9 @@ export default function Login() {
       <div className="flex flex-col space-y-6">
         <div className="text-center">
           <h1 className="text-3xl font-serif">Acesse sua conta</h1>
-          <p className="text-muted-foreground mt-2">Insira seus dados para continuar.</p>
+          <p className="text-muted-foreground mt-2">
+            Acesse sua conta e insira seu dados para continuar.
+          </p>
         </div>
 
         <Form {...form}>

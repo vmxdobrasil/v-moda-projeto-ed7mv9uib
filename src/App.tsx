@@ -70,23 +70,7 @@ import BenefitsHub from './pages/BenefitsHub'
 import { AuthGuard, PublicRoute, ProtectedRoute } from './components/AuthGuard'
 import useAuthStore from './stores/useAuthStore'
 import { useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
 import { ErrorBoundary } from './components/ErrorBoundary'
-
-const RootRoute = () => {
-  const { isAuthenticated, isInitialized } = useAuthStore()
-
-  if (!isInitialized) {
-    return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background">
-        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-        <p className="text-sm text-muted-foreground animate-pulse">Carregando V Moda...</p>
-      </div>
-    )
-  }
-
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
-}
 
 const AppContent = () => {
   const { initialize } = useAuthStore()
@@ -97,10 +81,8 @@ const AppContent = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<RootRoute />} />
-
       <Route
-        path="/home"
+        path="/"
         element={
           <Layout>
             <Index />

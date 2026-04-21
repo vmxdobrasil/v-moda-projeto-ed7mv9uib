@@ -127,13 +127,10 @@ export function Header() {
     { name: 'Coleções', path: '/colecoes' },
     { name: 'Guia de Moda', path: '/guia-de-moda' },
     { name: 'Conhecimento', path: '/conhecimento' },
-    // { name: 'CréditoModa', path: '/credito-moda' },
     { name: 'Revista Digital', path: '/revista' },
     { name: 'Sobre Nós', path: '/sobre-nos' },
     { name: 'Contato', path: '/contato' },
-    ...(!isAuthenticated || user?.type !== 'Atacado'
-      ? [{ name: 'Seja uma Revendedora', path: '/revenda' }]
-      : []),
+    { name: 'Seja uma Revendedora', path: '/revenda' },
   ]
 
   const mobileNavLinks = [
