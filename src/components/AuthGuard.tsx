@@ -69,12 +69,14 @@ export function PublicRoute() {
       return <Navigate to={from} replace />
     }
 
-    // Automatically redirect authenticated users to dashboard if they are admins/manufacturers
-    if (user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin') {
-      return <Navigate to="/" replace />
-    }
-    if (user?.role === 'manufacturer') {
-      return <Navigate to="/dashboard/crm" replace />
+    // Automatically redirect authenticated users to dashboard if they are admins/manufacturers/affiliates
+    if (
+      user?.email === 'valterpmendonca@gmail.com' ||
+      user?.role === 'admin' ||
+      user?.role === 'manufacturer' ||
+      user?.role === 'affiliate'
+    ) {
+      return <Navigate to="/dashboard" replace />
     }
 
     return <Navigate to="/perfil" replace />

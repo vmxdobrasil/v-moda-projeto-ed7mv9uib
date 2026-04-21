@@ -119,24 +119,24 @@ export default function DashboardLayout() {
 
     baseLinks.push({
       href: '/dashboard',
-      label: 'Home (Hub)',
+      label: 'Vitrine / Hub',
       icon: LayoutDashboard,
       exact: true,
     })
 
-    baseLinks.push({ href: '/dashboard/recursos', label: 'Academy', icon: GraduationCap })
+    baseLinks.push({ href: '/home', label: 'Ranking TOP 60', icon: Trophy })
 
     if (isAdmin || isManufacturer) {
-      baseLinks.push(
-        { href: '/dashboard/projects', label: 'Projetos', icon: FolderKanban },
-        { href: '/dashboard/crm', label: 'CRM de Leads', icon: Users },
-      )
+      baseLinks.push({ href: '/dashboard/crm', label: 'CRM de Leads', icon: Users })
     }
 
-    baseLinks.push(
-      { href: '/dashboard/logistics', label: 'Logística', icon: Truck },
-      { href: '/home', label: 'Ranking TOP 60', icon: Trophy },
-    )
+    baseLinks.push({ href: '/dashboard/recursos', label: 'Portal Academy', icon: GraduationCap })
+
+    baseLinks.push({ href: '/dashboard/logistics', label: 'Logística', icon: Truck })
+
+    if (isAdmin || isManufacturer) {
+      baseLinks.push({ href: '/dashboard/projects', label: 'Projetos', icon: FolderKanban })
+    }
 
     if (isAdmin || isManufacturer) {
       baseLinks.push(
@@ -311,7 +311,7 @@ export default function DashboardLayout() {
               </CommandItem>
               <CommandItem onSelect={() => handleSearchSelect('/dashboard/recursos')}>
                 <GraduationCap className="mr-2 h-4 w-4" />
-                <span>Academy</span>
+                <span>Portal Academy</span>
               </CommandItem>
               <CommandItem onSelect={() => handleSearchSelect('/dashboard/settings/whatsapp')}>
                 <Settings className="mr-2 h-4 w-4" />

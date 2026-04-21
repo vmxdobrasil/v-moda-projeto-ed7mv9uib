@@ -60,9 +60,10 @@ export default function Login() {
         if (
           role === 'manufacturer' ||
           role === 'admin' ||
+          role === 'affiliate' ||
           data.email === 'valterpmendonca@gmail.com'
         ) {
-          navigate('/dashboard/crm', { replace: true })
+          navigate('/dashboard', { replace: true })
         } else {
           navigate('/perfil', { replace: true })
         }
