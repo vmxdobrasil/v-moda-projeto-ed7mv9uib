@@ -7,19 +7,19 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AppRouter } from '@/Router'
 
-const App = () => (
-  <ErrorBoundary>
-    <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-      <FavoritesProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <VideoCallListener />
-          <AppRouter />
-        </TooltipProvider>
-      </FavoritesProvider>
-    </BrowserRouter>
-  </ErrorBoundary>
-)
-
-export default App
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+        <FavoritesProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <VideoCallListener />
+            <AppRouter />
+          </TooltipProvider>
+        </FavoritesProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
+  )
+}
