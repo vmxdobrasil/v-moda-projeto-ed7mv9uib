@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -42,7 +42,8 @@ export default function DashboardProjects() {
     name: '',
     description: '',
     category: '',
-    price: '',
+    retail_price: '',
+    wholesale_price: '',
     stock_quantity: '',
   })
   const [file, setFile] = useState<File | null>(null)
@@ -90,7 +91,8 @@ export default function DashboardProjects() {
       data.append('name', formData.name)
       data.append('description', formData.description)
       if (formData.category) data.append('category', formData.category)
-      if (formData.price) data.append('price', formData.price)
+      if (formData.retail_price) data.append('retail_price', formData.retail_price)
+      if (formData.wholesale_price) data.append('wholesale_price', formData.wholesale_price)
       if (formData.stock_quantity) data.append('stock_quantity', formData.stock_quantity)
       data.append('image', file)
 
@@ -101,7 +103,14 @@ export default function DashboardProjects() {
       await pb.collection('projects').create(data)
       toast.success('Projeto criado com sucesso!')
       setIsNewOpen(false)
-      setFormData({ name: '', description: '', category: '', price: '', stock_quantity: '' })
+      setFormData({
+        name: '',
+        description: '',
+        category: '',
+        retail_price: '',
+        wholesale_price: '',
+        stock_quantity: '',
+      })
       setFile(null)
     } catch (e) {
       toast.error('Erro ao criar projeto')
@@ -115,7 +124,10 @@ export default function DashboardProjects() {
       data.append('name', editingProject.name)
       data.append('description', editingProject.description)
       if (editingProject.category) data.append('category', editingProject.category)
-      if (editingProject.price !== undefined) data.append('price', String(editingProject.price))
+      if (editingProject.retail_price !== undefined)
+        data.append('retail_price', String(editingProject.retail_price))
+      if (editingProject.wholesale_price !== undefined)
+        data.append('wholesale_price', String(editingProject.wholesale_price))
       if (editingProject.stock_quantity !== undefined)
         data.append('stock_quantity', String(editingProject.stock_quantity))
       if (file) data.append('image', file)
@@ -149,7 +161,7 @@ export default function DashboardProjects() {
           </h1>
           <p className="text-muted-foreground">
             {isManufacturer
-              ? 'Gerencie os produtos do seu catálogo.'
+              ? 'Gerencie os produtos do seu catálogo e preços B2B/B2C.'
               : 'Gerencie o portfólio visual da sua marca.'}
           </p>
         </div>
@@ -157,16 +169,16 @@ export default function DashboardProjects() {
         <Dialog open={isNewOpen} onOpenChange={setIsNewOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="w-4 h-4 mr-2" /> Novo Projeto
+              <Plus className="w-4 h-4 mr-2" /> Novo Produto
             </Button>
           </DialogTrigger>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Adicionar Novo Projeto</DialogTitle>
+              <DialogTitle>Adicionar Novo Produto</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Nome do Projeto</Label>
+                <Label>Nome do Produto</Label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -190,20 +202,31 @@ export default function DashboardProjects() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Preço (R$)</Label>
+                  <Label>Varejo (R$)</Label>
                   <Input
                     type="number"
                     step="0.01"
                     min="0"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    value={formData.retail_price}
+                    onChange={(e) => setFormData({ ...formData, retail_price: e.target.value })}
                     placeholder="0.00"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Quantidade em Estoque</Label>
+                  <Label>Atacado (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.wholesale_price}
+                    onChange={(e) => setFormData({ ...formData, wholesale_price: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Estoque</Label>
                   <Input
                     type="number"
                     min="0"
@@ -221,7 +244,7 @@ export default function DashboardProjects() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Imagem / Foto Principal</Label>
+                <Label>Imagem Principal</Label>
                 <Input
                   type="file"
                   accept="image/*"
@@ -242,9 +265,9 @@ export default function DashboardProjects() {
             <TableRow>
               <TableHead>Imagem</TableHead>
               <TableHead>Nome</TableHead>
-              <TableHead>Preço</TableHead>
+              <TableHead>Varejo</TableHead>
+              <TableHead>Atacado</TableHead>
               <TableHead>Estoque</TableHead>
-              <TableHead>Descrição</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -273,12 +296,21 @@ export default function DashboardProjects() {
                   </TableCell>
                   <TableCell className="font-medium">{p.name}</TableCell>
                   <TableCell>
-                    {p.price ? `R$ ${p.price.toFixed(2).replace('.', ',')}` : '-'}
+                    {p.retail_price ? `R$ ${p.retail_price.toFixed(2).replace('.', ',')}` : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {p.wholesale_price ? (
+                      <Badge variant="secondary">
+                        R$ {p.wholesale_price.toFixed(2).replace('.', ',')}
+                      </Badge>
+                    ) : (
+                      '-'
+                    )}
                   </TableCell>
                   <TableCell>
                     {p.stock_quantity > 0 ? (
                       <Badge variant="outline" className="bg-green-500/10 text-green-600">
-                        {p.stock_quantity} em estoque
+                        {p.stock_quantity}
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="bg-red-500/10 text-red-600">
@@ -286,7 +318,6 @@ export default function DashboardProjects() {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate">{p.description}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => setEditingProject(p)}>
                       <Pencil className="w-4 h-4" />
@@ -310,12 +341,12 @@ export default function DashboardProjects() {
       <Dialog open={!!editingProject} onOpenChange={(open) => !open && setEditingProject(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Editar Projeto</DialogTitle>
+            <DialogTitle>Editar Produto</DialogTitle>
           </DialogHeader>
           {editingProject && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Nome do Projeto</Label>
+                <Label>Nome do Produto</Label>
                 <Input
                   value={editingProject.name}
                   onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
@@ -339,24 +370,39 @@ export default function DashboardProjects() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Preço (R$)</Label>
+                  <Label>Varejo (R$)</Label>
                   <Input
                     type="number"
                     step="0.01"
                     min="0"
-                    value={editingProject.price ?? ''}
+                    value={editingProject.retail_price ?? ''}
                     onChange={(e) =>
                       setEditingProject({
                         ...editingProject,
-                        price: e.target.value ? Number(e.target.value) : '',
+                        retail_price: e.target.value ? Number(e.target.value) : '',
                       })
                     }
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Quantidade em Estoque</Label>
+                  <Label>Atacado (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editingProject.wholesale_price ?? ''}
+                    onChange={(e) =>
+                      setEditingProject({
+                        ...editingProject,
+                        wholesale_price: e.target.value ? Number(e.target.value) : '',
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Estoque</Label>
                   <Input
                     type="number"
                     min="0"

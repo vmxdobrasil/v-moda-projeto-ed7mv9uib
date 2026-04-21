@@ -11,6 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import pb from '@/lib/pocketbase/client'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -19,6 +21,7 @@ export default function Collections() {
   const searchQuery = searchParams.get('q') || ''
   const [activeCategory, setActiveCategory] = useState('all')
   const [sortBy, setSortBy] = useState('newest')
+  const [priceMode, setPriceMode] = useState<'retail' | 'wholesale'>('retail')
 
   const [categories, setCategories] = useState<any[]>([])
   const [projects, setProjects] = useState<any[]>([])
@@ -122,15 +125,15 @@ export default function Collections() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 pb-4 border-b border-border gap-4">
         <p className="text-sm text-muted-foreground">{filteredProjects.length} Resultados</p>
 
-        <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
           {/* Mobile Filter Trigger */}
-          <div className="lg:hidden">
+          <div className="lg:hidden w-full sm:w-auto">
             <Sheet>
               <SheetTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-2 rounded-none uppercase tracking-widest text-xs"
+                  className="w-full sm:w-auto gap-2 rounded-none uppercase tracking-widest text-xs"
                 >
                   <SlidersHorizontal className="h-4 w-4" /> Filtros
                 </Button>
@@ -144,24 +147,47 @@ export default function Collections() {
             </Sheet>
           </div>
 
-          {/* Sort */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground hidden sm:inline-block">
-              Ordenar por:
-            </span>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px] h-9 text-xs uppercase tracking-widest rounded-none bg-transparent border-border">
-                <SelectValue placeholder="Ordenar por" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest" className="text-sm">
-                  Mais Recentes
-                </SelectItem>
-                <SelectItem value="oldest" className="text-sm">
-                  Mais Antigos
-                </SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
+            {/* Price Toggle */}
+            <div className="flex items-center gap-3 bg-muted/50 px-3 py-1.5 rounded-full">
+              <Label
+                htmlFor="price-mode"
+                className={`text-xs cursor-pointer ${priceMode === 'retail' ? 'text-primary font-bold' : 'text-muted-foreground'}`}
+              >
+                Varejo
+              </Label>
+              <Switch
+                id="price-mode"
+                checked={priceMode === 'wholesale'}
+                onCheckedChange={(c) => setPriceMode(c ? 'wholesale' : 'retail')}
+              />
+              <Label
+                htmlFor="price-mode"
+                className={`text-xs cursor-pointer ${priceMode === 'wholesale' ? 'text-primary font-bold' : 'text-muted-foreground'}`}
+              >
+                Atacado
+              </Label>
+            </div>
+
+            {/* Sort */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground hidden sm:inline-block">
+                Ordenar por:
+              </span>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[160px] h-9 text-xs uppercase tracking-widest rounded-none bg-transparent border-border">
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest" className="text-sm">
+                    Mais Recentes
+                  </SelectItem>
+                  <SelectItem value="oldest" className="text-sm">
+                    Mais Antigos
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
@@ -180,30 +206,48 @@ export default function Collections() {
             <div className="py-20 text-center text-muted-foreground">Carregando coleções...</div>
           ) : filteredProjects.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-x-6 gap-y-12">
-              {filteredProjects.map((project, i) => (
-                <FadeIn key={project.id} delay={i * 50}>
-                  <Card className="overflow-hidden group flex flex-col h-full rounded-none border-border/50 hover:border-primary/50 transition-colors">
-                    <div className="relative aspect-[3/4] overflow-hidden bg-muted">
-                      <img
-                        src={pb.files.getUrl(project, project.image, { thumb: '600x800' })}
-                        alt={project.name}
-                        className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
-                      />
-                      {project.expand?.category_id && (
-                        <div className="absolute top-2 left-2 bg-background/90 px-2 py-1 text-[10px] uppercase tracking-wider">
-                          {project.expand.category_id.name}
+              {filteredProjects.map((project, i) => {
+                const displayPrice =
+                  priceMode === 'wholesale' ? project.wholesale_price : project.retail_price
+                return (
+                  <FadeIn key={project.id} delay={i * 50}>
+                    <Card className="overflow-hidden group flex flex-col h-full rounded-none border-border/50 hover:border-primary/50 transition-colors">
+                      <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+                        <img
+                          src={pb.files.getUrl(project, project.image, { thumb: '600x800' })}
+                          alt={project.name}
+                          className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
+                        />
+                        {project.expand?.category_id && (
+                          <div className="absolute top-2 left-2 bg-background/90 px-2 py-1 text-[10px] uppercase tracking-wider">
+                            {project.expand.category_id.name}
+                          </div>
+                        )}
+                      </div>
+                      <CardHeader className="p-4 flex-1 flex flex-col justify-between">
+                        <div>
+                          <CardTitle className="font-serif text-lg">{project.name}</CardTitle>
+                          <CardDescription className="line-clamp-2 mt-1">
+                            {project.description}
+                          </CardDescription>
                         </div>
-                      )}
-                    </div>
-                    <CardHeader className="p-4 flex-1">
-                      <CardTitle className="font-serif text-lg">{project.name}</CardTitle>
-                      <CardDescription className="line-clamp-2">
-                        {project.description}
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
-                </FadeIn>
-              ))}
+                        <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50">
+                          <p className="font-medium text-primary">
+                            {displayPrice
+                              ? `R$ ${displayPrice.toFixed(2).replace('.', ',')}`
+                              : 'Preço sob consulta'}
+                          </p>
+                          {priceMode === 'wholesale' && project.wholesale_price && (
+                            <span className="text-[9px] text-accent font-bold uppercase tracking-wider bg-accent/10 px-1.5 py-0.5 rounded">
+                              Atacado
+                            </span>
+                          )}
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  </FadeIn>
+                )
+              })}
             </div>
           ) : (
             <div className="py-20 text-center">
