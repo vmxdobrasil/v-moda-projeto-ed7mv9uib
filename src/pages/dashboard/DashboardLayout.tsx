@@ -119,22 +119,22 @@ export default function DashboardLayout() {
 
     baseLinks.push({
       href: '/dashboard',
-      label: 'Dashboard Hub',
+      label: 'Home (Hub)',
       icon: LayoutDashboard,
       exact: true,
     })
 
+    baseLinks.push({ href: '/dashboard/recursos', label: 'Academy', icon: GraduationCap })
+
     if (isAdmin || isManufacturer) {
       baseLinks.push(
-        { href: '/dashboard/projects', label: 'Vitrine/Catálogo', icon: FolderKanban },
-        { href: '/dashboard/projects', label: 'Meus Projetos', icon: FolderKanban },
-        { href: '/dashboard/crm', label: 'Gestão de Leads (CRM)', icon: Users },
+        { href: '/dashboard/projects', label: 'Projetos', icon: FolderKanban },
+        { href: '/dashboard/crm', label: 'CRM de Leads', icon: Users },
       )
     }
 
     baseLinks.push(
       { href: '/dashboard/logistics', label: 'Logística', icon: Truck },
-      { href: '/dashboard/recursos', label: 'V Moda Academy', icon: GraduationCap },
       { href: '/home', label: 'Ranking TOP 60', icon: Trophy },
     )
 
@@ -295,11 +295,11 @@ export default function DashboardLayout() {
             <CommandGroup heading="Módulos">
               <CommandItem onSelect={() => handleSearchSelect('/dashboard/crm')}>
                 <Users className="mr-2 h-4 w-4" />
-                <span>CRM / Leads</span>
+                <span>CRM de Leads</span>
               </CommandItem>
               <CommandItem onSelect={() => handleSearchSelect('/dashboard/projects')}>
                 <FolderKanban className="mr-2 h-4 w-4" />
-                <span>Catálogo / Vitrine</span>
+                <span>Projetos</span>
               </CommandItem>
               <CommandItem onSelect={() => handleSearchSelect('/dashboard/logistics')}>
                 <Truck className="mr-2 h-4 w-4" />
@@ -314,8 +314,8 @@ export default function DashboardLayout() {
                 <span>Academy</span>
               </CommandItem>
               <CommandItem onSelect={() => handleSearchSelect('/dashboard/settings/whatsapp')}>
-                <MessageSquare className="mr-2 h-4 w-4" />
-                <span>Integrações (WhatsApp)</span>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Configurações</span>
               </CommandItem>
             </CommandGroup>
           </CommandList>

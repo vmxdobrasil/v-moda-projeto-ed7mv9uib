@@ -9,7 +9,12 @@ export default function DashboardHub() {
   const [stats, setStats] = useState({
     leads: 0,
     projects: 0,
-    caravans: 0,
+    caravans: {
+      total: 0,
+      waiting: 0,
+      inTransit: 0,
+      delivered: 0,
+    },
     conversions: 0,
   })
   const [recentActivity, setRecentActivity] = useState<any[]>([])
@@ -50,18 +55,24 @@ export default function DashboardHub() {
       }
 
       // 3. Caravans
-      let caravansRes
-      if (isAdmin) {
-        caravansRes = await pb
+      const baseFilter = isManufacturer
+        ? `manufacturer = "${user.id}" && `
+        : isAdmin
+          ? ''
+          : 'id = "INVALID" && '
+      const [waitingRes, inTransitRes, deliveredRes] = await Promise.all([
+        pb
           .collection('customers')
-          .getList(1, 1, { filter: `logistics_status != ""` })
-      } else if (isManufacturer) {
-        caravansRes = await pb
+          .getList(1, 1, { filter: `${baseFilter}logistics_status = "Aguardando Ônibus"` }),
+        pb
           .collection('customers')
-          .getList(1, 1, { filter: `manufacturer = "${user.id}" && logistics_status != ""` })
-      } else {
-        caravansRes = { totalItems: 0 } as any
-      }
+          .getList(1, 1, { filter: `${baseFilter}logistics_status = "Em Trânsito no Ônibus"` }),
+        pb
+          .collection('customers')
+          .getList(1, 1, { filter: `${baseFilter}logistics_status = "Entregue"` }),
+      ])
+      const totalCaravans =
+        waitingRes.totalItems + inTransitRes.totalItems + deliveredRes.totalItems
 
       // 4. Conversions
       let conversionsRes
@@ -80,7 +91,12 @@ export default function DashboardHub() {
       setStats({
         leads: leadsRes.totalItems,
         projects: projectsRes.totalItems,
-        caravans: caravansRes.totalItems,
+        caravans: {
+          total: totalCaravans,
+          waiting: waitingRes.totalItems,
+          inTransit: inTransitRes.totalItems,
+          delivered: deliveredRes.totalItems,
+        },
         conversions: conversionsRes.totalItems,
       })
 
@@ -147,8 +163,21 @@ export default function DashboardHub() {
             <Truck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.caravans}</div>
-            <p className="text-xs text-muted-foreground mt-1">Entregas e rotas em andamento</p>
+            <div className="text-2xl font-bold">{stats.caravans.total}</div>
+            <div className="text-xs text-muted-foreground mt-2 space-y-1">
+              <div className="flex justify-between">
+                <span>Aguardando:</span>{' '}
+                <span className="font-medium text-foreground">{stats.caravans.waiting}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Em Trânsito:</span>{' '}
+                <span className="font-medium text-foreground">{stats.caravans.inTransit}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Entregue:</span>{' '}
+                <span className="font-medium text-foreground">{stats.caravans.delivered}</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
         <Card className="hover:border-primary/50 transition-colors">
