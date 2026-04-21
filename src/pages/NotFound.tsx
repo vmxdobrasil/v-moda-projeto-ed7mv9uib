@@ -1,28 +1,28 @@
-/* 404 Page - Displays when a user attempts to access a non-existent route - translate to the language of the user */
-import { useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Home } from 'lucide-react'
+import { useSEO } from '@/hooks/useSEO'
 
-const NotFound = () => {
-  const location = useLocation()
-
-  useEffect(() => {
-    console.error('Erro 404: Usuário tentou acessar uma rota inexistente:', location.pathname)
-  }, [location.pathname])
+export default function NotFound() {
+  useSEO({
+    title: 'Página Não Encontrada',
+    description: 'A página que você está procurando não existe ou foi movida.',
+  })
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center pt-32">
-      <div className="text-center">
-        <h1 className="text-5xl font-serif mb-6">404</h1>
-        <p className="text-xl text-muted-foreground mb-8">Oops! Página não encontrada</p>
-        <a
-          href="/"
-          className="inline-flex items-center justify-center bg-black text-white px-8 py-4 uppercase tracking-widest text-sm font-medium transition-transform hover:scale-105"
-        >
+    <div className="min-h-[80vh] flex flex-col items-center justify-center bg-background text-center px-4 animate-fade-in">
+      <h1 className="text-8xl md:text-9xl font-serif mb-4 text-primary">404</h1>
+      <h2 className="text-2xl md:text-3xl font-medium mb-6">Página Não Encontrada</h2>
+      <p className="text-muted-foreground max-w-md mb-10 leading-relaxed">
+        A página que você está procurando não existe, foi movida ou você digitou o endereço
+        incorretamente.
+      </p>
+      <Button asChild size="lg" className="gap-2 rounded-none uppercase tracking-widest px-8">
+        <Link to="/">
+          <Home className="w-4 h-4" />
           Voltar para o Início
-        </a>
-      </div>
+        </Link>
+      </Button>
     </div>
   )
 }
-
-export default NotFound

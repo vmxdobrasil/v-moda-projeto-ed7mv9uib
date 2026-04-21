@@ -27,6 +27,7 @@ import RetailerDashboard from './pages/RetailerDashboard'
 import Academy from './pages/Academy'
 import CreditoModa from './pages/CreditoModa'
 import Layout from './components/Layout'
+import Unauthorized from './pages/Unauthorized'
 import VideoNegotiation from './pages/VideoNegotiation'
 import NegotiationSummary from './pages/NegotiationSummary'
 import { VideoCallListener } from './components/VideoCallListener'
@@ -178,6 +179,7 @@ const AppContent = () => {
       </Route>
 
       <Route element={<Layout />}>
+        <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="/marcas/:id" element={<BrandProfile />} />
         <Route path="/colecoes" element={<Collections />} />
         <Route path="/portfolio" element={<Portfolio />} />

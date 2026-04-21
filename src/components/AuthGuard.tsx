@@ -44,7 +44,7 @@ export function ProtectedRoute({ allowedRoles = [] }: { allowedRoles?: string[] 
 
   // If there are roles specified and the user doesn't have one of them
   if (allowedRoles.length > 0 && (!user?.role || !allowedRoles.includes(user.role))) {
-    return <Navigate to="/perfil" replace />
+    return <Navigate to="/unauthorized" replace />
   }
 
   return <Outlet />

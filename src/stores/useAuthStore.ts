@@ -36,8 +36,7 @@ const getInitialState = () => {
   return {
     user: (pb.authStore.record as unknown as User) || null,
     isAuthenticated: isValid,
-    // Initialize synchronously to prevent blank screens/flashes
-    isInitialized: true,
+    isInitialized: false,
   }
 }
 
