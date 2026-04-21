@@ -1,213 +1,271 @@
-import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import pb from '@/lib/pocketbase/client'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Badge } from '@/components/ui/badge'
-import { Search, ShoppingBag } from 'lucide-react'
+import {
+  ArrowRight,
+  Store,
+  TrendingUp,
+  ShieldCheck,
+  MapPin,
+  Video,
+  CheckCircle2,
+} from 'lucide-react'
 
 export default function Index() {
-  const [products, setProducts] = useState<any[]>([])
-  const [categories, setCategories] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [isWholesale, setIsWholesale] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      try {
-        const [prods, cats] = await Promise.all([
-          pb.collection('projects').getList(1, 50, {
-            expand: 'category_id',
-            sort: '-created',
-          }),
-          pb.collection('categories').getFullList({ sort: 'name' }),
-        ])
-        setProducts(prods.items)
-        setCategories(cats)
-      } catch (err) {
-        // Error is silently handled in UI
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadData()
-  }, [])
-
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
-
-  const filteredProducts = products.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = selectedCategory ? p.category_id === selectedCategory : true
-    return matchesSearch && matchesCategory
-  })
-
   return (
-    <div className="flex flex-col min-h-screen pb-16">
-      {/* Hero Banner */}
-      <div className="bg-primary/5 border-b relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://img.usecurling.com/p/1200/400?q=fashion')] bg-cover bg-center opacity-10" />
-        <div className="container relative z-10 py-16 md:py-24 text-center space-y-4">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold tracking-tight text-foreground">
-            Descubra as Últimas Tendências
+    <div className="flex flex-col min-h-screen w-full bg-background font-sans overflow-x-hidden">
+      {/* Hero Section */}
+      <section className="relative w-full py-28 md:py-40 flex flex-col items-center justify-center overflow-hidden bg-black text-white">
+        <div className="absolute inset-0 w-full h-full">
+          <img
+            src="https://img.usecurling.com/p/1920/1080?q=fashion%20runway&color=black"
+            alt="V Moda Hero"
+            className="w-full h-full object-cover opacity-40 scale-105 animate-fade-in"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/90" />
+        </div>
+
+        <div className="container relative z-10 px-6 mx-auto text-center space-y-8 max-w-5xl animate-slide-up">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm text-sm font-medium mb-4">
+            <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />A plataforma
+            definitiva para atacadistas
+          </div>
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight drop-shadow-lg">
+            O Maior Hub de Moda{' '}
+            <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+              B2B
+            </span>{' '}
+            do Brasil
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Conectando os melhores fabricantes a lojistas e revendedores.
+          <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed drop-shadow">
+            Conectamos atacadistas, fabricantes e lojistas em um ecossistema único. Negocie por
+            vídeo, expanda suas vendas e descubra coleções exclusivas.
           </p>
-        </div>
-      </div>
-
-      <div className="container py-8 flex flex-col gap-8">
-        {/* Controls */}
-        <div className="flex flex-col md:flex-row justify-between gap-6 items-center bg-card p-4 rounded-xl border shadow-sm">
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar produtos..."
-                className="pl-9 bg-background"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-6 w-full md:w-auto justify-between md:justify-end">
-            <div className="flex items-center space-x-3 bg-secondary/50 px-4 py-2 rounded-full border">
-              <Label htmlFor="price-mode" className="cursor-pointer text-sm font-medium">
-                Varejo
-              </Label>
-              <Switch id="price-mode" checked={isWholesale} onCheckedChange={setIsWholesale} />
-              <Label
-                htmlFor="price-mode"
-                className="cursor-pointer text-sm font-medium text-primary"
-              >
-                Atacado
-              </Label>
-            </div>
-          </div>
-        </div>
-
-        {/* Categories */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          <Button
-            variant={selectedCategory === null ? 'default' : 'outline'}
-            className="rounded-full shrink-0"
-            onClick={() => setSelectedCategory(null)}
-          >
-            Todos
-          </Button>
-          {categories.map((cat) => (
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-8">
             <Button
-              key={cat.id}
-              variant={selectedCategory === cat.id ? 'default' : 'outline'}
-              className="rounded-full shrink-0"
-              onClick={() => setSelectedCategory(cat.id)}
+              size="lg"
+              className="w-full sm:w-auto text-lg h-14 px-8 shadow-xl shadow-primary/25 transition-transform hover:scale-105"
+              asChild
             >
-              {cat.name}
+              <Link to="/cadastro">
+                Começar Agora
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
             </Button>
-          ))}
-        </div>
-
-        {/* Product Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="space-y-4">
-                <Skeleton className="aspect-[3/4] w-full rounded-xl" />
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
-            ))}
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full sm:w-auto text-lg h-14 px-8 border-white text-white hover:bg-white hover:text-black transition-transform hover:scale-105 backdrop-blur-sm bg-black/20"
+              asChild
+            >
+              <Link to="/colecoes">Explorar Catálogo</Link>
+            </Button>
           </div>
-        ) : filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
-              <Link key={product.id} to={`/produto/${product.id}`} className="group">
-                <Card className="h-full flex flex-col overflow-hidden border-transparent hover:border-primary/20 hover:shadow-lg transition-all duration-300">
-                  <div className="relative aspect-[3/4] overflow-hidden bg-muted">
-                    {product.image ? (
-                      <img
-                        src={pb.files.getURL(product, product.image)}
-                        alt={product.name}
-                        className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                        <ShoppingBag className="w-12 h-12 opacity-20" />
-                      </div>
-                    )}
-                    {isWholesale && product.min_quantity_wholesale && (
-                      <Badge className="absolute top-3 right-3 bg-primary text-primary-foreground shadow-md">
-                        Min. {product.min_quantity_wholesale}
-                      </Badge>
-                    )}
+        </div>
+      </section>
+
+      {/* Stats/Social Proof */}
+      <section className="py-16 bg-white border-b">
+        <div className="container px-6 mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-center divide-x divide-gray-100">
+            <div className="space-y-3 px-4">
+              <h3 className="text-4xl md:text-5xl font-black text-primary">500+</h3>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                Fabricantes
+              </p>
+            </div>
+            <div className="space-y-3 px-4">
+              <h3 className="text-4xl md:text-5xl font-black text-primary">10k+</h3>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                Lojistas Ativos
+              </p>
+            </div>
+            <div className="space-y-3 px-4">
+              <h3 className="text-4xl md:text-5xl font-black text-primary">50k+</h3>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                Produtos
+              </p>
+            </div>
+            <div className="space-y-3 px-4">
+              <h3 className="text-4xl md:text-5xl font-black text-primary">100%</h3>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                Garantia
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-24 bg-gray-50/50">
+        <div className="container px-6 mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+            <h2 className="text-4xl font-bold tracking-tight">
+              Tudo que você precisa para crescer
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              Ferramentas de ponta projetadas especificamente para o mercado de moda atacadista.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+            <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="h-16 w-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-8">
+                <Store className="h-8 w-8" />
+              </div>
+              <h3 className="text-2xl font-bold mb-4">Catálogos Digitais</h3>
+              <p className="text-muted-foreground text-lg leading-relaxed">
+                Crie catálogos interativos, gerencie estoques e receba pedidos de forma automatizada
+                e profissional diretamente pelo WhatsApp.
+              </p>
+              <ul className="mt-6 space-y-3">
+                <li className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" /> Gestão simplificada
+                </li>
+                <li className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" /> Pedidos no WhatsApp
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="h-16 w-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-8">
+                <Video className="h-8 w-8" />
+              </div>
+              <h3 className="text-2xl font-bold mb-4">Salas de Negociação</h3>
+              <p className="text-muted-foreground text-lg leading-relaxed">
+                Apresente seus produtos em tempo real com vídeo HD. Feche negócios enquanto o
+                cliente visualiza peças com detalhes.
+              </p>
+              <ul className="mt-6 space-y-3">
+                <li className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" /> Vídeo integrado
+                </li>
+                <li className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" /> Zero fricção
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div className="h-16 w-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-8">
+                <TrendingUp className="h-8 w-8" />
+              </div>
+              <h3 className="text-2xl font-bold mb-4">Rede de Afiliados</h3>
+              <p className="text-muted-foreground text-lg leading-relaxed">
+                Indique lojistas e fabricantes e ganhe comissões recorrentes. Monetize sua rede de
+                contatos com rastreamento completo.
+              </p>
+              <ul className="mt-6 space-y-3">
+                <li className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" /> Comissões automáticas
+                </li>
+                <li className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" /> Dashboard de vendas
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Categories */}
+      <section className="py-24 bg-white">
+        <div className="container px-6 mx-auto">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-12 gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <h2 className="text-4xl font-bold tracking-tight">Polos de Moda & Categorias</h2>
+              <p className="text-xl text-muted-foreground">
+                Explore os principais segmentos e encontre fornecedores de Goiânia, São Paulo e
+                mais.
+              </p>
+            </div>
+            <Button variant="ghost" className="hidden sm:flex self-start md:self-auto" asChild>
+              <Link to="/colecoes">
+                Ver todas <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { title: 'Moda Feminina', image: 'women fashion model outfit', color: 'pink' },
+              { title: 'Jeanswear', image: 'denim fashion catalog', color: 'blue' },
+              { title: 'Moda Praia', image: 'beachwear fashion summer', color: 'cyan' },
+              { title: 'Plus Size', image: 'plus size fashion elegant', color: 'purple' },
+            ].map((category, idx) => (
+              <Link
+                key={idx}
+                to={`/colecoes?category=${category.title.toLowerCase()}`}
+                className="group block relative overflow-hidden rounded-3xl aspect-[4/5] shadow-lg"
+              >
+                <img
+                  src={`https://img.usecurling.com/p/600/800?q=${encodeURIComponent(category.image)}&color=${category.color}&dpr=2`}
+                  alt={category.title}
+                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute bottom-0 left-0 p-8 w-full translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                  <h3 className="text-white font-bold text-2xl lg:text-3xl drop-shadow-md">
+                    {category.title}
+                  </h3>
+                  <div className="mt-4 flex items-center text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+                    <span className="font-medium">Explorar marcas</span>
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </div>
-                  <CardContent className="p-5 flex flex-col flex-1">
-                    <div className="mb-2">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                        {product.expand?.category_id?.name || product.category || 'Moda'}
-                      </p>
-                      <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
-                        {product.name}
-                      </h3>
-                    </div>
-                    <div className="mt-auto pt-4 flex items-end justify-between">
-                      <div>
-                        {isWholesale ? (
-                          <>
-                            <p className="text-xl font-bold text-foreground">
-                              {formatCurrency(product.wholesale_price || product.price)}
-                            </p>
-                            <p className="text-[10px] text-primary uppercase font-medium tracking-wider mt-0.5">
-                              Preço Atacado
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-xl font-bold text-foreground">
-                              {formatCurrency(product.retail_price || product.price)}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
-                              Preço Varejo
-                            </p>
-                          </>
-                        )}
-                      </div>
-                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                        <ShoppingBag className="w-4 h-4" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                </div>
               </Link>
             ))}
           </div>
-        ) : (
-          <div className="text-center py-20 bg-muted/30 rounded-2xl border border-dashed">
-            <ShoppingBag className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-semibold">Nenhum produto encontrado</h3>
-            <p className="text-muted-foreground mt-2">Tente ajustar seus filtros de busca.</p>
+
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full mt-10 sm:hidden h-14 text-lg"
+            asChild
+          >
+            <Link to="/colecoes">Ver todas as categorias</Link>
+          </Button>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-32 bg-primary relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="pattern" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path
+                  d="M0 40L40 0H20L0 20M40 40V20L20 40"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  fill="none"
+                />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#pattern)" />
+          </svg>
+        </div>
+        <div className="container relative z-10 px-6 mx-auto text-center space-y-10 max-w-4xl text-primary-foreground">
+          <ShieldCheck className="h-20 w-20 mx-auto opacity-90 drop-shadow-lg" />
+          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight">
+            Pronto para transformar suas vendas?
+          </h2>
+          <p className="text-xl md:text-2xl opacity-90 leading-relaxed font-medium">
+            Junte-se a milhares de profissionais da moda que já utilizam a V Moda para fazer
+            negócios de forma inteligente, rápida e segura.
+          </p>
+          <div className="pt-8 flex justify-center">
             <Button
-              variant="outline"
-              className="mt-6"
-              onClick={() => {
-                setSearchQuery('')
-                setSelectedCategory(null)
-              }}
+              size="lg"
+              variant="secondary"
+              className="h-16 px-12 text-xl font-bold shadow-2xl hover:scale-105 transition-transform"
+              asChild
             >
-              Limpar Filtros
+              <Link to="/cadastro">Criar Conta Gratuita</Link>
             </Button>
           </div>
-        )}
-      </div>
+        </div>
+      </section>
     </div>
   )
 }
