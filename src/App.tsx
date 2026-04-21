@@ -82,14 +82,9 @@ const AppContent = () => {
 
   return (
     <Routes>
-      <Route
-        path="/"
-        element={
-          <Layout>
-            <Index />
-          </Layout>
-        }
-      />
+      <Route element={<Layout />}>
+        <Route path="/" element={<Index />} />
+      </Route>
 
       <Route element={<PublicRoute />}>
         <Route path="/admin/login" element={<AdminLogin />} />
