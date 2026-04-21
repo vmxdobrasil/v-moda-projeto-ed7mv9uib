@@ -31,6 +31,7 @@ import {
 import { toast } from 'sonner'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Textarea } from '@/components/ui/textarea'
+import { useRef } from 'react'
 
 export default function Resources() {
   const [resources, setResources] = useState<any[]>([])
@@ -43,6 +44,9 @@ export default function Resources() {
     url: '',
     description: '',
   })
+
+  const fileRef = useRef<HTMLInputElement>(null)
+  const thumbRef = useRef<HTMLInputElement>(null)
 
   const isManufacturer =
     pb.authStore.record?.role === 'manufacturer' ||
@@ -67,13 +71,28 @@ export default function Resources() {
   useRealtime('resources', () => loadData())
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.url) return toast.error('Nome e URL são obrigatórios')
+    if (!formData.name) return toast.error('Nome é obrigatório')
+
+    const isFileProvided = fileRef.current?.files?.[0]
+    if (!formData.url && !isFileProvided) {
+      return toast.error('Forneça uma URL ou um Arquivo')
+    }
+
     try {
+      const fd = new FormData()
+      fd.append('name', formData.name)
+      fd.append('type', formData.type)
+      fd.append('description', formData.description)
+      fd.append('url', formData.url)
+
+      if (fileRef.current?.files?.[0]) fd.append('content_file', fileRef.current.files[0])
+      if (thumbRef.current?.files?.[0]) fd.append('thumbnail', thumbRef.current.files[0])
+
       if (editingId) {
-        await pb.collection('resources').update(editingId, formData)
+        await pb.collection('resources').update(editingId, fd)
         toast.success('Recurso atualizado!')
       } else {
-        await pb.collection('resources').create(formData)
+        await pb.collection('resources').create(fd)
         toast.success('Recurso adicionado!')
       }
       setIsOpen(false)
@@ -96,6 +115,8 @@ export default function Resources() {
   const resetForm = () => {
     setFormData({ name: '', type: 'course', url: '', description: '' })
     setEditingId(null)
+    if (fileRef.current) fileRef.current.value = ''
+    if (thumbRef.current) thumbRef.current.value = ''
   }
 
   const openEdit = (res: any) => {
@@ -178,12 +199,22 @@ export default function Resources() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>URL de Acesso</Label>
+                    <Label>URL de Acesso (opcional se enviar arquivo)</Label>
                     <Input
                       value={formData.url}
                       onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                       placeholder="https://"
                     />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Arquivo (PDF, Vídeo, etc)</Label>
+                    <Input type="file" ref={fileRef} accept="application/pdf,video/*,image/*" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Capa / Thumbnail</Label>
+                    <Input type="file" ref={thumbRef} accept="image/*" />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -216,14 +247,33 @@ export default function Resources() {
           </div>
         ) : (
           resources.map((res) => (
-            <Card key={res.id} className="hover:border-primary/50 transition-colors">
-              <CardHeader className="pb-3 flex flex-row items-start justify-between">
+            <Card
+              key={res.id}
+              className="hover:border-primary/50 transition-colors overflow-hidden flex flex-col"
+            >
+              {res.thumbnail && (
+                <div className="aspect-video w-full bg-muted border-b">
+                  <img
+                    src={pb.files.getURL(res, res.thumbnail)}
+                    alt={res.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <CardHeader className="pb-3 flex flex-row items-start justify-between flex-none">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                    {getIcon(res.type)}
-                  </div>
+                  {!res.thumbnail && (
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                      {getIcon(res.type)}
+                    </div>
+                  )}
                   <div>
-                    <CardTitle className="text-base leading-tight font-serif">{res.name}</CardTitle>
+                    <CardTitle
+                      className="text-base leading-tight font-serif line-clamp-1"
+                      title={res.name}
+                    >
+                      {res.name}
+                    </CardTitle>
                     <p className="text-xs text-muted-foreground capitalize mt-0.5">{res.type}</p>
                   </div>
                 </div>
@@ -248,12 +298,16 @@ export default function Resources() {
                   </div>
                 )}
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+              <CardContent className="flex flex-col flex-1">
+                <p className="text-sm text-muted-foreground mb-4 line-clamp-2 flex-1">
                   {res.description || 'Sem descrição adicional.'}
                 </p>
-                <Button variant="outline" className="w-full" asChild>
-                  <a href={res.url} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" className="w-full mt-auto" asChild>
+                  <a
+                    href={res.content_file ? pb.files.getURL(res, res.content_file) : res.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     Acessar Conteúdo <ExternalLink className="w-4 h-4 ml-2" />
                   </a>
                 </Button>

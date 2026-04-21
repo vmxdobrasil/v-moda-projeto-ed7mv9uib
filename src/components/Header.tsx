@@ -123,7 +123,7 @@ export function Header() {
   )
 
   const navLinks = [
-    { name: 'INICIO', path: '/' },
+    { name: 'INÍCIO', path: '/' },
     { name: 'COLEÇÕES', path: '/colecoes' },
     { name: 'GUIA DE MODA', path: '/guia-de-moda' },
     { name: 'CONHECIMENTO', path: '/conhecimento' },
@@ -132,6 +132,10 @@ export function Header() {
     { name: 'CONTATO', path: '/contato' },
     { name: 'SEJA UMA REVENDEDORA', path: '/revenda' },
   ]
+
+  if (isAuthenticated && (user?.role === 'manufacturer' || user?.role === 'admin')) {
+    navLinks.push({ name: 'PAINEL ADMIN', path: '/dashboard' })
+  }
 
   const mobileNavLinks = [
     ...navLinks,
@@ -169,10 +173,12 @@ export function Header() {
                   <>
                     <SheetClose asChild>
                       <Link
-                        to="/meu-painel"
+                        to="/dashboard"
                         className="text-2xl font-serif text-primary hover:text-accent transition-colors"
                       >
-                        Meu Painel
+                        {user?.role === 'manufacturer' || user?.role === 'admin'
+                          ? 'Painel Admin'
+                          : 'Meu Painel'}
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>
@@ -377,7 +383,11 @@ export function Header() {
                     Olá, {user?.name.split(' ')[0]}
                   </div>
                   <DropdownMenuItem asChild className="rounded-none cursor-pointer">
-                    <Link to="/meu-painel">Meu Painel</Link>
+                    <Link to="/dashboard">
+                      {user?.role === 'manufacturer' || user?.role === 'admin'
+                        ? 'Painel Admin'
+                        : 'Meu Painel'}
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-none cursor-pointer">
                     <Link to="/perfil">Meu Perfil</Link>
