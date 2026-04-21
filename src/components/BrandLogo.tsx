@@ -1,30 +1,53 @@
-import { useBrand } from '@/hooks/use-brand'
+import { useState, useEffect } from 'react'
+import pb from '@/lib/pocketbase/client'
 import { cn } from '@/lib/utils'
 
 interface BrandLogoProps {
+  type: string
+  fallbackText: string
   className?: string
   fallbackClassName?: string
-  type?: 'v_moda_logo' | 'magazine_logo' | 'brand_logo'
-  fallbackText?: string
 }
 
-export function BrandLogo({
-  className,
-  fallbackClassName,
-  type = 'v_moda_logo',
-  fallbackText = 'V Moda',
-}: BrandLogoProps) {
-  const { vModaLogo, magazineLogo, brandLogo } = useBrand()
-  const logoUrl =
-    type === 'brand_logo' ? brandLogo : type === 'v_moda_logo' ? vModaLogo : magazineLogo
+export function BrandLogo({ type, fallbackText, className, fallbackClassName }: BrandLogoProps) {
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  if (logoUrl) {
-    return <img src={logoUrl} alt="Brand Logo" className={cn('object-contain', className)} />
+  useEffect(() => {
+    let isMounted = true
+
+    const fetchLogo = async () => {
+      try {
+        const record = await pb.collection('brand_settings').getFirstListItem(`key="${type}"`)
+        if (isMounted && record && record.value_file) {
+          setLogoUrl(pb.files.getURL(record, record.value_file))
+        }
+      } catch (e) {
+        // Silently ignore errors (e.g. 404 if logo is not set yet)
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+
+    fetchLogo()
+
+    return () => {
+      isMounted = false
+    }
+  }, [type])
+
+  if (loading) {
+    return (
+      <div
+        className={cn('animate-pulse bg-muted rounded', className)}
+        style={{ width: '120px', height: '32px' }}
+      />
+    )
   }
 
-  return (
-    <span className={cn('font-serif font-bold tracking-widest uppercase', fallbackClassName)}>
-      {fallbackText}
-    </span>
-  )
+  if (logoUrl) {
+    return <img src={logoUrl} alt={fallbackText} className={className} />
+  }
+
+  return <span className={cn(fallbackClassName)}>{fallbackText}</span>
 }
