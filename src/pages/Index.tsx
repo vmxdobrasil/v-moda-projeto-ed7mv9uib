@@ -71,7 +71,7 @@ export default function Index() {
 
         setRecentCustomers(recentCustReq.items)
       } catch (err) {
-        console.error('Error fetching dashboard data:', err)
+        console.error(err)
       } finally {
         setIsLoading(false)
       }
