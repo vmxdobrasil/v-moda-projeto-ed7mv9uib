@@ -1,9 +1,7 @@
-import { Routes, Route } from 'react-router-dom'
-import { Layout } from '@/components/Layout'
-import Index from '@/pages/Index'
-import Login from '@/pages/Login'
-import NotFound from '@/pages/NotFound'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthGuard, PublicRoute } from '@/components/AuthGuard'
+import Login from '@/pages/Login'
+import Dashboard from '@/pages/Dashboard'
 
 export function AppRouter() {
   return (
@@ -11,12 +9,12 @@ export function AppRouter() {
       <Route element={<PublicRoute />}>
         <Route path="/login" element={<Login />} />
       </Route>
-      <Route path="/" element={<AuthGuard />}>
-        <Route element={<Layout />}>
-          <Route index element={<Index />} />
-        </Route>
+
+      <Route element={<AuthGuard />}>
+        <Route path="/" element={<Dashboard />} />
+        {/* Catch all unmatched internal routes and redirect to dashboard */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
-      <Route path="*" element={<NotFound />} />
     </Routes>
   )
 }
