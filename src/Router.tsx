@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, Outlet, Navigate } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import Index from '@/pages/Index'
 import Login from '@/pages/Login'
@@ -6,7 +6,7 @@ import NotFound from '@/pages/NotFound'
 import { useAuth } from '@/hooks/use-auth'
 import { Loader2 } from 'lucide-react'
 
-function RequireAuth({ children }: { children: React.ReactNode }) {
+function RequireAuth() {
   const { user, loading } = useAuth()
 
   if (loading) {
@@ -21,23 +21,35 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />
   }
 
-  return <>{children}</>
+  return <Outlet />
 }
 
+export const router = createBrowserRouter([
+  {
+    path: '/login',
+    element: <Login />,
+  },
+  {
+    path: '/',
+    element: <RequireAuth />,
+    children: [
+      {
+        element: <Layout />,
+        children: [
+          {
+            index: true,
+            element: <Index />,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    path: '*',
+    element: <NotFound />,
+  },
+])
+
 export function AppRouter() {
-  return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route
-        element={
-          <RequireAuth>
-            <Layout />
-          </RequireAuth>
-        }
-      >
-        <Route path="/" element={<Index />} />
-      </Route>
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  )
+  return <RouterProvider router={router} />
 }
