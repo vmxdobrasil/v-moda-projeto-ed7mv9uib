@@ -6,20 +6,23 @@ import { VideoCallListener } from '@/components/VideoCallListener'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AppRouter } from '@/Router'
+import { AuthProvider } from '@/hooks/use-auth'
 
 export default function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-        <FavoritesProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <VideoCallListener />
-            <AppRouter />
-          </TooltipProvider>
-        </FavoritesProvider>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+          <FavoritesProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <VideoCallListener />
+              <AppRouter />
+            </TooltipProvider>
+          </FavoritesProvider>
+        </BrowserRouter>
+      </AuthProvider>
     </ErrorBoundary>
   )
 }

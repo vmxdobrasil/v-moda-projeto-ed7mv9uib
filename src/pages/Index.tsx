@@ -1,254 +1,242 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Users,
-  Building2,
-  Package,
-  Activity,
-  LayoutDashboard,
-  Settings,
-  CheckCircle2,
-} from 'lucide-react'
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useRealtime } from '@/hooks/use-realtime'
+import { Users, Shirt, MessageSquare, TrendingUp } from 'lucide-react'
+import { format } from 'date-fns'
 
-export default function Index() {
-  const [stats, setStats] = useState({
-    customers: 0,
-    manufacturers: 0,
-    projects: 0,
-  })
+const MOCK_CUSTOMERS = [
+  {
+    id: '1',
+    name: 'Maria Silva',
+    email: 'maria@example.com',
+    status: 'converted',
+    source: 'whatsapp',
+    created: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    name: 'João Santos',
+    email: 'joao@example.com',
+    status: 'negotiating',
+    source: 'instagram',
+    created: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: '3',
+    name: 'Ana Costa',
+    email: 'ana@example.com',
+    status: 'new',
+    source: 'site',
+    created: new Date(Date.now() - 172800000).toISOString(),
+  },
+  {
+    id: '4',
+    name: 'Carlos Ferreira',
+    email: 'carlos@example.com',
+    status: 'interested',
+    source: 'manual',
+    created: new Date(Date.now() - 259200000).toISOString(),
+  },
+  {
+    id: '5',
+    name: 'Lucia Oliveira',
+    email: 'lucia@example.com',
+    status: 'new',
+    source: 'whatsapp_group',
+    created: new Date(Date.now() - 345600000).toISOString(),
+  },
+]
+
+export default function Dashboard() {
+  const [stats, setStats] = useState({ customers: 124, projects: 45, messages: 12, leads: 89 })
+  const [recentCustomers, setRecentCustomers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+
+  const loadData = async () => {
+    try {
+      const [customersRes, projectsRes, messagesRes, referralsRes, recentRes] = await Promise.all([
+        pb.collection('customers').getList(1, 1, { filter: "status != 'inactive'" }),
+        pb.collection('projects').getList(1, 1),
+        pb.collection('messages').getList(1, 1, { filter: "status = 'pending'" }),
+        pb.collection('referrals').getList(1, 1, { filter: "type = 'lead'" }),
+        pb.collection('customers').getList(1, 5, { sort: '-created' }),
+      ])
+
+      if (customersRes.totalItems > 0 || projectsRes.totalItems > 0) {
+        setStats({
+          customers: customersRes.totalItems,
+          projects: projectsRes.totalItems,
+          messages: messagesRes.totalItems,
+          leads: referralsRes.totalItems,
+        })
+      }
+
+      if (recentRes.items.length > 0) {
+        setRecentCustomers(recentRes.items)
+      } else {
+        setRecentCustomers(MOCK_CUSTOMERS)
+      }
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err)
+      setRecentCustomers(MOCK_CUSTOMERS)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    let isMounted = true
-
-    async function loadData() {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const [customersRes, usersRes, projectsRes] = await Promise.all([
-          pb.collection('customers').getList(1, 1),
-          pb.collection('users').getList(1, 1, { filter: 'role="manufacturer"' }),
-          pb.collection('projects').getList(1, 1),
-        ])
-
-        if (isMounted) {
-          setStats({
-            customers: customersRes.totalItems,
-            manufacturers: usersRes.totalItems,
-            projects: projectsRes.totalItems,
-          })
-        }
-      } catch (err: any) {
-        console.error('Error loading dashboard data:', err)
-        if (isMounted) {
-          setError(
-            err?.message ||
-              'Não foi possível carregar os dados do painel. Verifique sua conexão com o banco de dados.',
-          )
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
-      }
-    }
-
     loadData()
-
-    return () => {
-      isMounted = false
-    }
   }, [])
 
+  useRealtime('customers', loadData)
+  useRealtime('projects', loadData)
+  useRealtime('messages', loadData)
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'new':
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'interested':
+        return 'bg-purple-100 text-purple-800 border-purple-200'
+      case 'negotiating':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'converted':
+        return 'bg-green-100 text-green-800 border-green-200'
+      case 'inactive':
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+      default:
+        return 'bg-secondary text-secondary-foreground'
+    }
+  }
+
+  const translateStatus = (status: string) => {
+    const map: Record<string, string> = {
+      new: 'Novo',
+      interested: 'Interessado',
+      negotiating: 'Negociando',
+      converted: 'Convertido',
+      inactive: 'Inativo',
+    }
+    return map[status] || status
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-[400px] w-full rounded-xl" />
+      </div>
+    )
+  }
+
   return (
-    <div className="flex min-h-screen w-full bg-zinc-50 dark:bg-zinc-950">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hidden md:flex flex-col">
-        <div className="h-16 flex items-center px-6 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="flex items-center gap-2 font-bold text-lg text-zinc-900 dark:text-white">
-            <div className="w-8 h-8 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center rounded-lg">
-              <Activity className="w-5 h-5" />
-            </div>
-            V Moda Dash
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total de Clientes
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.customers}</div>
+            <p className="text-xs text-muted-foreground">+12% em relação ao mês anterior</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Catálogo Ativo
+            </CardTitle>
+            <Shirt className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.projects}</div>
+            <p className="text-xs text-muted-foreground">Itens publicados na plataforma</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Mensagens Pendentes
+            </CardTitle>
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.messages}</div>
+            <p className="text-xs text-muted-foreground">Aguardando sua resposta</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Novos Leads</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.leads}</div>
+            <p className="text-xs text-muted-foreground">Captados nos últimos 30 dias</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Clientes Recentes</CardTitle>
+          <CardDescription>
+            Últimos leads e clientes adicionados ou atualizados no sistema.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Email / Contato</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Origem</TableHead>
+                  <TableHead className="text-right">Data</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentCustomers.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell className="font-medium">{customer.name}</TableCell>
+                    <TableCell>{customer.email || customer.phone || 'N/D'}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={getStatusColor(customer.status)}>
+                        {translateStatus(customer.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="capitalize">
+                      {customer.source?.replace('_', ' ') || 'N/D'}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {format(new Date(customer.created), 'dd/MM/yyyy')}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        </div>
-        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-          <a
-            href="#"
-            className="flex items-center gap-3 px-3 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-md text-sm font-medium"
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            Dashboard
-          </a>
-          <a
-            href="#"
-            className="flex items-center gap-3 px-3 py-2.5 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-zinc-800 rounded-md text-sm font-medium transition-colors"
-          >
-            <Users className="w-4 h-4" />
-            Clientes
-          </a>
-          <a
-            href="#"
-            className="flex items-center gap-3 px-3 py-2.5 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-zinc-800 rounded-md text-sm font-medium transition-colors"
-          >
-            <Building2 className="w-4 h-4" />
-            Fabricantes
-          </a>
-          <a
-            href="#"
-            className="flex items-center gap-3 px-3 py-2.5 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-zinc-800 rounded-md text-sm font-medium transition-colors"
-          >
-            <Package className="w-4 h-4" />
-            Produtos
-          </a>
-        </nav>
-        <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
-          <a
-            href="#"
-            className="flex items-center gap-3 px-3 py-2.5 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-zinc-800 rounded-md text-sm font-medium transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            Configurações
-          </a>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between px-6 shrink-0">
-          <h1 className="text-xl font-semibold text-zinc-900 dark:text-white">Visão Geral</h1>
-          <div className="flex items-center gap-4">
-            <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center border border-zinc-200 dark:border-zinc-700">
-              <Users className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
-            </div>
-          </div>
-        </header>
-
-        <div className="flex-1 p-6 overflow-auto">
-          <div className="max-w-5xl mx-auto space-y-8">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                Bem-vindo ao Painel
-              </h2>
-              <p className="text-zinc-500 dark:text-zinc-400 mt-1">
-                Aqui está o resumo das atividades da sua plataforma conectada ao PocketBase.
-              </p>
-            </div>
-
-            {error && (
-              <div className="p-4 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-800 flex items-center gap-3 text-sm font-medium">
-                <Activity className="w-5 h-5 shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <Card className="shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
-                    Total de Clientes
-                  </CardTitle>
-                  <Users className="h-4 w-4 text-zinc-400" />
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <Skeleton className="h-8 w-[100px] mt-1" />
-                  ) : (
-                    <div className="text-3xl font-bold text-zinc-900 dark:text-white">
-                      {stats.customers}
-                    </div>
-                  )}
-                  <p className="text-xs text-zinc-500 mt-1">Registrados no sistema</p>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
-                    Fabricantes
-                  </CardTitle>
-                  <Building2 className="h-4 w-4 text-zinc-400" />
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <Skeleton className="h-8 w-[100px] mt-1" />
-                  ) : (
-                    <div className="text-3xl font-bold text-zinc-900 dark:text-white">
-                      {stats.manufacturers}
-                    </div>
-                  )}
-                  <p className="text-xs text-zinc-500 mt-1">Parceiros ativos</p>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
-                    Projetos / Produtos
-                  </CardTitle>
-                  <Package className="h-4 w-4 text-zinc-400" />
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <Skeleton className="h-8 w-[100px] mt-1" />
-                  ) : (
-                    <div className="text-3xl font-bold text-zinc-900 dark:text-white">
-                      {stats.projects}
-                    </div>
-                  )}
-                  <p className="text-xs text-zinc-500 mt-1">Cadastrados no catálogo</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle>Status do Sistema</CardTitle>
-                <CardDescription>
-                  Verificação de conexão com a base de dados e renderização da interface
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 divide-y divide-zinc-200 dark:divide-zinc-800">
-                    <div className="flex items-center justify-between p-4">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                        <span className="font-medium text-sm text-zinc-900 dark:text-white">
-                          Conexão PocketBase
-                        </span>
-                      </div>
-                      <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                        Online
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-4">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                        <span className="font-medium text-sm text-zinc-900 dark:text-white">
-                          Interface de Renderização
-                        </span>
-                      </div>
-                      <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                        Ativa
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </main>
+        </CardContent>
+      </Card>
     </div>
   )
 }

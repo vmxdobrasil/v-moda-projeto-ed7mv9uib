@@ -1,171 +1,75 @@
 import { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { z } from 'zod'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useAuth } from '@/hooks/use-auth'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { useEffect } from 'react'
-import { useToast } from '@/hooks/use-toast'
-import useAuthStore from '@/stores/useAuthStore'
-import pb from '@/lib/pocketbase/client'
-
-const loginSchema = z.object({
-  email: z.string().email('E-mail inválido'),
-  password: z.string().min(8, 'A senha deve ter no mínimo 8 caracteres'),
-})
-
-type LoginForm = z.infer<typeof loginSchema>
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Loader2 } from 'lucide-react'
 
 export default function Login() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const { signIn } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
-  const { toast } = useToast()
-  const { login } = useAuthStore()
 
-  const form = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  })
-
-  async function onSubmit(data: LoginForm) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     setIsLoading(true)
+    setError('')
 
-    try {
-      const authData = await pb.collection('users').authWithPassword(data.email, data.password)
-      login(authData.record as any)
+    const { error: authError } = await signIn(email, password)
 
-      toast({
-        title: 'Login realizado',
-        description: 'Bem-vindo de volta à V Moda!',
-      })
-
-      const from = location.state?.from?.pathname
-      if (from && !['/login', '/admin/login', '/cadastro', '/'].includes(from)) {
-        navigate(from, { replace: true })
-      } else {
-        navigate('/dashboard', { replace: true })
-      }
-    } catch (err: any) {
-      pb.authStore.clear()
-
-      const fieldErrors = err.response?.data || {}
-      let hasFieldErrors = false
-
-      if (typeof fieldErrors === 'object' && Object.keys(fieldErrors).length > 0) {
-        Object.entries(fieldErrors).forEach(([field, detail]: [string, any]) => {
-          if (detail?.message) {
-            form.setError(field as any, { type: 'manual', message: detail.message })
-            hasFieldErrors = true
-          }
-        })
-      }
-
-      if (hasFieldErrors) {
-        toast({
-          title: 'Erro de validação',
-          description: 'Verifique os campos destacados no formulário.',
-          variant: 'destructive',
-        })
-      } else {
-        let description = 'E-mail ou senha incorretos. Tente novamente.'
-        if (err.status === 400) {
-          description = 'Dados inválidos ou credenciais incorretas.'
-        } else if (err.status === 403 || err.status === 401) {
-          description = 'Permissão negada ou credenciais incorretas.'
-        } else if (err.status === 0) {
-          description = 'Erro de rede. Verifique sua conexão com a internet.'
-        } else if (err.message) {
-          description = err.message
-        }
-
-        toast({
-          title: 'Erro ao fazer login',
-          description,
-          variant: 'destructive',
-        })
-      }
-    } finally {
+    if (authError) {
+      setError('Credenciais inválidas. Verifique seu e-mail e senha.')
       setIsLoading(false)
+    } else {
+      navigate('/')
     }
   }
 
   return (
-    <div className="container max-w-md mx-auto py-24 md:py-32">
-      <div className="flex flex-col space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-serif">Acesse sua conta</h1>
-          <p className="text-muted-foreground mt-2">
-            Acesse sua conta e insira seus dados para continuar.
-          </p>
-        </div>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>E-mail</FormLabel>
-                  <FormControl>
-                    <Input placeholder="seu@email.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex justify-between items-center">
-                    <FormLabel>Senha</FormLabel>
-                    <Link to="/recuperar-senha" className="text-sm text-primary hover:underline">
-                      Esqueceu a senha?
-                    </Link>
-                  </div>
-                  <FormControl>
-                    <Input type="password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Button
-              type="submit"
-              className="w-full rounded-none h-12 uppercase tracking-widest mt-6"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Entrando...' : 'Entrar'}
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-2 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <span className="text-xl font-bold tracking-tight text-primary">V</span>
+          </div>
+          <CardTitle className="text-2xl font-bold tracking-tight">V Moda</CardTitle>
+          <CardDescription>Acesse o painel administrativo da plataforma</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="admin@vmoda.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            {error && <p className="text-sm font-medium text-destructive">{error}</p>}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Entrar'}
             </Button>
           </form>
-        </Form>
-
-        <div className="text-center mt-6">
-          <p className="text-sm text-muted-foreground">
-            Ainda não tem uma conta?{' '}
-            <Link to="/cadastro" className="text-primary hover:underline font-medium">
-              Cadastre-se
-            </Link>
-          </p>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
