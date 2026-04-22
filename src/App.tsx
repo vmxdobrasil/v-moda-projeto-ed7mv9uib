@@ -6,20 +6,23 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AppRouter } from '@/Router'
 import { AuthProvider } from '@/hooks/use-auth'
+import { BrowserRouter } from 'react-router-dom'
 
 export default function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <FavoritesProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <VideoCallListener />
-            <AppRouter />
-          </TooltipProvider>
-        </FavoritesProvider>
-      </AuthProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <FavoritesProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <VideoCallListener />
+              <AppRouter />
+            </TooltipProvider>
+          </FavoritesProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </ErrorBoundary>
   )
 }

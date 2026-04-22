@@ -7,7 +7,8 @@ export function AppRouter() {
   return (
     <Routes>
       <Route element={<PublicRoute />}>
-        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
       </Route>
 
       <Route element={<AuthGuard />}>
