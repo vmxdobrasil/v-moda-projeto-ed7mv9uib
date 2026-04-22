@@ -54,13 +54,13 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-3xl font-bold tracking-tight">V Moda</CardTitle>
-          <CardDescription>Insira suas credenciais para acessar a plataforma</CardDescription>
+          <CardTitle className="text-3xl font-bold tracking-tight">V MODA</CardTitle>
+          <CardDescription>insira suas credenciais</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="email">email</Label>
               <Input
                 id="email"
                 type="email"
@@ -72,7 +72,7 @@ export default function Login() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password">senha</Label>
               </div>
               <Input
                 id="password"
@@ -85,7 +85,7 @@ export default function Login() {
           </CardContent>
           <CardFooter>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Entrar'}
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'entrar'}
             </Button>
           </CardFooter>
         </form>
