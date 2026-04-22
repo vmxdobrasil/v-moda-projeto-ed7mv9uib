@@ -110,66 +110,35 @@ export default function DashboardLayout() {
   }
 
   const links = useMemo(() => {
-    const baseLinks = []
-    const isAdmin =
-      userRecord?.email === 'valterpmendonca@gmail.com' || userRecord?.role === 'admin'
-    const isManufacturer =
-      userRecord?.role === 'manufacturer' || userRecord?.type === 'Lojista Fabricante'
-    const isAffiliate = userRecord?.role === 'affiliate'
-
-    baseLinks.push({
-      href: '/dashboard',
-      label: 'Vitrine / Hub',
-      icon: LayoutDashboard,
-      exact: true,
-    })
-
-    baseLinks.push({ href: '/home', label: 'Ranking TOP 60', icon: Trophy })
-
-    if (isAdmin || isManufacturer) {
-      baseLinks.push({
-        href: '/dashboard/crm',
-        label: userRecord?.role === 'manufacturer' ? 'Meu CRM' : 'CRM de Leads',
+    return [
+      {
+        href: '/dashboard',
+        label: 'Dashboard',
+        icon: LayoutDashboard,
+        exact: true,
+      },
+      {
+        href: '/dashboard/customers',
+        label: 'Customers / Leads',
         icon: Users,
-      })
-    }
-
-    baseLinks.push({ href: '/dashboard/recursos', label: 'Portal Academy', icon: GraduationCap })
-
-    baseLinks.push({ href: '/dashboard/logistics', label: 'Logística', icon: Truck })
-
-    if (isAdmin || isManufacturer) {
-      baseLinks.push({
+      },
+      {
         href: '/dashboard/projects',
-        label: userRecord?.role === 'manufacturer' ? 'Meu Catálogo' : 'Projetos',
+        label: 'Projects / Products',
         icon: FolderKanban,
-      })
-    }
-
-    if (isAdmin || isManufacturer) {
-      baseLinks.push(
-        { href: '/dashboard/video-sessions', label: 'Vídeo Negociação', icon: Video },
-        { href: '/dashboard/settings/whatsapp', label: 'Configurações', icon: Settings },
-      )
-    }
-
-    if (isAdmin || isAffiliate) {
-      baseLinks.push(
-        { href: '/dashboard/indicacoes', label: 'Referrals/Commissions', icon: Share2 },
-        { href: '/dashboard/performance', label: 'Performance', icon: BarChart },
-      )
-    }
-
-    if (isAdmin || isManufacturer) {
-      baseLinks.push({ href: '/admin/logs-importacao', label: 'Import Logs', icon: Database })
-    }
-
-    if (isAdmin) {
-      baseLinks.push({ href: '/admin', label: 'Painel Admin', icon: Settings })
-    }
-
-    return baseLinks
-  }, [userRecord?.role, userRecord?.type, userRecord?.email])
+      },
+      {
+        href: '/dashboard/resources',
+        label: 'Resources',
+        icon: Database,
+      },
+      {
+        href: '/dashboard/settings',
+        label: 'Settings',
+        icon: Settings,
+      },
+    ]
+  }, [])
 
   if (!pb.authStore.isValid) {
     return <Navigate to="/login" replace />
@@ -301,29 +270,21 @@ export default function DashboardLayout() {
           <CommandList>
             <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
             <CommandGroup heading="Módulos">
-              <CommandItem onSelect={() => handleSearchSelect('/dashboard/crm')}>
+              <CommandItem onSelect={() => handleSearchSelect('/dashboard/customers')}>
                 <Users className="mr-2 h-4 w-4" />
-                <span>{userRecord?.role === 'manufacturer' ? 'Meu CRM' : 'CRM de Leads'}</span>
+                <span>Customers / Leads</span>
               </CommandItem>
               <CommandItem onSelect={() => handleSearchSelect('/dashboard/projects')}>
                 <FolderKanban className="mr-2 h-4 w-4" />
-                <span>{userRecord?.role === 'manufacturer' ? 'Meu Catálogo' : 'Projetos'}</span>
+                <span>Projects / Products</span>
               </CommandItem>
-              <CommandItem onSelect={() => handleSearchSelect('/dashboard/logistics')}>
-                <Truck className="mr-2 h-4 w-4" />
-                <span>Logística</span>
+              <CommandItem onSelect={() => handleSearchSelect('/dashboard/resources')}>
+                <Database className="mr-2 h-4 w-4" />
+                <span>Resources</span>
               </CommandItem>
-              <CommandItem onSelect={() => handleSearchSelect('/dashboard/video-sessions')}>
-                <Video className="mr-2 h-4 w-4" />
-                <span>Vídeo Negociação</span>
-              </CommandItem>
-              <CommandItem onSelect={() => handleSearchSelect('/dashboard/recursos')}>
-                <GraduationCap className="mr-2 h-4 w-4" />
-                <span>Portal Academy</span>
-              </CommandItem>
-              <CommandItem onSelect={() => handleSearchSelect('/dashboard/settings/whatsapp')}>
+              <CommandItem onSelect={() => handleSearchSelect('/dashboard/settings')}>
                 <Settings className="mr-2 h-4 w-4" />
-                <span>Configurações</span>
+                <span>Settings</span>
               </CommandItem>
             </CommandGroup>
           </CommandList>
