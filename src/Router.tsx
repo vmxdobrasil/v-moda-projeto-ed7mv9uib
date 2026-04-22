@@ -24,10 +24,30 @@ function RequireAuth() {
   return <Outlet />
 }
 
+function PublicRoute() {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (user) {
+    return <Navigate to="/" replace />
+  }
+
+  return <Outlet />
+}
+
 export function AppRouter() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route element={<PublicRoute />}>
+        <Route path="/login" element={<Login />} />
+      </Route>
       <Route path="/" element={<RequireAuth />}>
         <Route element={<Layout />}>
           <Route index element={<Index />} />
