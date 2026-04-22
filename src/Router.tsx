@@ -7,13 +7,13 @@ export function AppRouter() {
   return (
     <Routes>
       <Route element={<PublicRoute />}>
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Login />} />
       </Route>
 
       <Route element={<AuthGuard />}>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         {/* Catch all unmatched internal routes and redirect to dashboard */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
   )

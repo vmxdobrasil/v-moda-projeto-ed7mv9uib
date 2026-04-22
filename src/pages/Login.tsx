@@ -48,7 +48,7 @@ export default function Login() {
           description: 'E-mail ou senha incorretos.',
         })
       } else {
-        navigate('/')
+        navigate('/dashboard')
       }
     } catch (err) {
       toast({
