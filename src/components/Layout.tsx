@@ -1,87 +1,128 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import { Button } from '@/components/ui/button'
-import { LogOut, Home, Menu, Users, ShoppingBag } from 'lucide-react'
-import { useState } from 'react'
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
-import { cn } from '@/lib/utils'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarInset,
+} from '@/components/ui/sidebar'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { LayoutDashboard, Users, ShoppingBag, Settings, LogOut, ChevronUp } from 'lucide-react'
 
 export function Layout() {
   const { signOut, user } = useAuth()
-  const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
 
-  const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Clientes', href: '/clientes', icon: Users },
-    { name: 'Produtos', href: '/produtos', icon: ShoppingBag },
-  ]
-
-  const NavLinks = () => (
-    <>
-      {navigation.map((item) => {
-        const isActive = location.pathname === item.href
-        return (
-          <Link
-            key={item.name}
-            to={item.href}
-            onClick={() => setIsOpen(false)}
-            className={cn(
-              'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-              isActive
-                ? 'bg-primary text-primary-foreground'
-                : 'hover:bg-accent hover:text-accent-foreground',
-            )}
-          >
-            <item.icon className="h-4 w-4" />
-            {item.name}
-          </Link>
-        )
-      })}
-    </>
-  )
-
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="shrink-0 md:hidden">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Alternar menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-72 flex flex-col">
-            <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
-            <div className="flex h-16 items-center border-b px-2 font-bold text-lg">V Moda</div>
-            <nav className="grid gap-2 py-4">
-              <NavLinks />
-            </nav>
-          </SheetContent>
-        </Sheet>
-        <div className="flex w-full items-center justify-between gap-4 md:justify-end">
-          <div className="hidden md:flex font-bold text-xl mr-auto">V Moda</div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground hidden sm:inline-block">
-              {user?.email}
-            </span>
-            <Button variant="ghost" size="sm" onClick={() => signOut()}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sair
-            </Button>
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarHeader className="flex h-16 items-center justify-center border-b px-4">
+          <div className="font-bold text-lg tracking-tight">V Moda</div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarMenu className="mt-4 px-2 space-y-1">
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={location.pathname === '/'}>
+                <Link to="/">
+                  <LayoutDashboard className="h-4 w-4 mr-2" />
+                  <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={location.pathname === '/customers'}>
+                <Link to="/customers">
+                  <Users className="h-4 w-4 mr-2" />
+                  <span>Clientes</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={location.pathname === '/products'}>
+                <Link to="/products">
+                  <ShoppingBag className="h-4 w-4 mr-2" />
+                  <span>Produtos</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={location.pathname === '/settings'}>
+                <Link to="/settings">
+                  <Settings className="h-4 w-4 mr-2" />
+                  <span>Configurações</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter className="p-4 border-t">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton className="w-full flex items-center justify-between h-auto py-2">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage
+                          src={
+                            user?.avatar
+                              ? `${import.meta.env.VITE_POCKETBASE_URL}/api/files/_pb_users_auth_/${user.id}/${user.avatar}`
+                              : undefined
+                          }
+                        />
+                        <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col items-start text-sm overflow-hidden">
+                        <span className="font-medium truncate w-full">{user?.name || 'Admin'}</span>
+                        <span className="text-xs text-muted-foreground truncate w-full">
+                          {user?.email || 'admin@vmoda.com'}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronUp className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" className="w-56">
+                  <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => signOut()}
+                    className="text-red-600 cursor-pointer"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sair</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
+          <SidebarTrigger />
+          <div className="ml-auto text-sm font-medium text-muted-foreground">
+            Painel Administrativo
           </div>
-        </div>
-      </header>
-      <div className="flex flex-1">
-        <aside className="hidden w-64 flex-col border-r bg-muted/40 md:flex">
-          <nav className="grid items-start gap-2 px-4 py-4 text-sm font-medium">
-            <NavLinks />
-          </nav>
-        </aside>
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        </header>
+        <main className="flex-1 p-6 bg-muted/20 overflow-auto">
           <Outlet />
         </main>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

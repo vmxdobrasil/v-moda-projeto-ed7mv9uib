@@ -1,6 +1,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { useAuth } from '@/hooks/use-auth'
 import { Users, ShoppingBag, TrendingUp, Activity } from 'lucide-react'
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+
+const chartData = [
+  { month: 'Jan', sales: 4000, leads: 2400 },
+  { month: 'Fev', sales: 3000, leads: 1398 },
+  { month: 'Mar', sales: 2000, leads: 9800 },
+  { month: 'Abr', sales: 2780, leads: 3908 },
+  { month: 'Mai', sales: 1890, leads: 4800 },
+  { month: 'Jun', sales: 2390, leads: 3800 },
+  { month: 'Jul', sales: 3490, leads: 4300 },
+]
 
 export default function Index() {
   const { user } = useAuth()
@@ -68,8 +80,41 @@ export default function Index() {
             <CardTitle>Visão Geral</CardTitle>
             <CardDescription>Performance de vendas e leads nos últimos meses.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-md border-dashed border-2 m-6 mt-0">
-            Gráfico não disponível
+          <CardContent className="pl-2">
+            <ChartContainer
+              config={{
+                sales: {
+                  label: 'Vendas',
+                  color: 'hsl(var(--primary))',
+                },
+                leads: {
+                  label: 'Leads',
+                  color: 'hsl(var(--muted-foreground))',
+                },
+              }}
+              className="h-[300px] w-full"
+            >
+              <BarChart data={chartData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tickFormatter={(value) => `R$${value}`}
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="sales" fill="var(--color-sales)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="leads" fill="var(--color-leads)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
           </CardContent>
         </Card>
 
@@ -78,8 +123,38 @@ export default function Index() {
             <CardTitle>Atividades Recentes</CardTitle>
             <CardDescription>Últimas ações realizadas no sistema.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-md border-dashed border-2 m-6 mt-0">
-            Nenhuma atividade recente
+          <CardContent>
+            <div className="space-y-8">
+              {[
+                {
+                  name: 'Maria Silva',
+                  action: 'realizou uma nova compra',
+                  time: 'Há 2 horas',
+                  amount: '+ R$ 1.250,00',
+                },
+                { name: 'João Pedro', action: 'se cadastrou no sistema', time: 'Há 4 horas' },
+                { name: 'Ana Costa', action: 'atualizou o perfil', time: 'Há 5 horas' },
+                {
+                  name: 'Carlos Santos',
+                  action: 'assinou plano Pro',
+                  time: 'Há 1 dia',
+                  amount: '+ R$ 299,00',
+                },
+              ].map((activity, i) => (
+                <div key={i} className="flex items-center">
+                  <div className="ml-4 space-y-1">
+                    <p className="text-sm font-medium leading-none">{activity.name}</p>
+                    <p className="text-sm text-muted-foreground">{activity.action}</p>
+                    <p className="text-xs text-muted-foreground">{activity.time}</p>
+                  </div>
+                  {activity.amount && (
+                    <div className="ml-auto font-medium text-sm text-emerald-600">
+                      {activity.amount}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
