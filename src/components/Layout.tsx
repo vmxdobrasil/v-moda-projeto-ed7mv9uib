@@ -1,112 +1,87 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-  SidebarHeader,
-  SidebarFooter,
-} from '@/components/ui/sidebar'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import {
-  LayoutDashboard,
-  Users,
-  FolderKanban,
-  MessageSquare,
-  Settings,
-  LogOut,
-  Shirt,
-} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { LogOut, Home, Menu, Users, ShoppingBag } from 'lucide-react'
+import { useState } from 'react'
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
+import { cn } from '@/lib/utils'
 
 export function Layout() {
-  const { user, signOut } = useAuth()
+  const { signOut, user } = useAuth()
+  const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
 
-  const navItems = [
-    { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-    { title: 'Clientes', url: '/customers', icon: Users },
-    { title: 'Catálogo', url: '/projects', icon: Shirt },
-    { title: 'Projetos', url: '/workflows', icon: FolderKanban },
-    { title: 'Mensagens', url: '/messages', icon: MessageSquare },
-    { title: 'Configurações', url: '/settings', icon: Settings },
+  const navigation = [
+    { name: 'Dashboard', href: '/', icon: Home },
+    { name: 'Clientes', href: '/clientes', icon: Users },
+    { name: 'Produtos', href: '/produtos', icon: ShoppingBag },
   ]
 
-  return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
-        <Sidebar>
-          <SidebarHeader className="flex h-16 items-center border-b px-6">
-            <span className="text-xl font-bold tracking-tight text-primary">V Moda</span>
-          </SidebarHeader>
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {navItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={location.pathname === item.url}>
-                        <Link to={item.url}>
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-          <SidebarFooter className="border-t p-4">
-            {user && (
-              <div className="flex items-center gap-3">
-                <Avatar className="h-9 w-9 border border-border">
-                  <AvatarImage src={user.avatar ? pb.files.getUrl(user, user.avatar) : undefined} />
-                  <AvatarFallback className="bg-primary/10 text-primary">
-                    {user.name?.charAt(0).toUpperCase() ||
-                      user.email?.charAt(0).toUpperCase() ||
-                      'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col overflow-hidden">
-                  <span className="truncate text-sm font-medium">{user.name || 'Admin'}</span>
-                  <span className="truncate text-xs text-muted-foreground capitalize">
-                    {user.role || 'Superuser'}
-                  </span>
-                </div>
-                <button
-                  onClick={signOut}
-                  className="ml-auto rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  title="Sair"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
+  const NavLinks = () => (
+    <>
+      {navigation.map((item) => {
+        const isActive = location.pathname === item.href
+        return (
+          <Link
+            key={item.name}
+            to={item.href}
+            onClick={() => setIsOpen(false)}
+            className={cn(
+              'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+              isActive
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-accent hover:text-accent-foreground',
             )}
-          </SidebarFooter>
-        </Sidebar>
+          >
+            <item.icon className="h-4 w-4" />
+            {item.name}
+          </Link>
+        )
+      })}
+    </>
+  )
 
-        <main className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <SidebarTrigger />
-            <div className="flex flex-1 items-center justify-between">
-              <h1 className="text-lg font-semibold tracking-tight">Painel de Controle</h1>
-            </div>
-          </header>
-          <div className="flex-1 overflow-auto bg-muted/20 p-4 md:p-6 lg:p-8">
-            <div className="mx-auto max-w-6xl">
-              <Outlet />
-            </div>
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Alternar menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-72 flex flex-col">
+            <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
+            <div className="flex h-16 items-center border-b px-2 font-bold text-lg">V Moda</div>
+            <nav className="grid gap-2 py-4">
+              <NavLinks />
+            </nav>
+          </SheetContent>
+        </Sheet>
+        <div className="flex w-full items-center justify-between gap-4 md:justify-end">
+          <div className="hidden md:flex font-bold text-xl mr-auto">V Moda</div>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground hidden sm:inline-block">
+              {user?.email}
+            </span>
+            <Button variant="ghost" size="sm" onClick={() => signOut()}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair
+            </Button>
           </div>
+        </div>
+      </header>
+      <div className="flex flex-1">
+        <aside className="hidden w-64 flex-col border-r bg-muted/40 md:flex">
+          <nav className="grid items-start gap-2 px-4 py-4 text-sm font-medium">
+            <NavLinks />
+          </nav>
+        </aside>
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+          <Outlet />
         </main>
       </div>
-    </SidebarProvider>
+    </div>
   )
 }
