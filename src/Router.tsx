@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import Index from '@/pages/Index'
 import Login from '@/pages/Login'
+import NotFound from '@/pages/NotFound'
 import { useAuth } from '@/hooks/use-auth'
 import { Loader2 } from 'lucide-react'
 
@@ -36,7 +37,7 @@ export function AppRouter() {
       >
         <Route path="/" element={<Index />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   )
 }
