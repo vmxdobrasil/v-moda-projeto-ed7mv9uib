@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, Outlet, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { Layout } from '@/components/Layout'
 import Index from '@/pages/Index'
 import Login from '@/pages/Login'
@@ -24,32 +24,16 @@ function RequireAuth() {
   return <Outlet />
 }
 
-export const router = createBrowserRouter([
-  {
-    path: '/login',
-    element: <Login />,
-  },
-  {
-    path: '/',
-    element: <RequireAuth />,
-    children: [
-      {
-        element: <Layout />,
-        children: [
-          {
-            index: true,
-            element: <Index />,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    path: '*',
-    element: <NotFound />,
-  },
-])
-
 export function AppRouter() {
-  return <RouterProvider router={router} />
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/" element={<RequireAuth />}>
+        <Route element={<Layout />}>
+          <Route index element={<Index />} />
+        </Route>
+      </Route>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  )
 }
