@@ -1,28 +1,30 @@
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { LogOut } from 'lucide-react'
 
 export default function Dashboard() {
   const { user, signOut } = useAuth()
 
   return (
-    <div className="min-h-screen bg-muted/40 p-4 md:p-8">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <header className="flex items-center justify-between rounded-xl bg-card p-6 shadow-sm border">
-          <h1 className="text-2xl font-bold tracking-tight">V MODA - Dashboard</h1>
-          <Button variant="outline" onClick={signOut}>
-            Sair
-          </Button>
-        </header>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
+      <Card className="w-full max-w-lg shadow-lg">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold tracking-tight">V MODA</CardTitle>
+          <CardDescription>Painel Principal</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="rounded-lg bg-secondary/50 p-6 text-center shadow-inner">
+            <p className="text-sm text-muted-foreground mb-1">Você está logado como:</p>
+            <p className="text-lg font-medium">{user?.email}</p>
+          </div>
 
-        <main className="rounded-xl bg-card p-6 shadow-sm border">
-          <h2 className="mb-2 text-xl font-semibold">
-            Bem-vindo, {user?.name || user?.email || 'Usuário'}
-          </h2>
-          <p className="text-muted-foreground">
-            Você está conectado com sucesso e pronto para gerenciar suas operações.
-          </p>
-        </main>
-      </div>
+          <Button onClick={signOut} variant="destructive" className="w-full font-medium">
+            <LogOut className="mr-2 h-4 w-4" />
+            Sair da conta
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }
