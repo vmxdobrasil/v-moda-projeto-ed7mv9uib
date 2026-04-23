@@ -107,15 +107,15 @@ export default function Login() {
                     Entrando...
                   </>
                 ) : (
-                  'Entrar'
+                  'Login'
                 )}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="flex justify-center border-t p-4 mt-4 bg-muted/20">
-          <Link to="/esqueci-a-senha" className="text-sm text-primary hover:underline font-medium">
-            Esqueceu a senha? Recuperar acesso
+          <Link to="/forgot-password" className="text-sm text-primary hover:underline font-medium">
+            Esqueci minha senha
           </Link>
         </CardFooter>
       </Card>
