@@ -11,7 +11,7 @@ import { AuthGuard, PublicRoute } from '@/components/AuthGuard'
 // Pages
 import DashboardLayout from '@/pages/dashboard/DashboardLayout'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
-import Customers from '@/pages/admin/Customers'
+import Customers from '@/pages/dashboard/CRM'
 import CustomerDetails from '@/pages/dashboard/CustomerDetails'
 import Projects from '@/pages/dashboard/Projects'
 import Login from '@/pages/Login'
@@ -20,6 +20,9 @@ import Settings from '@/pages/dashboard/Settings'
 import Manufacturers from '@/pages/dashboard/Manufacturers'
 import Affiliates from '@/pages/dashboard/Affiliates'
 import Magazine from '@/pages/dashboard/Magazine'
+import Logistics from '@/pages/dashboard/Logistics'
+import Analytics from '@/pages/dashboard/Analytics'
+import MediaKit from '@/pages/dashboard/MediaKit'
 
 export default function App() {
   return (
@@ -49,6 +52,9 @@ export default function App() {
                     <Route path="manufacturers" element={<Manufacturers />} />
                     <Route path="affiliates" element={<Affiliates />} />
                     <Route path="magazine" element={<Magazine />} />
+                    <Route path="logistics" element={<Logistics />} />
+                    <Route path="analytics" element={<Analytics />} />
+                    <Route path="media-kit" element={<MediaKit />} />
                     <Route path="settings" element={<Settings />} />
                   </Route>
                 </Route>

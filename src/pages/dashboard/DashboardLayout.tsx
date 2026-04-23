@@ -11,6 +11,9 @@ import {
   Store,
   UserPlus,
   BookOpen,
+  Truck,
+  PieChart,
+  FolderOpen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -26,6 +29,9 @@ const navigation = [
   { name: 'Fabricantes/Lojas', href: '/dashboard/manufacturers', icon: Store },
   { name: 'Afiliados', href: '/dashboard/affiliates', icon: UserPlus },
   { name: 'Revista', href: '/dashboard/magazine', icon: BookOpen },
+  { name: 'Logística', href: '/dashboard/logistics', icon: Truck },
+  { name: 'Analytics', href: '/dashboard/analytics', icon: PieChart },
+  { name: 'Media Kit', href: '/dashboard/media-kit', icon: FolderOpen },
   { name: 'Configurações', href: '/dashboard/settings', icon: Settings },
 ]
 

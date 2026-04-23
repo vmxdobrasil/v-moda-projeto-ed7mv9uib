@@ -1,19 +1,22 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { getCustomers, Customer } from '@/services/customers'
+import { getReferrals, Referral } from '@/services/referrals'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { Target, TrendingUp, Users, Award } from 'lucide-react'
+import { Target, TrendingUp, Users, Award, Link as LinkIcon } from 'lucide-react'
 
 export default function Analytics() {
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [referrals, setReferrals] = useState<Referral[]>([])
   const [loading, setLoading] = useState(true)
 
   const loadData = async () => {
     try {
-      const data = await getCustomers()
-      setCustomers(data)
+      const [customersData, referralsData] = await Promise.all([getCustomers(), getReferrals()])
+      setCustomers(customersData)
+      setReferrals(referralsData)
     } catch (err) {
       console.error(err)
     } finally {
@@ -25,9 +28,8 @@ export default function Analytics() {
     loadData()
   }, [])
 
-  useRealtime('customers', () => {
-    loadData()
-  })
+  useRealtime('customers', loadData)
+  useRealtime('referrals', loadData)
 
   const { funnelData, conversionRate, totalLeads, convertedLeads } = useMemo(() => {
     const statuses = {
@@ -129,14 +131,53 @@ export default function Analytics() {
 
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Desempenho Geral</CardTitle>
-            <TrendingUp className="w-4 h-4 text-orange-500" />
+            <CardTitle className="text-sm font-medium">Total de Indicações</CardTitle>
+            <LinkIcon className="w-4 h-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
-              {conversionRate >= 15 ? 'Excelente' : conversionRate >= 5 ? 'Bom' : 'Atenção'}
+            <div className="text-3xl font-bold">{referrals.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Cliques, leads e conversões de afiliados
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="shadow-sm bg-muted/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Cliques de Afiliados
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {referrals.filter((r) => r.type === 'click').length}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Baseado na taxa de conversão</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm bg-muted/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Leads de Afiliados
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {referrals.filter((r) => r.type === 'lead').length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm bg-muted/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Conversões de Afiliados
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {referrals.filter((r) => r.type === 'conversion').length}
+            </div>
           </CardContent>
         </Card>
       </div>

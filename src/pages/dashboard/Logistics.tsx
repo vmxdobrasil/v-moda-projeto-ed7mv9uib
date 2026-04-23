@@ -32,8 +32,16 @@ export default function Logistics() {
 
   const loadData = async () => {
     try {
+      const user = pb.authStore.record
+      if (!user) return
+
+      const filterList = ['logistics_status != ""']
+      if (user.role !== 'admin' && user.email !== 'valterpmendonca@gmail.com') {
+        filterList.push(`(manufacturer = "${user.id}" || affiliate_referrer = "${user.id}")`)
+      }
+
       const records = await pb.collection('customers').getFullList({
-        filter: `manufacturer = "${pb.authStore.record?.id}" && logistics_status != ""`,
+        filter: filterList.join(' && '),
         sort: '-updated',
       })
       setDeliveries(records)

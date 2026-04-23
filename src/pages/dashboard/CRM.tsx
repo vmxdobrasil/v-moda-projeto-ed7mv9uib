@@ -12,27 +12,38 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Download, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { useRealtime } from '@/hooks/use-realtime'
 
 export default function CRM() {
   const [leads, setLeads] = useState<any[]>([])
   const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadLeads()
   }, [])
 
+  useRealtime('customers', () => loadLeads())
+
   const loadLeads = async () => {
     try {
-      const userId = pb.authStore.record?.id
-      if (!userId) return
+      const user = pb.authStore.record
+      if (!user) return
+
+      const filter =
+        user.role === 'admin' || user.email === 'valterpmendonca@gmail.com'
+          ? ''
+          : `manufacturer = "${user.id}" || affiliate_referrer = "${user.id}"`
 
       const records = await pb.collection('customers').getFullList({
-        filter: `manufacturer = "${userId}"`,
+        filter,
         sort: '-created',
       })
       setLeads(records)
     } catch (err) {
       console.error(err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -99,7 +110,13 @@ export default function CRM() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredLeads.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                  Carregando clientes...
+                </TableCell>
+              </TableRow>
+            ) : filteredLeads.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                   Nenhum lead encontrado com estes filtros.
