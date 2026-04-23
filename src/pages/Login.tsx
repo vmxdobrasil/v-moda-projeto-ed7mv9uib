@@ -22,8 +22,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Package, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import logoUrl from '@/assets/logo-v-moda-fb088.png'
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'E-mail inválido.' }),
@@ -64,10 +65,10 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-muted/40 px-4">
       <Card className="w-full max-w-md shadow-lg border-primary/10 animate-fade-in-up">
         <CardHeader className="space-y-2 text-center pb-6">
-          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-2">
-            <Package className="h-6 w-6 text-primary" />
+          <div className="mx-auto flex justify-center mb-4">
+            <img src={logoUrl} alt="V Moda" className="h-16 object-contain" />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">V Moda Hub</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight">Hub</CardTitle>
           <CardDescription>Acesse o painel para gerenciar seu catálogo e CRM.</CardDescription>
         </CardHeader>
         <CardContent>

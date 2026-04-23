@@ -33,6 +33,7 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
+import logoUrl from '@/assets/logo-v-moda-fb088.png'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -84,8 +85,8 @@ export default function DashboardLayout() {
     <SidebarProvider>
       <Sidebar variant="inset">
         <SidebarHeader>
-          <div className="flex h-12 items-center px-4 font-bold text-xl tracking-tight text-primary">
-            V MODA
+          <div className="flex h-16 items-center px-4 py-2">
+            <img src={logoUrl} alt="V Moda" className="h-full w-auto object-contain" />
           </div>
         </SidebarHeader>
         <SidebarContent>
