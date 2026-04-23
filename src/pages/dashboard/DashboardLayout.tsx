@@ -12,6 +12,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import pb from '@/lib/pocketbase/client'
 
 const navigation = [
   { name: 'Início', href: '/dashboard', icon: LayoutDashboard },
@@ -97,9 +99,24 @@ export default function DashboardLayout() {
           </Sheet>
           <div className="flex-1" />
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium hidden md:block">
-              Olá, {user?.name || user?.email}
-            </span>
+            <div className="flex items-center gap-3 hidden md:flex bg-muted/50 rounded-full pl-1 pr-4 py-1 border border-border/50">
+              <Avatar className="h-7 w-7 border bg-background">
+                <AvatarImage
+                  src={
+                    user?.avatar
+                      ? pb.files.getUrl(user, user.avatar, { thumb: '100x100' })
+                      : undefined
+                  }
+                  alt={user?.name}
+                />
+                <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                  {user?.name?.substring(0, 2).toUpperCase() ||
+                    user?.email?.substring(0, 2).toUpperCase() ||
+                    'AD'}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-medium">{user?.name || user?.email}</span>
+            </div>
             <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2">
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Sair</span>

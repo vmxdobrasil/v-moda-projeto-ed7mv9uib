@@ -42,7 +42,7 @@ import { Customer, getCustomers, updateCustomer } from '@/services/customers'
 import { sendManualWhatsapp, sendReactivationCampaign } from '@/services/whatsapp'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
-import { CustomerBenefits } from '@/components/admin/CustomerBenefits'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 
 type SortField = 'totalSpent' | 'lastPurchase' | null
 type SortDirection = 'asc' | 'desc'
@@ -52,9 +52,20 @@ export default function Customers() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
 
+  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [bulkCampaignOpen, setBulkCampaignOpen] = useState(false)
-  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(searchParams.get('new') === 'true')
+
+  useEffect(() => {
+    if (searchParams.get('new') === 'true') {
+      setIsAddCustomerOpen(true)
+      searchParams.delete('new')
+      setSearchParams(searchParams, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
   const [newCustomer, setNewCustomer] = useState({
     name: '',
     phone: '',
@@ -536,7 +547,7 @@ export default function Customers() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setSelectedCustomer(customer)}
+                            onClick={() => navigate(`/dashboard/clientes/${customer.id}`)}
                             title="Ver Detalhes"
                           >
                             <Eye className="w-4 h-4" />
@@ -702,186 +713,6 @@ export default function Customers() {
             </Button>
             <Button onClick={handleAddCustomer}>Salvar Cliente</Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!selectedCustomer} onOpenChange={(open) => !open && setSelectedCustomer(null)}>
-        <DialogContent className="sm:max-w-[700px] h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Detalhes do Cliente</DialogTitle>
-          </DialogHeader>
-          {selectedCustomer && (
-            <Tabs defaultValue="geral" className="flex-1 overflow-hidden flex flex-col mt-4">
-              <TabsList className="w-full justify-start overflow-x-auto shrink-0">
-                <TabsTrigger value="geral">Geral</TabsTrigger>
-                {selectedCustomer.ranking_position && (
-                  <TabsTrigger
-                    value="beneficios"
-                    className="text-amber-600 font-semibold data-[state=active]:text-amber-700"
-                  >
-                    Esteira de Apoio
-                  </TabsTrigger>
-                )}
-              </TabsList>
-
-              <ScrollArea className="flex-1 mt-4 pr-4">
-                <TabsContent value="geral" className="m-0 space-y-6 pb-4">
-                  <div className="flex items-start gap-4 p-4 bg-muted/30 rounded-lg border">
-                    <Avatar className="h-16 w-16 border shadow-sm">
-                      <AvatarImage
-                        src={
-                          selectedCustomer.avatar
-                            ? pb.files.getUrl(selectedCustomer, selectedCustomer.avatar, {
-                                thumb: '200x200',
-                              })
-                            : undefined
-                        }
-                        alt={selectedCustomer.name}
-                        className="object-cover"
-                      />
-                      <AvatarFallback className="text-xl font-bold uppercase bg-primary/10 text-primary">
-                        {selectedCustomer.name.substring(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold">{selectedCustomer.name}</h3>
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-1">
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3" /> {selectedCustomer.email || 'Sem e-mail'}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3" />{' '}
-                          {(selectedCustomer as any).phone || 'Sem telefone'}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" /> Desde{' '}
-                          {new Date(selectedCustomer.created).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap gap-2 items-center">
-                        {(selectedCustomer as any).phone && (
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() =>
-                              window.open(
-                                `https://wa.me/${(selectedCustomer as any).phone.replace(/\D/g, '')}`,
-                                '_blank',
-                              )
-                            }
-                          >
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            WhatsApp
-                          </Button>
-                        )}
-                        {(selectedCustomer as any).phone && selectedCustomer.ranking_position && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
-                            onClick={() => handleSendWhatsapp(selectedCustomer.id)}
-                            disabled={sendingWa}
-                          >
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            Boas-vindas (Auto)
-                          </Button>
-                        )}
-                        {isInactive(selectedCustomer.updated) && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700"
-                            onClick={() => handleReactivate(selectedCustomer.id)}
-                            disabled={sendingWa}
-                          >
-                            <Zap className="w-4 h-4 mr-2" />
-                            Reativar
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
-                    <Label className="text-sm font-semibold text-blue-900 flex items-center gap-2">
-                      <BusFront className="w-4 h-4" /> Status de Logística
-                    </Label>
-                    <Select
-                      value={selectedCustomer.logistics_status || ''}
-                      onValueChange={(val: any) => handleLogisticsUpdate(selectedCustomer.id, val)}
-                    >
-                      <SelectTrigger className="w-full sm:w-[250px] bg-white">
-                        <SelectValue placeholder="Selecione o status..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Aguardando Ônibus">Aguardando Ônibus</SelectItem>
-                        <SelectItem value="Em Trânsito no Ônibus">Em Trânsito no Ônibus</SelectItem>
-                        <SelectItem value="Entregue">Entregue</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Card>
-                      <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                        <span className="text-sm font-medium text-muted-foreground mb-1">
-                          Total de Pedidos
-                        </span>
-                        <span className="text-3xl font-bold">
-                          {getDerivedData(selectedCustomer).ordersCount}
-                        </span>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                        <span className="text-sm font-medium text-muted-foreground mb-1">
-                          Total Gasto (LTV)
-                        </span>
-                        <span className="text-3xl font-bold text-primary">
-                          R$ {getDerivedData(selectedCustomer).totalSpent.toFixed(2)}
-                        </span>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Card>
-                      <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                        <span className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
-                          <MapPin className="w-4 h-4" /> Origem (Rota do Ônibus)
-                        </span>
-                        <span className="text-lg font-medium mt-1">
-                          {selectedCustomer.city
-                            ? `${selectedCustomer.city} / ${selectedCustomer.state || '-'}`
-                            : 'Não informada'}
-                        </span>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-                        <span className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
-                          <BusFront className="w-4 h-4" /> Custo de Logística (Frete)
-                        </span>
-                        <span className="text-lg font-medium text-blue-600 mt-1">
-                          R${' '}
-                          {selectedCustomer.freight_value
-                            ? selectedCustomer.freight_value.toFixed(2)
-                            : '0.00'}
-                        </span>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </TabsContent>
-
-                {selectedCustomer.ranking_position && (
-                  <TabsContent value="beneficios" className="m-0 pb-4">
-                    <CustomerBenefits customer={selectedCustomer} />
-                  </TabsContent>
-                )}
-              </ScrollArea>
-            </Tabs>
-          )}
         </DialogContent>
       </Dialog>
     </div>

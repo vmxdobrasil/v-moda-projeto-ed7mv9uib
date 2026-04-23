@@ -9,12 +9,12 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthGuard, PublicRoute } from '@/components/AuthGuard'
 
 // Pages
-import AdminLayout from '@/pages/admin/AdminLayout'
-import Dashboard from '@/pages/admin/Dashboard'
+import DashboardLayout from '@/pages/dashboard/DashboardLayout'
+import DashboardHub from '@/pages/dashboard/DashboardHub'
 import Customers from '@/pages/admin/Customers'
-import Products from '@/pages/admin/Products'
+import CustomerDetails from '@/pages/dashboard/CustomerDetails'
+import Projects from '@/pages/dashboard/Projects'
 import Login from '@/pages/Login'
-import Index from '@/pages/Index'
 
 export default function App() {
   return (
@@ -30,21 +30,20 @@ export default function App() {
               <Routes>
                 <Route element={<PublicRoute />}>
                   <Route path="/login" element={<Login />} />
-                  <Route path="/admin/login" element={<Login />} />
+                  <Route path="/admin/login" element={<Navigate to="/login" replace />} />
                 </Route>
 
                 <Route element={<AuthGuard />}>
-                  <Route path="/" element={<Navigate to="/admin" replace />} />
-                  <Route path="/admin" element={<AdminLayout />}>
-                    <Route index element={<Dashboard />} />
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={<DashboardLayout />}>
+                    <Route index element={<DashboardHub />} />
                     <Route path="clientes" element={<Customers />} />
-                    <Route path="produtos" element={<Products />} />
-                    {/* Fallback for unhandled admin routes */}
-                    <Route path="*" element={<Index />} />
+                    <Route path="clientes/:id" element={<CustomerDetails />} />
+                    <Route path="produtos" element={<Projects />} />
                   </Route>
                 </Route>
 
-                {/* Catch all to redirect to root/dashboard */}
+                {/* Catch all unmatched routes */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </TooltipProvider>

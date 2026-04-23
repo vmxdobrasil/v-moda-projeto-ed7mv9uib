@@ -9,8 +9,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Users, Package, MessageSquare, Loader2 } from 'lucide-react'
+import { Users, Package, MessageSquare, Loader2, Plus } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
+import { Button } from '@/components/ui/button'
+import { Link } from 'react-router-dom'
 import { useRealtime } from '@/hooks/use-realtime'
 import { format } from 'date-fns'
 
@@ -102,6 +104,42 @@ export default function DashboardHub() {
         <p className="text-muted-foreground mt-1">
           Visão geral do seu negócio e atividades recentes.
         </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <Card className="md:col-span-3 bg-primary/5 border-primary/20 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Ações Rápidas</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-4">
+            <Button asChild className="gap-2">
+              <Link to="/dashboard/clientes?new=true">
+                <Plus className="h-4 w-4" />
+                Adicionar Lead
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="secondary"
+              className="gap-2 bg-background border shadow-sm hover:bg-muted"
+            >
+              <Link to="/dashboard/produtos?new=true">
+                <Package className="h-4 w-4" />
+                Criar Produto
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="gap-2 bg-background shadow-sm hover:bg-muted"
+            >
+              <Link to="/dashboard/clientes">
+                <Users className="h-4 w-4" />
+                Ver Todos os Clientes
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

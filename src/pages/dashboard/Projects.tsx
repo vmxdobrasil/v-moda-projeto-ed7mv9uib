@@ -31,11 +31,21 @@ import { toast } from 'sonner'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { useSearchParams } from 'react-router-dom'
 
 export default function DashboardProjects() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [projects, setProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [isNewOpen, setIsNewOpen] = useState(false)
+  const [isNewOpen, setIsNewOpen] = useState(searchParams.get('new') === 'true')
+
+  useEffect(() => {
+    if (searchParams.get('new') === 'true') {
+      setIsNewOpen(true)
+      searchParams.delete('new')
+      setSearchParams(searchParams, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
   const [editingProject, setEditingProject] = useState<any | null>(null)
 
   const [formData, setFormData] = useState({
