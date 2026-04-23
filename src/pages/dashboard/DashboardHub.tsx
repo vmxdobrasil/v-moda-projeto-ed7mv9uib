@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Users, Package, MessageSquare, Loader2, Plus } from 'lucide-react'
+import { Users, Package, MessageSquare, Loader2, Plus, AlertCircle } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
@@ -24,9 +24,9 @@ interface DashboardStats {
 
 interface RecentCustomer {
   id: string
-  name: string
-  status: string
-  created: string
+  name?: string
+  status?: string
+  created?: string
 }
 
 export default function DashboardHub() {
@@ -37,24 +37,51 @@ export default function DashboardHub() {
   })
   const [recentCustomers, setRecentCustomers] = useState<RecentCustomer[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const loadData = async () => {
     try {
+      setError(null)
       const [leadsRes, projectsRes, messagesRes, recentRes] = await Promise.all([
-        pb.collection('customers').getList(1, 1),
-        pb.collection('projects').getList(1, 1),
-        pb.collection('messages').getList(1, 1, { filter: "status='pending'" }),
-        pb.collection('customers').getList<RecentCustomer>(1, 5, { sort: '-created' }),
+        pb
+          .collection('customers')
+          .getList(1, 1)
+          .catch((e) => {
+            console.error('Error fetching customers count:', e)
+            return { totalItems: 0 }
+          }),
+        pb
+          .collection('projects')
+          .getList(1, 1)
+          .catch((e) => {
+            console.error('Error fetching projects count:', e)
+            return { totalItems: 0 }
+          }),
+        pb
+          .collection('messages')
+          .getList(1, 1, { filter: "status='pending'" })
+          .catch((e) => {
+            console.error('Error fetching messages count:', e)
+            return { totalItems: 0 }
+          }),
+        pb
+          .collection('customers')
+          .getList<RecentCustomer>(1, 5, { sort: '-created' })
+          .catch((e) => {
+            console.error('Error fetching recent customers:', e)
+            return { items: [] }
+          }),
       ])
 
       setStats({
-        totalLeads: leadsRes.totalItems,
-        activeProjects: projectsRes.totalItems,
-        pendingMessages: messagesRes.totalItems,
+        totalLeads: leadsRes?.totalItems || 0,
+        activeProjects: projectsRes?.totalItems || 0,
+        pendingMessages: messagesRes?.totalItems || 0,
       })
-      setRecentCustomers(recentRes.items)
+      setRecentCustomers(recentRes?.items || [])
     } catch (error) {
       console.error('Failed to load dashboard data', error)
+      setError('Não foi possível carregar alguns dados do painel.')
     } finally {
       setLoading(false)
     }
@@ -68,8 +95,9 @@ export default function DashboardHub() {
   useRealtime('projects', loadData)
   useRealtime('messages', loadData)
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (status?: string) => {
+    const s = status || 'new'
+    switch (s) {
       case 'new':
         return <Badge className="bg-blue-500 hover:bg-blue-600">Novo</Badge>
       case 'interested':
@@ -85,7 +113,11 @@ export default function DashboardHub() {
           </Badge>
         )
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return (
+          <Badge variant="outline" className="capitalize">
+            {s}
+          </Badge>
+        )
     }
   }
 
@@ -105,6 +137,13 @@ export default function DashboardHub() {
           Visão geral do seu negócio e atividades recentes.
         </p>
       </div>
+
+      {error && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-center gap-2">
+          <AlertCircle className="h-4 w-4" />
+          {error}
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3 mb-6">
         <Card className="md:col-span-3 bg-primary/5 border-primary/20 shadow-sm">
@@ -201,10 +240,10 @@ export default function DashboardHub() {
                 ) : (
                   recentCustomers.map((customer) => (
                     <TableRow key={customer.id}>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
-                      <TableCell>{getStatusBadge(customer.status || 'new')}</TableCell>
+                      <TableCell className="font-medium">{customer?.name || 'Sem nome'}</TableCell>
+                      <TableCell>{getStatusBadge(customer?.status)}</TableCell>
                       <TableCell className="text-right">
-                        {customer.created
+                        {customer?.created
                           ? format(new Date(customer.created), 'dd/MM/yyyy HH:mm')
                           : '-'}
                       </TableCell>

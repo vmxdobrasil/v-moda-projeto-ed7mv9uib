@@ -54,23 +54,42 @@ export default function AdminDashboard() {
   const loadData = async () => {
     try {
       const [leadsRes, projectsRes, msgsRes, recentRes] = await Promise.all([
-        pb.collection('customers').getList(1, 1, { $autoCancel: false }),
-        pb.collection('projects').getList(1, 1, { $autoCancel: false }),
-        pb
-          .collection('messages')
-          .getList(1, 1, { filter: 'status="pending"', $autoCancel: false })
-          .catch(() => ({ totalItems: 0 })),
         pb
           .collection('customers')
-          .getList<Customer>(1, 10, { sort: '-created', $autoCancel: false }),
+          .getList(1, 1)
+          .catch((e) => {
+            console.error(e)
+            return { totalItems: 0 }
+          }),
+        pb
+          .collection('projects')
+          .getList(1, 1)
+          .catch((e) => {
+            console.error(e)
+            return { totalItems: 0 }
+          }),
+        pb
+          .collection('messages')
+          .getList(1, 1, { filter: 'status="pending"' })
+          .catch((e) => {
+            console.error(e)
+            return { totalItems: 0 }
+          }),
+        pb
+          .collection('customers')
+          .getList<Customer>(1, 10, { sort: '-created' })
+          .catch((e) => {
+            console.error(e)
+            return { items: [] }
+          }),
       ])
 
       setMetrics({
-        leads: leadsRes.totalItems,
-        projects: projectsRes.totalItems,
-        messages: msgsRes.totalItems,
+        leads: leadsRes?.totalItems || 0,
+        projects: projectsRes?.totalItems || 0,
+        messages: msgsRes?.totalItems || 0,
       })
-      setRecentCustomers(recentRes.items)
+      setRecentCustomers(recentRes?.items || [])
     } catch (err) {
       console.error(err)
     } finally {
