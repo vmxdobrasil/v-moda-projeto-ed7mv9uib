@@ -15,6 +15,8 @@ import Customers from '@/pages/admin/Customers'
 import CustomerDetails from '@/pages/dashboard/CustomerDetails'
 import Projects from '@/pages/dashboard/Projects'
 import Login from '@/pages/Login'
+import Messages from '@/pages/dashboard/Messages'
+import Settings from '@/pages/dashboard/Settings'
 
 export default function App() {
   return (
@@ -37,9 +39,11 @@ export default function App() {
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<DashboardLayout />}>
                     <Route index element={<DashboardHub />} />
-                    <Route path="clientes" element={<Customers />} />
-                    <Route path="clientes/:id" element={<CustomerDetails />} />
-                    <Route path="produtos" element={<Projects />} />
+                    <Route path="customers" element={<Customers />} />
+                    <Route path="customers/:id" element={<CustomerDetails />} />
+                    <Route path="products" element={<Projects />} />
+                    <Route path="messages" element={<Messages />} />
+                    <Route path="settings" element={<Settings />} />
                   </Route>
                 </Route>
 

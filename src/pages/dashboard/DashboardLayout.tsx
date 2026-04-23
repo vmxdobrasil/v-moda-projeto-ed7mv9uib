@@ -17,10 +17,10 @@ import pb from '@/lib/pocketbase/client'
 
 const navigation = [
   { name: 'Início', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Clientes', href: '/dashboard/clientes', icon: Users },
-  { name: 'Produtos', href: '/dashboard/produtos', icon: Package },
-  { name: 'Mensagens', href: '/dashboard/mensagens', icon: MessageSquare },
-  { name: 'Configurações', href: '/dashboard/configuracoes', icon: Settings },
+  { name: 'Clientes', href: '/dashboard/customers', icon: Users },
+  { name: 'Produtos', href: '/dashboard/products', icon: Package },
+  { name: 'Mensagens', href: '/dashboard/messages', icon: MessageSquare },
+  { name: 'Configurações', href: '/dashboard/settings', icon: Settings },
 ]
 
 export default function DashboardLayout() {

@@ -152,7 +152,7 @@ export default function DashboardHub() {
           </CardHeader>
           <CardContent className="flex flex-wrap gap-4">
             <Button asChild className="gap-2">
-              <Link to="/dashboard/clientes?new=true">
+              <Link to="/dashboard/customers?new=true">
                 <Plus className="h-4 w-4" />
                 Adicionar Lead
               </Link>
@@ -162,7 +162,7 @@ export default function DashboardHub() {
               variant="secondary"
               className="gap-2 bg-background border shadow-sm hover:bg-muted"
             >
-              <Link to="/dashboard/produtos?new=true">
+              <Link to="/dashboard/products?new=true">
                 <Package className="h-4 w-4" />
                 Criar Produto
               </Link>
@@ -172,7 +172,7 @@ export default function DashboardHub() {
               variant="outline"
               className="gap-2 bg-background shadow-sm hover:bg-muted"
             >
-              <Link to="/dashboard/clientes">
+              <Link to="/dashboard/customers">
                 <Users className="h-4 w-4" />
                 Ver Todos os Clientes
               </Link>
