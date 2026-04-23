@@ -25,24 +25,20 @@ const baseNavigation = [
   { name: 'Início', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Clientes / CRM', href: '/dashboard/customers', icon: Users },
   {
-    name: 'Meu Catálogo',
+    name: 'Meus Produtos',
     href: '/dashboard/products',
     icon: Package,
     roles: ['manufacturer', 'retailer'],
   },
-  {
-    name: 'Catálogo Revenda',
-    href: '/dashboard/admin-products',
-    icon: Package,
-    roles: ['admin'],
-  },
+  { name: 'Catálogo Global', href: '/dashboard/products', icon: Package, roles: ['admin'] },
+  { name: 'Meu Catálogo', href: '/dashboard/admin-products', icon: Store, roles: ['admin'] },
   { name: 'Mensagens', href: '/dashboard/messages', icon: MessageSquare },
   { name: 'Fabricantes/Lojas', href: '/dashboard/manufacturers', icon: Store, roles: ['admin'] },
   { name: 'Afiliados', href: '/dashboard/affiliates', icon: UserPlus, roles: ['admin'] },
   { name: 'Revista', href: '/dashboard/magazine', icon: BookOpen, roles: ['admin'] },
   { name: 'Logística', href: '/dashboard/logistics', icon: Truck },
   { name: 'Analytics', href: '/dashboard/analytics', icon: PieChart },
-  { name: 'Media Kit', href: '/dashboard/media-kit', icon: FolderOpen },
+  { name: 'Media Kit', href: '/dashboard/media-kit', icon: FolderOpen, roles: ['admin'] },
   { name: 'Configurações', href: '/dashboard/settings', icon: Settings },
 ]
 
@@ -60,12 +56,11 @@ export default function DashboardLayout() {
   const userRole = user?.role || 'user'
 
   const navigation = baseNavigation.filter((item) => {
-    if (isAdmin && !item.roles) return true
-    if (isAdmin && item.roles?.includes('admin')) return true
-    if (isAdmin && item.href === '/dashboard/products') return false // Admin uses /dashboard/admin-products
-
-    if (!isAdmin && item.roles && !item.roles.includes(userRole as string)) return false
-    return true
+    if (isAdmin) {
+      return !item.roles || item.roles.includes('admin')
+    } else {
+      return !item.roles || item.roles.includes(userRole as string)
+    }
   })
 
   const NavLinks = () => (

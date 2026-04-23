@@ -73,12 +73,11 @@ export default function DashboardProjects() {
   const isAdmin =
     pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
     pb.authStore.record?.role === 'admin'
-  const isCatalogOwner = ['manufacturer', 'retailer'].includes(userRole as string)
 
   const loadData = async () => {
     try {
       const records = await pb.collection('projects').getFullList({
-        filter: isCatalogOwner && !isAdmin ? `manufacturer = "${pb.authStore.record?.id}"` : '',
+        filter: !isAdmin ? `manufacturer = "${pb.authStore.record?.id}"` : '',
         sort: '-created',
       })
       setProjects(records)
@@ -177,12 +176,12 @@ export default function DashboardProjects() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            {isCatalogOwner ? 'Meu Catálogo' : 'Projetos & Coleções'}
+            {isAdmin ? 'Catálogo Global' : 'Meus Produtos'}
           </h1>
           <p className="text-muted-foreground">
-            {isCatalogOwner
-              ? 'Gerencie os produtos do seu catálogo e preços B2B/B2C.'
-              : 'Gerencie o portfólio visual da sua marca.'}
+            {isAdmin
+              ? 'Visualize todos os produtos cadastrados na plataforma.'
+              : 'Gerencie os produtos do seu catálogo e preços B2B/B2C.'}
           </p>
         </div>
 

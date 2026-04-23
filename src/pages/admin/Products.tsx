@@ -155,9 +155,9 @@ export default function Products() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Gerenciar Projetos / Produtos</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Meu Catálogo</h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            Adicione, edite ou remova itens do seu catálogo ativamente no banco de dados.
+            Gerencie os itens que você pretende vender ou revender.
           </p>
         </div>
         <Button onClick={() => handleOpenModal()}>
