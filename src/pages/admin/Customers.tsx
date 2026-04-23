@@ -54,6 +54,14 @@ export default function Customers() {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [bulkCampaignOpen, setBulkCampaignOpen] = useState(false)
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    status: 'new',
+    source: 'manual',
+  })
 
   const [showFilters, setShowFilters] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string>('todos')
@@ -268,6 +276,25 @@ export default function Customers() {
     }
   }
 
+  const handleAddCustomer = async () => {
+    if (!newCustomer.name) {
+      toast({ description: 'O nome é obrigatório.', variant: 'destructive' })
+      return
+    }
+    try {
+      await pb.collection('customers').create({
+        ...newCustomer,
+        manufacturer: pb.authStore.record?.id,
+      })
+      toast({ description: 'Cliente adicionado com sucesso!' })
+      setIsAddCustomerOpen(false)
+      setNewCustomer({ name: '', phone: '', email: '', status: 'new', source: 'manual' })
+      loadData()
+    } catch (err) {
+      toast({ description: 'Erro ao adicionar cliente.', variant: 'destructive' })
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -277,15 +304,18 @@ export default function Customers() {
             Gerencie os perfis dos seus clientes e histórico de compras.
           </p>
         </div>
-        {selectedIds.length > 0 && (
-          <Button
-            onClick={() => setBulkCampaignOpen(true)}
-            className="bg-amber-600 hover:bg-amber-700 text-white"
-          >
-            <Zap className="w-4 h-4 mr-2" />
-            Executar Campanha de Reativação ({selectedIds.length})
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {selectedIds.length > 0 && (
+            <Button
+              onClick={() => setBulkCampaignOpen(true)}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              Executar Campanha ({selectedIds.length})
+            </Button>
+          )}
+          <Button onClick={() => setIsAddCustomerOpen(true)}>Adicionar Cliente</Button>
+        </div>
       </div>
 
       <Card>
@@ -594,6 +624,84 @@ export default function Customers() {
               {sendingWa ? 'Enviando...' : 'Confirmar Envio'}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddCustomerOpen} onOpenChange={setIsAddCustomerOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Cliente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome *</Label>
+              <Input
+                value={newCustomer.name}
+                onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Telefone</Label>
+                <Input
+                  value={newCustomer.phone}
+                  onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  value={newCustomer.email}
+                  type="email"
+                  onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={newCustomer.status}
+                  onValueChange={(v) => setNewCustomer({ ...newCustomer, status: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">Novo</SelectItem>
+                    <SelectItem value="interested">Interessado</SelectItem>
+                    <SelectItem value="negotiating">Em Negociação</SelectItem>
+                    <SelectItem value="converted">Convertido</SelectItem>
+                    <SelectItem value="inactive">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Origem (Source)</Label>
+                <Select
+                  value={newCustomer.source}
+                  onValueChange={(v) => setNewCustomer({ ...newCustomer, source: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="manual">Manual</SelectItem>
+                    <SelectItem value="site">Site</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddCustomerOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddCustomer}>Salvar Cliente</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

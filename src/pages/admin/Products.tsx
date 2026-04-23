@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -20,236 +20,154 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { Plus, Edit2, Trash2, Search, Upload, Download } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Plus, Edit2, Trash2, Search, Image as ImageIcon } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-
-interface Product {
-  id: string
-  name: string
-  category: string
-  price: number
-  wholesalePrice?: number
-  stock: number
-  image: string
-  description: string
-}
-
-const INITIAL_PRODUCTS: Product[] = [
-  {
-    id: '1',
-    name: 'Vestido Seda Longo',
-    category: 'Vestidos',
-    price: 1250.0,
-    wholesalePrice: 850.0,
-    stock: 15,
-    image: 'https://img.usecurling.com/p/100/100?q=silk%20dress',
-    description: 'Vestido de seda elegante para festas.',
-  },
-  {
-    id: '2',
-    name: 'Blazer Alfaiataria',
-    category: 'Casacos',
-    price: 1500.0,
-    wholesalePrice: 1000.0,
-    stock: 8,
-    image: 'https://img.usecurling.com/p/100/100?q=blazer',
-    description: 'Blazer com corte impecável.',
-  },
-  {
-    id: '3',
-    name: 'Calça Pantalona',
-    category: 'Calças',
-    price: 890.0,
-    stock: 20,
-    image: 'https://img.usecurling.com/p/100/100?q=pants',
-    description: 'Calça pantalona confortável e elegante.',
-  },
-  {
-    id: '4',
-    name: 'Camisa Linho',
-    category: 'Camisas',
-    price: 450.0,
-    stock: 3,
-    image: 'https://img.usecurling.com/p/100/100?q=linen%20shirt',
-    description: 'Camisa de linho puro, leve e fresca.',
-  },
-]
+import { useRealtime } from '@/hooks/use-realtime'
+import pb from '@/lib/pocketbase/client'
+import { Project } from '@/services/projects'
 
 export default function Products() {
   const { toast } = useToast()
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS)
+  const [projects, setProjects] = useState<Project[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const [importText, setImportText] = useState('')
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
 
-  const [formData, setFormData] = useState<Partial<Product>>({
+  const [formData, setFormData] = useState({
     name: '',
-    category: '',
-    price: 0,
-    wholesalePrice: 0,
-    stock: 0,
-    image: '',
     description: '',
+    price: '',
+    stock_quantity: '',
+    category: 'moda_geral',
   })
+  const [imageFile, setImageFile] = useState<File | null>(null)
 
-  const filteredProducts = products.filter((p) =>
+  const loadData = async () => {
+    try {
+      const records = await pb.collection('projects').getFullList<Project>({ sort: '-created' })
+      setProjects(records)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+  useRealtime('projects', loadData)
+
+  const filteredProjects = projects.filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const handleOpenModal = (product?: Product) => {
-    if (product) {
-      setEditingProduct(product)
-      setFormData({ ...product, wholesalePrice: product.wholesalePrice || 0 })
+  const handleOpenModal = (project?: Project) => {
+    if (project) {
+      setEditingProject(project)
+      setFormData({
+        name: project.name || '',
+        description: project.description || '',
+        price: project.price?.toString() || '',
+        stock_quantity: project.stock_quantity?.toString() || '',
+        category: project.category || 'moda_geral',
+      })
     } else {
-      setEditingProduct(null)
+      setEditingProject(null)
       setFormData({
         name: '',
-        category: '',
-        price: 0,
-        wholesalePrice: 0,
-        stock: 0,
-        image: '',
         description: '',
+        price: '',
+        stock_quantity: '',
+        category: 'moda_geral',
       })
     }
+    setImageFile(null)
     setIsModalOpen(true)
   }
 
-  const handleSave = () => {
-    if (
-      !formData.name ||
-      !formData.category ||
-      !formData.price ||
-      !formData.stock ||
-      !formData.image
-    ) {
-      toast({ description: 'Preencha todos os campos obrigatórios.', variant: 'destructive' })
+  const handleSave = async () => {
+    if (!formData.name || !formData.price || !formData.stock_quantity) {
+      toast({
+        description: 'Preencha os campos obrigatórios (Nome, Preço, Estoque).',
+        variant: 'destructive',
+      })
       return
     }
 
-    if (editingProduct) {
-      setProducts(
-        products.map((p) => (p.id === editingProduct.id ? ({ ...p, ...formData } as Product) : p)),
-      )
-      toast({ description: 'Produto atualizado com sucesso!' })
-    } else {
-      const newProduct = { ...formData, id: Math.random().toString(36).substr(2, 9) } as Product
-      setProducts([...products, newProduct])
-      toast({ description: 'Produto adicionado com sucesso!' })
-    }
-    setIsModalOpen(false)
-  }
-
-  const handleDelete = (id: string) => {
-    if (confirm('Tem certeza que deseja remover este produto?')) {
-      setProducts(products.filter((p) => p.id !== id))
-      toast({ description: 'Produto removido com sucesso!' })
-    }
-  }
-
-  const handleImport = () => {
-    try {
-      let parsedProducts: Partial<Product>[] = []
-
-      if (importText.trim().startsWith('[')) {
-        parsedProducts = JSON.parse(importText)
-      } else {
-        const lines = importText.split('\n').filter((line) => line.trim())
-        parsedProducts = lines.slice(1).map((line) => {
-          const [id, nome, categoria, preco, estoque, imagem, descricao] = line.split(',')
-          return {
-            id: id || Math.random().toString(36).substr(2, 9),
-            name: nome?.trim(),
-            category: categoria?.trim() || 'Geral',
-            price: Number(preco),
-            stock: Number(estoque),
-            image: imagem?.trim() || 'https://img.usecurling.com/p/100/100?q=product',
-            description: descricao?.trim() || '',
-          }
-        })
-      }
-
-      if (!parsedProducts.length) throw new Error('Nenhum dado válido.')
-
-      let updatedProducts = [...products]
-      let added = 0
-      let updated = 0
-
-      parsedProducts.forEach((p) => {
-        if (!p.name || !p.price) return
-        const existingIdx = updatedProducts.findIndex((ex) => ex.id === p.id || ex.name === p.name)
-        if (existingIdx >= 0) {
-          updatedProducts[existingIdx] = { ...updatedProducts[existingIdx], ...p } as Product
-          updated++
-        } else {
-          updatedProducts.push({
-            id: p.id || Math.random().toString(36).substr(2, 9),
-            name: p.name,
-            category: p.category || 'Geral',
-            price: p.price,
-            stock: p.stock || 0,
-            image: p.image || 'https://img.usecurling.com/p/100/100?q=product',
-            description: p.description || '',
-          })
-          added++
-        }
-      })
-
-      setProducts(updatedProducts)
-      toast({ description: `Importação concluída: ${added} adicionados, ${updated} atualizados.` })
-      setIsImportModalOpen(false)
-      setImportText('')
-    } catch (err) {
+    if (!editingProject && !imageFile) {
       toast({
-        description: 'Erro ao processar dados. Verifique o formato.',
+        description: 'Uma imagem é obrigatória para novos projetos.',
         variant: 'destructive',
       })
+      return
+    }
+
+    try {
+      const data = new FormData()
+      data.append('name', formData.name)
+      data.append('description', formData.description)
+      data.append('price', formData.price)
+      data.append('stock_quantity', formData.stock_quantity)
+      data.append('category', formData.category)
+
+      if (imageFile) {
+        data.append('image', imageFile)
+      }
+
+      if (editingProject) {
+        await pb.collection('projects').update(editingProject.id, data)
+        toast({ description: 'Projeto atualizado com sucesso!' })
+      } else {
+        data.append('manufacturer', pb.authStore.record?.id || '')
+        await pb.collection('projects').create(data)
+        toast({ description: 'Projeto adicionado com sucesso!' })
+      }
+      setIsModalOpen(false)
+    } catch (err: any) {
+      toast({ description: err.message || 'Erro ao salvar projeto.', variant: 'destructive' })
     }
   }
 
-  const downloadTemplate = () => {
-    const csvContent =
-      'id,nome,categoria,preco,estoque,imagem,descricao\nPROD-01,Novo Vestido,Vestidos,450.00,10,https://img.usecurling.com/p/100/100?q=dress,Um vestido elegante'
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'modelo_importacao.csv'
-    a.click()
-    URL.revokeObjectURL(url)
+  const handleDelete = async (id: string) => {
+    if (confirm('Tem certeza que deseja remover este projeto?')) {
+      try {
+        await pb.collection('projects').delete(id)
+        toast({ description: 'Projeto removido com sucesso!' })
+      } catch (err) {
+        toast({ description: 'Erro ao remover projeto.', variant: 'destructive' })
+      }
+    }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Gerenciar Produtos</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Gerenciar Projetos / Produtos</h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            Adicione, edite ou remova produtos do catálogo.
+            Adicione, edite ou remova itens do seu catálogo ativamente no banco de dados.
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
-            <Upload className="w-4 h-4 mr-2" />
-            Importar
-          </Button>
-          <Button onClick={() => handleOpenModal()}>
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Produto
-          </Button>
-        </div>
+        <Button onClick={() => handleOpenModal()}>
+          <Plus className="w-4 h-4 mr-2" />
+          Adicionar Projeto
+        </Button>
       </div>
 
       <Card>
         <CardHeader className="pb-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <CardTitle className="text-lg">Catálogo de Produtos</CardTitle>
+            <CardTitle className="text-lg">Catálogo Ativo</CardTitle>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar produto..."
+                placeholder="Buscar projeto..."
                 className="pl-9"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -262,63 +180,58 @@ export default function Products() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[80px]">Miniatura</TableHead>
-                  <TableHead>Nome do Produto</TableHead>
+                  <TableHead className="w-[80px]">Imagem</TableHead>
+                  <TableHead>Nome</TableHead>
                   <TableHead>Categoria</TableHead>
-                  <TableHead className="text-right">Preço</TableHead>
-                  <TableHead className="text-right">Atacado</TableHead>
-                  <TableHead className="text-center">Estoque</TableHead>{' '}
+                  <TableHead className="text-right">Preço (R$)</TableHead>
+                  <TableHead className="text-center">Estoque</TableHead>
                   <TableHead className="text-center w-[100px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
+                {filteredProjects.map((project) => (
+                  <TableRow key={project.id}>
                     <TableCell>
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-10 h-10 object-cover rounded-md border"
-                      />
+                      {project.image ? (
+                        <img
+                          src={pb.files.getUrl(project, project.image, { thumb: '100x100' })}
+                          alt={project.name}
+                          className="w-10 h-10 object-cover rounded-md border"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-muted flex items-center justify-center rounded-md border">
+                          <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      )}
                     </TableCell>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
-                      R$ {product.price.toFixed(2)}
+                    <TableCell className="font-medium">{project.name}</TableCell>
+                    <TableCell className="capitalize">
+                      {project.category?.replace('_', ' ')}
                     </TableCell>
-                    <TableCell className="text-right whitespace-nowrap text-muted-foreground text-sm">
-                      {product.wholesalePrice ? `R$ ${product.wholesalePrice.toFixed(2)}` : '-'}
+                    <TableCell className="text-right">
+                      {project.price?.toFixed(2) || '0.00'}
                     </TableCell>
                     <TableCell className="text-center">
-                      {' '}
-                      <div className="flex flex-col items-center justify-center gap-1.5">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock <= 5 ? 'bg-destructive/10 text-destructive' : product.stock < 10 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}
-                        >
-                          {product.stock} un
-                        </span>
-                        {product.stock <= 5 && (
-                          <span className="bg-destructive text-destructive-foreground text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider whitespace-nowrap">
-                            Estoque Crítico
-                          </span>
-                        )}
-                      </div>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${(project.stock_quantity || 0) <= 5 ? 'bg-destructive/10 text-destructive' : 'bg-emerald-100 text-emerald-800'}`}
+                      >
+                        {project.stock_quantity || 0} un
+                      </span>
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex justify-center gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleOpenModal(product)}
+                          onClick={() => handleOpenModal(project)}
                         >
                           <Edit2 className="w-4 h-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDelete(product.id)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDelete(project.id)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -326,10 +239,10 @@ export default function Products() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filteredProducts.length === 0 && (
+                {filteredProjects.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      Nenhum produto encontrado.
+                      Nenhum projeto encontrado.
                     </TableCell>
                   </TableRow>
                 )}
@@ -342,86 +255,72 @@ export default function Products() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{editingProduct ? 'Editar Produto' : 'Adicionar Produto'}</DialogTitle>
+            <DialogTitle>{editingProject ? 'Editar Projeto' : 'Adicionar Projeto'}</DialogTitle>
             <DialogDescription>
-              Preencha os detalhes do produto abaixo. Os campos marcados com * são obrigatórios.
+              Preencha os dados do projeto para inclusão no sistema.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Nome *</Label>
+              <Label>Nome *</Label>
               <Input
-                id="name"
-                placeholder="Ex: Vestido Floral"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="category">Categoria *</Label>
-                <Input
-                  id="category"
-                  placeholder="Ex: Vestidos"
+                <Label>Categoria</Label>
+                <Select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                />
+                  onValueChange={(v) => setFormData({ ...formData, category: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="moda_feminina">Moda Feminina</SelectItem>
+                    <SelectItem value="moda_masculina">Moda Masculina</SelectItem>
+                    <SelectItem value="jeans">Jeans</SelectItem>
+                    <SelectItem value="moda_praia">Moda Praia</SelectItem>
+                    <SelectItem value="moda_geral">Moda Geral</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="stock">Estoque *</Label>
+                <Label>Estoque *</Label>
                 <Input
-                  id="stock"
                   type="number"
                   min="0"
-                  value={formData.stock || ''}
-                  onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="price">Preço Varejo (R$) *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.price || ''}
-                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="wholesalePrice">Preço Atacado (B2B)</Label>
-                <Input
-                  id="wholesalePrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.wholesalePrice || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, wholesalePrice: Number(e.target.value) })
-                  }
+                  value={formData.stock_quantity}
+                  onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
                 />
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="image">URL da Imagem *</Label>
+              <Label>Preço (R$) *</Label>
               <Input
-                id="image"
-                placeholder="https://exemplo.com/imagem.jpg"
-                value={formData.image}
-                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="description">Descrição</Label>
+              <Label>Imagem {editingProject ? '(Opcional)' : '*'}</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Descrição</Label>
               <Textarea
-                id="description"
-                placeholder="Detalhes do produto..."
-                className="resize-none"
-                rows={3}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
               />
             </div>
           </div>
@@ -429,42 +328,7 @@ export default function Products() {
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave}>Salvar Produto</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Importação em Lote</DialogTitle>
-            <DialogDescription>
-              Cole abaixo os dados em formato CSV ou JSON para adicionar ou atualizar produtos.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">
-                Formato CSV: id,nome,categoria,preco,estoque,imagem,descricao
-              </span>
-              <Button variant="link" onClick={downloadTemplate} className="h-auto p-0">
-                <Download className="w-4 h-4 mr-1" />
-                Baixar Modelo
-              </Button>
-            </div>
-            <Textarea
-              placeholder="Cole os dados aqui..."
-              className="font-mono text-xs"
-              rows={10}
-              value={importText}
-              onChange={(e) => setImportText(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsImportModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleImport}>Processar Importação</Button>
+            <Button onClick={handleSave}>Salvar Projeto</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

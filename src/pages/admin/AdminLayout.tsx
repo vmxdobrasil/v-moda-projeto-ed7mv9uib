@@ -221,9 +221,29 @@ export default function AdminLayout() {
             <h1 className="text-xl font-semibold">Painel Administrativo</h1>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium capitalize">
+            <span className="text-sm font-medium capitalize hidden md:inline-block">
               {role === 'gerente' ? 'Gerente' : 'Administrador'}
             </span>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full overflow-hidden border bg-muted flex items-center justify-center shrink-0">
+                {pb.authStore.record?.avatar ? (
+                  <img
+                    src={pb.files.getUrl(pb.authStore.record, pb.authStore.record.avatar, {
+                      thumb: '100x100',
+                    })}
+                    alt="Avatar"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-xs font-bold">
+                    {pb.authStore.record?.name?.substring(0, 2).toUpperCase() || 'AD'}
+                  </span>
+                )}
+              </div>
+              <span className="text-sm font-medium hidden sm:inline-block">
+                {pb.authStore.record?.name || pb.authStore.record?.email}
+              </span>
+            </div>
           </div>
         </header>
         <div className="flex-1 overflow-auto p-4 md:p-8 print:overflow-visible print:p-0">
