@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { NotificationsBell } from '@/components/NotificationsBell'
 import pb from '@/lib/pocketbase/client'
 
 const baseNavigation = [
@@ -129,6 +130,7 @@ export default function DashboardLayout() {
           </Sheet>
           <div className="flex-1" />
           <div className="flex items-center gap-4">
+            <NotificationsBell />
             <div className="flex items-center gap-3 hidden md:flex bg-muted/50 rounded-full pl-1 pr-4 py-1 border border-border/50">
               <Avatar className="h-7 w-7 border bg-background">
                 <AvatarImage

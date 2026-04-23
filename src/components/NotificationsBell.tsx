@@ -11,13 +11,14 @@ import {
 } from '@/components/ui/dropdown-menu'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
-import useAuthStore from '@/stores/useAuthStore'
+import { useAuth } from '@/hooks/use-auth'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export function NotificationsBell() {
   const [notifications, setNotifications] = useState<any[]>([])
-  const { isAuthenticated, user } = useAuthStore()
+  const { user } = useAuth()
+  const isAuthenticated = !!user
 
   const loadNotifications = async () => {
     if (!isAuthenticated || !user) return
