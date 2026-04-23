@@ -7,16 +7,22 @@ migrate(
       const currentValues = Array.from(roleField.values || [])
       if (!currentValues.includes('admin')) {
         currentValues.push('admin')
-        roleField.values = currentValues
-        users.fields.add(roleField)
+        users.fields.add(
+          new SelectField({
+            name: 'role',
+            maxSelect: 1,
+            values: currentValues,
+          }),
+        )
       }
     } else if (!roleField) {
-      roleField = new SelectField({
-        name: 'role',
-        maxSelect: 1,
-        values: ['user', 'admin'],
-      })
-      users.fields.add(roleField)
+      users.fields.add(
+        new SelectField({
+          name: 'role',
+          maxSelect: 1,
+          values: ['user', 'admin'],
+        }),
+      )
     }
 
     const adminRule = "@request.auth.role = 'admin'"
@@ -40,8 +46,14 @@ migrate(
 
     const roleField = users.fields.getByName('role')
     if (roleField && roleField.type === 'select') {
-      roleField.values = Array.from(roleField.values || []).filter((v) => v !== 'admin')
-      users.fields.add(roleField)
+      const newValues = Array.from(roleField.values || []).filter((v) => v !== 'admin')
+      users.fields.add(
+        new SelectField({
+          name: 'role',
+          maxSelect: 1,
+          values: newValues.length > 0 ? newValues : ['user'],
+        }),
+      )
     }
 
     app.save(users)
