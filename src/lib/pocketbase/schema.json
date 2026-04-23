@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-23T15:32:46.316Z",
+  "generatedAt": "2026-04-23T15:45:47.996Z",
   "collections": [
     {
       "name": "users",
@@ -468,6 +468,12 @@
         {
           "name": "whatsapp_group_name",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "logistics_file",
+          "type": "file",
           "required": false,
           "system": false
         }

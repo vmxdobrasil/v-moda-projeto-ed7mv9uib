@@ -33,6 +33,7 @@ export interface Customer {
   logistics_notes?: string
   logistics_status?: 'Aguardando Ônibus' | 'Em Trânsito no Ônibus' | 'Entregue'
   whatsapp_group_name?: string
+  logistics_file?: string
 }
 
 export const getCustomers = async () => {

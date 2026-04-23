@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Truck, Pencil, MapPin } from 'lucide-react'
+import { Truck, Pencil, MapPin, FileText, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Textarea } from '@/components/ui/textarea'
@@ -28,7 +28,9 @@ import { Textarea } from '@/components/ui/textarea'
 export default function Logistics() {
   const [deliveries, setDeliveries] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [editingDelivery, setEditingDelivery] = useState<any | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   const loadData = async () => {
     try {
@@ -61,28 +63,42 @@ export default function Logistics() {
 
   const handleUpdate = async () => {
     if (!editingDelivery) return
+    setIsSaving(true)
     try {
-      await pb.collection('customers').update(editingDelivery.id, {
-        logistics_status: editingDelivery.logistics_status,
-        caravan_name: editingDelivery.caravan_name,
-        active_route: editingDelivery.active_route,
-        freight_value: editingDelivery.freight_value,
-        seat_number: editingDelivery.seat_number,
-        logistics_notes: editingDelivery.logistics_notes,
-      })
+      const formData = new FormData()
+      formData.append('logistics_status', editingDelivery.logistics_status)
+      formData.append('caravan_name', editingDelivery.caravan_name || '')
+      formData.append('active_route', editingDelivery.active_route || '')
+      if (editingDelivery.freight_value !== null) {
+        formData.append('freight_value', editingDelivery.freight_value.toString())
+      }
+      if (editingDelivery.seat_number !== null) {
+        formData.append('seat_number', editingDelivery.seat_number.toString())
+      }
+      formData.append('logistics_notes', editingDelivery.logistics_notes || '')
+
+      if (selectedFile) {
+        formData.append('logistics_file', selectedFile)
+      }
+
+      await pb.collection('customers').update(editingDelivery.id, formData)
       toast.success('Informações de logística atualizadas')
       setEditingDelivery(null)
+      setSelectedFile(null)
+      loadData()
     } catch (e) {
       toast.error('Erro ao atualizar logística')
+    } finally {
+      setIsSaving(false)
     }
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up pb-10">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Logística</h1>
         <p className="text-muted-foreground">
-          Acompanhe as entregas, fretes e caravanas dos seus clientes.
+          Acompanhe as entregas, fretes e documentos das caravanas dos seus clientes.
         </p>
       </div>
 
@@ -123,7 +139,7 @@ export default function Logistics() {
         </Card>
       </div>
 
-      <div className="rounded-md border bg-card shadow-sm">
+      <div className="rounded-md border bg-card shadow-sm overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -132,19 +148,20 @@ export default function Logistics() {
               <TableHead>Rota / Caravana</TableHead>
               <TableHead>Poltrona</TableHead>
               <TableHead>Frete (R$)</TableHead>
+              <TableHead>Documento</TableHead>
               <TableHead className="text-right">Ação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   Carregando...
                 </TableCell>
               </TableRow>
             ) : deliveries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                   <Truck className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
                   Nenhuma entrega com logística ativa.
                   <br />
@@ -183,8 +200,29 @@ export default function Logistics() {
                   <TableCell>
                     {delivery.freight_value ? `R$ ${delivery.freight_value.toFixed(2)}` : '-'}
                   </TableCell>
+                  <TableCell>
+                    {delivery.logistics_file ? (
+                      <a
+                        href={pb.files.getUrl(delivery, delivery.logistics_file)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 text-primary hover:underline text-xs"
+                      >
+                        <FileText className="w-3 h-3" /> Ver
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">-</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => setEditingDelivery(delivery)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setEditingDelivery(delivery)
+                        setSelectedFile(null)
+                      }}
+                    >
                       <Pencil className="w-4 h-4 mr-2" /> Editar
                     </Button>
                   </TableCell>
@@ -195,7 +233,15 @@ export default function Logistics() {
         </Table>
       </div>
 
-      <Dialog open={!!editingDelivery} onOpenChange={(open) => !open && setEditingDelivery(null)}>
+      <Dialog
+        open={!!editingDelivery}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingDelivery(null)
+            setSelectedFile(null)
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Atualizar Logística - {editingDelivery?.name}</DialogTitle>
@@ -267,6 +313,25 @@ export default function Logistics() {
                     }
                   />
                 </div>
+
+                <div className="space-y-2 col-span-2">
+                  <Label>Documento (Comprovante / Recibo / NFe)</Label>
+                  <Input
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                  />
+                  {editingDelivery.logistics_file && !selectedFile && (
+                    <a
+                      href={pb.files.getUrl(editingDelivery, editingDelivery.logistics_file)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-primary hover:underline flex items-center gap-1 mt-2 inline-block w-fit"
+                    >
+                      <FileText className="w-3 h-3" /> Visualizar Documento Atual
+                    </a>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Observações Logísticas</Label>
@@ -279,8 +344,9 @@ export default function Logistics() {
                   className="resize-none"
                 />
               </div>
-              <Button className="w-full mt-4" onClick={handleUpdate}>
-                Salvar Alterações
+              <Button className="w-full mt-4" onClick={handleUpdate} disabled={isSaving}>
+                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                {isSaving ? 'Salvando...' : 'Salvar Alterações'}
               </Button>
             </div>
           )}

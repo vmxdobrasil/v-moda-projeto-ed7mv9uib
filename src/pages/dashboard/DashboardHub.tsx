@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -9,17 +9,20 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Users, Package, MessageSquare, Loader2, Plus, AlertCircle } from 'lucide-react'
+import { Users, Package, Target, Loader2, Plus, AlertCircle, TrendingUp } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { useRealtime } from '@/hooks/use-realtime'
-import { format } from 'date-fns'
+import { format, subDays, startOfDay } from 'date-fns'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 
 interface DashboardStats {
   totalLeads: number
+  convertedLeads: number
   activeProjects: number
-  pendingMessages: number
+  activeManufacturers: number
 }
 
 interface RecentCustomer {
@@ -29,64 +32,83 @@ interface RecentCustomer {
   created?: string
 }
 
+interface ChartDataPoint {
+  date: string
+  leads: number
+  startTs: number
+  endTs: number
+}
+
 export default function DashboardHub() {
   const [stats, setStats] = useState<DashboardStats>({
     totalLeads: 0,
+    convertedLeads: 0,
     activeProjects: 0,
-    pendingMessages: 0,
+    activeManufacturers: 0,
   })
   const [recentCustomers, setRecentCustomers] = useState<RecentCustomer[]>([])
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const user = pb.authStore.record
+  const isAdmin = user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
 
   const loadData = async () => {
     try {
       setError(null)
-      const user = pb.authStore.record
-      const isAdmin = user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
-      const customerFilter =
-        !isAdmin && user ? `manufacturer = "${user.id}" || affiliate_referrer = "${user.id}"` : ''
-      const projectFilter = !isAdmin && user ? `manufacturer = "${user.id}"` : ''
+      const customerFilter = isAdmin
+        ? ''
+        : `manufacturer = "${user?.id}" || affiliate_referrer = "${user?.id}"`
+      const convertedFilter = isAdmin
+        ? 'status="converted"'
+        : `(manufacturer = "${user?.id}" || affiliate_referrer = "${user?.id}") && status="converted"`
+      const projectFilter = isAdmin ? '' : `manufacturer = "${user?.id}"`
 
-      const [leadsRes, projectsRes, messagesRes, recentRes] = await Promise.all([
+      const [leadsRes, convertedRes, projectsRes, mfgRes, recentRes, chartRes] = await Promise.all([
+        pb.collection('customers').getList(1, 1, { filter: customerFilter }),
+        pb.collection('customers').getList(1, 1, { filter: convertedFilter }),
+        pb.collection('projects').getList(1, 1, { filter: projectFilter }),
+        isAdmin
+          ? pb.collection('users').getList(1, 1, { filter: 'role="manufacturer"' })
+          : Promise.resolve({ totalItems: 0 }),
         pb
           .collection('customers')
-          .getList(1, 1, { filter: customerFilter })
-          .catch((e) => {
-            console.error('Error fetching customers count:', e)
-            return { totalItems: 0 }
-          }),
-        pb
-          .collection('projects')
-          .getList(1, 1, { filter: projectFilter })
-          .catch((e) => {
-            console.error('Error fetching projects count:', e)
-            return { totalItems: 0 }
-          }),
-        pb
-          .collection('messages')
-          .getList(1, 1, { filter: "status='pending'" })
-          .catch((e) => {
-            console.error('Error fetching messages count:', e)
-            return { totalItems: 0 }
-          }),
+          .getList<RecentCustomer>(1, 5, { sort: '-created', filter: customerFilter }),
         pb
           .collection('customers')
-          .getList<RecentCustomer>(1, 5, { sort: '-created', filter: customerFilter })
-          .catch((e) => {
-            console.error('Error fetching recent customers:', e)
-            return { items: [] }
-          }),
+          .getList<RecentCustomer>(1, 500, { sort: '-created', filter: customerFilter }),
       ])
 
       setStats({
-        totalLeads: leadsRes?.totalItems || 0,
-        activeProjects: projectsRes?.totalItems || 0,
-        pendingMessages: messagesRes?.totalItems || 0,
+        totalLeads: leadsRes.totalItems || 0,
+        convertedLeads: convertedRes.totalItems || 0,
+        activeProjects: projectsRes.totalItems || 0,
+        activeManufacturers: mfgRes.totalItems || 0,
       })
-      setRecentCustomers(recentRes?.items || [])
-    } catch (error) {
-      console.error('Failed to load dashboard data', error)
+
+      setRecentCustomers(recentRes.items)
+
+      const days = Array.from({ length: 7 }).map((_, i) => {
+        const d = subDays(new Date(), 6 - i)
+        return {
+          date: format(d, 'dd/MM'),
+          leads: 0,
+          startTs: startOfDay(d).getTime(),
+          endTs: startOfDay(d).getTime() + 86400000,
+        }
+      })
+
+      chartRes.items.forEach((c) => {
+        if (!c.created) return
+        const cDate = new Date(c.created).getTime()
+        const bucket = days.find((b) => cDate >= b.startTs && cDate < b.endTs)
+        if (bucket) bucket.leads++
+      })
+
+      setChartData(days)
+    } catch (err) {
+      console.error('Failed to load dashboard data', err)
       setError('Não foi possível carregar alguns dados do painel.')
     } finally {
       setLoading(false)
@@ -99,7 +121,6 @@ export default function DashboardHub() {
 
   useRealtime('customers', loadData)
   useRealtime('projects', loadData)
-  useRealtime('messages', loadData)
 
   const getStatusBadge = (status?: string) => {
     const s = status || 'new'
@@ -127,6 +148,13 @@ export default function DashboardHub() {
     }
   }
 
+  const chartConfig = {
+    leads: {
+      label: 'Leads Gerados',
+      color: 'hsl(var(--primary))',
+    },
+  }
+
   if (loading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
@@ -136,7 +164,7 @@ export default function DashboardHub() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl w-full mx-auto animate-fade-in">
+    <div className="space-y-6 max-w-6xl w-full mx-auto animate-fade-in pb-10">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Início</h1>
         <p className="text-muted-foreground mt-1">
@@ -188,79 +216,145 @@ export default function DashboardHub() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Leads</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+        {isAdmin ? (
+          <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total de Leads (Geral)</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalLeads}</div>
+                <p className="text-xs text-muted-foreground mt-1">Leads gerados na plataforma</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Fabricantes Ativos</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.activeManufacturers}</div>
+                <p className="text-xs text-muted-foreground mt-1">Lojistas no catálogo</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.activeProjects}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Produtos registrados globalmente
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Meus Leads</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalLeads}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Clientes cadastrados na sua base
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Leads Convertidos</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{stats.convertedLeads}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Clientes que realizaram compras
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.activeProjects}</div>
+                <p className="text-xs text-muted-foreground mt-1">Seus produtos no catálogo</p>
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-primary" /> Evolução de Leads
+            </CardTitle>
+            <CardDescription>Volume de novos contatos nos últimos 7 dias</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalLeads}</div>
-            <p className="text-xs text-muted-foreground mt-1">Clientes cadastrados na base</p>
+            <ChartContainer config={chartConfig} className="h-[250px] w-full">
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                <ChartTooltip cursor={{ fill: 'var(--muted)' }} content={<ChartTooltipContent />} />
+                <Bar dataKey="leads" fill="var(--color-leads)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Projetos Ativos</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Clientes Recentes</CardTitle>
+            <CardDescription>Últimas movimentações no seu CRM</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.activeProjects}</div>
-            <p className="text-xs text-muted-foreground mt-1">Produtos no catálogo</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Mensagens Pendentes</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingMessages}</div>
-            <p className="text-xs text-muted-foreground mt-1">Aguardando resposta</p>
+            <div className="overflow-x-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Data</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentCustomers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                        Nenhum cliente recente encontrado.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    recentCustomers.map((customer) => (
+                      <TableRow key={customer.id}>
+                        <TableCell className="font-medium">
+                          {customer?.name || 'Sem nome'}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(customer?.status)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground text-sm">
+                          {customer?.created
+                            ? format(new Date(customer.created), 'dd/MM/yyyy')
+                            : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Clientes Recentes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Data de Cadastro</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentCustomers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
-                      Nenhum cliente encontrado.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  recentCustomers.map((customer) => (
-                    <TableRow key={customer.id}>
-                      <TableCell className="font-medium">{customer?.name || 'Sem nome'}</TableCell>
-                      <TableCell>{getStatusBadge(customer?.status)}</TableCell>
-                      <TableCell className="text-right">
-                        {customer?.created
-                          ? format(new Date(customer.created), 'dd/MM/yyyy HH:mm')
-                          : '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
