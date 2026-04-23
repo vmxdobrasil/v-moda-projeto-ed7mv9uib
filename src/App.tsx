@@ -24,6 +24,7 @@ import Magazine from '@/pages/dashboard/Magazine'
 import Logistics from '@/pages/dashboard/Logistics'
 import Analytics from '@/pages/dashboard/Analytics'
 import MediaKit from '@/pages/dashboard/MediaKit'
+import NotFound from '@/pages/NotFound'
 
 export default function App() {
   return (
@@ -61,7 +62,7 @@ export default function App() {
                   </Route>
                 </Route>
 
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </TooltipProvider>
           </FavoritesProvider>
