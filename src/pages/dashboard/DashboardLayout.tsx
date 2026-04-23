@@ -21,10 +21,15 @@ import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import pb from '@/lib/pocketbase/client'
 
-const navigation = [
+const baseNavigation = [
   { name: 'Início', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Clientes', href: '/dashboard/customers', icon: Users },
-  { name: 'Produtos', href: '/dashboard/products', icon: Package },
+  {
+    name: 'Produtos',
+    href: '/dashboard/products',
+    icon: Package,
+    roles: ['admin', 'manufacturer', 'retailer'],
+  },
   { name: 'Mensagens', href: '/dashboard/messages', icon: MessageSquare },
   { name: 'Fabricantes/Lojas', href: '/dashboard/manufacturers', icon: Store },
   { name: 'Afiliados', href: '/dashboard/affiliates', icon: UserPlus },
@@ -44,6 +49,24 @@ export default function DashboardLayout() {
     signOut()
     navigate('/login')
   }
+
+  const isAdmin = user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
+  const userRole = user?.role || 'user'
+
+  const navigation = baseNavigation
+    .filter((item) => {
+      if (isAdmin) return true
+      if (item.roles && !item.roles.includes(userRole as string)) return false
+      return true
+    })
+    .map((item) => ({
+      ...item,
+      name:
+        item.href === '/dashboard/products' &&
+        ['manufacturer', 'retailer'].includes(userRole as string)
+          ? 'Meu Catálogo'
+          : item.name,
+    }))
 
   const NavLinks = () => (
     <>

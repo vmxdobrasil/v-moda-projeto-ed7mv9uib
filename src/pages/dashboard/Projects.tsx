@@ -55,6 +55,7 @@ export default function DashboardProjects() {
     retail_price: '',
     wholesale_price: '',
     stock_quantity: '',
+    min_quantity_wholesale: '',
   })
   const [file, setFile] = useState<File | null>(null)
 
@@ -68,12 +69,16 @@ export default function DashboardProjects() {
     { value: 'plus_size', label: 'Plus Size' },
   ]
 
-  const isManufacturer = pb.authStore.record?.role === 'manufacturer'
+  const userRole = pb.authStore.record?.role
+  const isAdmin =
+    pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
+    pb.authStore.record?.role === 'admin'
+  const isCatalogOwner = ['manufacturer', 'retailer'].includes(userRole as string)
 
   const loadData = async () => {
     try {
       const records = await pb.collection('projects').getFullList({
-        filter: isManufacturer ? `manufacturer = "${pb.authStore.record?.id}"` : '',
+        filter: isCatalogOwner && !isAdmin ? `manufacturer = "${pb.authStore.record?.id}"` : '',
         sort: '-created',
       })
       setProjects(records)
@@ -104,6 +109,8 @@ export default function DashboardProjects() {
       if (formData.retail_price) data.append('retail_price', formData.retail_price)
       if (formData.wholesale_price) data.append('wholesale_price', formData.wholesale_price)
       if (formData.stock_quantity) data.append('stock_quantity', formData.stock_quantity)
+      if (formData.min_quantity_wholesale)
+        data.append('min_quantity_wholesale', formData.min_quantity_wholesale)
       data.append('image', file)
 
       if (pb.authStore.record?.id) {
@@ -120,6 +127,7 @@ export default function DashboardProjects() {
         retail_price: '',
         wholesale_price: '',
         stock_quantity: '',
+        min_quantity_wholesale: '',
       })
       setFile(null)
     } catch (e) {
@@ -140,6 +148,8 @@ export default function DashboardProjects() {
         data.append('wholesale_price', String(editingProject.wholesale_price))
       if (editingProject.stock_quantity !== undefined)
         data.append('stock_quantity', String(editingProject.stock_quantity))
+      if (editingProject.min_quantity_wholesale !== undefined)
+        data.append('min_quantity_wholesale', String(editingProject.min_quantity_wholesale))
       if (file) data.append('image', file)
 
       await pb.collection('projects').update(editingProject.id, data)
@@ -167,10 +177,10 @@ export default function DashboardProjects() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            {isManufacturer ? 'Meu Catálogo' : 'Projetos & Coleções'}
+            {isCatalogOwner ? 'Meu Catálogo' : 'Projetos & Coleções'}
           </h1>
           <p className="text-muted-foreground">
-            {isManufacturer
+            {isCatalogOwner
               ? 'Gerencie os produtos do seu catálogo e preços B2B/B2C.'
               : 'Gerencie o portfólio visual da sua marca.'}
           </p>
@@ -212,7 +222,7 @@ export default function DashboardProjects() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Varejo (R$)</Label>
                   <Input
@@ -243,6 +253,18 @@ export default function DashboardProjects() {
                     value={formData.stock_quantity}
                     onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
                     placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Mín. Atacado</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={formData.min_quantity_wholesale}
+                    onChange={(e) =>
+                      setFormData({ ...formData, min_quantity_wholesale: e.target.value })
+                    }
+                    placeholder="1"
                   />
                 </div>
               </div>
@@ -380,7 +402,7 @@ export default function DashboardProjects() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Varejo (R$)</Label>
                   <Input
@@ -421,6 +443,20 @@ export default function DashboardProjects() {
                       setEditingProject({
                         ...editingProject,
                         stock_quantity: e.target.value ? Number(e.target.value) : '',
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Mín. Atacado</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={editingProject.min_quantity_wholesale ?? ''}
+                    onChange={(e) =>
+                      setEditingProject({
+                        ...editingProject,
+                        min_quantity_wholesale: e.target.value ? Number(e.target.value) : '',
                       })
                     }
                   />
