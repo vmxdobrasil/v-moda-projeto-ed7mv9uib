@@ -25,13 +25,6 @@ import Logistics from '@/pages/dashboard/Logistics'
 import Analytics from '@/pages/dashboard/Analytics'
 import MediaKit from '@/pages/dashboard/MediaKit'
 
-function RootRouter() {
-  const { user, loading } = useAuth()
-  if (loading) return null
-  if (user) return <Navigate to="/dashboard" replace />
-  return <Navigate to="/login" replace />
-}
-
 export default function App() {
   return (
     <ErrorBoundary>
@@ -44,16 +37,15 @@ export default function App() {
               <VideoCallListener />
 
               <Routes>
-                <Route path="/" element={<RootRouter />} />
-
                 <Route element={<PublicRoute />}>
                   <Route path="/login" element={<Login />} />
                   <Route path="/admin/login" element={<Navigate to="/login" replace />} />
                 </Route>
 
                 <Route element={<AuthGuard />}>
-                  <Route path="/dashboard" element={<DashboardLayout />}>
+                  <Route path="/" element={<DashboardLayout />}>
                     <Route index element={<DashboardHub />} />
+                    <Route path="dashboard" element={<Navigate to="/" replace />} />
                     <Route path="customers" element={<Customers />} />
                     <Route path="customers/:id" element={<CustomerDetails />} />
                     <Route path="products" element={<Projects />} />
