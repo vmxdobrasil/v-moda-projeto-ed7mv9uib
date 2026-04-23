@@ -1,65 +1,98 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useToast } from '@/hooks/use-toast'
-import { Package } from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from '@/components/ui/card'
+import { Package, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function Login() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const { signIn } = useAuth()
-  const { toast } = useToast()
-  const [email, setEmail] = useState('valterpmendonca@gmail.com')
-  const [password, setPassword] = useState('Skip@Pass')
-  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    const { error } = await signIn(email, password)
-    if (error) {
-      toast({ description: 'Credenciais inválidas.', variant: 'destructive' })
+    if (!email || !password) {
+      toast.error('Preencha todos os campos')
+      return
     }
-    setLoading(false)
+
+    setIsLoading(true)
+    const { error } = await signIn(email, password)
+    setIsLoading(false)
+
+    if (error) {
+      toast.error('Credenciais inválidas. Verifique seu e-mail e senha e tente novamente.')
+    } else {
+      toast.success('Login realizado com sucesso!')
+      navigate('/dashboard', { replace: true })
+    }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-md">
-        <form onSubmit={handleSubmit}>
-          <CardHeader className="space-y-2 text-center">
-            <div className="flex justify-center mb-4 text-primary">
-              <Package className="h-10 w-10" />
-            </div>
-            <CardTitle className="text-2xl">Acesso Restrito</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-muted/40 px-4">
+      <Card className="w-full max-w-md shadow-lg border-primary/10 animate-fade-in-up">
+        <CardHeader className="space-y-2 text-center pb-6">
+          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-2">
+            <Package className="h-6 w-6 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-bold tracking-tight">V Moda Hub</CardTitle>
+          <CardDescription>Acesse o painel para gerenciar seu catálogo e CRM.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
+                id="email"
                 type="email"
+                placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label>Senha</Label>
+              <Label htmlFor="password">Senha</Label>
               <Input
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 required
               />
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Entrando...' : 'Entrar'}
+            <Button type="submit" className="w-full mt-2" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Entrando...
+                </>
+              ) : (
+                'Entrar'
+              )}
             </Button>
-          </CardFooter>
-        </form>
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-center border-t p-4 mt-4 bg-muted/20">
+          <p className="text-sm text-muted-foreground">
+            Esqueceu a senha? Contate o administrador do sistema.
+          </p>
+        </CardFooter>
       </Card>
     </div>
   )

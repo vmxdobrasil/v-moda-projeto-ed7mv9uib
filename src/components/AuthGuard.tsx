@@ -8,7 +8,7 @@ export function AuthGuard() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
@@ -23,17 +23,19 @@ export function AuthGuard() {
 
 export function PublicRoute() {
   const { user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
 
   if (user) {
-    return <Navigate to="/dashboard" replace />
+    const from = location.state?.from?.pathname || '/dashboard'
+    return <Navigate to={from} replace />
   }
 
   return <Outlet />

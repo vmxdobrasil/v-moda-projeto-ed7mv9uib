@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-23T15:24:00.564Z",
+  "generatedAt": "2026-04-23T15:32:46.316Z",
   "collections": [
     {
       "name": "users",
@@ -229,8 +229,8 @@
       "name": "customers",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')",
-        "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')",
+        "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com' || manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)",
+        "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com' || manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)",
         "create": "@request.auth.id != '' && (manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id)",
         "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')",
         "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || manufacturer = @request.auth.id || affiliate_referrer = @request.auth.id || @request.auth.email = 'valterpmendonca@gmail.com')"
@@ -729,8 +729,8 @@
       "name": "projects",
       "type": "base",
       "apiRules": {
-        "list": "",
-        "view": "",
+        "list": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com' || manufacturer = @request.auth.id",
+        "view": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com' || manufacturer = @request.auth.id",
         "create": "@request.auth.id != '' && manufacturer = @request.auth.id",
         "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || manufacturer = @request.auth.id)",
         "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || manufacturer = @request.auth.id)"
