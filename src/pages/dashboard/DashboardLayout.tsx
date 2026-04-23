@@ -1,177 +1,118 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import { NotificationsBell } from '@/components/NotificationsBell'
+import { Button } from '@/components/ui/button'
 import {
   LayoutDashboard,
   Users,
   Package,
-  Truck,
+  MessageSquare,
+  Settings as SettingsIcon,
   LogOut,
-  Settings,
+  Menu,
   Factory,
-  Link as LinkIcon,
-  BookOpen,
-  BarChart3,
-  Image as ImageIcon,
 } from 'lucide-react'
-import { toast } from 'sonner'
-import { useRealtime } from '@/hooks/use-realtime'
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-  SidebarInset,
-} from '@/components/ui/sidebar'
-import { Separator } from '@/components/ui/separator'
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import logoUrl from '@/assets/logo-v-moda-fb088.png'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
 
 export default function DashboardLayout() {
-  const { user, signOut } = useAuth()
+  const { signOut, user } = useAuth()
   const location = useLocation()
-
-  const isAdmin = user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
+  const [open, setOpen] = useState(false)
 
   const navItems = [
-    { icon: LayoutDashboard, label: 'Visão Geral', path: '/' },
-    { icon: Package, label: 'Catálogo', path: '/products' },
-    { icon: Users, label: 'CRM', path: '/customers' },
-    { icon: Truck, label: 'Logística', path: '/logistics' },
-    { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-    { icon: Settings, label: 'Configurações', path: '/settings' },
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Leads / Clientes', path: '/customers', icon: Users },
+    { name: 'Projetos', path: '/products', icon: Package },
+    { name: 'Mensagens', path: '/messages', icon: MessageSquare },
+    { name: 'Fabricantes', path: '/manufacturers', icon: Factory },
+    { name: 'Configurações', path: '/settings', icon: SettingsIcon },
   ]
 
-  if (isAdmin) {
-    navItems.splice(2, 0, { icon: Package, label: 'Catálogo Admin', path: '/admin-products' })
-    navItems.splice(3, 0, { icon: Factory, label: 'Fabricantes', path: '/manufacturers' })
-    navItems.splice(4, 0, { icon: LinkIcon, label: 'Afiliados', path: '/affiliates' })
-    navItems.splice(5, 0, { icon: BookOpen, label: 'Revista', path: '/magazine' })
-    navItems.splice(6, 0, { icon: ImageIcon, label: 'Media Kit', path: '/media-kit' })
+  const handleLogout = () => {
+    signOut()
   }
 
-  useRealtime('notifications', (e) => {
-    if (e.action === 'create') {
-      const isForUser = e.record.user === user?.id || e.record.customer_email === user?.email
-      if (isForUser) {
-        toast.info(e.record.title, { description: e.record.message })
-      }
-    }
-  })
+  const NavLinks = () => (
+    <div className="flex flex-col gap-2 p-4 h-full">
+      {navItems.map((item) => {
+        const isActive =
+          location.pathname === item.path ||
+          (item.path !== '/' && location.pathname.startsWith(item.path))
+        return (
+          <Link
+            key={item.path}
+            to={item.path}
+            onClick={() => setOpen(false)}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-md transition-colors',
+              isActive
+                ? 'bg-primary text-primary-foreground font-medium'
+                : 'hover:bg-muted text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <item.icon className="h-5 w-5" />
+            {item.name}
+          </Link>
+        )
+      })}
 
-  const currentPage = navItems.find(
-    (item) =>
-      item.path === location.pathname ||
-      (item.path !== '/' && location.pathname.startsWith(item.path)),
+      <div className="mt-auto pt-4 border-t border-border flex flex-col gap-2">
+        <div className="px-3 py-2 text-sm text-muted-foreground truncate mb-2">{user?.email}</div>
+        <Button
+          variant="ghost"
+          className="justify-start gap-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10 px-3 w-full"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-5 w-5" />
+          Sair
+        </Button>
+      </div>
+    </div>
   )
 
   return (
-    <SidebarProvider>
-      <Sidebar variant="inset">
-        <SidebarHeader>
-          <div className="flex h-16 items-center px-4 py-2">
-            <img src={logoUrl} alt="V Moda" className="h-full w-auto object-contain" />
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {navItems.map((item) => {
-                  const isActive =
-                    location.pathname === item.path ||
-                    (item.path !== '/' && location.pathname.startsWith(item.path))
-                  return (
-                    <SidebarMenuItem key={item.path}>
-                      <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                        <Link to={item.path}>
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
-        <SidebarFooter>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <div className="flex items-center gap-3 px-3 py-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold uppercase shrink-0">
-                  {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                </div>
-                <div className="flex flex-col overflow-hidden">
-                  <span className="text-sm font-medium truncate">{user?.name || 'Usuário'}</span>
-                  <span className="text-xs text-muted-foreground truncate capitalize">
-                    {user?.role || 'Admin'}
-                  </span>
-                </div>
-              </div>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={signOut}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Sair</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
-      </Sidebar>
+    <div className="flex min-h-screen bg-muted/20">
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 flex-col border-r bg-card h-screen sticky top-0">
+        <div className="p-6 border-b flex justify-center">
+          <img src={logoUrl} alt="V Moda" className="h-10 object-contain" />
+        </div>
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          <NavLinks />
+        </div>
+      </aside>
 
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center justify-between border-b px-4 bg-background/95 backdrop-blur z-30 sticky top-0">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4 hidden md:block" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink asChild>
-                    <Link to="/">V Moda Hub</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{currentPage?.label || 'Visão Geral'}</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium hidden sm:block text-muted-foreground">
-              Olá, {user?.name || user?.email || 'Usuário'}
-            </span>
-            <NotificationsBell />
-          </div>
+      {/* Mobile Header & Sidebar */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="md:hidden flex items-center justify-between p-4 border-b bg-card sticky top-0 z-10">
+          <img src={logoUrl} alt="V Moda" className="h-8 object-contain" />
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64 p-0 flex flex-col">
+              <SheetHeader className="p-6 border-b text-left">
+                <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
+                <div className="flex justify-center">
+                  <img src={logoUrl} alt="V Moda" className="h-8 object-contain" />
+                </div>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto">
+                <NavLinks />
+              </div>
+            </SheetContent>
+          </Sheet>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-muted/30">
+        {/* Main Content */}
+        <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
           <Outlet />
         </main>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+    </div>
   )
 }
