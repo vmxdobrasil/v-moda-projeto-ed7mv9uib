@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -25,8 +25,8 @@ type ForgotForm = z.infer<typeof forgotSchema>
 
 export default function ForgotPassword() {
   const [isLoading, setIsLoading] = useState(false)
-  const [isSent, setIsSent] = useState(false)
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   const form = useForm<ForgotForm>({
     resolver: zodResolver(forgotSchema),
@@ -44,7 +44,7 @@ export default function ForgotPassword() {
         description:
           'Se o e-mail estiver cadastrado, você receberá um link de redefinição em breve.',
       })
-      setIsSent(true)
+      navigate('/login', { replace: true })
     } catch (error) {
       toast({
         title: 'Erro',
@@ -66,39 +66,31 @@ export default function ForgotPassword() {
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Recuperar Senha</h1>
           <p className="text-muted-foreground mt-2 text-sm">
-            {isSent
-              ? 'Se o e-mail estiver cadastrado, você receberá um link de redefinição em breve.'
-              : 'Informe seu e-mail para receber um link de redefinição de senha.'}
+            Informe seu e-mail para receber um link de redefinição de senha.
           </p>
         </div>
 
-        {!isSent ? (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>E-mail</FormLabel>
-                    <FormControl>
-                      <Input placeholder="seu@email.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>E-mail</FormLabel>
+                  <FormControl>
+                    <Input placeholder="seu@email.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <Button type="submit" className="w-full mt-6" disabled={isLoading}>
-                {isLoading ? 'Enviando...' : 'Recuperar Senha'}
-              </Button>
-            </form>
-          </Form>
-        ) : (
-          <Button asChild variant="outline" className="w-full mt-6">
-            <Link to="/login">Voltar para o Login</Link>
-          </Button>
-        )}
+            <Button type="submit" className="w-full mt-6" disabled={isLoading}>
+              {isLoading ? 'Enviando...' : 'Recuperar Senha'}
+            </Button>
+          </form>
+        </Form>
 
         <div className="text-center mt-8 pt-6 border-t border-muted-foreground/10">
           <p className="text-sm text-muted-foreground">
