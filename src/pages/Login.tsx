@@ -89,9 +89,7 @@ export default function Login() {
           </form>
         </CardContent>
         <CardFooter className="flex justify-center border-t p-4 mt-4 bg-muted/20">
-          <p className="text-sm text-muted-foreground">
-            Esqueceu a senha? Contate o administrador do sistema.
-          </p>
+          <p className="text-sm text-muted-foreground">Esqueceu a senha? contate o administrador</p>
         </CardFooter>
       </Card>
     </div>
