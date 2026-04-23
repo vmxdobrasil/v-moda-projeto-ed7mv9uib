@@ -154,7 +154,7 @@ export default function CustomerDetails() {
                     rel="noreferrer"
                     className="text-primary hover:underline break-all"
                   >
-                    Visualizar Arquivo
+                    Baixar / Visualizar Arquivo
                   </a>
                 </div>
               )}

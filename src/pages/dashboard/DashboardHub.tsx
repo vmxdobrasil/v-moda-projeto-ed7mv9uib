@@ -57,16 +57,24 @@ export default function DashboardHub() {
   const loadData = async () => {
     try {
       setError(null)
-      const customerFilter = isAdmin
+      const customerFilterBase = isAdmin
         ? ''
-        : `manufacturer = "${user?.id}" || affiliate_referrer = "${user?.id}"`
-      const convertedFilter = isAdmin
-        ? 'status="converted"'
-        : `(manufacturer = "${user?.id}" || affiliate_referrer = "${user?.id}") && status="converted"`
+        : `(manufacturer = "${user?.id}" || affiliate_referrer = "${user?.id}")`
+
+      const leadsFilter = customerFilterBase
+        ? `(${customerFilterBase}) && (status="new" || status="interested")`
+        : `(status="new" || status="interested")`
+
+      const convertedFilter = customerFilterBase
+        ? `(${customerFilterBase}) && status="converted"`
+        : `status="converted"`
+
       const projectFilter = isAdmin ? '' : `manufacturer = "${user?.id}"`
 
+      const recentFilter = customerFilterBase || ''
+
       const [leadsRes, convertedRes, projectsRes, mfgRes, recentRes, chartRes] = await Promise.all([
-        pb.collection('customers').getList(1, 1, { filter: customerFilter }),
+        pb.collection('customers').getList(1, 1, { filter: leadsFilter }),
         pb.collection('customers').getList(1, 1, { filter: convertedFilter }),
         pb.collection('projects').getList(1, 1, { filter: projectFilter }),
         isAdmin
@@ -74,10 +82,10 @@ export default function DashboardHub() {
           : Promise.resolve({ totalItems: 0 }),
         pb
           .collection('customers')
-          .getList<RecentCustomer>(1, 5, { sort: '-created', filter: customerFilter }),
+          .getList<RecentCustomer>(1, 5, { sort: '-created', filter: recentFilter }),
         pb
           .collection('customers')
-          .getList<RecentCustomer>(1, 500, { sort: '-created', filter: customerFilter }),
+          .getList<RecentCustomer>(1, 500, { sort: '-created', filter: recentFilter }),
       ])
 
       setStats({
@@ -220,12 +228,12 @@ export default function DashboardHub() {
           <>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total de Leads (Geral)</CardTitle>
+                <CardTitle className="text-sm font-medium">Leads (Novos/Interessados)</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.totalLeads}</div>
-                <p className="text-xs text-muted-foreground mt-1">Leads gerados na plataforma</p>
+                <p className="text-xs text-muted-foreground mt-1">Leads ativos na plataforma</p>
               </CardContent>
             </Card>
             <Card>
@@ -235,8 +243,11 @@ export default function DashboardHub() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {stats.totalLeads > 0
-                    ? ((stats.convertedLeads / stats.totalLeads) * 100).toFixed(1) + '%'
+                  {stats.totalLeads + stats.convertedLeads > 0
+                    ? (
+                        (stats.convertedLeads / (stats.totalLeads + stats.convertedLeads)) *
+                        100
+                      ).toFixed(1) + '%'
                     : '0%'}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -261,14 +272,12 @@ export default function DashboardHub() {
           <>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Meus Leads</CardTitle>
+                <CardTitle className="text-sm font-medium">Leads (Novos/Interessados)</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.totalLeads}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Clientes cadastrados na sua base
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Leads ativos na sua base</p>
               </CardContent>
             </Card>
             <Card>
@@ -278,8 +287,11 @@ export default function DashboardHub() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {stats.totalLeads > 0
-                    ? ((stats.convertedLeads / stats.totalLeads) * 100).toFixed(1) + '%'
+                  {stats.totalLeads + stats.convertedLeads > 0
+                    ? (
+                        (stats.convertedLeads / (stats.totalLeads + stats.convertedLeads)) *
+                        100
+                      ).toFixed(1) + '%'
                     : '0%'}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">

@@ -1,161 +1,132 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import {
-  LayoutDashboard,
-  Users,
-  Package,
-  MessageSquare,
-  Settings,
-  LogOut,
-  Menu,
-  Store,
-  UserPlus,
-  BookOpen,
-  Truck,
-  PieChart,
-  FolderOpen,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { cn } from '@/lib/utils'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { NotificationsBell } from '@/components/NotificationsBell'
-import pb from '@/lib/pocketbase/client'
-
-const baseNavigation = [
-  { name: 'Início', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Clientes / CRM', href: '/dashboard/customers', icon: Users },
-  {
-    name: 'Meus Produtos',
-    href: '/dashboard/products',
-    icon: Package,
-    roles: ['manufacturer', 'retailer'],
-  },
-  { name: 'Catálogo Global', href: '/dashboard/products', icon: Package, roles: ['admin'] },
-  { name: 'Meu Catálogo', href: '/dashboard/admin-products', icon: Store, roles: ['admin'] },
-  { name: 'Mensagens', href: '/dashboard/messages', icon: MessageSquare },
-  { name: 'Fabricantes/Lojas', href: '/dashboard/manufacturers', icon: Store, roles: ['admin'] },
-  { name: 'Afiliados', href: '/dashboard/affiliates', icon: UserPlus, roles: ['admin'] },
-  { name: 'Revista', href: '/dashboard/magazine', icon: BookOpen, roles: ['admin'] },
-  { name: 'Logística', href: '/dashboard/logistics', icon: Truck },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: PieChart },
-  { name: 'Media Kit', href: '/dashboard/media-kit', icon: FolderOpen, roles: ['admin'] },
-  { name: 'Configurações', href: '/dashboard/settings', icon: Settings },
-]
+import { LayoutDashboard, Users, Package, Truck, LogOut, Menu, X, Settings } from 'lucide-react'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 export default function DashboardLayout() {
   const { user, signOut } = useAuth()
   const location = useLocation()
-  const navigate = useNavigate()
-
-  const handleLogout = () => {
-    signOut()
-    navigate('/login')
-  }
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   const isAdmin = user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
-  const userRole = user?.role || 'user'
 
-  const navigation = baseNavigation.filter((item) => {
-    if (isAdmin) {
-      return !item.roles || item.roles.includes('admin')
-    } else {
-      return !item.roles || item.roles.includes(userRole as string)
-    }
-  })
+  const navItems = [
+    { icon: LayoutDashboard, label: 'Início', path: '/dashboard' },
+    { icon: Users, label: 'Clientes / CRM', path: '/dashboard/customers' },
+    { icon: Package, label: 'Produtos', path: '/dashboard/products' },
+    { icon: Truck, label: 'Logística', path: '/dashboard/logistics' },
+    { icon: Settings, label: 'Configurações', path: '/dashboard/settings' },
+  ]
 
-  const NavLinks = () => (
-    <>
-      {navigation.map((item) => {
-        const isActive =
-          location.pathname === item.href ||
-          (item.href !== '/dashboard' && location.pathname.startsWith(item.href))
-        return (
-          <Link
-            key={item.name}
-            to={item.href}
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
-              isActive
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-primary',
-            )}
-          >
-            <item.icon className="h-4 w-4" />
-            {item.name}
-          </Link>
-        )
-      })}
-    </>
-  )
+  if (isAdmin) {
+    navItems.splice(2, 0, {
+      icon: Package,
+      label: 'Catálogo Admin',
+      path: '/dashboard/admin-products',
+    })
+    navItems.splice(3, 0, { icon: Users, label: 'Fabricantes', path: '/dashboard/manufacturers' })
+    navItems.splice(4, 0, { icon: Users, label: 'Afiliados', path: '/dashboard/affiliates' })
+  }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
-      <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r bg-background sm:flex">
-        <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-          <Link to="/dashboard" className="flex items-center gap-2 font-semibold">
-            <Package className="h-6 w-6" />
-            <span>V MODA</span>
-          </Link>
+    <div className="min-h-screen bg-muted/30 flex">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 w-64 bg-background border-r flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0',
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
+        <div className="h-16 flex items-center justify-between px-6 border-b shrink-0">
+          <span className="font-bold text-xl tracking-tight text-primary">V MODA</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
-        <div className="flex-1 overflow-auto py-2">
-          <nav className="grid items-start px-2 text-sm font-medium lg:px-4 space-y-1">
-            <NavLinks />
-          </nav>
+
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-hide">
+          {navItems.map((item) => {
+            const isActive =
+              location.pathname === item.path ||
+              (item.path !== '/dashboard' && location.pathname.startsWith(item.path))
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setIsSidebarOpen(false)}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+
+        <div className="p-4 border-t shrink-0">
+          <div className="flex items-center gap-3 px-3 py-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold uppercase shrink-0">
+              {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-sm font-medium truncate">{user?.name || 'Usuário'}</span>
+              <span className="text-xs text-muted-foreground truncate capitalize">
+                {user?.role || 'Admin'}
+              </span>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={signOut}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sair
+          </Button>
         </div>
       </aside>
-      <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-64 min-h-screen">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button size="icon" variant="outline" className="sm:hidden">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle Menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="sm:max-w-xs">
-              <SheetHeader className="sr-only">
-                <SheetTitle>Menu de Navegação</SheetTitle>
-              </SheetHeader>
-              <nav className="grid gap-6 text-lg font-medium mt-4">
-                <Link to="/dashboard" className="flex items-center gap-2 text-lg font-semibold">
-                  <Package className="h-5 w-5" />
-                  <span>V MODA</span>
-                </Link>
-                <div className="grid gap-2">
-                  <NavLinks />
-                </div>
-              </nav>
-            </SheetContent>
-          </Sheet>
-          <div className="flex-1" />
-          <div className="flex items-center gap-4">
-            <NotificationsBell />
-            <div className="flex items-center gap-3 hidden md:flex bg-muted/50 rounded-full pl-1 pr-4 py-1 border border-border/50">
-              <Avatar className="h-7 w-7 border bg-background">
-                <AvatarImage
-                  src={
-                    user?.avatar
-                      ? pb.files.getUrl(user, user.avatar, { thumb: '100x100' })
-                      : undefined
-                  }
-                  alt={user?.name}
-                />
-                <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-                  {user?.name?.substring(0, 2).toUpperCase() ||
-                    user?.email?.substring(0, 2).toUpperCase() ||
-                    'AD'}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium">{user?.name || user?.email}</span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2">
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Sair</span>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col md:pl-64 transition-all duration-300 w-full min-w-0">
+        <header className="h-16 bg-background/95 backdrop-blur border-b sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 shrink-0">
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden mr-2"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
             </Button>
+            <h2 className="text-lg font-semibold md:hidden">V MODA</h2>
+          </div>
+          <div className="flex items-center gap-4 ml-auto">
+            <NotificationsBell />
           </div>
         </header>
-        <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
           <Outlet />
         </main>
       </div>

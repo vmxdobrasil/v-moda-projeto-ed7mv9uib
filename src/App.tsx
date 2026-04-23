@@ -4,7 +4,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { VideoCallListener } from '@/components/VideoCallListener'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { AuthProvider } from '@/hooks/use-auth'
+import { AuthProvider, useAuth } from '@/hooks/use-auth'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthGuard, PublicRoute } from '@/components/AuthGuard'
 
@@ -25,6 +25,13 @@ import Logistics from '@/pages/dashboard/Logistics'
 import Analytics from '@/pages/dashboard/Analytics'
 import MediaKit from '@/pages/dashboard/MediaKit'
 
+function RootRouter() {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (user) return <Navigate to="/dashboard" replace />
+  return <Navigate to="/login" replace />
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -37,13 +44,14 @@ export default function App() {
               <VideoCallListener />
 
               <Routes>
+                <Route path="/" element={<RootRouter />} />
+
                 <Route element={<PublicRoute />}>
                   <Route path="/login" element={<Login />} />
                   <Route path="/admin/login" element={<Navigate to="/login" replace />} />
                 </Route>
 
                 <Route element={<AuthGuard />}>
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<DashboardLayout />}>
                     <Route index element={<DashboardHub />} />
                     <Route path="customers" element={<Customers />} />
@@ -61,7 +69,6 @@ export default function App() {
                   </Route>
                 </Route>
 
-                {/* Catch all unmatched routes */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </TooltipProvider>

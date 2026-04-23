@@ -318,7 +318,7 @@ export default function Logistics() {
                   <Label>Documento (Comprovante / Recibo / NFe)</Label>
                   <Input
                     type="file"
-                    accept=".pdf,image/*"
+                    accept=".pdf,.png,.jpg,.jpeg"
                     onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                   />
                   {editingDelivery.logistics_file && !selectedFile && (
