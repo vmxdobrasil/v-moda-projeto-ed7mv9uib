@@ -41,15 +41,18 @@ export default function ForgotPassword() {
     try {
       await pb.collection('users').requestPasswordReset(data.email)
       toast({
-        description:
-          'Se o e-mail estiver cadastrado, você receberá um link de redefinição em breve.',
+        title: 'Sucesso',
+        description: 'Um link de redefinição de senha foi enviado para o seu e-mail.',
       })
       navigate('/login', { replace: true })
-    } catch (error) {
+    } catch (error: any) {
+      form.setError('email', {
+        type: 'manual',
+        message: 'Não foi possível enviar o link. Verifique se o e-mail está cadastrado.',
+      })
       toast({
         title: 'Erro',
-        description:
-          'Ocorreu um erro ao tentar recuperar a senha. Verifique se o e-mail está correto.',
+        description: 'Verifique se o e-mail está correto e tente novamente.',
         variant: 'destructive',
       })
     } finally {

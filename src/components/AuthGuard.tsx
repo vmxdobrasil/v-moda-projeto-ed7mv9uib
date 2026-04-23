@@ -8,7 +8,7 @@ export function AuthGuard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/40">
+      <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
@@ -26,7 +26,7 @@ export function PublicRoute() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/40">
+      <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )

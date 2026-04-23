@@ -54,10 +54,14 @@ export default function Login() {
     setIsLoading(false)
 
     if (error) {
-      toast.error('Credenciais inválidas. Verifique seu e-mail e senha e tente novamente.')
+      form.setError('root', {
+        type: 'manual',
+        message: 'Credenciais inválidas. Verifique seu e-mail e senha e tente novamente.',
+      })
+      toast.error('Erro ao fazer login. Verifique suas credenciais.')
     } else {
       toast.success('Login realizado com sucesso!')
-      navigate('/dashboard', { replace: true })
+      navigate('/', { replace: true })
     }
   }
 
@@ -74,6 +78,11 @@ export default function Login() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {form.formState.errors.root && (
+                <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md mb-4 text-center font-medium">
+                  {form.formState.errors.root.message}
+                </div>
+              )}
               <FormField
                 control={form.control}
                 name="email"
