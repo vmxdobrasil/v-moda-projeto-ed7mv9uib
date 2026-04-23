@@ -41,7 +41,8 @@ export default function ForgotPassword() {
     try {
       await pb.collection('users').requestPasswordReset(data.email)
       toast({
-        description: 'Link de recuperação enviado para o seu e-mail.',
+        description:
+          'Se o e-mail estiver cadastrado, você receberá um link de redefinição em breve.',
       })
       setIsSent(true)
     } catch (error) {
@@ -66,7 +67,7 @@ export default function ForgotPassword() {
           <h1 className="text-2xl font-bold tracking-tight">Recuperar Senha</h1>
           <p className="text-muted-foreground mt-2 text-sm">
             {isSent
-              ? 'Link de recuperação enviado para o seu e-mail.'
+              ? 'Se o e-mail estiver cadastrado, você receberá um link de redefinição em breve.'
               : 'Informe seu e-mail para receber um link de redefinição de senha.'}
           </p>
         </div>
