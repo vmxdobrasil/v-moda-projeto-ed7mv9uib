@@ -1,10 +1,9 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, ReactNode } from 'react'
+import useAuthStore, { type User } from '@/stores/useAuthStore'
 import pb from '@/lib/pocketbase/client'
-import { RecordModel } from 'pocketbase'
 
 interface AuthContextType {
-  user: RecordModel | null
-  signUp: (email: string, password: string) => Promise<{ error: any }>
+  user: User | null
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => void
   loading: boolean
@@ -19,34 +18,16 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<RecordModel | null>(
-    pb.authStore.isValid ? pb.authStore.record : null,
-  )
-  const [loading, setLoading] = useState(true)
+  const { user, isInitialized, initialize, login, logout } = useAuthStore()
 
   useEffect(() => {
-    const unsubscribe = pb.authStore.onChange((token, record) => {
-      setUser(token ? record : null)
-    })
-    setLoading(false)
-    return () => {
-      unsubscribe()
-    }
-  }, [])
-
-  const signUp = async (email: string, password: string) => {
-    try {
-      await pb.collection('users').create({ email, password, passwordConfirm: password })
-      await pb.collection('users').authWithPassword(email, password)
-      return { error: null }
-    } catch (error) {
-      return { error }
-    }
-  }
+    initialize()
+  }, [initialize])
 
   const signIn = async (email: string, password: string) => {
     try {
-      await pb.collection('users').authWithPassword(email, password)
+      const authData = await pb.collection('users').authWithPassword(email, password)
+      login(authData.record as unknown as User)
       return { error: null }
     } catch (error) {
       return { error }
@@ -54,11 +35,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signOut = () => {
-    pb.authStore.clear()
+    logout()
   }
 
   return (
-    <AuthContext.Provider value={{ user, signUp, signIn, signOut, loading }}>
+    <AuthContext.Provider value={{ user, signIn, signOut, loading: !isInitialized }}>
       {children}
     </AuthContext.Provider>
   )
