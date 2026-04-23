@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ArrowLeft, Save, Loader2, Mail, Phone, Calendar, User } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Mail, Phone, Calendar, User, FileText } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -143,6 +143,21 @@ export default function CustomerDetails() {
                   Origem: {customer.source?.replace('_', ' ') || 'Desconhecida'}
                 </span>
               </div>
+              {customer.logistics_file && (
+                <div className="mt-4 pt-4 border-t w-full flex flex-col gap-2 text-sm text-left">
+                  <span className="font-medium text-foreground flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" /> Documento Logístico:
+                  </span>
+                  <a
+                    href={pb.files.getUrl(customer, customer.logistics_file)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary hover:underline break-all"
+                  >
+                    Visualizar Arquivo
+                  </a>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
