@@ -3,29 +3,31 @@ migrate(
     const users = app.findCollectionByNameOrId('_pb_users_auth_')
     const roleField = users.fields.getByName('role')
 
+    let vals = ['user', 'admin']
+    let isRequired = false
+
     if (roleField && roleField.type === 'select') {
-      const vals = Array.from(roleField.values || [])
+      const existing = roleField.values || []
+      vals = []
+      for (let i = 0; i < existing.length; i++) {
+        vals.push(existing[i])
+      }
       if (!vals.includes('admin')) {
         vals.push('admin')
-        users.fields.add(
-          new SelectField({
-            name: 'role',
-            maxSelect: 1,
-            values: vals,
-          }),
-        )
-        app.save(users)
       }
-    } else if (!roleField) {
-      users.fields.add(
-        new SelectField({
-          name: 'role',
-          maxSelect: 1,
-          values: ['user', 'admin'],
-        }),
-      )
-      app.save(users)
+      isRequired = roleField.required || false
     }
+
+    users.fields.add(
+      new SelectField({
+        name: 'role',
+        maxSelect: 1,
+        values: vals,
+        required: isRequired,
+      }),
+    )
+
+    app.save(users)
 
     const email = 'valterpmendonca@gmail.com'
     try {
@@ -34,7 +36,8 @@ migrate(
       record.setVerified(true)
       app.save(record)
     } catch (_) {
-      const record = new Record(users)
+      const usersUpdated = app.findCollectionByNameOrId('_pb_users_auth_')
+      const record = new Record(usersUpdated)
       record.setEmail(email)
       record.setPassword('Skip@Pass')
       record.setVerified(true)
