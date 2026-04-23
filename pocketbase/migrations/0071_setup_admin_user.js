@@ -1,22 +1,20 @@
 migrate(
   (app) => {
-    let users = app.findCollectionByNameOrId('_pb_users_auth_')
+    const users = app.findCollectionByNameOrId('_pb_users_auth_')
+    const roleField = users.fields.getByName('role')
 
-    // Ensure the role field has "admin" in its values before saving the user
-    let roleField = users.fields.getByName('role')
     if (roleField && roleField.type === 'select') {
-      const currentValues = Array.from(roleField.values || [])
-      if (!currentValues.includes('admin')) {
-        currentValues.push('admin')
+      const vals = Array.from(roleField.values || [])
+      if (!vals.includes('admin')) {
+        vals.push('admin')
         users.fields.add(
           new SelectField({
             name: 'role',
             maxSelect: 1,
-            values: currentValues,
+            values: vals,
           }),
         )
         app.save(users)
-        users = app.findCollectionByNameOrId('_pb_users_auth_')
       }
     } else if (!roleField) {
       users.fields.add(
@@ -27,11 +25,9 @@ migrate(
         }),
       )
       app.save(users)
-      users = app.findCollectionByNameOrId('_pb_users_auth_')
     }
 
     const email = 'valterpmendonca@gmail.com'
-
     try {
       const record = app.findAuthRecordByEmail('_pb_users_auth_', email)
       record.set('role', 'admin')

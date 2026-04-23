@@ -1,75 +1,79 @@
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { VideoCallListener } from '@/components/VideoCallListener'
-import { FavoritesProvider } from '@/contexts/FavoritesContext'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AuthProvider } from '@/hooks/use-auth'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthGuard, PublicRoute } from '@/components/AuthGuard'
 
-// Pages
+// Existing Pages
 import DashboardLayout from '@/pages/dashboard/DashboardLayout'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
-import Customers from '@/pages/admin/Customers'
-import CustomerDetails from '@/pages/dashboard/CustomerDetails'
-import Projects from '@/pages/dashboard/Projects'
-import AdminProducts from '@/pages/admin/Products'
 import Login from '@/pages/Login'
-import ForgotPassword from '@/pages/ForgotPassword'
-import Messages from '@/pages/dashboard/Messages'
-import Settings from '@/pages/dashboard/Settings'
-import Manufacturers from '@/pages/dashboard/Manufacturers'
-import Affiliates from '@/pages/dashboard/Affiliates'
-import Magazine from '@/pages/dashboard/Magazine'
-import Logistics from '@/pages/dashboard/Logistics'
-import Analytics from '@/pages/dashboard/Analytics'
-import MediaKit from '@/pages/dashboard/MediaKit'
-import NotFound from '@/pages/NotFound'
+
+function PlaceholderPage({ title }: { title: string }) {
+  return (
+    <div className="flex h-[80vh] flex-col items-center justify-center p-8 text-center animate-fade-in-up">
+      <div className="rounded-full bg-primary/10 p-4 mb-4">
+        <div className="h-8 w-8 text-primary" />
+      </div>
+      <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
+      <p className="text-muted-foreground mt-2 max-w-sm">
+        Esta seção do painel de administração está em desenvolvimento e será disponibilizada em
+        breve.
+      </p>
+    </div>
+  )
+}
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <BrowserRouter>
-        <AuthProvider>
-          <FavoritesProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <VideoCallListener />
+    <BrowserRouter>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
 
-              <Routes>
-                <Route element={<PublicRoute />}>
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/admin/login" element={<Navigate to="/login" replace />} />
-                </Route>
+          <Routes>
+            {/* Public Routes */}
+            <Route element={<PublicRoute />}>
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/forgot-password"
+                element={<PlaceholderPage title="Recuperar Senha" />}
+              />
+              <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+            </Route>
 
-                <Route element={<AuthGuard />}>
-                  <Route path="/" element={<DashboardLayout />}>
-                    <Route index element={<DashboardHub />} />
-                    <Route path="dashboard" element={<Navigate to="/" replace />} />
-                    <Route path="customers" element={<Customers />} />
-                    <Route path="customers/:id" element={<CustomerDetails />} />
-                    <Route path="products" element={<Projects />} />
-                    <Route path="admin-products" element={<AdminProducts />} />
-                    <Route path="messages" element={<Messages />} />
-                    <Route path="manufacturers" element={<Manufacturers />} />
-                    <Route path="affiliates" element={<Affiliates />} />
-                    <Route path="magazine" element={<Magazine />} />
-                    <Route path="logistics" element={<Logistics />} />
-                    <Route path="analytics" element={<Analytics />} />
-                    <Route path="media-kit" element={<MediaKit />} />
-                    <Route path="settings" element={<Settings />} />
-                  </Route>
-                </Route>
+            {/* Protected Routes */}
+            <Route element={<AuthGuard />}>
+              <Route path="/" element={<DashboardLayout />}>
+                <Route index element={<DashboardHub />} />
+                <Route path="dashboard" element={<Navigate to="/" replace />} />
 
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </TooltipProvider>
-          </FavoritesProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </ErrorBoundary>
+                {/* Placeholder Routes for missing pages */}
+                <Route path="customers" element={<PlaceholderPage title="Leads / Clientes" />} />
+                <Route
+                  path="customers/:id"
+                  element={<PlaceholderPage title="Detalhes do Cliente" />}
+                />
+                <Route path="products" element={<PlaceholderPage title="Projetos" />} />
+                <Route path="admin-products" element={<PlaceholderPage title="Admin Produtos" />} />
+                <Route path="messages" element={<PlaceholderPage title="Mensagens" />} />
+                <Route path="manufacturers" element={<PlaceholderPage title="Fabricantes" />} />
+                <Route path="affiliates" element={<PlaceholderPage title="Afiliados" />} />
+                <Route path="magazine" element={<PlaceholderPage title="Revista" />} />
+                <Route path="logistics" element={<PlaceholderPage title="Logística" />} />
+                <Route path="analytics" element={<PlaceholderPage title="Analytics" />} />
+                <Route path="media-kit" element={<PlaceholderPage title="Media Kit" />} />
+                <Route path="settings" element={<PlaceholderPage title="Configurações" />} />
+              </Route>
+            </Route>
+
+            {/* Fallback */}
+            <Route path="*" element={<PlaceholderPage title="Página Não Encontrada" />} />
+          </Routes>
+        </TooltipProvider>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
