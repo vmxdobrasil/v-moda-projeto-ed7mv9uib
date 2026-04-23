@@ -1,84 +1,94 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { toast } from 'sonner'
 import logoUrl from '@/assets/logo-v-moda-fb088.png'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const { signIn } = useAuth()
+  const navigate = useNavigate()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    setLoading(true)
+    setIsLoading(true)
 
-    try {
-      const { error: signInError } = await signIn(email, password)
-      if (signInError) {
-        setError('Credenciais inválidas. Verifique seu e-mail e senha.')
-      }
-    } catch (err) {
-      setError('Ocorreu um erro ao tentar fazer login.')
-    } finally {
-      setLoading(false)
+    const { error } = await signIn(email, password)
+
+    if (error) {
+      toast.error('Erro ao fazer login. Verifique suas credenciais.')
+      setIsLoading(false)
+      return
     }
+
+    toast.success('Login realizado com sucesso!')
+    navigate('/')
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4">
-      <Card className="w-full max-w-md animate-fade-in-up">
-        <CardHeader className="space-y-4 items-center text-center">
-          <img src={logoUrl} alt="V Moda" className="h-12 object-contain" />
+      <Card className="w-full max-w-md animate-fade-in-up shadow-xl border-border/50">
+        <CardHeader className="space-y-6 items-center text-center">
+          <img src={logoUrl} alt="V Moda" className="h-14 object-contain" />
           <div className="space-y-2">
-            <CardTitle className="text-2xl">Bem-vindo(a) de volta</CardTitle>
-            <CardDescription>Faça login para acessar o painel de administração</CardDescription>
+            <CardTitle className="text-2xl font-semibold tracking-tight">
+              Acesso ao Painel
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Insira suas credenciais para gerenciar seus negócios.
+            </CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+
+        <form onSubmit={handleLogin}>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="seu@email.com"
+                placeholder="admin@vmoda.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="bg-background"
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Senha</Label>
-                <a href="/forgot-password" className="text-sm text-primary hover:underline">
-                  Esqueceu a senha?
-                </a>
-              </div>
+              <Label htmlFor="password">Senha</Label>
               <Input
                 id="password"
                 type="password"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="bg-background"
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Entrando...' : 'Entrar'}
+          </CardContent>
+
+          <CardFooter className="pt-2">
+            <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+              {isLoading ? 'Autenticando...' : 'Entrar'}
             </Button>
-          </form>
-        </CardContent>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   )
