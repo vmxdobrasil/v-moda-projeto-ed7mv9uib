@@ -17,6 +17,9 @@ import Projects from '@/pages/dashboard/Projects'
 import Login from '@/pages/Login'
 import Messages from '@/pages/dashboard/Messages'
 import Settings from '@/pages/dashboard/Settings'
+import Manufacturers from '@/pages/dashboard/Manufacturers'
+import Affiliates from '@/pages/dashboard/Affiliates'
+import Magazine from '@/pages/dashboard/Magazine'
 
 export default function App() {
   return (
@@ -43,6 +46,9 @@ export default function App() {
                     <Route path="customers/:id" element={<CustomerDetails />} />
                     <Route path="products" element={<Projects />} />
                     <Route path="messages" element={<Messages />} />
+                    <Route path="manufacturers" element={<Manufacturers />} />
+                    <Route path="affiliates" element={<Affiliates />} />
+                    <Route path="magazine" element={<Magazine />} />
                     <Route path="settings" element={<Settings />} />
                   </Route>
                 </Route>

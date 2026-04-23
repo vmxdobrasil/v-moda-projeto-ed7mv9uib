@@ -8,6 +8,9 @@ import {
   Settings,
   LogOut,
   Menu,
+  Store,
+  UserPlus,
+  BookOpen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -20,6 +23,9 @@ const navigation = [
   { name: 'Clientes', href: '/dashboard/customers', icon: Users },
   { name: 'Produtos', href: '/dashboard/products', icon: Package },
   { name: 'Mensagens', href: '/dashboard/messages', icon: MessageSquare },
+  { name: 'Fabricantes/Lojas', href: '/dashboard/manufacturers', icon: Store },
+  { name: 'Afiliados', href: '/dashboard/affiliates', icon: UserPlus },
+  { name: 'Revista', href: '/dashboard/magazine', icon: BookOpen },
   { name: 'Configurações', href: '/dashboard/settings', icon: Settings },
 ]
 
