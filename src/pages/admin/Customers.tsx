@@ -88,7 +88,7 @@ export default function Customers() {
               <TableHead>Nome</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Origem</TableHead>
+              <TableHead>Cidade</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -116,7 +116,7 @@ export default function Customers() {
                       {getStatusLabel(c.status)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="capitalize">{c.source?.replace('_', ' ') || '-'}</TableCell>
+                  <TableCell className="capitalize">{c.city || '-'}</TableCell>
                 </TableRow>
               ))
             )}

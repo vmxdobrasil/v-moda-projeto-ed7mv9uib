@@ -3,6 +3,8 @@ import { useAuth } from '@/hooks/use-auth'
 import { NotificationsBell } from '@/components/NotificationsBell'
 import { LayoutDashboard, Users, Package, Truck, LogOut, Menu, X, Settings } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
+import { useRealtime } from '@/hooks/use-realtime'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -14,7 +16,7 @@ export default function DashboardLayout() {
   const isAdmin = user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
 
   const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+    { icon: LayoutDashboard, label: 'Visão Geral', path: '/' },
     { icon: Package, label: 'Catálogo', path: '/products' },
     { icon: Users, label: 'CRM', path: '/customers' },
     { icon: Truck, label: 'Logística', path: '/logistics' },
@@ -30,6 +32,15 @@ export default function DashboardLayout() {
     navItems.splice(3, 0, { icon: Users, label: 'Fabricantes', path: '/manufacturers' })
     navItems.splice(4, 0, { icon: Users, label: 'Afiliados', path: '/affiliates' })
   }
+
+  useRealtime('notifications', (e) => {
+    if (e.action === 'create') {
+      const isForUser = e.record.user === user?.id || e.record.customer_email === user?.email
+      if (isForUser) {
+        toast.info(e.record.title, { description: e.record.message })
+      }
+    }
+  })
 
   return (
     <div className="min-h-screen bg-muted/30 flex">
@@ -122,7 +133,7 @@ export default function DashboardLayout() {
             <h2 className="text-lg font-semibold md:hidden">V MODA</h2>
             <h2 className="text-lg font-semibold hidden md:block capitalize">
               {location.pathname === '/'
-                ? 'Dashboard'
+                ? 'Visão Geral'
                 : location.pathname.split('/')[1].replace('-', ' ')}
             </h2>
           </div>
