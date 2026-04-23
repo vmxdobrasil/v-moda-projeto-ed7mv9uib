@@ -14,21 +14,21 @@ export default function DashboardLayout() {
   const isAdmin = user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
 
   const navItems = [
-    { icon: LayoutDashboard, label: 'Início', path: '/dashboard' },
-    { icon: Users, label: 'Clientes / CRM', path: '/dashboard/customers' },
-    { icon: Package, label: 'Produtos', path: '/dashboard/products' },
-    { icon: Truck, label: 'Logística', path: '/dashboard/logistics' },
-    { icon: Settings, label: 'Configurações', path: '/dashboard/settings' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+    { icon: Package, label: 'Catálogo', path: '/products' },
+    { icon: Users, label: 'CRM', path: '/customers' },
+    { icon: Truck, label: 'Logística', path: '/logistics' },
+    { icon: Settings, label: 'Configurações', path: '/settings' },
   ]
 
   if (isAdmin) {
     navItems.splice(2, 0, {
       icon: Package,
       label: 'Catálogo Admin',
-      path: '/dashboard/admin-products',
+      path: '/admin-products',
     })
-    navItems.splice(3, 0, { icon: Users, label: 'Fabricantes', path: '/dashboard/manufacturers' })
-    navItems.splice(4, 0, { icon: Users, label: 'Afiliados', path: '/dashboard/affiliates' })
+    navItems.splice(3, 0, { icon: Users, label: 'Fabricantes', path: '/manufacturers' })
+    navItems.splice(4, 0, { icon: Users, label: 'Afiliados', path: '/affiliates' })
   }
 
   return (
@@ -64,7 +64,7 @@ export default function DashboardLayout() {
           {navItems.map((item) => {
             const isActive =
               location.pathname === item.path ||
-              (item.path !== '/dashboard' && location.pathname.startsWith(item.path))
+              (item.path !== '/' && location.pathname.startsWith(item.path))
             return (
               <Link
                 key={item.path}
@@ -120,8 +120,16 @@ export default function DashboardLayout() {
               <Menu className="h-5 w-5" />
             </Button>
             <h2 className="text-lg font-semibold md:hidden">V MODA</h2>
+            <h2 className="text-lg font-semibold hidden md:block capitalize">
+              {location.pathname === '/'
+                ? 'Dashboard'
+                : location.pathname.split('/')[1].replace('-', ' ')}
+            </h2>
           </div>
           <div className="flex items-center gap-4 ml-auto">
+            <span className="text-sm font-medium hidden sm:block text-muted-foreground">
+              Olá, {user?.name || user?.email || 'Usuário'}
+            </span>
             <NotificationsBell />
           </div>
         </header>

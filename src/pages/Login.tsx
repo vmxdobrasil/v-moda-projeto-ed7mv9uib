@@ -37,7 +37,7 @@ export default function Login() {
       toast.error('Credenciais inválidas. Verifique seu e-mail e senha e tente novamente.')
     } else {
       toast.success('Login realizado com sucesso!')
-      navigate('/dashboard', { replace: true })
+      navigate('/', { replace: true })
     }
   }
 
@@ -89,7 +89,7 @@ export default function Login() {
           </form>
         </CardContent>
         <CardFooter className="flex justify-center border-t p-4 mt-4 bg-muted/20">
-          <p className="text-sm text-muted-foreground">Esqueceu a senha? contate o administrador</p>
+          <p className="text-sm text-muted-foreground">Esqueceu a senha? Contate o administrador</p>
         </CardFooter>
       </Card>
     </div>

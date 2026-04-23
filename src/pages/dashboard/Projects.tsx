@@ -296,6 +296,7 @@ export default function DashboardProjects() {
             <TableRow>
               <TableHead>Imagem</TableHead>
               <TableHead>Nome</TableHead>
+              <TableHead>Categoria</TableHead>
               <TableHead>Varejo</TableHead>
               <TableHead>Atacado</TableHead>
               <TableHead>Estoque</TableHead>
@@ -305,13 +306,13 @@ export default function DashboardProjects() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   Carregando...
                 </TableCell>
               </TableRow>
             ) : projects.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   Nenhum projeto encontrado.
                 </TableCell>
               </TableRow>
@@ -326,6 +327,9 @@ export default function DashboardProjects() {
                     />
                   </TableCell>
                   <TableCell className="font-medium">{p.name}</TableCell>
+                  <TableCell className="capitalize">
+                    {p.category?.replace('_', ' ') || '-'}
+                  </TableCell>
                   <TableCell>
                     {p.retail_price ? `R$ ${p.retail_price.toFixed(2).replace('.', ',')}` : '-'}
                   </TableCell>

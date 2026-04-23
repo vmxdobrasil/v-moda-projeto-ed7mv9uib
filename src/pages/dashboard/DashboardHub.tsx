@@ -11,7 +11,7 @@ export default function DashboardHub() {
   const [stats, setStats] = useState({
     customers: 0,
     projects: 0,
-    channels: 0,
+    newLeads: 0,
     messages: 0,
   })
   const [loading, setLoading] = useState(true)
@@ -22,19 +22,24 @@ export default function DashboardHub() {
       const customerFilter = isAdmin
         ? ''
         : `manufacturer = "${user?.id}" || affiliate_referrer = "${user?.id}"`
+
+      const newLeadsFilter = customerFilter
+        ? `(${customerFilter}) && status = 'new'`
+        : `status = 'new'`
+
       const projectFilter = isAdmin ? '' : `manufacturer = "${user?.id}"`
 
-      const [customersRes, projectsRes, channelsRes, messagesRes] = await Promise.all([
+      const [customersRes, projectsRes, newLeadsRes, messagesRes] = await Promise.all([
         pb.collection('customers').getList(1, 1, { filter: customerFilter, $autoCancel: false }),
         pb.collection('projects').getList(1, 1, { filter: projectFilter, $autoCancel: false }),
-        pb.collection('channels').getList(1, 1, { $autoCancel: false }),
+        pb.collection('customers').getList(1, 1, { filter: newLeadsFilter, $autoCancel: false }),
         pb.collection('messages').getList(1, 1, { $autoCancel: false }),
       ])
 
       setStats({
         customers: customersRes.totalItems,
         projects: projectsRes.totalItems,
-        channels: channelsRes.totalItems,
+        newLeads: newLeadsRes.totalItems,
         messages: messagesRes.totalItems,
       })
     } catch (error) {
@@ -55,32 +60,32 @@ export default function DashboardHub() {
 
   const statCards = [
     {
-      title: 'Total de Clientes',
+      title: 'Clientes Ativos',
       value: stats.customers,
       icon: Users,
-      desc: 'Base de clientes',
-      link: '/dashboard/customers',
+      desc: 'Base total de clientes',
+      link: '/customers',
     },
     {
       title: 'Produtos Ativos',
       value: stats.projects,
       icon: Package,
       desc: 'Catálogo de produtos',
-      link: '/dashboard/products',
+      link: '/products',
     },
     {
-      title: 'Canais de Venda',
-      value: stats.channels,
-      icon: Box,
-      desc: 'Integrações ativas',
-      link: '/dashboard/settings',
+      title: 'Novos Leads',
+      value: stats.newLeads,
+      icon: Users,
+      desc: 'Leads aguardando contato',
+      link: '/customers',
     },
     {
       title: 'Mensagens',
       value: stats.messages,
       icon: MessageSquare,
       desc: 'Interações registradas',
-      link: '/dashboard/messages',
+      link: '/messages',
     },
   ]
 
