@@ -51,7 +51,13 @@ export default function Products() {
 
   const loadData = async () => {
     try {
-      const records = await pb.collection('projects').getFullList<Project>({ sort: '-created' })
+      const user = pb.authStore.record
+      if (!user) return
+
+      const records = await pb.collection('projects').getFullList<Project>({
+        filter: `manufacturer = "${user.id}"`,
+        sort: '-created',
+      })
       setProjects(records)
     } catch (e) {
       console.error(e)

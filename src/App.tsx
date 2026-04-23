@@ -11,9 +11,10 @@ import { AuthGuard, PublicRoute } from '@/components/AuthGuard'
 // Pages
 import DashboardLayout from '@/pages/dashboard/DashboardLayout'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
-import Customers from '@/pages/dashboard/CRM'
+import Customers from '@/pages/admin/Customers'
 import CustomerDetails from '@/pages/dashboard/CustomerDetails'
 import Projects from '@/pages/dashboard/Projects'
+import AdminProducts from '@/pages/admin/Products'
 import Login from '@/pages/Login'
 import Messages from '@/pages/dashboard/Messages'
 import Settings from '@/pages/dashboard/Settings'
@@ -48,6 +49,7 @@ export default function App() {
                     <Route path="customers" element={<Customers />} />
                     <Route path="customers/:id" element={<CustomerDetails />} />
                     <Route path="products" element={<Projects />} />
+                    <Route path="admin-products" element={<AdminProducts />} />
                     <Route path="messages" element={<Messages />} />
                     <Route path="manufacturers" element={<Manufacturers />} />
                     <Route path="affiliates" element={<Affiliates />} />

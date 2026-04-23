@@ -23,17 +23,23 @@ import pb from '@/lib/pocketbase/client'
 
 const baseNavigation = [
   { name: 'Início', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Clientes', href: '/dashboard/customers', icon: Users },
+  { name: 'Clientes / CRM', href: '/dashboard/customers', icon: Users },
   {
-    name: 'Produtos',
+    name: 'Meu Catálogo',
     href: '/dashboard/products',
     icon: Package,
-    roles: ['admin', 'manufacturer', 'retailer'],
+    roles: ['manufacturer', 'retailer'],
+  },
+  {
+    name: 'Catálogo Revenda',
+    href: '/dashboard/admin-products',
+    icon: Package,
+    roles: ['admin'],
   },
   { name: 'Mensagens', href: '/dashboard/messages', icon: MessageSquare },
-  { name: 'Fabricantes/Lojas', href: '/dashboard/manufacturers', icon: Store },
-  { name: 'Afiliados', href: '/dashboard/affiliates', icon: UserPlus },
-  { name: 'Revista', href: '/dashboard/magazine', icon: BookOpen },
+  { name: 'Fabricantes/Lojas', href: '/dashboard/manufacturers', icon: Store, roles: ['admin'] },
+  { name: 'Afiliados', href: '/dashboard/affiliates', icon: UserPlus, roles: ['admin'] },
+  { name: 'Revista', href: '/dashboard/magazine', icon: BookOpen, roles: ['admin'] },
   { name: 'Logística', href: '/dashboard/logistics', icon: Truck },
   { name: 'Analytics', href: '/dashboard/analytics', icon: PieChart },
   { name: 'Media Kit', href: '/dashboard/media-kit', icon: FolderOpen },
@@ -53,20 +59,14 @@ export default function DashboardLayout() {
   const isAdmin = user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
   const userRole = user?.role || 'user'
 
-  const navigation = baseNavigation
-    .filter((item) => {
-      if (isAdmin) return true
-      if (item.roles && !item.roles.includes(userRole as string)) return false
-      return true
-    })
-    .map((item) => ({
-      ...item,
-      name:
-        item.href === '/dashboard/products' &&
-        ['manufacturer', 'retailer'].includes(userRole as string)
-          ? 'Meu Catálogo'
-          : item.name,
-    }))
+  const navigation = baseNavigation.filter((item) => {
+    if (isAdmin && !item.roles) return true
+    if (isAdmin && item.roles?.includes('admin')) return true
+    if (isAdmin && item.href === '/dashboard/products') return false // Admin uses /dashboard/admin-products
+
+    if (!isAdmin && item.roles && !item.roles.includes(userRole as string)) return false
+    return true
+  })
 
   const NavLinks = () => (
     <>

@@ -42,17 +42,23 @@ export default function DashboardHub() {
   const loadData = async () => {
     try {
       setError(null)
+      const user = pb.authStore.record
+      const isAdmin = user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
+      const customerFilter =
+        !isAdmin && user ? `manufacturer = "${user.id}" || affiliate_referrer = "${user.id}"` : ''
+      const projectFilter = !isAdmin && user ? `manufacturer = "${user.id}"` : ''
+
       const [leadsRes, projectsRes, messagesRes, recentRes] = await Promise.all([
         pb
           .collection('customers')
-          .getList(1, 1)
+          .getList(1, 1, { filter: customerFilter })
           .catch((e) => {
             console.error('Error fetching customers count:', e)
             return { totalItems: 0 }
           }),
         pb
           .collection('projects')
-          .getList(1, 1)
+          .getList(1, 1, { filter: projectFilter })
           .catch((e) => {
             console.error('Error fetching projects count:', e)
             return { totalItems: 0 }
@@ -66,7 +72,7 @@ export default function DashboardHub() {
           }),
         pb
           .collection('customers')
-          .getList<RecentCustomer>(1, 5, { sort: '-created' })
+          .getList<RecentCustomer>(1, 5, { sort: '-created', filter: customerFilter })
           .catch((e) => {
             console.error('Error fetching recent customers:', e)
             return { items: [] }

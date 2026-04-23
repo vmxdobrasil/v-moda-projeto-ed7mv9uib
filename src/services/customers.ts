@@ -36,7 +36,14 @@ export interface Customer {
 }
 
 export const getCustomers = async () => {
+  const user = pb.authStore.record
+  if (!user) return []
+
+  const isAdmin = user.email === 'valterpmendonca@gmail.com' || user.role === 'admin'
+  const filter = isAdmin ? '' : `manufacturer = "${user.id}" || affiliate_referrer = "${user.id}"`
+
   return pb.collection('customers').getFullList<Customer>({
+    filter,
     sort: '-created',
   })
 }
