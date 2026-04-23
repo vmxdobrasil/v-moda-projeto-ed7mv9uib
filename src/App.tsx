@@ -4,7 +4,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { VideoCallListener } from '@/components/VideoCallListener'
 import { FavoritesProvider } from '@/contexts/FavoritesContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { AuthProvider, useAuth } from '@/hooks/use-auth'
+import { AuthProvider } from '@/hooks/use-auth'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthGuard, PublicRoute } from '@/components/AuthGuard'
 
