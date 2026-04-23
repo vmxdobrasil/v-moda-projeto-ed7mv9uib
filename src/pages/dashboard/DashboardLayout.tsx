@@ -1,52 +1,58 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { useAuth } from '@/hooks/use-auth'
-import { Button } from '@/components/ui/button'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-  SidebarHeader,
-  SidebarFooter,
 } from '@/components/ui/sidebar'
 import {
-  LayoutDashboard,
+  Home,
   Users,
   Package,
   MessageSquare,
-  Settings as SettingsIcon,
-  LogOut,
+  Settings,
+  Truck,
+  TrendingUp,
+  BookOpen,
+  UserPlus,
   Factory,
+  LogOut,
 } from 'lucide-react'
-import logoUrl from '@/assets/logo-v-moda-fb088.png'
+import { useAuth } from '@/hooks/use-auth'
+import { Button } from '@/components/ui/button'
+
+const navItems = [
+  { icon: Home, label: 'Dashboard', path: '/' },
+  { icon: Users, label: 'Leads / Clientes', path: '/customers' },
+  { icon: Package, label: 'Projetos', path: '/products' },
+  { icon: MessageSquare, label: 'Mensagens', path: '/messages' },
+  { icon: Truck, label: 'Logística', path: '/logistics' },
+  { icon: TrendingUp, label: 'Analytics', path: '/analytics' },
+  { icon: BookOpen, label: 'Revista', path: '/magazine' },
+  { icon: UserPlus, label: 'Afiliados', path: '/affiliates' },
+  { icon: Factory, label: 'Fabricantes', path: '/manufacturers' },
+  { icon: Settings, label: 'Configurações', path: '/settings' },
+]
 
 export default function DashboardLayout() {
   const { signOut, user } = useAuth()
   const location = useLocation()
 
-  const navItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Leads / Clientes', path: '/customers', icon: Users },
-    { name: 'Projetos', path: '/products', icon: Package },
-    { name: 'Mensagens', path: '/messages', icon: MessageSquare },
-    { name: 'Fabricantes', path: '/manufacturers', icon: Factory },
-    { name: 'Configurações', path: '/settings', icon: SettingsIcon },
-  ]
-
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-muted/20">
+      <div className="flex h-screen overflow-hidden w-full bg-background">
         <Sidebar>
-          <SidebarHeader className="p-6 flex items-center justify-center border-b">
-            <img src={logoUrl} alt="V Moda" className="h-10 object-contain" />
+          <SidebarHeader className="h-16 flex items-center justify-center border-b px-4 shrink-0">
+            <h1 className="text-2xl font-bold tracking-tight text-primary">V Moda</h1>
           </SidebarHeader>
-
           <SidebarContent>
             <SidebarGroup>
               <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
@@ -56,13 +62,12 @@ export default function DashboardLayout() {
                     const isActive =
                       location.pathname === item.path ||
                       (item.path !== '/' && location.pathname.startsWith(item.path))
-
                     return (
                       <SidebarMenuItem key={item.path}>
-                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.name}>
+                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
                           <Link to={item.path}>
-                            <item.icon />
-                            <span>{item.name}</span>
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.label}</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -72,32 +77,50 @@ export default function DashboardLayout() {
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
-
-          <SidebarFooter className="border-t p-4">
-            <div className="flex flex-col gap-2">
-              <div className="text-sm text-muted-foreground truncate px-2">{user?.email}</div>
-              <Button
-                variant="ghost"
-                className="justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 w-full"
-                onClick={signOut}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sair
-              </Button>
+          <SidebarFooter className="border-t p-4 shrink-0">
+            <div className="flex items-center gap-3 mb-4 px-2">
+              <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-sm">
+                {user?.name?.charAt(0)?.toUpperCase() ||
+                  user?.email?.charAt(0)?.toUpperCase() ||
+                  'U'}
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-sm font-semibold truncate text-foreground">
+                  {user?.name || 'Administrador'}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
+              </div>
             </div>
+            <Button
+              variant="outline"
+              className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
+              onClick={signOut}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair
+            </Button>
           </SidebarFooter>
         </Sidebar>
 
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="flex h-14 lg:h-[60px] items-center gap-4 border-b bg-card px-6 sticky top-0 z-10 shadow-sm">
-            <SidebarTrigger />
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-muted/20">
+          <header className="h-16 border-b flex items-center px-6 bg-background shrink-0 shadow-sm z-10">
+            <SidebarTrigger className="md:hidden mr-4" />
             <div className="flex-1" />
+            <div className="flex items-center gap-4">
+              <div className="text-sm font-medium text-muted-foreground">
+                {new Date().toLocaleDateString('pt-BR', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </div>
+            </div>
           </header>
-
-          <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
+          <div className="flex-1 overflow-auto p-4 md:p-8">
             <Outlet />
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
     </SidebarProvider>
   )

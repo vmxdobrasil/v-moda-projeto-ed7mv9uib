@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,8 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { toast } from 'sonner'
-import logoUrl from '@/assets/logo-v-moda-fb088.png'
+import { useToast } from '@/hooks/use-toast'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -21,55 +20,54 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const { signIn } = useAuth()
   const navigate = useNavigate()
+  const { toast } = useToast()
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     const { error } = await signIn(email, password)
 
     if (error) {
-      toast.error('Erro ao fazer login. Verifique suas credenciais.')
+      toast({
+        title: 'Erro ao entrar',
+        description: 'Credenciais inválidas ou conta não encontrada.',
+        variant: 'destructive',
+      })
       setIsLoading(false)
       return
     }
 
-    toast.success('Login realizado com sucesso!')
     navigate('/')
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4">
-      <Card className="w-full max-w-md animate-fade-in-up shadow-xl border-border/50">
-        <CardHeader className="space-y-6 items-center text-center">
-          <img src={logoUrl} alt="V Moda" className="h-14 object-contain" />
-          <div className="space-y-2">
-            <CardTitle className="text-2xl font-semibold tracking-tight">
-              Acesso ao Painel
-            </CardTitle>
-            <CardDescription className="text-sm">
-              Insira suas credenciais para gerenciar seus negócios.
-            </CardDescription>
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+      <Card className="w-full max-w-md animate-fade-in-up border-border/50 shadow-lg">
+        <CardHeader className="space-y-1 text-center">
+          <div className="mx-auto w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4 shadow-sm">
+            <span className="text-primary-foreground font-bold text-xl tracking-tighter">VM</span>
           </div>
+          <CardTitle className="text-2xl font-bold tracking-tight">Entrar na V Moda</CardTitle>
+          <CardDescription>Insira suas credenciais para acessar o painel</CardDescription>
         </CardHeader>
-
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@vmoda.com"
+                placeholder="exemplo@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-background"
-                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Senha</Label>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -77,15 +75,12 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="bg-background"
-                disabled={isLoading}
               />
             </div>
           </CardContent>
-
-          <CardFooter className="pt-2">
-            <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-              {isLoading ? 'Autenticando...' : 'Entrar'}
+          <CardFooter>
+            <Button className="w-full" type="submit" disabled={isLoading}>
+              {isLoading ? 'Entrando...' : 'Entrar'}
             </Button>
           </CardFooter>
         </form>
