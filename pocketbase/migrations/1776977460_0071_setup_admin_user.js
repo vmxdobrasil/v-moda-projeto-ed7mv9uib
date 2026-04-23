@@ -16,7 +16,6 @@ migrate(
         roleField.values = [...vals, 'admin']
       }
     }
-
     app.save(users)
 
     try {
@@ -25,24 +24,17 @@ migrate(
         record.set('role', 'admin')
         app.save(record)
       }
-      return
-    } catch (_) {}
-
-    const record = new Record(users)
-    record.setEmail('valterpmendonca@gmail.com')
-    record.setPassword('Skip@Pass')
-    record.setVerified(true)
-    record.set('name', 'Admin')
-    record.set('role', 'admin')
-    app.save(record)
+    } catch (_) {
+      const record = new Record(users)
+      record.setEmail('valterpmendonca@gmail.com')
+      record.setPassword('Skip@Pass')
+      record.setVerified(true)
+      record.set('name', 'Admin')
+      record.set('role', 'admin')
+      app.save(record)
+    }
   },
   (app) => {
-    try {
-      const record = app.findAuthRecordByEmail('users', 'valterpmendonca@gmail.com')
-      if (record.getString('role') === 'admin') {
-        record.set('role', '')
-        app.save(record)
-      }
-    } catch (_) {}
+    // down
   },
 )
