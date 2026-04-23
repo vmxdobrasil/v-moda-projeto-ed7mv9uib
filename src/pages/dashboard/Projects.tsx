@@ -2,14 +2,7 @@ import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+
 import {
   Dialog,
   DialogContent,
@@ -290,88 +283,84 @@ export default function DashboardProjects() {
         </Dialog>
       </div>
 
-      <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Imagem</TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Varejo</TableHead>
-              <TableHead>Atacado</TableHead>
-              <TableHead>Estoque</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  Carregando...
-                </TableCell>
-              </TableRow>
-            ) : projects.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  Nenhum projeto encontrado.
-                </TableCell>
-              </TableRow>
-            ) : (
-              projects.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>
-                    <img
-                      src={pb.files.getUrl(p, p.image, { thumb: '100x100' })}
-                      alt={p.name}
-                      className="w-12 h-12 object-cover rounded"
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell className="capitalize">
-                    {p.category?.replace('_', ' ') || '-'}
-                  </TableCell>
-                  <TableCell>
-                    {p.retail_price ? `R$ ${p.retail_price.toFixed(2).replace('.', ',')}` : '-'}
-                  </TableCell>
-                  <TableCell>
-                    {p.wholesale_price ? (
-                      <Badge variant="secondary">
-                        R$ {p.wholesale_price.toFixed(2).replace('.', ',')}
-                      </Badge>
-                    ) : (
-                      '-'
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {p.stock_quantity > 0 ? (
-                      <Badge variant="outline" className="bg-green-500/10 text-green-600">
-                        {p.stock_quantity}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-red-500/10 text-red-600">
-                        Sem estoque
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => setEditingProject(p)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(p.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+      {loading ? (
+        <div className="text-center py-12 text-muted-foreground">Carregando catálogo...</div>
+      ) : projects.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          Nenhum produto cadastrado no catálogo.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {projects.map((p) => (
+            <Card
+              key={p.id}
+              className="overflow-hidden flex flex-col hover:shadow-md transition-shadow"
+            >
+              <div className="aspect-[4/5] bg-muted relative">
+                <img
+                  src={pb.files.getUrl(p, p.image, { thumb: '400x500' })}
+                  alt={p.name}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-2 right-2 flex gap-1">
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8 rounded-full opacity-80 hover:opacity-100"
+                    onClick={() => setEditingProject(p)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="h-8 w-8 rounded-full opacity-80 hover:opacity-100"
+                    onClick={() => handleDelete(p.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+                {p.stock_quantity <= 0 && (
+                  <div className="absolute bottom-2 left-2">
+                    <Badge variant="destructive" className="bg-red-500">
+                      Esgotado
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              <div className="p-4 flex-1 flex flex-col">
+                <div className="flex justify-between items-start mb-1">
+                  <h3 className="font-semibold text-lg line-clamp-1" title={p.name}>
+                    {p.name}
+                  </h3>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3 capitalize">
+                  {p.category?.replace('_', ' ') || 'Sem categoria'}
+                </p>
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-1">
+                  {p.description || 'Sem descrição.'}
+                </p>
+                <div className="flex items-center justify-between mt-auto pt-4 border-t">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground">Atacado</span>
+                    <span className="font-bold text-primary">
+                      {p.wholesale_price
+                        ? `R$ ${p.wholesale_price.toFixed(2).replace('.', ',')}`
+                        : '-'}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-xs text-muted-foreground">Estoque</span>
+                    <span className="font-medium">
+                      {p.stock_quantity > 0 ? p.stock_quantity : '0'} unid.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Dialog open={!!editingProject} onOpenChange={(open) => !open && setEditingProject(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">

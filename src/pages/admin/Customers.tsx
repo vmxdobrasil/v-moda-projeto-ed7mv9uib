@@ -88,7 +88,7 @@ export default function Customers() {
               <TableHead>Nome</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Cidade</TableHead>
+              <TableHead>Origem</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -107,7 +107,7 @@ export default function Customers() {
                 </TableCell>
               </TableRow>
             ) : (
-              customers.map((c) => (
+              customers.map((c: any) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell>{c.phone || '-'}</TableCell>
@@ -116,7 +116,9 @@ export default function Customers() {
                       {getStatusLabel(c.status)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="capitalize">{c.city || '-'}</TableCell>
+                  <TableCell className="capitalize">
+                    {c.source?.replace('_', ' ') || 'Indefinido'}
+                  </TableCell>
                 </TableRow>
               ))
             )}
