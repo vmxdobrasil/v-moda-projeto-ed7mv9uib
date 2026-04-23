@@ -21,8 +21,11 @@ migrate(
     try {
       const record = app.findAuthRecordByEmail('users', 'valterpmendonca@gmail.com')
       if (record.getString('role') !== 'admin') {
-        record.set('role', 'admin')
-        app.save(record)
+        app
+          .db()
+          .newQuery("UPDATE users SET role = 'admin' WHERE id = {:id}")
+          .bind({ id: record.id })
+          .execute()
       }
     } catch (_) {
       const record = new Record(users)
