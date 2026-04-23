@@ -9,6 +9,7 @@ import { AuthGuard, PublicRoute } from '@/components/AuthGuard'
 import DashboardLayout from '@/pages/dashboard/DashboardLayout'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
 import Login from '@/pages/Login'
+import NotFound from '@/pages/NotFound'
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -70,7 +71,7 @@ export default function App() {
             </Route>
 
             {/* Fallback */}
-            <Route path="*" element={<PlaceholderPage title="Página Não Encontrada" />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </TooltipProvider>
       </AuthProvider>
