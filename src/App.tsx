@@ -16,6 +16,7 @@ import CustomerDetails from '@/pages/dashboard/CustomerDetails'
 import Projects from '@/pages/dashboard/Projects'
 import AdminProducts from '@/pages/admin/Products'
 import Login from '@/pages/Login'
+import ForgotPassword from '@/pages/ForgotPassword'
 import Messages from '@/pages/dashboard/Messages'
 import Settings from '@/pages/dashboard/Settings'
 import Manufacturers from '@/pages/dashboard/Manufacturers'
@@ -40,6 +41,7 @@ export default function App() {
               <Routes>
                 <Route element={<PublicRoute />}>
                   <Route path="/login" element={<Login />} />
+                  <Route path="/esqueci-a-senha" element={<ForgotPassword />} />
                   <Route path="/admin/login" element={<Navigate to="/login" replace />} />
                 </Route>
 

@@ -14,9 +14,11 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
+import pb from '@/lib/pocketbase/client'
+import logoUrl from '@/assets/logo-v-moda-fb088.png'
 
 const forgotSchema = z.object({
-  email: z.string().email('E-mail inválido'),
+  email: z.string().email('E-mail inválido.'),
 })
 
 type ForgotForm = z.infer<typeof forgotSchema>
@@ -33,28 +35,40 @@ export default function ForgotPassword() {
     },
   })
 
-  function onSubmit(_data: ForgotForm) {
+  async function onSubmit(data: ForgotForm) {
     setIsLoading(true)
 
-    setTimeout(() => {
+    try {
+      await pb.collection('users').requestPasswordReset(data.email)
       toast({
         title: 'E-mail enviado',
-        description: 'Verifique sua caixa de entrada para redefinir sua senha.',
+        description:
+          'Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha em instantes.',
       })
-
-      setIsLoading(false)
       setIsSent(true)
-    }, 1000)
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description:
+          'Ocorreu um erro ao tentar recuperar a senha. Verifique se o e-mail está correto.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div className="container max-w-md mx-auto py-24 md:py-32">
-      <div className="flex flex-col space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-serif">Recuperar Senha</h1>
-          <p className="text-muted-foreground mt-2">
+    <div className="min-h-screen flex items-center justify-center bg-muted/40 px-4">
+      <div className="w-full max-w-md bg-card p-8 rounded-xl shadow-lg border border-primary/10 animate-fade-in-up">
+        <div className="text-center mb-8">
+          <div className="mx-auto flex justify-center mb-6">
+            <img src={logoUrl} alt="V Moda" className="h-16 object-contain" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">Recuperar Senha</h1>
+          <p className="text-muted-foreground mt-2 text-sm">
             {isSent
-              ? 'Enviamos as instruções de recuperação para seu e-mail.'
+              ? 'Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha em instantes.'
               : 'Informe seu e-mail para receber um link de redefinição de senha.'}
           </p>
         </div>
@@ -76,26 +90,18 @@ export default function ForgotPassword() {
                 )}
               />
 
-              <Button
-                type="submit"
-                className="w-full rounded-none h-12 uppercase tracking-widest mt-6"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Enviando...' : 'Enviar link de recuperação'}
+              <Button type="submit" className="w-full mt-6" disabled={isLoading}>
+                {isLoading ? 'Enviando...' : 'Recuperar Senha'}
               </Button>
             </form>
           </Form>
         ) : (
-          <Button
-            asChild
-            variant="outline"
-            className="w-full rounded-none h-12 uppercase tracking-widest mt-6"
-          >
+          <Button asChild variant="outline" className="w-full mt-6">
             <Link to="/login">Voltar para o Login</Link>
           </Button>
         )}
 
-        <div className="text-center mt-6">
+        <div className="text-center mt-8 pt-6 border-t border-muted-foreground/10">
           <p className="text-sm text-muted-foreground">
             Lembrou a senha?{' '}
             <Link to="/login" className="text-primary hover:underline font-medium">

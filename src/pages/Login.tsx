@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate, Navigate, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -114,7 +114,9 @@ export default function Login() {
           </Form>
         </CardContent>
         <CardFooter className="flex justify-center border-t p-4 mt-4 bg-muted/20">
-          <p className="text-sm text-muted-foreground">Esqueceu a senha? Contate o administrador</p>
+          <Link to="/esqueci-a-senha" className="text-sm text-primary hover:underline font-medium">
+            Esqueceu a senha? Recuperar acesso
+          </Link>
         </CardFooter>
       </Card>
     </div>
