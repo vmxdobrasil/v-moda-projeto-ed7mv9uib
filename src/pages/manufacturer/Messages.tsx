@@ -47,7 +47,7 @@ export default function ManufacturerMessages() {
     }
   }
 
-  const useSuggestion = (msgId: string, suggestion: string) => {
+  const handleUseSuggestion = (msgId: string, suggestion: string) => {
     setReplyText((prev) => ({ ...prev, [msgId]: suggestion }))
   }
 
@@ -104,7 +104,7 @@ export default function ManufacturerMessages() {
                     {msg.ai_suggested_reply && (
                       <div
                         className="flex gap-2 text-sm bg-primary/5 p-3 rounded-md border border-primary/20 text-primary cursor-pointer hover:bg-primary/10 transition-colors"
-                        onClick={() => useSuggestion(msg.id, msg.ai_suggested_reply)}
+                        onClick={() => handleUseSuggestion(msg.id, msg.ai_suggested_reply)}
                         title="Click to use this suggestion"
                       >
                         <Bot className="w-5 h-5 shrink-0 mt-0.5" />
