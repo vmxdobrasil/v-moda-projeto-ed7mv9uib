@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { MonthlySales } from '@/components/dashboard/MonthlySales'
 
 export default function DashboardHub() {
   const { user } = useAuth()
@@ -140,6 +141,8 @@ export default function DashboardHub() {
           Aqui está o resumo das suas atividades e métricas de hoje.
         </p>
       </div>
+
+      <MonthlySales />
 
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">

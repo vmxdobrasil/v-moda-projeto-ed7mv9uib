@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts'
+import { MonthlySales } from '@/components/dashboard/MonthlySales'
 
 export default function ManufacturerDashboard() {
   const { user } = useAuth()
@@ -23,7 +24,7 @@ export default function ManufacturerDashboard() {
           pb
             .collection('notifications')
             .getList(1, 5, { filter: `user = "${user.id}"`, sort: '-created' }),
-          pb.collection('referrals').getFullList({ filter: `brand = "${user.id}"` }),
+          pb.collection('referrals').getFullList({ filter: `brand.manufacturer = "${user.id}"` }),
         ])
 
         const converted = customers.filter((c) => c.status === 'converted').length
@@ -66,6 +67,8 @@ export default function ManufacturerDashboard() {
           Monitore métricas em tempo real, taxas de conversão e tendências de vendas.
         </p>
       </div>
+
+      <MonthlySales />
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>

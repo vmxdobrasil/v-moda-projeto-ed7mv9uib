@@ -15,7 +15,7 @@ export const getReferrals = async () => {
   const user = pb.authStore.record
   if (!user) return []
   const isAdmin = user.email === 'valterpmendonca@gmail.com' || user.role === 'admin'
-  const filter = isAdmin ? '' : `affiliate = "${user.id}" || brand = "${user.id}"`
+  const filter = isAdmin ? '' : `affiliate = "${user.id}" || brand.manufacturer = "${user.id}"`
   return pb.collection('referrals').getFullList<Referral>({
     filter,
     sort: '-created',

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T21:55:44.706Z",
+  "generatedAt": "2026-04-24T22:04:08.906Z",
   "collections": [
     {
       "name": "users",
@@ -1042,8 +1042,8 @@
       "name": "referrals",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && affiliate = @request.auth.id",
-        "view": "@request.auth.id != '' && affiliate = @request.auth.id",
+        "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com' || affiliate = @request.auth.id || brand.manufacturer = @request.auth.id)",
+        "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com' || affiliate = @request.auth.id || brand.manufacturer = @request.auth.id)",
         "create": null,
         "update": null,
         "delete": null
