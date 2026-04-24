@@ -52,11 +52,11 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md animate-fade-in-up border-border/50 shadow-lg">
         <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto flex items-center justify-center mb-8 px-4">
+          <div className="mx-auto flex items-center justify-center mb-10 px-4">
             <img
               src={logoUrl}
               alt="V Moda Brasil"
-              className="w-full max-w-[240px] h-auto object-contain"
+              className="w-full max-w-[320px] h-auto object-contain transition-all duration-300"
             />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Login to V Moda</CardTitle>

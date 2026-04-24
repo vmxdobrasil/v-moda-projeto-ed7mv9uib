@@ -160,7 +160,7 @@ export default function AdminLayout() {
                 <BrandLogo
                   type="brand_logo"
                   fallbackText="V MODA Brasil"
-                  className="w-full max-w-[160px] h-auto object-contain"
+                  className="w-full max-w-[240px] h-auto object-contain transition-all duration-300"
                   fallbackClassName="text-2xl text-primary font-bold"
                 />
                 <span className="text-[10px] font-bold tracking-wider bg-primary text-primary-foreground px-2 py-0.5 rounded uppercase">
@@ -181,13 +181,18 @@ export default function AdminLayout() {
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
                   isActive
-                    ? 'bg-primary text-primary-foreground'
+                    ? 'bg-primary/10 text-primary border border-primary/20'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   isCollapsed && 'justify-center px-0',
                 )}
               >
-                <item.icon className="w-5 h-5 shrink-0" />
-                {!isCollapsed && <span>{item.name}</span>}
+                <item.icon
+                  className={cn('w-5 h-5 shrink-0', isActive && 'text-primary')}
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
+                {!isCollapsed && (
+                  <span className={cn(isActive && 'font-semibold')}>{item.name}</span>
+                )}
               </Link>
             )
           })}

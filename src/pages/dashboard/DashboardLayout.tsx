@@ -55,7 +55,7 @@ export default function DashboardLayout() {
             <img
               src={logoUrl}
               alt="V Moda Brasil"
-              className="w-full max-w-[180px] h-auto object-contain"
+              className="w-full max-w-[240px] h-auto object-contain transition-all duration-300"
             />
           </SidebarHeader>
           <SidebarContent>
@@ -69,10 +69,18 @@ export default function DashboardLayout() {
                       (item.path !== '/' && location.pathname.startsWith(item.path))
                     return (
                       <SidebarMenuItem key={item.path}>
-                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive}
+                          tooltip={item.label}
+                          className={isActive ? 'text-primary hover:text-primary' : ''}
+                        >
                           <Link to={item.path}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.label}</span>
+                            <item.icon
+                              className={cn('h-4 w-4', isActive && 'text-primary')}
+                              strokeWidth={isActive ? 2.5 : 2}
+                            />
+                            <span className={cn(isActive && 'font-semibold')}>{item.label}</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>

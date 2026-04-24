@@ -72,11 +72,11 @@ export default function Register() {
     <div className="container max-w-md mx-auto py-24 md:py-32">
       <div className="flex flex-col space-y-6">
         <div className="text-center">
-          <div className="mx-auto flex justify-center mb-8 px-4">
+          <div className="mx-auto flex justify-center mb-10 px-4">
             <img
               src={logoUrl}
               alt="V Moda Brasil"
-              className="w-full max-w-[240px] h-auto object-contain"
+              className="w-full max-w-[320px] h-auto object-contain transition-all duration-300"
             />
           </div>
           <h1 className="text-2xl font-serif font-bold tracking-tight">Crie sua conta</h1>

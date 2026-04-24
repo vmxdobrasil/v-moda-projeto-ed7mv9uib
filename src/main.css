@@ -15,7 +15,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 4%;
 
-    --primary: 24.6 95% 53.1%;
+    --primary: 25 100% 50%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 96%;
@@ -32,7 +32,7 @@
 
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 24.6 95% 53.1%;
+    --ring: 25 100% 50%;
 
     --radius: 0rem; /* Sharp edges for high fashion feel */
   }
@@ -47,7 +47,7 @@
     --popover: 0 0% 4%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 24.6 95% 53.1%;
+    --primary: 25 100% 50%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 10%;
@@ -64,7 +64,7 @@
 
     --border: 0 0% 15%;
     --input: 0 0% 15%;
-    --ring: 24.6 95% 53.1%;
+    --ring: 25 100% 50%;
   }
 
   * {

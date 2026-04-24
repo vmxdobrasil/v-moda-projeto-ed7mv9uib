@@ -148,7 +148,7 @@ export function Header() {
     <header className={headerClasses}>
       <div className="container flex items-center justify-between">
         {/* Mobile Menu Trigger */}
-        <div className="flex flex-1 md:hidden">
+        <div className="flex items-center md:hidden shrink-0">
           <Sheet>
             <SheetTrigger asChild>
               <button className="p-2 -ml-2">
@@ -235,15 +235,15 @@ export function Header() {
         </div>
 
         {/* Logo */}
-        <div className="flex-1 md:flex-none flex justify-center md:justify-start py-2">
+        <div className="flex-[2] md:flex-none flex justify-center md:justify-start py-1">
           <Link
             to="/"
-            className="flex items-center w-full justify-center md:justify-start max-w-[200px] md:max-w-[280px]"
+            className="flex items-center w-full justify-center md:justify-start max-w-[220px] sm:max-w-[260px] md:max-w-[340px]"
           >
             <BrandLogo
               type="brand_logo"
               fallbackText="V MODA Brasil"
-              className="h-12 sm:h-16 md:h-20 w-auto object-contain"
+              className="h-14 sm:h-16 md:h-[84px] lg:h-[92px] w-auto object-contain transition-all duration-300"
               fallbackClassName="font-serif text-2xl font-bold tracking-widest uppercase text-primary"
             />
           </Link>
