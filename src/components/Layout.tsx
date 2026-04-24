@@ -10,9 +10,13 @@ export function Layout() {
   return (
     <div className="min-h-screen bg-muted/30">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
-        <div className="container flex h-16 items-center justify-between mx-auto px-4">
-          <div className="flex items-center gap-2">
-            <img src={logoUrl} alt="V Moda Brasil" className="h-8 w-auto object-contain" />
+        <div className="container flex h-20 items-center justify-between mx-auto px-4 py-2">
+          <div className="flex items-center gap-2 h-full">
+            <img
+              src={logoUrl}
+              alt="V Moda Brasil"
+              className="h-full max-h-[3rem] w-auto object-contain"
+            />
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground hidden sm:flex bg-muted/50 px-3 py-1.5 rounded-full">

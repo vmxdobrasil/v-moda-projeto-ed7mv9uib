@@ -148,25 +148,25 @@ export default function AdminLayout() {
         </button>
         <div
           className={cn(
-            'h-16 flex items-center border-b overflow-hidden',
-            isCollapsed ? 'justify-center px-0' : 'px-6',
+            'min-h-[5rem] flex items-center border-b overflow-hidden py-4',
+            isCollapsed ? 'justify-center px-0 h-20' : 'px-6 h-auto',
           )}
         >
-          <Link to="/" className="flex items-center shrink-0">
+          <Link to="/" className="flex items-center shrink-0 w-full justify-center">
             {isCollapsed ? (
               <span className="font-bold text-xl text-primary">VM</span>
             ) : (
-              <>
+              <div className="flex flex-col items-center gap-2 w-full">
                 <BrandLogo
                   type="brand_logo"
                   fallbackText="V MODA Brasil"
-                  className="h-10 w-auto object-contain"
-                  fallbackClassName="text-2xl"
+                  className="w-full max-w-[160px] h-auto object-contain"
+                  fallbackClassName="text-2xl text-primary font-bold"
                 />
-                <span className="ml-2 text-[10px] font-bold tracking-wider bg-primary text-primary-foreground px-2 py-0.5 rounded uppercase">
+                <span className="text-[10px] font-bold tracking-wider bg-primary text-primary-foreground px-2 py-0.5 rounded uppercase">
                   ADMIN
                 </span>
-              </>
+              </div>
             )}
           </Link>
         </div>
@@ -220,14 +220,14 @@ export default function AdminLayout() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden print:overflow-visible w-full">
-        <header className="h-16 bg-background border-b flex items-center justify-between px-4 md:px-8 print:hidden shrink-0">
-          <div className="flex items-center gap-4 md:hidden">
+        <header className="h-20 bg-background border-b flex items-center justify-between px-4 md:px-8 print:hidden shrink-0">
+          <div className="flex items-center gap-4 md:hidden py-2">
             <Link to="/" className="flex items-center">
               <BrandLogo
                 type="brand_logo"
                 fallbackText="V MODA Brasil"
-                className="h-8 w-auto object-contain"
-                fallbackClassName="text-xl"
+                className="h-12 w-auto max-w-[140px] object-contain"
+                fallbackClassName="text-xl text-primary font-bold"
               />
             </Link>
           </div>

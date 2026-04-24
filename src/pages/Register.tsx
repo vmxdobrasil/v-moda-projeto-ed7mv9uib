@@ -72,8 +72,12 @@ export default function Register() {
     <div className="container max-w-md mx-auto py-24 md:py-32">
       <div className="flex flex-col space-y-6">
         <div className="text-center">
-          <div className="mx-auto flex justify-center mb-6">
-            <img src={logoUrl} alt="V Moda Brasil" className="h-12 w-auto object-contain" />
+          <div className="mx-auto flex justify-center mb-8 px-4">
+            <img
+              src={logoUrl}
+              alt="V Moda Brasil"
+              className="w-full max-w-[240px] h-auto object-contain"
+            />
           </div>
           <h1 className="text-2xl font-serif font-bold tracking-tight">Crie sua conta</h1>
           <p className="text-muted-foreground mt-2">Preencha os dados abaixo para se cadastrar.</p>

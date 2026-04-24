@@ -52,8 +52,12 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md animate-fade-in-up border-border/50 shadow-lg">
         <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto flex items-center justify-center mb-6">
-            <img src={logoUrl} alt="V Moda Brasil" className="h-12 w-auto object-contain" />
+          <div className="mx-auto flex items-center justify-center mb-8 px-4">
+            <img
+              src={logoUrl}
+              alt="V Moda Brasil"
+              className="w-full max-w-[240px] h-auto object-contain"
+            />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Login to V Moda</CardTitle>
           <CardDescription>Enter your credentials to access the dashboard</CardDescription>

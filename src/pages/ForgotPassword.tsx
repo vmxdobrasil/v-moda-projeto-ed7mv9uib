@@ -64,8 +64,12 @@ export default function ForgotPassword() {
     <div className="min-h-screen flex items-center justify-center bg-muted/40 px-4">
       <div className="w-full max-w-md bg-card p-8 rounded-xl shadow-lg border border-primary/10 animate-fade-in-up">
         <div className="text-center mb-8">
-          <div className="mx-auto flex justify-center mb-6">
-            <img src={logoUrl} alt="V Moda Brasil" className="h-12 w-auto object-contain" />
+          <div className="mx-auto flex justify-center mb-8 px-4">
+            <img
+              src={logoUrl}
+              alt="V Moda Brasil"
+              className="w-full max-w-[240px] h-auto object-contain"
+            />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Recuperar Senha</h1>
           <p className="text-muted-foreground mt-2 text-sm">

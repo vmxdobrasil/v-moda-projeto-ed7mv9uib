@@ -84,8 +84,12 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
-          <div className="flex justify-center mb-6">
-            <img src={logoUrl} alt="V Moda Brasil" className="h-12 w-auto object-contain" />
+          <div className="flex justify-center mb-8 px-4">
+            <img
+              src={logoUrl}
+              alt="V Moda Brasil"
+              className="w-full max-w-[240px] h-auto object-contain"
+            />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Acesso Restrito</CardTitle>
           <CardDescription>

@@ -39,10 +39,7 @@ export function BrandLogo({ type, fallbackText, className, fallbackClassName }: 
 
   if (loading) {
     return (
-      <div
-        className={cn('animate-pulse bg-muted rounded', className)}
-        style={{ width: '120px', height: '32px' }}
-      />
+      <div className={cn('animate-pulse bg-muted rounded min-w-[120px] min-h-[32px]', className)} />
     )
   }
 

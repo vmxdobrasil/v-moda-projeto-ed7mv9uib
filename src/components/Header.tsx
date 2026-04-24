@@ -235,13 +235,16 @@ export function Header() {
         </div>
 
         {/* Logo */}
-        <div className="flex-1 md:flex-none flex justify-center md:justify-start">
-          <Link to="/" className="flex items-center">
+        <div className="flex-1 md:flex-none flex justify-center md:justify-start py-2">
+          <Link
+            to="/"
+            className="flex items-center w-full justify-center md:justify-start max-w-[200px] md:max-w-[280px]"
+          >
             <BrandLogo
               type="brand_logo"
               fallbackText="V MODA Brasil"
-              className="h-10 md:h-12 w-auto object-contain"
-              fallbackClassName="font-serif text-2xl font-bold tracking-widest uppercase"
+              className="h-12 sm:h-16 md:h-20 w-auto object-contain"
+              fallbackClassName="font-serif text-2xl font-bold tracking-widest uppercase text-primary"
             />
           </Link>
         </div>

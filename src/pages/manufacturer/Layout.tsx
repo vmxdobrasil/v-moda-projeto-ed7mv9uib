@@ -36,8 +36,12 @@ export default function ManufacturerLayout() {
     <SidebarProvider>
       <div className="flex h-screen overflow-hidden w-full bg-background">
         <Sidebar>
-          <SidebarHeader className="h-16 flex items-center justify-center border-b px-4 shrink-0">
-            <img src={logoUrl} alt="V Moda Brasil" className="h-10 w-auto object-contain" />
+          <SidebarHeader className="h-auto min-h-[6rem] flex items-center justify-center border-b px-6 py-6 shrink-0">
+            <img
+              src={logoUrl}
+              alt="V Moda Brasil"
+              className="w-full max-w-[180px] h-auto object-contain"
+            />
           </SidebarHeader>
           <SidebarContent>
             <SidebarGroup>
