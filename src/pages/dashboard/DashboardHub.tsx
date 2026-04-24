@@ -1,150 +1,302 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Package, MessageSquare, TrendingUp, Activity } from 'lucide-react'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-} from '@/components/ui/chart'
-import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
-
-const chartData = [
-  { month: 'Jan', leads: 40, sales: 24 },
-  { month: 'Fev', leads: 30, sales: 13 },
-  { month: 'Mar', leads: 20, sales: 98 },
-  { month: 'Abr', leads: 27, sales: 39 },
-  { month: 'Mai', leads: 18, sales: 48 },
-  { month: 'Jun', leads: 23, sales: 38 },
-  { month: 'Jul', leads: 34, sales: 43 },
-]
-
-const chartConfig = {
-  leads: {
-    label: 'Leads',
-    color: 'hsl(var(--primary))',
-  },
-  sales: {
-    label: 'Vendas',
-    color: 'hsl(var(--primary) / 0.5)',
-  },
-}
+import pb from '@/lib/pocketbase/client'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import {
+  Users,
+  Package,
+  MessageSquare,
+  Bell,
+  TrendingUp,
+  UserCheck,
+  Clock,
+  ChevronRight,
+} from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { cn } from '@/lib/utils'
 
 export default function DashboardHub() {
   const { user } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    customers: 0,
+    converted: 0,
+    negotiating: 0,
+    projects: 0,
+    pendingMessages: 0,
+  })
+  const [notifications, setNotifications] = useState<any[]>([])
+
+  useEffect(() => {
+    if (!user) return
+
+    const fetchDashboardData = async () => {
+      try {
+        const isAdmin = user.role === 'admin' || user.email === 'valterpmendonca@gmail.com'
+        const customerFilter = isAdmin
+          ? ''
+          : `manufacturer = "${user.id}" || affiliate_referrer = "${user.id}"`
+        const projectFilter = isAdmin ? '' : `manufacturer = "${user.id}"`
+
+        const [
+          customersRes,
+          convertedRes,
+          negotiatingRes,
+          projectsRes,
+          messagesRes,
+          notificationsRes,
+        ] = await Promise.all([
+          pb.collection('customers').getList(1, 1, { filter: customerFilter }),
+          pb.collection('customers').getList(1, 1, {
+            filter: customerFilter
+              ? `(${customerFilter}) && status = 'converted'`
+              : `status = 'converted'`,
+          }),
+          pb.collection('customers').getList(1, 1, {
+            filter: customerFilter
+              ? `(${customerFilter}) && status = 'negotiating'`
+              : `status = 'negotiating'`,
+          }),
+          pb.collection('projects').getList(1, 1, { filter: projectFilter }),
+          pb.collection('messages').getList(1, 1, { filter: `status = 'pending'` }),
+          pb.collection('notifications').getList(1, 5, {
+            filter: `user = "${user.id}" || customer_email = "${user.email}"`,
+            sort: '-created',
+          }),
+        ])
+
+        setStats({
+          customers: customersRes.totalItems,
+          converted: convertedRes.totalItems,
+          negotiating: negotiatingRes.totalItems,
+          projects: projectsRes.totalItems,
+          pendingMessages: messagesRes.totalItems,
+        })
+        setNotifications(notificationsRes.items)
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [user])
+
+  const statCards = [
+    {
+      title: 'Total de Clientes',
+      value: stats.customers,
+      icon: Users,
+      description: 'Leads e clientes cadastrados',
+      color: 'text-primary',
+      bg: 'bg-primary/10',
+    },
+    {
+      title: 'Em Negociação',
+      value: stats.negotiating,
+      icon: Clock,
+      description: 'Clientes em atendimento',
+      color: 'text-orange-500',
+      bg: 'bg-orange-500/10',
+    },
+    {
+      title: 'Convertidos',
+      value: stats.converted,
+      icon: UserCheck,
+      description: 'Vendas realizadas',
+      color: 'text-green-500',
+      bg: 'bg-green-500/10',
+    },
+    {
+      title: 'Projetos Ativos',
+      value: stats.projects,
+      icon: Package,
+      description: 'Produtos no catálogo',
+      color: 'text-blue-500',
+      bg: 'bg-blue-500/10',
+    },
+    {
+      title: 'Mensagens Pendentes',
+      value: stats.pendingMessages,
+      icon: MessageSquare,
+      description: 'Aguardando resposta',
+      color: 'text-red-500',
+      bg: 'bg-red-500/10',
+    },
+  ]
 
   return (
-    <div className="flex-1 space-y-6 animate-fade-in-up pb-8">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-3xl font-bold tracking-tight">
-          Bem-vindo(a), {user?.name || 'Administrador'}!
-        </h2>
-        <p className="text-muted-foreground">Aqui está o resumo do seu negócio hoje.</p>
+    <div className="space-y-8 animate-fade-in">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          Olá, {user?.name?.split(' ')[0] || 'Usuário'}! 👋
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Aqui está o resumo das suas atividades e métricas de hoje.
+        </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+2.350</div>
-            <p className="text-xs text-muted-foreground">+180 no último mês</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Projetos Ativos</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+12.234</div>
-            <p className="text-xs text-muted-foreground">+19% em relação ao mês passado</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Mensagens Não Lidas</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">34</div>
-            <p className="text-xs text-muted-foreground">Requerem sua atenção</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">24.5%</div>
-            <p className="text-xs text-muted-foreground">+2.1% no último mês</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4 flex flex-col">
-          <CardHeader>
-            <CardTitle>Visão Geral</CardTitle>
-            <CardDescription>Comparativo de Leads e Vendas nos últimos 7 meses.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-              <BarChart accessibilityLayer data={chartData}>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="month"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                  tickFormatter={(value) => value.slice(0, 3)}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="leads" fill="var(--color-leads)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="sales" fill="var(--color-sales)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        <Card className="col-span-3 flex flex-col">
-          <CardHeader>
-            <CardTitle>Atividades Recentes</CardTitle>
-            <CardDescription>Últimas interações na plataforma.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <div className="space-y-8">
-              {[
-                {
-                  title: 'Novo Lead Cadastrado',
-                  desc: 'João Silva via WhatsApp',
-                  time: 'Agora mesmo',
-                },
-                { title: 'Venda Confirmada', desc: 'Projeto #4392 aprovado', time: 'Há 2 horas' },
-                {
-                  title: 'Nova Mensagem',
-                  desc: 'Maria perguntou sobre envios',
-                  time: 'Há 4 horas',
-                },
-                { title: 'Novo Afiliado', desc: 'Carlos se registrou', time: 'Ontem' },
-              ].map((activity, i) => (
-                <div key={i} className="flex items-start">
-                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center mr-4 shrink-0 mt-0.5">
-                    <Activity className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="space-y-1 flex-1">
-                    <p className="text-sm font-medium leading-none">{activity.title}</p>
-                    <p className="text-sm text-muted-foreground">{activity.desc}</p>
-                  </div>
-                  <div className="ml-auto font-medium text-xs text-muted-foreground whitespace-nowrap">
-                    {activity.time}
-                  </div>
+      {loading ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <Skeleton className="h-4 w-[100px]" />
+                <Skeleton className="h-8 w-8 rounded-full" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-[60px] mb-2" />
+                <Skeleton className="h-3 w-[120px]" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          {statCards.map((stat, index) => (
+            <Card key={index} className="transition-all hover:shadow-md border-border/50">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                <div className={cn('p-2 rounded-full', stat.bg)}>
+                  <stat.icon className={cn('h-4 w-4', stat.color)} />
                 </div>
-              ))}
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="col-span-full lg:col-span-2 border-border/50 shadow-sm flex flex-col">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Acesso Rápido
+            </CardTitle>
+            <CardDescription>Links para as principais áreas do sistema</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2 flex-1">
+            <Button
+              asChild
+              variant="outline"
+              className="h-auto p-4 justify-start hover:border-primary/50 hover:bg-primary/5 group"
+            >
+              <Link to="/customers" className="flex flex-col items-start gap-2">
+                <div className="flex items-center gap-2 w-full">
+                  <Users className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold text-base">Gerenciar Clientes</span>
+                </div>
+                <span className="text-xs text-muted-foreground whitespace-normal text-left">
+                  Visualize e atualize o status dos seus leads.
+                </span>
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="h-auto p-4 justify-start hover:border-primary/50 hover:bg-primary/5 group"
+            >
+              <Link to="/products" className="flex flex-col items-start gap-2">
+                <div className="flex items-center gap-2 w-full">
+                  <Package className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold text-base">Meus Projetos</span>
+                </div>
+                <span className="text-xs text-muted-foreground whitespace-normal text-left">
+                  Cadastre novos produtos e acompanhe o estoque.
+                </span>
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="h-auto p-4 justify-start hover:border-primary/50 hover:bg-primary/5 group"
+            >
+              <Link to="/messages" className="flex flex-col items-start gap-2">
+                <div className="flex items-center gap-2 w-full">
+                  <MessageSquare className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold text-base">Mensagens</span>
+                </div>
+                <span className="text-xs text-muted-foreground whitespace-normal text-left">
+                  Responda clientes e interaja via WhatsApp.
+                </span>
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-full lg:col-span-1 border-border/50 shadow-sm flex flex-col">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-primary" />
+              Notificações Recentes
+            </CardTitle>
+            <CardDescription>Suas últimas atualizações</CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col">
+            {loading ? (
+              <div className="space-y-4 flex-1">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <Skeleton className="h-2 w-2 mt-2 rounded-full shrink-0" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-3 w-2/3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : notifications.length > 0 ? (
+              <div className="space-y-4 flex-1">
+                {notifications.map((notification) => (
+                  <div key={notification.id} className="flex items-start gap-3 group">
+                    <div className="mt-1.5 h-2 w-2 rounded-full bg-primary ring-4 ring-primary/10 shrink-0" />
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <p className="text-sm font-medium leading-tight truncate">
+                        {notification.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {notification.message}
+                      </p>
+                      <p className="text-[10px] font-medium text-muted-foreground/70">
+                        {format(new Date(notification.created), "dd 'de' MMMM, HH:mm", {
+                          locale: ptBR,
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center flex-1">
+                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                  <Bell className="h-6 w-6 text-muted-foreground/50" />
+                </div>
+                <p className="text-sm font-medium">Nenhuma notificação</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Você está em dia com seus avisos.
+                </p>
+              </div>
+            )}
+            <div className="mt-auto pt-4 border-t shrink-0">
+              <Button
+                variant="ghost"
+                className="w-full text-xs text-primary hover:text-primary/80"
+                asChild
+              >
+                <Link to="/settings">
+                  Ver todas as notificações
+                  <ChevronRight className="ml-1 h-3 w-3" />
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
