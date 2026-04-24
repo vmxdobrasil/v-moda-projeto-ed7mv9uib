@@ -37,7 +37,7 @@ export default function Logistics() {
       const user = pb.authStore.record
       if (!user) return
 
-      const filterList = ['logistics_status != ""']
+      const filterList = ['(logistics_status != "" || shipping_method != "")']
       if (user.role !== 'admin' && user.email !== 'valterpmendonca@gmail.com') {
         filterList.push(`(manufacturer = "${user.id}" || affiliate_referrer = "${user.id}")`)
       }
@@ -66,14 +66,33 @@ export default function Logistics() {
     setIsSaving(true)
     try {
       const formData = new FormData()
-      formData.append('logistics_status', editingDelivery.logistics_status)
+      formData.append('shipping_method', editingDelivery.shipping_method || '')
+      formData.append('logistics_status', editingDelivery.logistics_status || '')
       formData.append('caravan_name', editingDelivery.caravan_name || '')
       formData.append('active_route', editingDelivery.active_route || '')
-      if (editingDelivery.freight_value !== null) {
-        formData.append('freight_value', editingDelivery.freight_value.toString())
+      formData.append('tracking_code', editingDelivery.tracking_code || '')
+      if (editingDelivery.shipping_date) {
+        formData.append('shipping_date', editingDelivery.shipping_date)
+      } else {
+        formData.append('shipping_date', '')
       }
-      if (editingDelivery.seat_number !== null) {
+      if (
+        editingDelivery.freight_value !== null &&
+        editingDelivery.freight_value !== undefined &&
+        editingDelivery.freight_value !== ''
+      ) {
+        formData.append('freight_value', editingDelivery.freight_value.toString())
+      } else {
+        formData.append('freight_value', '')
+      }
+      if (
+        editingDelivery.seat_number !== null &&
+        editingDelivery.seat_number !== undefined &&
+        editingDelivery.seat_number !== ''
+      ) {
         formData.append('seat_number', editingDelivery.seat_number.toString())
+      } else {
+        formData.append('seat_number', '')
       }
       formData.append('logistics_notes', editingDelivery.logistics_notes || '')
 
@@ -144,9 +163,9 @@ export default function Logistics() {
           <TableHeader>
             <TableRow>
               <TableHead>Cliente</TableHead>
+              <TableHead>Método de Envio</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Rota / Caravana</TableHead>
-              <TableHead>Poltrona</TableHead>
+              <TableHead>Detalhes</TableHead>
               <TableHead>Frete (R$)</TableHead>
               <TableHead>Documento</TableHead>
               <TableHead className="text-right">Ação</TableHead>
@@ -173,30 +192,65 @@ export default function Logistics() {
                 <TableRow key={delivery.id}>
                   <TableCell className="font-medium">{delivery.name}</TableCell>
                   <TableCell>
+                    {delivery.shipping_method === 'transportadora'
+                      ? 'Transportadora'
+                      : delivery.shipping_method === 'correios'
+                        ? 'Correios'
+                        : delivery.shipping_method === 'caravana_onibus'
+                          ? 'Caravana/Ônibus'
+                          : '-'}
+                  </TableCell>
+                  <TableCell>
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        delivery.logistics_status === 'Aguardando Ônibus'
+                        delivery.logistics_status === 'Aguardando Ônibus' ||
+                        delivery.logistics_status === 'Aguardando Envio'
                           ? 'bg-yellow-100 text-yellow-800'
-                          : delivery.logistics_status === 'Em Trânsito no Ônibus'
+                          : delivery.logistics_status === 'Em Trânsito no Ônibus' ||
+                              delivery.logistics_status === 'Em Trânsito' ||
+                              delivery.logistics_status === 'Postado'
                             ? 'bg-blue-100 text-blue-800'
-                            : 'bg-green-100 text-green-800'
+                            : delivery.logistics_status === 'Entregue'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      {delivery.logistics_status}
+                      {delivery.logistics_status || 'Pendente'}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col">
-                      <span className="text-sm flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-muted-foreground" />{' '}
-                        {delivery.active_route || '-'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {delivery.caravan_name || 'Sem caravana'}
-                      </span>
-                    </div>
+                    {delivery.shipping_method === 'transportadora' ||
+                    delivery.shipping_method === 'correios' ? (
+                      <div className="flex flex-col gap-1">
+                        {delivery.tracking_code ? (
+                          <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded w-fit">
+                            {delivery.tracking_code}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Sem rastreio</span>
+                        )}
+                        {delivery.shipping_date && (
+                          <span className="text-xs text-muted-foreground">
+                            Enviado em:{' '}
+                            {new Date(delivery.shipping_date).toLocaleDateString('pt-BR', {
+                              timeZone: 'UTC',
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col">
+                        <span className="text-sm flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-muted-foreground" />{' '}
+                          {delivery.active_route || '-'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {delivery.caravan_name || 'Sem caravana'}
+                          {delivery.seat_number ? ` • Poltrona #${delivery.seat_number}` : ''}
+                        </span>
+                      </div>
+                    )}
                   </TableCell>
-                  <TableCell>{delivery.seat_number ? `#${delivery.seat_number}` : '-'}</TableCell>
                   <TableCell>
                     {delivery.freight_value ? `R$ ${delivery.freight_value.toFixed(2)}` : '-'}
                   </TableCell>
@@ -248,57 +302,132 @@ export default function Logistics() {
           </DialogHeader>
           {editingDelivery && (
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select
-                  value={editingDelivery.logistics_status}
-                  onValueChange={(v) =>
-                    setEditingDelivery({ ...editingDelivery, logistics_status: v })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Aguardando Ônibus">Aguardando Ônibus</SelectItem>
-                    <SelectItem value="Em Trânsito no Ônibus">Em Trânsito no Ônibus</SelectItem>
-                    <SelectItem value="Entregue">Entregue</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Nome da Caravana</Label>
-                  <Input
-                    value={editingDelivery.caravan_name || ''}
-                    onChange={(e) =>
-                      setEditingDelivery({ ...editingDelivery, caravan_name: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Rota</Label>
-                  <Input
-                    value={editingDelivery.active_route || ''}
-                    onChange={(e) =>
-                      setEditingDelivery({ ...editingDelivery, active_route: e.target.value })
-                    }
-                    placeholder="Ex: Goiânia - SP"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Poltrona / Assento</Label>
-                  <Input
-                    type="number"
-                    value={editingDelivery.seat_number || ''}
-                    onChange={(e) =>
+                  <Label>Método de Envio</Label>
+                  <Select
+                    value={editingDelivery.shipping_method || ''}
+                    onValueChange={(v) =>
                       setEditingDelivery({
                         ...editingDelivery,
-                        seat_number: parseInt(e.target.value) || null,
+                        shipping_method: v,
+                        logistics_status: '',
                       })
                     }
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="transportadora">Transportadora</SelectItem>
+                      <SelectItem value="correios">Correios</SelectItem>
+                      <SelectItem value="caravana_onibus">Caravana / Ônibus</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select
+                    value={editingDelivery.logistics_status || ''}
+                    onValueChange={(v) =>
+                      setEditingDelivery({ ...editingDelivery, logistics_status: v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {editingDelivery.shipping_method === 'caravana_onibus' ? (
+                        <>
+                          <SelectItem value="Aguardando Ônibus">Aguardando Ônibus</SelectItem>
+                          <SelectItem value="Em Trânsito no Ônibus">
+                            Em Trânsito no Ônibus
+                          </SelectItem>
+                          <SelectItem value="Entregue">Entregue</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="Aguardando Envio">Aguardando Envio</SelectItem>
+                          <SelectItem value="Postado">Postado</SelectItem>
+                          <SelectItem value="Em Trânsito">Em Trânsito</SelectItem>
+                          <SelectItem value="Entregue">Entregue</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {editingDelivery.shipping_method === 'caravana_onibus' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Nome da Caravana</Label>
+                      <Input
+                        value={editingDelivery.caravan_name || ''}
+                        onChange={(e) =>
+                          setEditingDelivery({ ...editingDelivery, caravan_name: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Rota</Label>
+                      <Input
+                        value={editingDelivery.active_route || ''}
+                        onChange={(e) =>
+                          setEditingDelivery({ ...editingDelivery, active_route: e.target.value })
+                        }
+                        placeholder="Ex: Goiânia - SP"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Poltrona / Assento</Label>
+                      <Input
+                        type="number"
+                        value={editingDelivery.seat_number || ''}
+                        onChange={(e) =>
+                          setEditingDelivery({
+                            ...editingDelivery,
+                            seat_number: parseInt(e.target.value) || null,
+                          })
+                        }
+                      />
+                    </div>
+                  </>
+                )}
+
+                {(editingDelivery.shipping_method === 'transportadora' ||
+                  editingDelivery.shipping_method === 'correios') && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Código de Rastreio</Label>
+                      <Input
+                        value={editingDelivery.tracking_code || ''}
+                        onChange={(e) =>
+                          setEditingDelivery({ ...editingDelivery, tracking_code: e.target.value })
+                        }
+                        placeholder="Ex: BR123456789BR"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Data de Envio</Label>
+                      <Input
+                        type="date"
+                        value={
+                          editingDelivery.shipping_date
+                            ? new Date(editingDelivery.shipping_date).toISOString().split('T')[0]
+                            : ''
+                        }
+                        onChange={(e) => {
+                          const dateVal = e.target.value
+                          setEditingDelivery({
+                            ...editingDelivery,
+                            shipping_date: dateVal ? `${dateVal} 12:00:00.000Z` : null,
+                          })
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div className="space-y-2">
                   <Label>Valor do Frete (R$)</Label>
                   <Input

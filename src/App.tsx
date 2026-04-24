@@ -16,6 +16,7 @@ import ManufacturerLogistics from '@/pages/manufacturer/Logistics'
 import ManufacturerSettings from '@/pages/manufacturer/Settings'
 import ManufacturerNegotiationHub from '@/pages/manufacturer/NegotiationHub'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
+import DashboardLogistics from '@/pages/dashboard/Logistics'
 import ManufacturersHub from '@/pages/dashboard/Manufacturers'
 import VideoNegotiation from '@/pages/VideoNegotiation'
 import Login from '@/pages/Login'
@@ -87,7 +88,9 @@ export default function App() {
                 <Route path="manufacturers" element={<ManufacturersHub />} />
                 <Route path="affiliates" element={<PlaceholderPage title="Afiliados" />} />
                 <Route path="magazine" element={<PlaceholderPage title="Revista" />} />
-                <Route path="logistics" element={<PlaceholderPage title="Logística" />} />
+                <Route element={<ManufacturerGuard />}>
+                  <Route path="logistics" element={<DashboardLogistics />} />
+                </Route>
                 <Route path="analytics" element={<PlaceholderPage title="Analytics" />} />
                 <Route path="media-kit" element={<PlaceholderPage title="Media Kit" />} />
                 <Route path="settings" element={<PlaceholderPage title="Configurações" />} />
