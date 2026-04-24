@@ -43,6 +43,13 @@ export interface Customer {
   shipping_method?: 'transportadora' | 'correios' | 'caravana_onibus'
   tracking_code?: string
   shipping_date?: string
+  expand?: {
+    manufacturer?: {
+      id: string
+      name: string
+      freight_commission_rate?: number
+    }
+  }
 }
 
 export const getCustomers = async () => {

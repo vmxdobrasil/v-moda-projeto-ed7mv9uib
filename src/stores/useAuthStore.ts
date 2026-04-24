@@ -15,6 +15,7 @@ export interface User {
   operating_regions?: string
   operating_cities?: string
   fashion_hubs?: string[]
+  freight_commission_rate?: number
 }
 
 interface AuthState {

@@ -45,6 +45,7 @@ export default function Logistics() {
       const records = await pb.collection('customers').getFullList({
         filter: filterList.join(' && '),
         sort: '-updated',
+        expand: 'manufacturer',
       })
       setDeliveries(records)
     } catch (e) {
@@ -112,6 +113,16 @@ export default function Logistics() {
     }
   }
 
+  const isAdmin =
+    pb.authStore.record?.role === 'admin' ||
+    pb.authStore.record?.email === 'valterpmendonca@gmail.com'
+
+  const totalCommissions = deliveries.reduce((acc, d) => {
+    const freight = d.freight_value || 0
+    const rate = d.expand?.manufacturer?.freight_commission_rate || 0
+    return acc + (freight * rate) / 100
+  }, 0)
+
   return (
     <div className="space-y-6 animate-fade-in-up pb-10">
       <div>
@@ -121,7 +132,7 @@ export default function Logistics() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -156,17 +167,32 @@ export default function Logistics() {
             </div>
           </CardContent>
         </Card>
+        {isAdmin && (
+          <Card className="bg-primary/5 border-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-primary">
+                Comissões Administrativas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">
+                R$ {totalCommissions.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="rounded-md border bg-card shadow-sm overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Cliente</TableHead>
+              <TableHead>Clientes</TableHead>
               <TableHead>Método de Envio</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Status Logístico</TableHead>
               <TableHead>Detalhes</TableHead>
-              <TableHead>Frete (R$)</TableHead>
+              <TableHead>Valor do Frete</TableHead>
+              <TableHead>Comissão Administrativa</TableHead>
               <TableHead>Documento</TableHead>
               <TableHead className="text-right">Ação</TableHead>
             </TableRow>
@@ -188,100 +214,109 @@ export default function Logistics() {
                 </TableCell>
               </TableRow>
             ) : (
-              deliveries.map((delivery) => (
-                <TableRow key={delivery.id}>
-                  <TableCell className="font-medium">{delivery.name}</TableCell>
-                  <TableCell>
-                    {delivery.shipping_method === 'transportadora'
-                      ? 'Transportadora'
-                      : delivery.shipping_method === 'correios'
-                        ? 'Correios'
-                        : delivery.shipping_method === 'caravana_onibus'
-                          ? 'Caravana/Ônibus'
-                          : '-'}
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        delivery.logistics_status === 'Aguardando Ônibus' ||
-                        delivery.logistics_status === 'Aguardando Envio'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : delivery.logistics_status === 'Em Trânsito no Ônibus' ||
-                              delivery.logistics_status === 'Em Trânsito' ||
-                              delivery.logistics_status === 'Postado'
-                            ? 'bg-blue-100 text-blue-800'
-                            : delivery.logistics_status === 'Entregue'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {delivery.logistics_status || 'Pendente'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {delivery.shipping_method === 'transportadora' ||
-                    delivery.shipping_method === 'correios' ? (
-                      <div className="flex flex-col gap-1">
-                        {delivery.tracking_code ? (
-                          <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded w-fit">
-                            {delivery.tracking_code}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Sem rastreio</span>
-                        )}
-                        {delivery.shipping_date && (
-                          <span className="text-xs text-muted-foreground">
-                            Enviado em:{' '}
-                            {new Date(delivery.shipping_date).toLocaleDateString('pt-BR', {
-                              timeZone: 'UTC',
-                            })}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col">
-                        <span className="text-sm flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-muted-foreground" />{' '}
-                          {delivery.active_route || '-'}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {delivery.caravan_name || 'Sem caravana'}
-                          {delivery.seat_number ? ` • Poltrona #${delivery.seat_number}` : ''}
-                        </span>
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {delivery.freight_value ? `R$ ${delivery.freight_value.toFixed(2)}` : '-'}
-                  </TableCell>
-                  <TableCell>
-                    {delivery.logistics_file ? (
-                      <a
-                        href={pb.files.getUrl(delivery, delivery.logistics_file)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1 text-primary hover:underline text-xs"
+              deliveries.map((delivery) => {
+                const freightValue = delivery.freight_value || 0
+                const commissionRate = delivery.expand?.manufacturer?.freight_commission_rate || 0
+                const commissionValue = (freightValue * commissionRate) / 100
+
+                return (
+                  <TableRow key={delivery.id}>
+                    <TableCell className="font-medium">{delivery.name}</TableCell>
+                    <TableCell>
+                      {delivery.shipping_method === 'transportadora'
+                        ? 'Transportadora'
+                        : delivery.shipping_method === 'correios'
+                          ? 'Correios'
+                          : delivery.shipping_method === 'caravana_onibus'
+                            ? 'Caravana/Ônibus'
+                            : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          delivery.logistics_status === 'Aguardando Ônibus' ||
+                          delivery.logistics_status === 'Aguardando Envio'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : delivery.logistics_status === 'Em Trânsito no Ônibus' ||
+                                delivery.logistics_status === 'Em Trânsito' ||
+                                delivery.logistics_status === 'Postado'
+                              ? 'bg-blue-100 text-blue-800'
+                              : delivery.logistics_status === 'Entregue'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                        }`}
                       >
-                        <FileText className="w-3 h-3" /> Ver
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEditingDelivery(delivery)
-                        setSelectedFile(null)
-                      }}
-                    >
-                      <Pencil className="w-4 h-4 mr-2" /> Editar
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+                        {delivery.logistics_status || 'Pendente'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {delivery.shipping_method === 'transportadora' ||
+                      delivery.shipping_method === 'correios' ? (
+                        <div className="flex flex-col gap-1">
+                          {delivery.tracking_code ? (
+                            <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded w-fit">
+                              {delivery.tracking_code}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Sem rastreio</span>
+                          )}
+                          {delivery.shipping_date && (
+                            <span className="text-xs text-muted-foreground">
+                              Enviado em:{' '}
+                              {new Date(delivery.shipping_date).toLocaleDateString('pt-BR', {
+                                timeZone: 'UTC',
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col">
+                          <span className="text-sm flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-muted-foreground" />{' '}
+                            {delivery.active_route || '-'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {delivery.caravan_name || 'Sem caravana'}
+                            {delivery.seat_number ? ` • Poltrona #${delivery.seat_number}` : ''}
+                          </span>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {freightValue > 0 ? `R$ ${freightValue.toFixed(2)}` : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {commissionValue > 0 ? `R$ ${commissionValue.toFixed(2)}` : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {delivery.logistics_file ? (
+                        <a
+                          href={pb.files.getUrl(delivery, delivery.logistics_file)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1 text-primary hover:underline text-xs"
+                        >
+                          <FileText className="w-3 h-3" /> Ver
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditingDelivery(delivery)
+                          setSelectedFile(null)
+                        }}
+                      >
+                        <Pencil className="w-4 h-4 mr-2" /> Editar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>
@@ -326,7 +361,7 @@ export default function Logistics() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Status</Label>
+                  <Label>Status Logístico</Label>
                   <Select
                     value={editingDelivery.logistics_status || ''}
                     onValueChange={(v) =>
