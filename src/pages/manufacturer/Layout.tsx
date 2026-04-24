@@ -20,11 +20,11 @@ import pb from '@/lib/pocketbase/client'
 
 const navItems = [
   { icon: Home, label: 'Dashboard', path: '/manufacturer' },
-  { icon: Package, label: 'Catálogo', path: '/manufacturer/catalog' },
-  { icon: Users, label: 'Leads / Clientes', path: '/manufacturer/leads' },
-  { icon: MessageSquare, label: 'Mensagens', path: '/manufacturer/messages' },
-  { icon: Truck, label: 'Logística', path: '/manufacturer/logistics' },
-  { icon: Settings, label: 'Configurações', path: '/manufacturer/settings' },
+  { icon: Users, label: 'CRM', path: '/manufacturer/leads' },
+  { icon: Package, label: 'Catalog', path: '/manufacturer/catalog' },
+  { icon: MessageSquare, label: 'Messages', path: '/manufacturer/messages' },
+  { icon: Truck, label: 'Logistics', path: '/manufacturer/logistics' },
+  { icon: Settings, label: 'Settings', path: '/manufacturer/settings' },
 ]
 
 export default function ManufacturerLayout() {

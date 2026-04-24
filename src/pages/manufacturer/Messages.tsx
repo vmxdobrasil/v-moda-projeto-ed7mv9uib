@@ -3,29 +3,53 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
-import { MessageSquare, Bot, Clock, CheckCircle2, Archive } from 'lucide-react'
+import { MessageSquare, Bot, Clock, CheckCircle2, Archive, Send } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 
 export default function ManufacturerMessages() {
   const { user } = useAuth()
   const [messages, setMessages] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [replyText, setReplyText] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        if (!user) return
-        const records = await pb
-          .collection('messages')
-          .getFullList({ expand: 'channel', sort: '-created' })
-        setMessages(records)
-      } catch (error) {
-        console.error('Error loading messages', error)
-      } finally {
-        setLoading(false)
-      }
-    }
     loadData()
+    // eslint-next-line react-hooks/exhaustive-deps
   }, [user])
+
+  const loadData = async () => {
+    try {
+      if (!user) return
+      const records = await pb
+        .collection('messages')
+        .getFullList({ expand: 'channel', sort: '-created' })
+      setMessages(records)
+    } catch (error) {
+      console.error('Error loading messages', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSendReply = async (msgId: string) => {
+    const text = replyText[msgId]
+    if (!text?.trim()) return
+
+    try {
+      await pb.collection('messages').update(msgId, { status: 'replied' })
+      toast.success('Reply sent successfully!')
+      setReplyText((prev) => ({ ...prev, [msgId]: '' }))
+      loadData()
+    } catch (error) {
+      toast.error('Failed to send reply')
+    }
+  }
+
+  const useSuggestion = (msgId: string, suggestion: string) => {
+    setReplyText((prev) => ({ ...prev, [msgId]: suggestion }))
+  }
 
   const statusIcon = {
     pending: <Clock className="w-4 h-4 text-yellow-500" />,
@@ -36,57 +60,86 @@ export default function ManufacturerMessages() {
   return (
     <div className="space-y-6 animate-fade-in-up pb-8">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Central de Comunicação</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Messages</h2>
         <p className="text-muted-foreground">
-          Gerencie as mensagens dos seus clientes (WhatsApp, Instagram).
+          Manage customer inquiries with AI-powered suggestions.
         </p>
       </div>
 
       <div className="grid gap-4">
         {loading ? (
-          <div className="p-8 text-center text-muted-foreground">Carregando mensagens...</div>
+          <div className="p-8 text-center text-muted-foreground">Loading messages...</div>
         ) : messages.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-            Nenhuma mensagem recebida.
+            No messages received.
           </div>
         ) : (
           messages.map((msg) => (
-            <Card key={msg.id}>
-              <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4">
-                <div className="flex-1 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold">{msg.sender_name || 'Cliente'}</h3>
-                    <Badge variant="outline" className="text-xs uppercase">
-                      {msg.expand?.channel?.type || 'Canal'}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground ml-auto sm:ml-0">
-                      {new Date(msg.created).toLocaleString('pt-BR')}
-                    </span>
-                  </div>
-                  <div className="bg-muted/50 p-3 rounded-md text-sm border whitespace-pre-wrap">
-                    {msg.content}
-                  </div>
-                  {msg.ai_suggested_reply && (
-                    <div className="flex gap-2 text-sm bg-primary/5 p-3 rounded-md border border-primary/20 text-primary">
-                      <Bot className="w-4 h-4 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-xs mb-1">Sugestão da IA:</p>
-                        <p className="whitespace-pre-wrap">{msg.ai_suggested_reply}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="sm:w-48 flex flex-col items-end sm:justify-center gap-2">
-                  <div className="flex items-center gap-1.5 text-sm capitalize font-medium">
+            <Card
+              key={msg.id}
+              className={msg.direction === 'inbound' ? 'border-l-4 border-l-primary' : ''}
+            >
+              <CardContent className="p-4 sm:p-6 flex flex-col gap-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-semibold">{msg.sender_name || 'Customer'}</h3>
+                  <Badge variant="outline" className="text-xs uppercase">
+                    {msg.expand?.channel?.type || 'Channel'}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {new Date(msg.created).toLocaleString('en-US')}
+                  </span>
+                  <div className="flex items-center gap-1.5 text-sm capitalize font-medium ml-4">
                     {statusIcon[msg.status as keyof typeof statusIcon]}
-                    {msg.status === 'pending'
-                      ? 'Pendente'
-                      : msg.status === 'replied'
-                        ? 'Respondido'
-                        : 'Arquivado'}
+                    {msg.status}
                   </div>
                 </div>
+
+                <div className="bg-muted/50 p-4 rounded-md text-sm border whitespace-pre-wrap">
+                  {msg.content}
+                </div>
+
+                {msg.direction === 'inbound' && msg.status === 'pending' && (
+                  <div className="space-y-3 mt-2">
+                    {msg.ai_suggested_reply && (
+                      <div
+                        className="flex gap-2 text-sm bg-primary/5 p-3 rounded-md border border-primary/20 text-primary cursor-pointer hover:bg-primary/10 transition-colors"
+                        onClick={() => useSuggestion(msg.id, msg.ai_suggested_reply)}
+                        title="Click to use this suggestion"
+                      >
+                        <Bot className="w-5 h-5 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-xs mb-1 flex items-center gap-2">
+                            AI Suggested Reply{' '}
+                            <Badge variant="secondary" className="text-[10px] h-4">
+                              Click to Use
+                            </Badge>
+                          </p>
+                          <p className="whitespace-pre-wrap">{msg.ai_suggested_reply}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1">
+                        <Textarea
+                          placeholder="Type your reply..."
+                          className="min-h-[80px]"
+                          value={replyText[msg.id] || ''}
+                          onChange={(e) =>
+                            setReplyText((prev) => ({ ...prev, [msg.id]: e.target.value }))
+                          }
+                        />
+                      </div>
+                      <Button
+                        onClick={() => handleSendReply(msg.id)}
+                        disabled={!replyText[msg.id]?.trim()}
+                      >
+                        <Send className="w-4 h-4 mr-2" /> Send
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))

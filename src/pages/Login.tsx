@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
+import pb from '@/lib/pocketbase/client'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -30,15 +31,20 @@ export default function Login() {
 
     if (error) {
       toast({
-        title: 'Erro ao entrar',
-        description: 'Credenciais inválidas ou conta não encontrada.',
+        title: 'Login Error',
+        description: 'Invalid credentials or account not found.',
         variant: 'destructive',
       })
       setIsLoading(false)
       return
     }
 
-    navigate('/')
+    const user = pb.authStore.record
+    if (user?.role === 'manufacturer') {
+      navigate('/manufacturer')
+    } else {
+      navigate('/dashboard')
+    }
   }
 
   return (
@@ -48,8 +54,8 @@ export default function Login() {
           <div className="mx-auto w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4 shadow-sm">
             <span className="text-primary-foreground font-bold text-xl tracking-tighter">VM</span>
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">Entrar na V Moda</CardTitle>
-          <CardDescription>Insira suas credenciais para acessar o painel</CardDescription>
+          <CardTitle className="text-2xl font-bold tracking-tight">Login to V Moda</CardTitle>
+          <CardDescription>Enter your credentials to access the dashboard</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -58,7 +64,7 @@ export default function Login() {
               <Input
                 id="email"
                 type="email"
-                placeholder="exemplo@email.com"
+                placeholder="example@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -66,7 +72,7 @@ export default function Login() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password">Password</Label>
               </div>
               <Input
                 id="password"
@@ -80,7 +86,7 @@ export default function Login() {
           </CardContent>
           <CardFooter>
             <Button className="w-full" type="submit" disabled={isLoading}>
-              {isLoading ? 'Entrando...' : 'Entrar'}
+              {isLoading ? 'Signing in...' : 'Sign in'}
             </Button>
           </CardFooter>
         </form>
