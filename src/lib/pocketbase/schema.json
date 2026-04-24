@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T16:53:00.853Z",
+  "generatedAt": "2026-04-24T17:08:33.081Z",
   "collections": [
     {
       "name": "users",
@@ -508,6 +508,13 @@
           "type": "date",
           "required": false,
           "system": false
+        },
+        {
+          "name": "freight_payer",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["manufacturer", "retailer"]
         }
       ],
       "indexes": [

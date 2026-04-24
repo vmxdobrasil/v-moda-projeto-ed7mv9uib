@@ -66,6 +66,7 @@ export default function ManufacturerLogistics() {
         tracking_code: editingDelivery.tracking_code || '',
         shipping_date: editingDelivery.shipping_date || null,
         freight_value: editingDelivery.freight_value || null,
+        freight_payer: editingDelivery.freight_payer || '',
         seat_number: editingDelivery.seat_number || null,
       }
 
@@ -94,6 +95,12 @@ export default function ManufacturerLogistics() {
       default:
         return 'bg-gray-100 text-gray-800'
     }
+  }
+
+  const formatPayer = (payer?: string) => {
+    if (payer === 'manufacturer') return 'Fabricante'
+    if (payer === 'retailer') return 'Loja/Revendedora'
+    return '-'
   }
 
   const formatShippingMethod = (method: string) => {
@@ -127,6 +134,7 @@ export default function ManufacturerLogistics() {
                 <TableHead>Método de Envio</TableHead>
                 <TableHead>Status Logístico</TableHead>
                 <TableHead>Detalhes</TableHead>
+                <TableHead>Pagador do Frete</TableHead>
                 <TableHead>Valor do Frete</TableHead>
                 <TableHead>Comissão Administrativa</TableHead>
                 <TableHead className="text-right">Ação</TableHead>
@@ -197,6 +205,11 @@ export default function ManufacturerLogistics() {
                             </span>
                           </div>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted">
+                          {formatPayer(c.freight_payer)}
+                        </span>
                       </TableCell>
                       <TableCell>
                         {freightValue > 0 ? `R$ ${freightValue.toFixed(2)}` : '-'}
@@ -354,6 +367,27 @@ export default function ManufacturerLogistics() {
                       })
                     }
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Responsável pelo Frete</Label>
+                  <Select
+                    value={editingDelivery.freight_payer || ''}
+                    onValueChange={(v) =>
+                      setEditingDelivery({
+                        ...editingDelivery,
+                        freight_payer: v,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manufacturer">Fabricante</SelectItem>
+                      <SelectItem value="retailer">Loja/Revendedora</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <Button className="w-full mt-4" onClick={handleUpdate} disabled={isSaving}>

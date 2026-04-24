@@ -17,6 +17,7 @@ import {
   Menu,
   ChevronLeft,
   ChevronRight,
+  DollarSign,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BrandLogo } from '@/components/BrandLogo'
@@ -75,6 +76,12 @@ export default function AdminLayout() {
       href: '/admin/colecoes',
       icon: ImageIcon,
       roles: ['administrador', 'gerente'],
+    },
+    {
+      name: 'Comissões',
+      href: '/admin/comissoes',
+      icon: DollarSign,
+      roles: ['administrador'],
     },
     {
       name: 'Mídia',

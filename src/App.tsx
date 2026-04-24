@@ -15,6 +15,8 @@ import ManufacturerMessages from '@/pages/manufacturer/Messages'
 import ManufacturerLogistics from '@/pages/manufacturer/Logistics'
 import ManufacturerSettings from '@/pages/manufacturer/Settings'
 import ManufacturerNegotiationHub from '@/pages/manufacturer/NegotiationHub'
+import AdminLayout from '@/pages/admin/AdminLayout'
+import AdminCommissions from '@/pages/admin/Commissions'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
 import DashboardLogistics from '@/pages/dashboard/Logistics'
 import ManufacturersHub from '@/pages/dashboard/Manufacturers'
@@ -72,6 +74,27 @@ export default function App() {
             {/* Protected Routes */}
             <Route element={<AuthGuard />}>
               <Route path="/negotiation/video/:sessionId" element={<VideoNegotiation />} />
+
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route path="comissoes" element={<AdminCommissions />} />
+                <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
+                <Route path="produtos" element={<PlaceholderPage title="Produtos" />} />
+                <Route path="clientes" element={<PlaceholderPage title="Clientes" />} />
+                <Route path="marketing" element={<PlaceholderPage title="Marketing" />} />
+                <Route path="categorias" element={<PlaceholderPage title="Categorias" />} />
+                <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />
+                <Route path="midia" element={<PlaceholderPage title="Mídia" />} />
+                <Route path="assinaturas" element={<PlaceholderPage title="Gestão de Planos" />} />
+                <Route
+                  path="logs-importacao"
+                  element={<PlaceholderPage title="Logs de Importação" />}
+                />
+                <Route path="relatorios" element={<PlaceholderPage title="Relatórios" />} />
+                <Route path="configuracoes" element={<PlaceholderPage title="Configurações" />} />
+                <Route path="proposta-zoop" element={<PlaceholderPage title="Proposta Zoop" />} />
+                <Route index element={<Navigate to="/admin/comissoes" replace />} />
+              </Route>
+
               <Route path="/" element={<DashboardLayout />}>
                 <Route index element={<DashboardHub />} />
                 <Route path="dashboard" element={<Navigate to="/" replace />} />

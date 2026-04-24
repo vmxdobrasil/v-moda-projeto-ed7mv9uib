@@ -30,6 +30,7 @@ export interface Customer {
   seat_number?: number
   active_route?: string
   notes?: string
+  freight_payer?: 'manufacturer' | 'retailer'
   logistics_notes?: string
   logistics_status?:
     | 'Aguardando Ônibus'
