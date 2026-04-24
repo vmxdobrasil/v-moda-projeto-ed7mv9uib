@@ -15,7 +15,7 @@ export default function ManufacturerSettings() {
   const loadBrandSettings = async () => {
     try {
       const records = await pb.collection('brand_settings').getFullList()
-      const requiredKeys = ['welcome_message', 'brand_motto', 'about_us']
+      const requiredKeys = ['welcome_message', 'brand_motto', 'about_us', 'ai_instructions']
       const existingKeys = records.map((r) => r.key)
 
       let allSettings = [...records]
@@ -74,8 +74,12 @@ export default function ManufacturerSettings() {
                 <div className="flex gap-2">
                   <Textarea
                     defaultValue={bs.value_text}
-                    placeholder={`Enter ${bs.key}...`}
-                    className="min-h-[80px]"
+                    placeholder={
+                      bs.key === 'ai_instructions'
+                        ? 'Define the AI personality, e.g., "Be polite, focus on wholesale fashion..."'
+                        : `Enter ${bs.key}...`
+                    }
+                    className={bs.key === 'ai_instructions' ? 'min-h-[160px]' : 'min-h-[80px]'}
                     onBlur={(e) => {
                       if (e.target.value !== bs.value_text) {
                         handleUpdateSetting(bs.id, e.target.value)

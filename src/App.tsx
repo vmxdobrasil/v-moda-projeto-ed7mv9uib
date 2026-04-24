@@ -14,7 +14,9 @@ import ManufacturerLeads from '@/pages/manufacturer/Leads'
 import ManufacturerMessages from '@/pages/manufacturer/Messages'
 import ManufacturerLogistics from '@/pages/manufacturer/Logistics'
 import ManufacturerSettings from '@/pages/manufacturer/Settings'
+import ManufacturerNegotiationHub from '@/pages/manufacturer/NegotiationHub'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
+import VideoNegotiation from '@/pages/VideoNegotiation'
 import Login from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
 
@@ -61,11 +63,13 @@ export default function App() {
                 <Route path="messages" element={<ManufacturerMessages />} />
                 <Route path="logistics" element={<ManufacturerLogistics />} />
                 <Route path="settings" element={<ManufacturerSettings />} />
+                <Route path="negotiation/:customerId" element={<ManufacturerNegotiationHub />} />
               </Route>
             </Route>
 
             {/* Protected Routes */}
             <Route element={<AuthGuard />}>
+              <Route path="/negotiation/video/:sessionId" element={<VideoNegotiation />} />
               <Route path="/" element={<DashboardLayout />}>
                 <Route index element={<DashboardHub />} />
                 <Route path="dashboard" element={<Navigate to="/" replace />} />
