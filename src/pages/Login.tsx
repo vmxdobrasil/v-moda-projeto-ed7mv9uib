@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
+import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -51,8 +52,8 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md animate-fade-in-up border-border/50 shadow-lg">
         <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4 shadow-sm">
-            <span className="text-primary-foreground font-bold text-xl tracking-tighter">VM</span>
+          <div className="mx-auto flex items-center justify-center mb-6">
+            <img src={logoUrl} alt="V Moda Brasil" className="h-12 w-auto object-contain" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Login to V Moda</CardTitle>
           <CardDescription>Enter your credentials to access the dashboard</CardDescription>

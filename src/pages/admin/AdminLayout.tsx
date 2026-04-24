@@ -157,7 +157,12 @@ export default function AdminLayout() {
               <span className="font-bold text-xl text-primary">VM</span>
             ) : (
               <>
-                <BrandLogo className="h-8 w-auto" fallbackClassName="text-2xl" />
+                <BrandLogo
+                  type="brand_logo"
+                  fallbackText="V MODA Brasil"
+                  className="h-10 w-auto object-contain"
+                  fallbackClassName="text-2xl"
+                />
                 <span className="ml-2 text-[10px] font-bold tracking-wider bg-primary text-primary-foreground px-2 py-0.5 rounded uppercase">
                   ADMIN
                 </span>
@@ -218,7 +223,12 @@ export default function AdminLayout() {
         <header className="h-16 bg-background border-b flex items-center justify-between px-4 md:px-8 print:hidden shrink-0">
           <div className="flex items-center gap-4 md:hidden">
             <Link to="/" className="flex items-center">
-              <BrandLogo className="h-6 w-auto" fallbackClassName="text-xl" />
+              <BrandLogo
+                type="brand_logo"
+                fallbackText="V MODA Brasil"
+                className="h-8 w-auto object-contain"
+                fallbackClassName="text-xl"
+              />
             </Link>
           </div>
           <div className="flex items-center gap-4 hidden md:flex">

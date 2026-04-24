@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import pb from '@/lib/pocketbase/client'
+import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('')
@@ -83,10 +84,8 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-primary/10 rounded-full">
-              <Lock className="w-6 h-6 text-primary" />
-            </div>
+          <div className="flex justify-center mb-6">
+            <img src={logoUrl} alt="V Moda Brasil" className="h-12 w-auto object-contain" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Acesso Restrito</CardTitle>
           <CardDescription>

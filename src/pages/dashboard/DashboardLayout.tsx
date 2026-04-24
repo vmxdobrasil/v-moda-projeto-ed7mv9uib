@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
+import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 const navItems = [
   { icon: Home, label: 'Dashboard', path: '/' },
@@ -51,7 +52,7 @@ export default function DashboardLayout() {
       <div className="flex h-screen overflow-hidden w-full bg-background">
         <Sidebar>
           <SidebarHeader className="h-16 flex items-center justify-center border-b px-4 shrink-0">
-            <h1 className="text-2xl font-bold tracking-tight text-primary">V Moda</h1>
+            <img src={logoUrl} alt="V Moda Brasil" className="h-10 w-auto object-contain" />
           </SidebarHeader>
           <SidebarContent>
             <SidebarGroup>

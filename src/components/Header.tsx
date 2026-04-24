@@ -239,8 +239,8 @@ export function Header() {
           <Link to="/" className="flex items-center">
             <BrandLogo
               type="brand_logo"
-              fallbackText="V MODA"
-              className="h-8 md:h-10 w-auto object-contain"
+              fallbackText="V MODA Brasil"
+              className="h-10 md:h-12 w-auto object-contain"
               fallbackClassName="font-serif text-2xl font-bold tracking-widest uppercase"
             />
           </Link>

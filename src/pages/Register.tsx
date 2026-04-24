@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
 import useAuthStore from '@/stores/useAuthStore'
+import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 const registerSchema = z
   .object({
@@ -71,7 +72,10 @@ export default function Register() {
     <div className="container max-w-md mx-auto py-24 md:py-32">
       <div className="flex flex-col space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-serif">Crie sua conta</h1>
+          <div className="mx-auto flex justify-center mb-6">
+            <img src={logoUrl} alt="V Moda Brasil" className="h-12 w-auto object-contain" />
+          </div>
+          <h1 className="text-2xl font-serif font-bold tracking-tight">Crie sua conta</h1>
           <p className="text-muted-foreground mt-2">Preencha os dados abaixo para se cadastrar.</p>
         </div>
 

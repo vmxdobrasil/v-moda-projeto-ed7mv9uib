@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
-import logoUrl from '@/assets/logo-v-moda-fb088.png'
+import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 const forgotSchema = z.object({
   email: z.string().email('E-mail inválido.'),
@@ -65,7 +65,7 @@ export default function ForgotPassword() {
       <div className="w-full max-w-md bg-card p-8 rounded-xl shadow-lg border border-primary/10 animate-fade-in-up">
         <div className="text-center mb-8">
           <div className="mx-auto flex justify-center mb-6">
-            <img src={logoUrl} alt="V Moda" className="h-16 object-contain" />
+            <img src={logoUrl} alt="V Moda Brasil" className="h-12 w-auto object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Recuperar Senha</h1>
           <p className="text-muted-foreground mt-2 text-sm">

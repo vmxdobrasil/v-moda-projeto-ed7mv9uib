@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { cn } from '@/lib/utils'
+import defaultLogoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 interface BrandLogoProps {
   type: string
@@ -46,8 +47,8 @@ export function BrandLogo({ type, fallbackText, className, fallbackClassName }: 
   }
 
   if (logoUrl) {
-    return <img src={logoUrl} alt={fallbackText} className={className} />
+    return <img src={logoUrl} alt={fallbackText} className={cn('object-contain', className)} />
   }
 
-  return <span className={cn(fallbackClassName)}>{fallbackText}</span>
+  return <img src={defaultLogoUrl} alt={fallbackText} className={cn('object-contain', className)} />
 }

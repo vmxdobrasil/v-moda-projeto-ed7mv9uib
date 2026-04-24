@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Instagram, Facebook, MessageCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 export function Footer() {
   const { toast } = useToast()
@@ -20,9 +21,9 @@ export function Footer() {
     <footer className="bg-primary text-primary-foreground pt-20 pb-10">
       <div className="container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-16">
         {/* Col 1: Sobre */}
-        <div className="flex flex-col gap-6">
-          <Link to="/" className="font-serif text-3xl font-bold tracking-widest uppercase">
-            V Moda
+        <div className="flex flex-col gap-6 items-start">
+          <Link to="/" className="bg-white/10 p-2 rounded-md hover:bg-white/20 transition-colors">
+            <img src={logoUrl} alt="V Moda Brasil" className="h-10 w-auto object-contain" />
           </Link>
           <p className="text-sm text-primary-foreground/70 text-balance leading-relaxed">
             Elevando o conceito de luxo e sofisticação. Peças exclusivas para quem busca
