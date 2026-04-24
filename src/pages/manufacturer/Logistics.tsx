@@ -38,7 +38,6 @@ export default function ManufacturerLogistics() {
       const records = await pb.collection('customers').getFullList({
         filter: `manufacturer = "${user.id}" && (logistics_status != "" || shipping_method != "")`,
         sort: '-updated',
-        expand: 'manufacturer',
       })
       setCustomers(records)
     } catch (error) {
@@ -136,7 +135,6 @@ export default function ManufacturerLogistics() {
                 <TableHead>Detalhes</TableHead>
                 <TableHead>Pagador do Frete</TableHead>
                 <TableHead>Valor do Frete</TableHead>
-                <TableHead>Comissão Administrativa</TableHead>
                 <TableHead className="text-right">Ação</TableHead>
               </TableRow>
             </TableHeader>
@@ -157,8 +155,6 @@ export default function ManufacturerLogistics() {
               ) : (
                 customers.map((c) => {
                   const freightValue = c.freight_value || 0
-                  const commissionRate = c.expand?.manufacturer?.freight_commission_rate || 0
-                  const commissionValue = (freightValue * commissionRate) / 100
 
                   return (
                     <TableRow key={c.id}>
@@ -213,9 +209,6 @@ export default function ManufacturerLogistics() {
                       </TableCell>
                       <TableCell>
                         {freightValue > 0 ? `R$ ${freightValue.toFixed(2)}` : '-'}
-                      </TableCell>
-                      <TableCell>
-                        {commissionValue > 0 ? `R$ ${commissionValue.toFixed(2)}` : '-'}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" onClick={() => setEditingDelivery(c)}>
