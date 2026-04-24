@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 const navItems = [
