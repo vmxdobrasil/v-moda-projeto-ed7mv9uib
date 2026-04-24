@@ -39,45 +39,58 @@ export default function ManufacturerSettings() {
   const handleUpdateSetting = async (id: string, value_text: string) => {
     try {
       await pb.collection('brand_settings').update(id, { value_text })
-      toast.success('Setting updated successfully')
+      toast.success('Configuração atualizada com sucesso')
     } catch (error) {
-      toast.error('Error updating setting')
+      toast.error('Erro ao atualizar configuração')
+    }
+  }
+
+  const translateKey = (key: string) => {
+    switch (key) {
+      case 'welcome_message':
+        return 'Mensagem de Boas-vindas'
+      case 'brand_motto':
+        return 'Lema da Marca'
+      case 'about_us':
+        return 'Sobre Nós'
+      case 'ai_instructions':
+        return 'Instruções do Agente de IA'
+      default:
+        return key.replace('_', ' ')
     }
   }
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-8 max-w-4xl">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Brand Customization Center</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Central de Personalização da Marca</h2>
         <p className="text-muted-foreground">
-          Manage your brand identity, messaging, and core settings.
+          Gerencie a identidade da sua marca, mensagens e configurações principais.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Core Messaging & Settings</CardTitle>
+          <CardTitle>Mensagens e Configurações Principais</CardTitle>
           <CardDescription>
-            Update your brand's texts like welcome messages and mottos.
+            Atualize os textos da sua marca, como mensagens de boas-vindas e lemas.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-6">
             {brandSettings.length === 0 && (
-              <p className="text-sm text-muted-foreground">Loading settings...</p>
+              <p className="text-sm text-muted-foreground">Carregando configurações...</p>
             )}
             {brandSettings.map((bs) => (
               <div key={bs.id} className="space-y-2">
-                <Label className="capitalize font-semibold">
-                  {bs.name || bs.key.replace('_', ' ')}
-                </Label>
+                <Label className="capitalize font-semibold">{translateKey(bs.key)}</Label>
                 <div className="flex gap-2">
                   <Textarea
                     defaultValue={bs.value_text}
                     placeholder={
                       bs.key === 'ai_instructions'
-                        ? 'Define the AI personality, e.g., "Be polite, focus on wholesale fashion..."'
-                        : `Enter ${bs.key}...`
+                        ? 'Defina a personalidade da IA, ex: "Seja educado, foque em moda atacadista..."'
+                        : `Digite ${translateKey(bs.key)}...`
                     }
                     className={bs.key === 'ai_instructions' ? 'min-h-[160px]' : 'min-h-[80px]'}
                     onBlur={(e) => {
@@ -87,7 +100,7 @@ export default function ManufacturerSettings() {
                     }}
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">Key: {bs.key}</p>
+                <p className="text-xs text-muted-foreground">Chave: {bs.key}</p>
               </div>
             ))}
           </div>

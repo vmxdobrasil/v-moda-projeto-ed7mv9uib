@@ -39,11 +39,11 @@ export default function ManufacturerMessages() {
 
     try {
       await pb.collection('messages').update(msgId, { status: 'replied' })
-      toast.success('Reply sent successfully!')
+      toast.success('Resposta enviada com sucesso!')
       setReplyText((prev) => ({ ...prev, [msgId]: '' }))
       loadData()
     } catch (error) {
-      toast.error('Failed to send reply')
+      toast.error('Falha ao enviar resposta')
     }
   }
 
@@ -60,19 +60,19 @@ export default function ManufacturerMessages() {
   return (
     <div className="space-y-6 animate-fade-in-up pb-8">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Messages</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Mensagens</h2>
         <p className="text-muted-foreground">
-          Manage customer inquiries with AI-powered suggestions.
+          Gerencie as dúvidas dos clientes com sugestões baseadas em IA.
         </p>
       </div>
 
       <div className="grid gap-4">
         {loading ? (
-          <div className="p-8 text-center text-muted-foreground">Loading messages...</div>
+          <div className="p-8 text-center text-muted-foreground">Carregando mensagens...</div>
         ) : messages.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-            No messages received.
+            Nenhuma mensagem recebida.
           </div>
         ) : (
           messages.map((msg) => (
@@ -82,16 +82,20 @@ export default function ManufacturerMessages() {
             >
               <CardContent className="p-4 sm:p-6 flex flex-col gap-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-semibold">{msg.sender_name || 'Customer'}</h3>
+                  <h3 className="font-semibold">{msg.sender_name || 'Cliente'}</h3>
                   <Badge variant="outline" className="text-xs uppercase">
-                    {msg.expand?.channel?.type || 'Channel'}
+                    {msg.expand?.channel?.type || 'Canal'}
                   </Badge>
                   <span className="text-xs text-muted-foreground ml-auto">
-                    {new Date(msg.created).toLocaleString('en-US')}
+                    {new Date(msg.created).toLocaleString('pt-BR')}
                   </span>
                   <div className="flex items-center gap-1.5 text-sm capitalize font-medium ml-4">
                     {statusIcon[msg.status as keyof typeof statusIcon]}
-                    {msg.status}
+                    {msg.status === 'pending'
+                      ? 'Pendente'
+                      : msg.status === 'replied'
+                        ? 'Respondido'
+                        : 'Arquivado'}
                   </div>
                 </div>
 
@@ -105,14 +109,14 @@ export default function ManufacturerMessages() {
                       <div
                         className="flex gap-2 text-sm bg-primary/5 p-3 rounded-md border border-primary/20 text-primary cursor-pointer hover:bg-primary/10 transition-colors"
                         onClick={() => handleUseSuggestion(msg.id, msg.ai_suggested_reply)}
-                        title="Click to use this suggestion"
+                        title="Clique para usar esta sugestão"
                       >
                         <Bot className="w-5 h-5 shrink-0 mt-0.5" />
                         <div>
                           <p className="font-medium text-xs mb-1 flex items-center gap-2">
-                            AI Suggested Reply{' '}
+                            Sugestão da IA{' '}
                             <Badge variant="secondary" className="text-[10px] h-4">
-                              Click to Use
+                              Clique para Usar
                             </Badge>
                           </p>
                           <p className="whitespace-pre-wrap">{msg.ai_suggested_reply}</p>
@@ -123,7 +127,7 @@ export default function ManufacturerMessages() {
                     <div className="flex gap-2 items-end">
                       <div className="flex-1">
                         <Textarea
-                          placeholder="Type your reply..."
+                          placeholder="Digite sua resposta..."
                           className="min-h-[80px]"
                           value={replyText[msg.id] || ''}
                           onChange={(e) =>
@@ -135,7 +139,7 @@ export default function ManufacturerMessages() {
                         onClick={() => handleSendReply(msg.id)}
                         disabled={!replyText[msg.id]?.trim()}
                       >
-                        <Send className="w-4 h-4 mr-2" /> Send
+                        <Send className="w-4 h-4 mr-2" /> Enviar
                       </Button>
                     </div>
                   </div>

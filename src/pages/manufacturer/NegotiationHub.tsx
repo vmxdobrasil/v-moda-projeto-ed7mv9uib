@@ -37,7 +37,7 @@ export default function ManufacturerNegotiationHub() {
       loadMessages(data)
       loadSessions(data)
     } catch (err) {
-      toast.error('Customer not found')
+      toast.error('Cliente não encontrado')
     }
   }
 
@@ -90,7 +90,7 @@ export default function ManufacturerNegotiationHub() {
       const channelId = channels.length > 0 ? channels[0].id : null
 
       if (!channelId) {
-        toast.error('No communication channel configured.')
+        toast.error('Nenhum canal de comunicação configurado.')
         return
       }
 
@@ -104,7 +104,7 @@ export default function ManufacturerNegotiationHub() {
       })
       setReplyText('')
     } catch (err) {
-      toast.error('Failed to send message')
+      toast.error('Falha ao enviar mensagem')
     }
   }
 
@@ -141,16 +141,24 @@ export default function ManufacturerNegotiationHub() {
         host: user?.id,
         participant: participantId,
         status: 'pending',
-        room_name: `Negotiation with ${customer.name}`,
+        room_name: `Negociação com ${customer.name}`,
       })
 
-      toast.success('Video session created!')
+      toast.success('Sessão de vídeo criada!')
     } catch (err) {
-      toast.error('Failed to start video session')
+      toast.error('Falha ao iniciar sessão de vídeo')
     }
   }
 
-  if (!customer) return <div className="p-8">Loading...</div>
+  if (!customer) return <div className="p-8">Carregando...</div>
+
+  const statusMap: Record<string, string> = {
+    new: 'Novo',
+    interested: 'Interessado',
+    negotiating: 'Em Negociação',
+    converted: 'Convertido',
+    inactive: 'Inativo',
+  }
 
   return (
     <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col animate-fade-in-up max-w-6xl mx-auto">
@@ -160,11 +168,11 @@ export default function ManufacturerNegotiationHub() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Negotiation Hub</h2>
+            <h2 className="text-3xl font-bold tracking-tight">Central de Negociação</h2>
             <div className="flex items-center gap-2 mt-1 text-muted-foreground">
               <span>{customer.name}</span>
               <Badge variant="outline" className="capitalize">
-                {customer.status || 'New'}
+                {statusMap[customer.status] || 'Novo'}
               </Badge>
               {customer.ranking_category && (
                 <Badge variant="secondary" className="capitalize">
@@ -183,10 +191,10 @@ export default function ManufacturerNegotiationHub() {
         <div className="border-b px-4 py-2 bg-muted/20">
           <TabsList>
             <TabsTrigger value="chat" className="gap-2">
-              <MessageSquare className="w-4 h-4" /> Real-time Chat
+              <MessageSquare className="w-4 h-4" /> Chat de Negociação
             </TabsTrigger>
             <TabsTrigger value="video" className="gap-2">
-              <Video className="w-4 h-4" /> Video Room
+              <Video className="w-4 h-4" /> Sala de Vídeo
             </TabsTrigger>
           </TabsList>
         </div>
@@ -199,7 +207,7 @@ export default function ManufacturerNegotiationHub() {
             <div className="flex flex-col gap-4 pb-4">
               {messages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-12">
-                  No messages yet. Send a message to start the negotiation.
+                  Nenhuma mensagem ainda. Envie uma mensagem para iniciar a negociação.
                 </div>
               ) : (
                 messages.map((msg) => (
@@ -213,7 +221,7 @@ export default function ManufacturerNegotiationHub() {
                       )}
                     >
                       <div className="font-semibold text-xs opacity-70 mb-1">
-                        {msg.sender_name || 'Customer'}
+                        {msg.sender_name || 'Cliente'}
                       </div>
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                       <div
@@ -235,12 +243,12 @@ export default function ManufacturerNegotiationHub() {
                         <div className="mt-2 self-start w-[80%]">
                           <div className="bg-blue-50/50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-900 text-sm">
                             <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium mb-2 text-xs">
-                              <Bot size={14} /> AI Suggested Reply
+                              <Bot size={14} /> Sugestão da IA
                             </div>
                             <p
                               className="text-muted-foreground cursor-pointer hover:text-primary transition-colors"
                               onClick={() => setReplyText(msg.ai_suggested_reply)}
-                              title="Click to apply this suggestion"
+                              title="Clique para aplicar esta sugestão"
                             >
                               {msg.ai_suggested_reply}
                             </p>
@@ -250,7 +258,7 @@ export default function ManufacturerNegotiationHub() {
                               className="mt-3 h-7 text-xs"
                               onClick={() => setReplyText(msg.ai_suggested_reply)}
                             >
-                              Apply AI Suggestion
+                              Aplicar Sugestão da IA
                             </Button>
                           </div>
                         </div>
@@ -265,13 +273,13 @@ export default function ManufacturerNegotiationHub() {
           <div className="p-4 border-t bg-card">
             <form onSubmit={handleSendMessage} className="flex gap-2">
               <Input
-                placeholder="Type your message to the retailer..."
+                placeholder="Digite sua mensagem para o lojista..."
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 className="flex-1"
               />
               <Button type="submit" disabled={!replyText.trim()}>
-                <Send className="w-4 h-4 mr-2" /> Send
+                <Send className="w-4 h-4 mr-2" /> Enviar
               </Button>
             </form>
           </div>
@@ -283,24 +291,26 @@ export default function ManufacturerNegotiationHub() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <PhoneCall className="w-5 h-5 text-primary" />
-                  Start Video Negotiation
+                  Iniciar Negociação por Vídeo
                 </CardTitle>
                 <CardDescription>
-                  Invite {customer.name} to a secure video room to showcase products and close the
-                  deal.
+                  Convide {customer.name} para uma sala de vídeo segura para mostrar produtos e
+                  fechar o negócio.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button onClick={startVideoSession} className="w-full sm:w-auto">
-                  <Video className="w-4 h-4 mr-2" /> Create Video Session
+                  <Video className="w-4 h-4 mr-2" /> Criar Sessão de Vídeo
                 </Button>
               </CardContent>
             </Card>
 
             <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Session History</h3>
+              <h3 className="font-semibold text-lg">Histórico de Sessões</h3>
               {sessions.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No video sessions created yet.</p>
+                <p className="text-muted-foreground text-sm">
+                  Nenhuma sessão de vídeo criada ainda.
+                </p>
               ) : (
                 sessions.map((session) => (
                   <Card key={session.id} className="overflow-hidden">
@@ -308,7 +318,9 @@ export default function ManufacturerNegotiationHub() {
                       <div>
                         <div className="font-medium">{session.room_name}</div>
                         <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
-                          <span>Created: {new Date(session.created).toLocaleString()}</span>
+                          <span>
+                            Criado em: {new Date(session.created).toLocaleString('pt-BR')}
+                          </span>
                           <Badge
                             variant={
                               session.status === 'active'
@@ -327,7 +339,7 @@ export default function ManufacturerNegotiationHub() {
                       <div className="flex gap-2 w-full sm:w-auto">
                         {(session.status === 'pending' || session.status === 'active') && (
                           <Button onClick={() => navigate(`/negotiation/video/${session.id}`)}>
-                            Join Video Room
+                            Entrar na Sala de Vídeo
                           </Button>
                         )}
                         {session.status === 'ended' && session.negotiation_notes && (
@@ -335,7 +347,7 @@ export default function ManufacturerNegotiationHub() {
                             variant="outline"
                             onClick={() => toast.info(session.negotiation_notes)}
                           >
-                            View Notes
+                            Ver Anotações
                           </Button>
                         )}
                       </div>

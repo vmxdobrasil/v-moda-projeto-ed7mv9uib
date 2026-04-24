@@ -54,58 +54,58 @@ export default function ManufacturerDashboard() {
 
   const chartData = [
     { name: 'Leads', total: stats.leads },
-    { name: 'Conversions', total: stats.conversions },
-    { name: 'Referrals', total: stats.referrals },
+    { name: 'Conversões', total: stats.conversions },
+    { name: 'Indicações', total: stats.referrals },
   ]
 
   return (
     <div className="flex-1 space-y-6 animate-fade-in-up pb-8">
       <div className="flex flex-col gap-2">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard & Analytics</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Painel e Análises</h2>
         <p className="text-muted-foreground">
-          Monitor real-time metrics, conversion rates, and sales trends.
+          Monitore métricas em tempo real, taxas de conversão e tendências de vendas.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Leads</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.leads}</div>
-            <p className="text-xs text-muted-foreground">Active in pipeline</p>
+            <p className="text-xs text-muted-foreground">Ativos no funil</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversions</CardTitle>
+            <CardTitle className="text-sm font-medium">Conversões</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.conversions}</div>
-            <p className="text-xs text-muted-foreground">Successful sales</p>
+            <p className="text-xs text-muted-foreground">Vendas realizadas</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Referrals</CardTitle>
+            <CardTitle className="text-sm font-medium">Indicações</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.referrals}</div>
-            <p className="text-xs text-muted-foreground">From affiliates</p>
+            <p className="text-xs text-muted-foreground">De afiliados</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Products</CardTitle>
+            <CardTitle className="text-sm font-medium">Produtos</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.products}</div>
-            <p className="text-xs text-muted-foreground">Active catalog</p>
+            <p className="text-xs text-muted-foreground">Catálogo ativo</p>
           </CardContent>
         </Card>
       </div>
@@ -113,7 +113,7 @@ export default function ManufacturerDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
           <CardHeader>
-            <CardTitle>Conversion Funnel</CardTitle>
+            <CardTitle>Funil de Conversão</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
             <ChartContainer config={{}} className="h-[300px] w-full">
@@ -143,12 +143,12 @@ export default function ManufacturerDashboard() {
 
         <Card className="lg:col-span-3 flex flex-col">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Atividade Recente</CardTitle>
           </CardHeader>
           <CardContent className="flex-1">
             <div className="space-y-8">
               {activities.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No recent activity.</p>
+                <p className="text-sm text-muted-foreground">Nenhuma atividade recente.</p>
               ) : (
                 activities.map((activity) => (
                   <div key={activity.id} className="flex items-start">
@@ -160,7 +160,7 @@ export default function ManufacturerDashboard() {
                       <p className="text-sm text-muted-foreground">{activity.message}</p>
                     </div>
                     <div className="ml-auto font-medium text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(activity.created).toLocaleDateString('en-US')}
+                      {new Date(activity.created).toLocaleDateString('pt-BR')}
                     </div>
                   </div>
                 ))

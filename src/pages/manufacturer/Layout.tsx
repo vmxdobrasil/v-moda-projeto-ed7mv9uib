@@ -19,12 +19,12 @@ import { Button } from '@/components/ui/button'
 import pb from '@/lib/pocketbase/client'
 
 const navItems = [
-  { icon: Home, label: 'Dashboard', path: '/manufacturer' },
-  { icon: Users, label: 'CRM', path: '/manufacturer/leads' },
-  { icon: Package, label: 'Catalog', path: '/manufacturer/catalog' },
-  { icon: MessageSquare, label: 'Messages', path: '/manufacturer/messages' },
-  { icon: Truck, label: 'Logistics', path: '/manufacturer/logistics' },
-  { icon: Settings, label: 'Settings', path: '/manufacturer/settings' },
+  { icon: Home, label: 'Painel de Controle', path: '/manufacturer' },
+  { icon: Users, label: 'Gestão de Leads', path: '/manufacturer/leads' },
+  { icon: Package, label: 'Catálogo', path: '/manufacturer/catalog' },
+  { icon: MessageSquare, label: 'Mensagens', path: '/manufacturer/messages' },
+  { icon: Truck, label: 'Logística', path: '/manufacturer/logistics' },
+  { icon: Settings, label: 'Configurações', path: '/manufacturer/settings' },
 ]
 
 export default function ManufacturerLayout() {

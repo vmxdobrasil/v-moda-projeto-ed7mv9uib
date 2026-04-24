@@ -26,11 +26,11 @@ import { Calendar, Phone, Mail, MapPin, Truck, Save, FileText } from 'lucide-rea
 import { useRealtime } from '@/hooks/use-realtime'
 
 const STATUSES = [
-  { id: 'new', label: 'New', color: 'border-blue-200 bg-blue-50' },
-  { id: 'interested', label: 'Interested', color: 'border-yellow-200 bg-yellow-50' },
-  { id: 'negotiating', label: 'Negotiating', color: 'border-orange-200 bg-orange-50' },
-  { id: 'converted', label: 'Converted', color: 'border-green-200 bg-green-50' },
-  { id: 'inactive', label: 'Inactive', color: 'border-gray-200 bg-gray-50' },
+  { id: 'new', label: 'Novo', color: 'border-blue-200 bg-blue-50' },
+  { id: 'interested', label: 'Interessado', color: 'border-yellow-200 bg-yellow-50' },
+  { id: 'negotiating', label: 'Em Negociação', color: 'border-orange-200 bg-orange-50' },
+  { id: 'converted', label: 'Convertido', color: 'border-green-200 bg-green-50' },
+  { id: 'inactive', label: 'Inativo', color: 'border-gray-200 bg-gray-50' },
 ]
 
 export default function ManufacturerCRM() {
@@ -72,10 +72,10 @@ export default function ManufacturerCRM() {
   const handleStatusChange = async (leadId: string, newStatus: string) => {
     try {
       await pb.collection('customers').update(leadId, { status: newStatus })
-      toast.success('Status updated')
+      toast.success('Status atualizado')
       loadData()
     } catch (error) {
-      toast.error('Failed to update status')
+      toast.error('Falha ao atualizar status')
     }
   }
 
@@ -101,11 +101,11 @@ export default function ManufacturerCRM() {
       }
 
       const updated = await pb.collection('customers').update(selectedLead.id, data)
-      toast.success('Customer details updated')
+      toast.success('Detalhes do cliente atualizados')
       setSelectedLead(updated)
       loadData()
     } catch (error) {
-      toast.error('Failed to save details')
+      toast.error('Falha ao salvar detalhes')
     } finally {
       setIsSaving(false)
     }
@@ -132,15 +132,15 @@ export default function ManufacturerCRM() {
   }
 
   if (loading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading CRM...</div>
+    return <div className="p-8 text-center text-muted-foreground">Carregando CRM...</div>
   }
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-8 h-full flex flex-col">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">CRM Pipeline</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Funil de Vendas (CRM)</h2>
         <p className="text-muted-foreground">
-          Manage your sales pipeline and customer relationships.
+          Gerencie seu funil de vendas e relacionamento com clientes.
         </p>
       </div>
 
@@ -176,11 +176,11 @@ export default function ManufacturerCRM() {
                           <Phone className="w-3 h-3" /> {lead.phone || '-'}
                         </div>
                         <div className="text-xs text-muted-foreground line-clamp-1">
-                          {lead.notes || 'No notes yet.'}
+                          {lead.notes || 'Sem observações.'}
                         </div>
                         <div className="pt-2 mt-2 border-t flex justify-between items-center">
                           <span className="text-[10px] text-muted-foreground max-w-[100px] truncate">
-                            {lead.logistics_status || 'Pending Logistic'}
+                            {lead.logistics_status || 'Logística Pendente'}
                           </span>
                           <Select
                             value={lead.status || 'new'}
@@ -211,7 +211,7 @@ export default function ManufacturerCRM() {
                   ))}
                   {columnLeads.length === 0 && (
                     <div className="h-full flex items-center justify-center text-xs text-muted-foreground border-2 border-dashed rounded-lg py-8">
-                      Drop here
+                      Solte aqui
                     </div>
                   )}
                 </div>
@@ -224,9 +224,9 @@ export default function ManufacturerCRM() {
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="sm:max-w-md overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Customer Details</SheetTitle>
+            <SheetTitle>Detalhes do Cliente</SheetTitle>
             <SheetDescription>
-              Comprehensive view of contact history and logistics.
+              Visão abrangente do histórico de contato e logística.
             </SheetDescription>
           </SheetHeader>
 
@@ -240,10 +240,10 @@ export default function ManufacturerCRM() {
                   <h3 className="font-semibold text-lg">{selectedLead.name}</h3>
                   <div className="text-sm text-muted-foreground flex gap-2 items-center">
                     <Calendar className="w-3 h-3" />
-                    Last Contact:{' '}
+                    Último Contato:{' '}
                     {selectedLead.last_contacted_at
                       ? format(new Date(selectedLead.last_contacted_at), 'PPP')
-                      : 'Never'}
+                      : 'Nunca'}
                   </div>
                 </div>
               </div>
@@ -251,25 +251,25 @@ export default function ManufacturerCRM() {
               <div className="space-y-3 bg-muted/30 p-4 rounded-lg border text-sm">
                 <div className="flex gap-2 items-center">
                   <Phone className="w-4 h-4 text-muted-foreground" />{' '}
-                  {selectedLead.phone || 'No phone'}
+                  {selectedLead.phone || 'Sem telefone'}
                 </div>
                 <div className="flex gap-2 items-center">
                   <Mail className="w-4 h-4 text-muted-foreground" />{' '}
-                  {selectedLead.email || 'No email'}
+                  {selectedLead.email || 'Sem email'}
                 </div>
                 <div className="flex gap-2 items-center">
                   <MapPin className="w-4 h-4 text-muted-foreground" />{' '}
                   {selectedLead.city
                     ? `${selectedLead.city}, ${selectedLead.state}`
-                    : 'Location unknown'}
+                    : 'Localização desconhecida'}
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Internal Notes</Label>
+                  <Label>Observações Internas</Label>
                   <Textarea
-                    placeholder="Add notes about customer preferences..."
+                    placeholder="Adicione observações sobre as preferências do cliente..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="min-h-[100px]"
@@ -278,11 +278,11 @@ export default function ManufacturerCRM() {
 
                 <div className="space-y-2 border-t pt-4">
                   <h4 className="font-medium flex items-center gap-2">
-                    <Truck className="w-4 h-4" /> Logistics Integration
+                    <Truck className="w-4 h-4" /> Integração Logística
                   </h4>
 
                   <div className="space-y-2 mt-2">
-                    <Label>Logistics Status</Label>
+                    <Label>Status Logístico</Label>
                     <Select value={logisticsStatus} onValueChange={setLogisticsStatus}>
                       <SelectTrigger>
                         <SelectValue />
@@ -296,16 +296,16 @@ export default function ManufacturerCRM() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Logistics Notes</Label>
+                    <Label>Observações Logísticas</Label>
                     <Textarea
-                      placeholder="Seat number, route info, special instructions..."
+                      placeholder="Número da poltrona, rota, instruções especiais..."
                       value={logisticsNotes}
                       onChange={(e) => setLogisticsNotes(e.target.value)}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Logistics File (Receipt / Ticket)</Label>
+                    <Label>Arquivo de Logística (Comprovante / Passagem)</Label>
                     {selectedLead.logistics_file && (
                       <div className="flex items-center gap-2 mb-2 p-2 border rounded-md bg-muted/50">
                         <FileText className="w-4 h-4 text-primary" />
@@ -315,7 +315,7 @@ export default function ManufacturerCRM() {
                           rel="noreferrer"
                           className="text-xs text-primary hover:underline flex-1 truncate"
                         >
-                          View Current Document
+                          Ver Documento Atual
                         </a>
                       </div>
                     )}
@@ -332,10 +332,10 @@ export default function ManufacturerCRM() {
                 <div className="flex gap-2 pt-2">
                   <Button className="flex-1" onClick={handleSaveDetails} disabled={isSaving}>
                     {isSaving ? (
-                      'Saving...'
+                      'Salvando...'
                     ) : (
                       <>
-                        <Save className="w-4 h-4 mr-2" /> Save Changes
+                        <Save className="w-4 h-4 mr-2" /> Salvar Alterações
                       </>
                     )}
                   </Button>
@@ -362,7 +362,7 @@ export default function ManufacturerCRM() {
                       <polyline points="14 2 14 8 20 8" />
                       <path d="m9 15 2 2 4-4" />
                     </svg>
-                    Open Negotiation
+                    Abrir Negociação
                   </Button>
                 </div>
               </div>
