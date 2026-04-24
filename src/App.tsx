@@ -3,10 +3,17 @@ import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/hooks/use-auth'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthGuard, PublicRoute } from '@/components/AuthGuard'
+import { AuthGuard, PublicRoute, ManufacturerGuard } from '@/components/AuthGuard'
 
 // Existing Pages
 import DashboardLayout from '@/pages/dashboard/DashboardLayout'
+import ManufacturerLayout from '@/pages/manufacturer/Layout'
+import ManufacturerDashboard from '@/pages/manufacturer/Dashboard'
+import ManufacturerCatalog from '@/pages/manufacturer/Catalog'
+import ManufacturerLeads from '@/pages/manufacturer/Leads'
+import ManufacturerMessages from '@/pages/manufacturer/Messages'
+import ManufacturerLogistics from '@/pages/manufacturer/Logistics'
+import ManufacturerSettings from '@/pages/manufacturer/Settings'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
 import Login from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
@@ -43,6 +50,18 @@ export default function App() {
                 element={<PlaceholderPage title="Recuperar Senha" />}
               />
               <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+            </Route>
+
+            {/* Manufacturer Routes */}
+            <Route element={<ManufacturerGuard />}>
+              <Route path="/manufacturer" element={<ManufacturerLayout />}>
+                <Route index element={<ManufacturerDashboard />} />
+                <Route path="catalog" element={<ManufacturerCatalog />} />
+                <Route path="leads" element={<ManufacturerLeads />} />
+                <Route path="messages" element={<ManufacturerMessages />} />
+                <Route path="logistics" element={<ManufacturerLogistics />} />
+                <Route path="settings" element={<ManufacturerSettings />} />
+              </Route>
             </Route>
 
             {/* Protected Routes */}
