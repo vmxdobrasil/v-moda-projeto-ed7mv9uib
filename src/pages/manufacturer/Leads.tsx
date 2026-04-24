@@ -23,6 +23,7 @@ import {
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { Calendar, Phone, Mail, MapPin, Truck, Save, FileText } from 'lucide-react'
+import { useRealtime } from '@/hooks/use-realtime'
 
 const STATUSES = [
   { id: 'new', label: 'New', color: 'border-blue-200 bg-blue-50' },
@@ -63,6 +64,10 @@ export default function ManufacturerCRM() {
     loadData()
     // eslint-next-line react-hooks/exhaustive-deps
   }, [user])
+
+  useRealtime('customers', () => {
+    loadData()
+  })
 
   const handleStatusChange = async (leadId: string, newStatus: string) => {
     try {

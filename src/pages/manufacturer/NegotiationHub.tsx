@@ -237,7 +237,13 @@ export default function ManufacturerNegotiationHub() {
                             <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium mb-2 text-xs">
                               <Bot size={14} /> AI Suggested Reply
                             </div>
-                            <p className="text-muted-foreground">{msg.ai_suggested_reply}</p>
+                            <p
+                              className="text-muted-foreground cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => setReplyText(msg.ai_suggested_reply)}
+                              title="Click to apply this suggestion"
+                            >
+                              {msg.ai_suggested_reply}
+                            </p>
                             <Button
                               size="sm"
                               variant="secondary"

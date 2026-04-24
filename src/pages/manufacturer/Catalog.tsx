@@ -40,6 +40,7 @@ export default function ManufacturerCatalog() {
 
   const [formData, setFormData] = useState({
     name: '',
+    description: '',
     wholesale_price: '',
     retail_price: '',
     stock_quantity: '',
@@ -71,6 +72,7 @@ export default function ManufacturerCatalog() {
       setEditingId(project.id)
       setFormData({
         name: project.name,
+        description: project.description || '',
         wholesale_price: project.wholesale_price?.toString() || '',
         retail_price: project.retail_price?.toString() || '',
         stock_quantity: project.stock_quantity?.toString() || '',
@@ -81,6 +83,7 @@ export default function ManufacturerCatalog() {
       setEditingId(null)
       setFormData({
         name: '',
+        description: '',
         wholesale_price: '',
         retail_price: '',
         stock_quantity: '',
@@ -98,6 +101,7 @@ export default function ManufacturerCatalog() {
     try {
       const data = new FormData()
       data.append('name', formData.name)
+      data.append('description', formData.description)
       data.append('wholesale_price', formData.wholesale_price || '0')
       data.append('retail_price', formData.retail_price || '0')
       data.append('stock_quantity', formData.stock_quantity || '0')
@@ -215,6 +219,14 @@ export default function ManufacturerCatalog() {
                 placeholder="Ex: Vestido de Verão"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Input
+                placeholder="Descrição do produto..."
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">

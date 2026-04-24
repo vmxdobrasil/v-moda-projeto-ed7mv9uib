@@ -16,6 +16,7 @@ import ManufacturerLogistics from '@/pages/manufacturer/Logistics'
 import ManufacturerSettings from '@/pages/manufacturer/Settings'
 import ManufacturerNegotiationHub from '@/pages/manufacturer/NegotiationHub'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
+import ManufacturersHub from '@/pages/dashboard/Manufacturers'
 import VideoNegotiation from '@/pages/VideoNegotiation'
 import Login from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
@@ -83,7 +84,7 @@ export default function App() {
                 <Route path="products" element={<PlaceholderPage title="Projetos" />} />
                 <Route path="admin-products" element={<PlaceholderPage title="Admin Produtos" />} />
                 <Route path="messages" element={<PlaceholderPage title="Mensagens" />} />
-                <Route path="manufacturers" element={<PlaceholderPage title="Fabricantes" />} />
+                <Route path="manufacturers" element={<ManufacturersHub />} />
                 <Route path="affiliates" element={<PlaceholderPage title="Afiliados" />} />
                 <Route path="magazine" element={<PlaceholderPage title="Revista" />} />
                 <Route path="logistics" element={<PlaceholderPage title="Logística" />} />
