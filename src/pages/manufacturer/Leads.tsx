@@ -44,6 +44,9 @@ export default function ManufacturerCRM() {
   const [logisticsNotes, setLogisticsNotes] = useState('')
   const [logisticsStatus, setLogisticsStatus] = useState('')
   const [logisticsFile, setLogisticsFile] = useState<File | null>(null)
+  const [shippingMethod, setShippingMethod] = useState('')
+  const [trackingCode, setTrackingCode] = useState('')
+  const [shippingDate, setShippingDate] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
   const loadData = async () => {
@@ -83,7 +86,10 @@ export default function ManufacturerCRM() {
     setSelectedLead(lead)
     setNotes(lead.notes || '')
     setLogisticsNotes(lead.logistics_notes || '')
-    setLogisticsStatus(lead.logistics_status || 'Aguardando Ônibus')
+    setLogisticsStatus(lead.logistics_status || '')
+    setShippingMethod(lead.shipping_method || '')
+    setTrackingCode(lead.tracking_code || '')
+    setShippingDate(lead.shipping_date ? lead.shipping_date.substring(0, 10) : '')
     setLogisticsFile(null)
     setIsSheetOpen(true)
   }
@@ -96,6 +102,10 @@ export default function ManufacturerCRM() {
       data.append('notes', notes)
       data.append('logistics_notes', logisticsNotes)
       data.append('logistics_status', logisticsStatus)
+      data.append('shipping_method', shippingMethod)
+      data.append('tracking_code', trackingCode)
+      if (shippingDate) data.append('shipping_date', new Date(shippingDate).toISOString())
+      else data.append('shipping_date', '')
       if (logisticsFile) {
         data.append('logistics_file', logisticsFile)
       }
@@ -179,9 +189,20 @@ export default function ManufacturerCRM() {
                           {lead.notes || 'Sem observações.'}
                         </div>
                         <div className="pt-2 mt-2 border-t flex justify-between items-center">
-                          <span className="text-[10px] text-muted-foreground max-w-[100px] truncate">
-                            {lead.logistics_status || 'Logística Pendente'}
-                          </span>
+                          <div className="flex flex-col max-w-[100px]">
+                            <span className="text-[10px] font-medium text-muted-foreground truncate">
+                              {lead.shipping_method === 'transportadora'
+                                ? 'Transportadora'
+                                : lead.shipping_method === 'correios'
+                                  ? 'Correios'
+                                  : lead.shipping_method === 'caravana_onibus'
+                                    ? 'Ônibus'
+                                    : 'Pendente'}
+                            </span>
+                            <span className="text-[9px] text-muted-foreground truncate">
+                              {lead.logistics_status || 'Sem Status'}
+                            </span>
+                          </div>
                           <Select
                             value={lead.status || 'new'}
                             onValueChange={(val) => {
@@ -276,36 +297,93 @@ export default function ManufacturerCRM() {
                   />
                 </div>
 
-                <div className="space-y-2 border-t pt-4">
+                <div className="space-y-4 border-t pt-4">
                   <h4 className="font-medium flex items-center gap-2">
-                    <Truck className="w-4 h-4" /> Integração Logística
+                    <Truck className="w-4 h-4" /> Logística
                   </h4>
 
-                  <div className="space-y-2 mt-2">
-                    <Label>Status Logístico</Label>
-                    <Select value={logisticsStatus} onValueChange={setLogisticsStatus}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Aguardando Ônibus">Aguardando Ônibus</SelectItem>
-                        <SelectItem value="Em Trânsito no Ônibus">Em Trânsito no Ônibus</SelectItem>
-                        <SelectItem value="Entregue">Entregue</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Forma de Envio</Label>
+                      <Select
+                        value={shippingMethod}
+                        onValueChange={(val) => {
+                          setShippingMethod(val)
+                          if (val === 'caravana_onibus') setLogisticsStatus('Aguardando Ônibus')
+                          else setLogisticsStatus('Aguardando Envio')
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="transportadora">Transportadora</SelectItem>
+                          <SelectItem value="correios">Correios</SelectItem>
+                          <SelectItem value="caravana_onibus">Caravana/Ônibus</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Status Logístico</Label>
+                      <Select value={logisticsStatus} onValueChange={setLogisticsStatus}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Status..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {!shippingMethod || shippingMethod === 'caravana_onibus' ? (
+                            <>
+                              <SelectItem value="Aguardando Ônibus">Aguardando Ônibus</SelectItem>
+                              <SelectItem value="Em Trânsito no Ônibus">
+                                Em Trânsito no Ônibus
+                              </SelectItem>
+                              <SelectItem value="Entregue">Entregue</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="Aguardando Envio">Aguardando Envio</SelectItem>
+                              <SelectItem value="Postado">Postado</SelectItem>
+                              <SelectItem value="Em Trânsito">Em Trânsito</SelectItem>
+                              <SelectItem value="Entregue">Entregue</SelectItem>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
+
+                  {(shippingMethod === 'transportadora' || shippingMethod === 'correios') && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Código de Rastreio</Label>
+                        <Input
+                          placeholder="Ex: AA123456789BR"
+                          value={trackingCode}
+                          onChange={(e) => setTrackingCode(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Data de Envio</Label>
+                        <Input
+                          type="date"
+                          value={shippingDate}
+                          onChange={(e) => setShippingDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label>Observações Logísticas</Label>
                     <Textarea
-                      placeholder="Número da poltrona, rota, instruções especiais..."
+                      placeholder="Número da poltrona, instruções de entrega..."
                       value={logisticsNotes}
                       onChange={(e) => setLogisticsNotes(e.target.value)}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Arquivo de Logística (Comprovante / Passagem)</Label>
+                    <Label>Arquivo de Logística (Comprovante)</Label>
                     {selectedLead.logistics_file && (
                       <div className="flex items-center gap-2 mb-2 p-2 border rounded-md bg-muted/50">
                         <FileText className="w-4 h-4 text-primary" />

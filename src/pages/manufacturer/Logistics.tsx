@@ -22,7 +22,7 @@ export default function ManufacturerLogistics() {
       try {
         if (!user) return
         const records = await pb.collection('customers').getFullList({
-          filter: `manufacturer = "${user.id}" && logistics_status != ""`,
+          filter: `manufacturer = "${user.id}" && (logistics_status != "" || shipping_method != "")`,
           sort: '-updated',
         })
         setCustomers(records)
@@ -38,13 +38,29 @@ export default function ManufacturerLogistics() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Aguardando Ônibus':
+      case 'Aguardando Envio':
         return 'bg-yellow-100 text-yellow-800'
       case 'Em Trânsito no Ônibus':
+      case 'Em Trânsito':
+      case 'Postado':
         return 'bg-blue-100 text-blue-800'
       case 'Entregue':
         return 'bg-green-100 text-green-800'
       default:
         return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const formatShippingMethod = (method: string) => {
+    switch (method) {
+      case 'transportadora':
+        return 'Transportadora'
+      case 'correios':
+        return 'Correios'
+      case 'caravana_onibus':
+        return 'Caravana/Ônibus'
+      default:
+        return '-'
     }
   }
 
@@ -63,9 +79,9 @@ export default function ManufacturerLogistics() {
             <TableHeader>
               <TableRow>
                 <TableHead>Cliente</TableHead>
+                <TableHead>Método de Envio</TableHead>
                 <TableHead>Status Logístico</TableHead>
-                <TableHead>Rota / Caravana</TableHead>
-                <TableHead>Poltrona</TableHead>
+                <TableHead>Detalhes</TableHead>
                 <TableHead>Frete</TableHead>
               </TableRow>
             </TableHeader>
@@ -87,25 +103,44 @@ export default function ManufacturerLogistics() {
                 customers.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
+                    <TableCell>{formatShippingMethod(c.shipping_method)}</TableCell>
                     <TableCell>
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(c.logistics_status)}`}
                       >
-                        {c.logistics_status}
+                        {c.logistics_status || 'Pendente'}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-sm flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-muted-foreground" />{' '}
-                          {c.active_route || '-'}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {c.caravan_name || 'Sem caravana'}
-                        </span>
-                      </div>
+                      {c.shipping_method === 'transportadora' ||
+                      c.shipping_method === 'correios' ? (
+                        <div className="flex flex-col gap-1">
+                          {c.tracking_code ? (
+                            <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded w-fit">
+                              {c.tracking_code}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Sem rastreio</span>
+                          )}
+                          {c.shipping_date && (
+                            <span className="text-xs text-muted-foreground">
+                              Enviado em: {new Date(c.shipping_date).toLocaleDateString('pt-BR')}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-muted-foreground" />{' '}
+                            {c.active_route || '-'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {c.caravan_name || 'Sem caravana'}
+                            {c.seat_number ? ` • Poltrona #${c.seat_number}` : ''}
+                          </span>
+                        </div>
+                      )}
                     </TableCell>
-                    <TableCell>{c.seat_number ? `#${c.seat_number}` : '-'}</TableCell>
                     <TableCell>
                       {c.freight_value ? `R$ ${c.freight_value.toFixed(2)}` : '-'}
                     </TableCell>

@@ -31,9 +31,18 @@ export interface Customer {
   active_route?: string
   notes?: string
   logistics_notes?: string
-  logistics_status?: 'Aguardando Ônibus' | 'Em Trânsito no Ônibus' | 'Entregue'
+  logistics_status?:
+    | 'Aguardando Ônibus'
+    | 'Em Trânsito no Ônibus'
+    | 'Aguardando Envio'
+    | 'Postado'
+    | 'Em Trânsito'
+    | 'Entregue'
   whatsapp_group_name?: string
   logistics_file?: string
+  shipping_method?: 'transportadora' | 'correios' | 'caravana_onibus'
+  tracking_code?: string
+  shipping_date?: string
 }
 
 export const getCustomers = async () => {
