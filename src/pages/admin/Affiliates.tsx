@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,8 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { Edit2, Percent, Users } from 'lucide-react'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { Edit2, Percent, Users, ShieldCheck, ShieldAlert } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 export default function AdminAffiliates() {
@@ -28,12 +30,14 @@ export default function AdminAffiliates() {
   const [loading, setLoading] = useState(true)
   const [editUser, setEditUser] = useState<any>(null)
   const [rate, setRate] = useState('')
+  const [isVerified, setIsVerified] = useState(false)
   const { toast } = useToast()
 
   const loadAffiliates = async () => {
     try {
       const res = await pb.collection('users').getFullList({
         filter: 'role="affiliate"',
+        sort: '-created',
       })
       setAffiliates(res)
     } catch (e) {
@@ -50,26 +54,34 @@ export default function AdminAffiliates() {
   const openEdit = (user: any) => {
     setEditUser(user)
     setRate(user.commission_rate ? user.commission_rate.toString() : '1.0')
+    setIsVerified(user.is_verified || false)
   }
 
   const handleSave = async () => {
     const numRate = parseFloat(rate)
     if (isNaN(numRate) || numRate < 1.0 || numRate > 5.0) {
       toast({
-        title: 'Erro',
-        description: 'A taxa de comissão deve ser entre 1.0 e 5.0',
+        title: 'Erro de Validação',
+        description: 'A taxa de comissão deve ser um valor entre 1.0 e 5.0.',
         variant: 'destructive',
       })
       return
     }
 
     try {
-      await pb.collection('users').update(editUser.id, { commission_rate: numRate })
-      toast({ title: 'Sucesso', description: 'Taxa de comissão atualizada com sucesso!' })
+      await pb.collection('users').update(editUser.id, {
+        commission_rate: numRate,
+        is_verified: isVerified,
+      })
+      toast({ title: 'Sucesso', description: 'Dados do agente atualizados com sucesso!' })
       setEditUser(null)
       loadAffiliates()
     } catch (e: any) {
-      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+      toast({
+        title: 'Erro ao atualizar',
+        description: getErrorMessage(e),
+        variant: 'destructive',
+      })
     }
   }
 
@@ -78,7 +90,7 @@ export default function AdminAffiliates() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Gestão de Agentes Credenciados</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Gerencie as taxas de comissão e acompanhe o desempenho dos agentes.
+          Gerencie as taxas de comissão e o status de participação dos agentes no programa.
         </p>
       </div>
 
@@ -103,6 +115,7 @@ export default function AdminAffiliates() {
                     <TableHead>E-mail</TableHead>
                     <TableHead>Código</TableHead>
                     <TableHead>Taxa de Comissão</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -118,20 +131,36 @@ export default function AdminAffiliates() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 font-medium text-emerald-600">
-                          {user.commission_rate ? `${user.commission_rate}%` : 'Não definida'}
+                          {user.commission_rate ? `${user.commission_rate}%` : '1.0%'}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {user.is_verified ? (
+                          <Badge
+                            variant="default"
+                            className="bg-emerald-500 hover:bg-emerald-600 gap-1"
+                          >
+                            <ShieldCheck className="w-3 h-3" />
+                            Ativo
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="gap-1 text-muted-foreground">
+                            <ShieldAlert className="w-3 h-3" />
+                            Inativo
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
                         <Button variant="ghost" size="sm" onClick={() => openEdit(user)}>
                           <Edit2 className="w-4 h-4 mr-2" />
-                          Ajustar Taxa
+                          Gerenciar
                         </Button>
                       </TableCell>
                     </TableRow>
                   ))}
                   {affiliates.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         Nenhum agente encontrado.
                       </TableCell>
                     </TableRow>
@@ -146,9 +175,9 @@ export default function AdminAffiliates() {
       <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Taxa de Comissão</DialogTitle>
+            <DialogTitle>Gerenciar Agente Credenciado</DialogTitle>
           </DialogHeader>
-          <div className="py-4 space-y-4">
+          <div className="py-4 space-y-6">
             <div className="space-y-2">
               <Label>Agente</Label>
               <Input
@@ -158,7 +187,7 @@ export default function AdminAffiliates() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="rate">Taxa (%) - Entre 1.0 e 5.0</Label>
+              <Label htmlFor="rate">Taxa de Comissão (%) - Entre 1.0 e 5.0</Label>
               <div className="relative">
                 <Input
                   id="rate"
@@ -172,6 +201,15 @@ export default function AdminAffiliates() {
                 />
                 <Percent className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               </div>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label className="text-base">Status do Agente</Label>
+                <p className="text-sm text-muted-foreground">
+                  Habilitar a participação deste agente no programa de comissões.
+                </p>
+              </div>
+              <Switch checked={isVerified} onCheckedChange={setIsVerified} />
             </div>
           </div>
           <DialogFooter>

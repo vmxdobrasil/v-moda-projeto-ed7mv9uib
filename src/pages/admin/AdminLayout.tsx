@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   DollarSign,
+  UserCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BrandLogo } from '@/components/BrandLogo'
@@ -81,6 +82,12 @@ export default function AdminLayout() {
       name: 'Comissões',
       href: '/admin/comissoes',
       icon: DollarSign,
+      roles: ['administrador'],
+    },
+    {
+      name: 'Agentes',
+      href: '/admin/agentes',
+      icon: UserCheck,
       roles: ['administrador'],
     },
     {
