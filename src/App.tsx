@@ -20,6 +20,7 @@ import AdminCommissions from '@/pages/admin/Commissions'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
 import DashboardLogistics from '@/pages/dashboard/Logistics'
 import ManufacturersHub from '@/pages/dashboard/Manufacturers'
+import AffiliateDashboard from '@/pages/dashboard/AffiliateDashboard'
 import VideoNegotiation from '@/pages/VideoNegotiation'
 import Login from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
@@ -109,7 +110,7 @@ export default function App() {
                 <Route path="admin-products" element={<PlaceholderPage title="Admin Produtos" />} />
                 <Route path="messages" element={<PlaceholderPage title="Mensagens" />} />
                 <Route path="manufacturers" element={<ManufacturersHub />} />
-                <Route path="affiliates" element={<PlaceholderPage title="Afiliados" />} />
+                <Route path="affiliates" element={<AffiliateDashboard />} />
                 <Route path="magazine" element={<PlaceholderPage title="Revista" />} />
                 <Route element={<ManufacturerGuard />}>
                   <Route path="logistics" element={<DashboardLogistics />} />

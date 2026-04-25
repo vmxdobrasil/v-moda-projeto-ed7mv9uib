@@ -9,6 +9,12 @@ export interface Referral {
   created: string
   updated: string
   source_channel: 'whatsapp_group' | 'social_profile'
+  expand?: {
+    brand?: {
+      name: string
+      status: string
+    }
+  }
 }
 
 export const getReferrals = async () => {
@@ -19,5 +25,6 @@ export const getReferrals = async () => {
   return pb.collection('referrals').getFullList<Referral>({
     filter,
     sort: '-created',
+    expand: 'brand',
   })
 }
