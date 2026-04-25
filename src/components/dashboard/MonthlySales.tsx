@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from 'recharts'
-import { ArrowDownIcon, ArrowUpIcon, MinusIcon, TrendingUp } from 'lucide-react'
+import { ArrowDownIcon, ArrowUpIcon, MinusIcon, TrendingUp, Download } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -10,6 +10,7 @@ import { format, subMonths, startOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 export function MonthlySales() {
   const { user } = useAuth()
@@ -30,6 +31,7 @@ export function MonthlySales() {
       const records = await pb.collection('referrals').getFullList({
         filter: `${filter} && ${dateFilter}`,
         sort: 'created',
+        expand: 'brand',
       })
 
       setData(records)
@@ -69,6 +71,32 @@ export function MonthlySales() {
 
     return months
   }, [data])
+
+  const handleExportCSV = () => {
+    if (!data || data.length === 0) return
+
+    const headers = ['Data', 'Marca/Cliente', 'Tipo', 'Canal de Origem']
+    const rows = data.map((record) => {
+      const date = new Date(record.created).toLocaleDateString('pt-BR')
+      const brandName = record.expand?.brand?.name || 'N/A'
+      const type = record.type === 'conversion' ? 'Conversão' : record.type
+      const channel = record.source_channel || 'N/A'
+      return `"${date}","${brandName}","${type}","${channel}"`
+    })
+
+    const csvContent = [headers.join(','), ...rows].join('\n')
+    // Adiciona BOM para o Excel ler UTF-8 corretamente
+    const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csvContent], {
+      type: 'text/csv;charset=utf-8;',
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `vendas_${format(new Date(), 'yyyy-MM')}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   const currentMonthStr = format(new Date(), 'yyyy-MM')
   const previousMonthStr = format(subMonths(new Date(), 1), 'yyyy-MM')
@@ -123,9 +151,22 @@ export function MonthlySales() {
   return (
     <div className="grid gap-4 md:grid-cols-3 mb-8 animate-fade-in-up">
       <Card className="col-span-1 flex flex-col justify-center border-border/50 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium">Volume de Vendas</CardTitle>
-          <CardDescription>Conversões registradas neste mês</CardDescription>
+        <CardHeader className="pb-2 flex flex-row items-start justify-between space-y-0">
+          <div className="space-y-1">
+            <CardTitle className="text-lg font-medium">Volume de Vendas</CardTitle>
+            <CardDescription>Conversões registradas neste mês</CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            title="Exportar dados de vendas"
+            disabled={data.length === 0 || loading}
+            className="h-8"
+          >
+            <Download className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Exportar</span>
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="text-4xl font-bold">{currentMonthConversions}</div>
