@@ -112,7 +112,7 @@ export default function AdminLayout() {
     },
     {
       name: 'Proposta Zoop',
-      href: '/admin/proposta-zoop',
+      href: '/admin/partnerships/zoop',
       icon: Presentation,
       roles: ['administrador'],
     },

@@ -18,6 +18,7 @@ import ManufacturerNegotiationHub from '@/pages/manufacturer/NegotiationHub'
 import AdminLayout from '@/pages/admin/AdminLayout'
 import AdminCommissions from '@/pages/admin/Commissions'
 import AdminPartners from '@/pages/admin/Partners'
+import ZoopProposal from '@/pages/admin/ZoopProposal'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
 import DashboardLogistics from '@/pages/dashboard/Logistics'
 import ManufacturersHub from '@/pages/dashboard/Manufacturers'
@@ -96,7 +97,7 @@ export default function App() {
                 />
                 <Route path="relatorios" element={<PlaceholderPage title="Relatórios" />} />
                 <Route path="configuracoes" element={<PlaceholderPage title="Configurações" />} />
-                <Route path="proposta-zoop" element={<PlaceholderPage title="Proposta Zoop" />} />
+                <Route path="partnerships/zoop" element={<ZoopProposal />} />
                 <Route index element={<Navigate to="/admin/comissoes" replace />} />
               </Route>
 
