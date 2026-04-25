@@ -29,8 +29,16 @@ import {
   Copy,
   FileText,
   Check,
+  Download,
+  Loader2,
   type LucideIcon,
 } from 'lucide-react'
+
+declare global {
+  interface Window {
+    html2pdf: any
+  }
+}
 
 function PitchFeature({
   icon: Icon,
@@ -65,6 +73,7 @@ Nossa plataforma é construída sobre uma stack técnica moderna e escalável (V
 export default function ZoopProposal() {
   const { toast } = useToast()
   const [copied, setCopied] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   const handleCopy = () => {
     navigator.clipboard.writeText(proposalText)
@@ -74,6 +83,63 @@ export default function ZoopProposal() {
       description: 'A proposta foi copiada para a área de transferência.',
     })
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const generatePDF = async () => {
+    setIsGenerating(true)
+    try {
+      if (!window.html2pdf) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+          script.src =
+            'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
+          script.onload = resolve
+          script.onerror = reject
+          document.head.appendChild(script)
+        })
+      }
+
+      const element = document.getElementById('proposal-pdf-content')
+      if (!element) throw new Error('Element not found')
+
+      const container = document.createElement('div')
+      container.style.position = 'absolute'
+      container.style.top = '0'
+      container.style.left = '0'
+      container.style.width = '800px'
+      container.style.zIndex = '-9999'
+
+      const clone = element.cloneNode(true) as HTMLElement
+      clone.style.display = 'block'
+      container.appendChild(clone)
+      document.body.appendChild(container)
+
+      const opt = {
+        margin: [15, 0, 15, 0], // top, right, bottom, left
+        filename: 'Proposta_Comercial_Zoop_VMODA.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      }
+
+      await window.html2pdf().set(opt).from(clone).save()
+
+      document.body.removeChild(container)
+
+      toast({
+        title: 'PDF Gerado com sucesso!',
+        description: 'O download foi iniciado em seu navegador.',
+      })
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error)
+      toast({
+        title: 'Erro ao gerar PDF',
+        description: 'Não foi possível processar o documento. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   return (
@@ -102,10 +168,28 @@ export default function ZoopProposal() {
           </p>
         </div>
 
-        <div className="relative z-10 shrink-0">
+        <div className="relative z-10 shrink-0 flex flex-col sm:flex-row gap-3">
+          <Button
+            size="lg"
+            className="gap-2 shadow-lg bg-blue-600 hover:bg-blue-700 text-white border-none"
+            onClick={generatePDF}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Download className="w-5 h-5" />
+            )}
+            {isGenerating ? 'Gerando...' : 'Gerar PDF da Proposta'}
+          </Button>
+
           <Dialog>
             <DialogTrigger asChild>
-              <Button size="lg" className="gap-2 shadow-lg">
+              <Button
+                size="lg"
+                variant="outline"
+                className="gap-2 shadow-lg bg-background/50 backdrop-blur-sm"
+              >
                 <FileText className="w-5 h-5" />
                 Ver Proposta Detalhada
               </Button>
@@ -361,6 +445,167 @@ export default function ZoopProposal() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Hidden PDF Content */}
+      <div id="proposal-pdf-content" style={{ display: 'none' }}>
+        <div className="w-[800px] p-10 bg-white text-slate-900 font-sans mx-auto">
+          {/* Header */}
+          <div className="flex justify-between items-center border-b-2 border-slate-900 pb-6 mb-8">
+            <div>
+              <h1 className="text-4xl font-extrabold tracking-tight">V MODA Brasil</h1>
+              <p className="text-xl text-slate-500 mt-1">Proposta Comercial Estratégica</p>
+            </div>
+            <div className="text-right">
+              <div className="inline-block px-3 py-1 border border-slate-300 rounded text-xs uppercase tracking-widest font-bold text-slate-600">
+                Confidencial
+              </div>
+              <p className="text-sm text-slate-500 mt-2">
+                {new Date().toLocaleDateString('pt-BR')}
+              </p>
+            </div>
+          </div>
+
+          {/* Disclaimer / Stage */}
+          <div className="bg-slate-100 border-l-4 border-slate-800 p-5 mb-8 rounded-r-lg">
+            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-2">
+              Aviso de Fase do Projeto
+            </h3>
+            <p className="text-sm text-slate-700 leading-relaxed">
+              Este documento apresenta o <strong>Potencial de Mercado</strong> e o{' '}
+              <strong>Alcance Projetado</strong> do ecossistema V MODA Brasil. A plataforma
+              encontra-se atualmente em fase de pré-lançamento/desenvolvimento. Os números aqui
+              apresentados refletem o mercado-alvo e a base de parceiros mapeada para o
+              go-to-market, não representando obrigatoriamente usuários ativos na plataforma no
+              momento atual.
+            </p>
+          </div>
+
+          {/* Executive Summary */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">Sumário Executivo</h2>
+            <p className="text-base text-slate-700 leading-relaxed mb-4">
+              O V MODA Brasil apresenta uma oportunidade massiva de mercado com o objetivo de atuar
+              como o principal hub financeiro (Embedded Finance) do setor atacadista de moda.
+              Buscamos integrar a infraestrutura de pagamentos e split da <strong>Zoop</strong> para
+              roteamento de recebíveis na fonte, garantindo liquidação instantânea para o
+              fabricante, comissionamento automático para a V MODA e nossa rede descentralizada de
+              afiliados.
+            </p>
+          </div>
+
+          {/* Market Potential: Manufacturers */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-slate-900 mb-4 border-b pb-2">
+              Potencial de Mercado: Fabricantes
+            </h2>
+            <div className="grid grid-cols-2 gap-6 mt-4">
+              <div className="bg-slate-50 p-5 rounded-lg border border-slate-100">
+                <p className="text-4xl font-black text-slate-900 mb-1">16.000</p>
+                <p className="font-bold text-slate-800 text-lg">Lojas Fabricantes</p>
+                <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                  Concentração exclusiva no <strong>Polo de Moda de Goiânia-GO</strong> (Regiões da
+                  44 e Fama), com potencial imediato de onboarding em massa.
+                </p>
+              </div>
+              <div className="bg-slate-50 p-5 rounded-lg border border-slate-100">
+                <p className="text-4xl font-black text-slate-900 mb-1">Milhares</p>
+                <p className="font-bold text-slate-800 text-lg">Parceiros Adicionais</p>
+                <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                  Expansão ativa e mapeamento em andamento para os polos do{' '}
+                  <strong>Brás (SP)</strong>, <strong>Bom Retiro (SP)</strong> e outras regiões
+                  estratégicas no país.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Market Potential: Resellers */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-slate-900 mb-4 border-b pb-2">
+              Potencial de Mercado: Audiência (B2B)
+            </h2>
+            <div className="bg-slate-50 p-6 rounded-lg border border-slate-200 mt-4 text-center">
+              <p className="text-5xl font-black text-slate-900 mb-2">5.000.000+</p>
+              <p className="font-bold text-slate-800 text-xl">Lojistas e Revendedoras</p>
+              <p className="text-base text-slate-600 mt-3 max-w-2xl mx-auto leading-relaxed">
+                Público-alvo massivo espalhado por todas as regiões do Brasil, representando um GMV
+                latente multimilionário que demanda soluções de pagamento facilitado e parcelamento
+                B2B.
+              </p>
+            </div>
+          </div>
+
+          {/* Traction */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-slate-900 mb-4 border-b pb-2">
+              Tração e Motor de Aquisição
+            </h2>
+            <p className="text-base text-slate-700 leading-relaxed mb-4">
+              O ecossistema é impulsionado pela <strong>Revista Moda Atual Digital</strong>, atuando
+              como o principal canal de tráfego e aquisição B2B:
+            </p>
+            <div className="flex gap-4 mt-4">
+              <div className="flex-1 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <p className="text-2xl font-bold text-slate-900">315.000+</p>
+                <p className="text-sm font-semibold text-slate-600">Seguidores Orgânicos</p>
+              </div>
+              <div className="flex-1 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <p className="text-lg font-bold text-slate-900 mt-1">Plataforma Web</p>
+                <p className="text-sm text-slate-600">www.revistamodaatual.com.br</p>
+              </div>
+              <div className="flex-1 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <p className="text-lg font-bold text-slate-900 mt-1">Apps Nativos</p>
+                <p className="text-sm text-slate-600">Apple Store & Google Play</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Infrastructure */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-slate-900 mb-4 border-b pb-2">
+              Prontidão Tecnológica
+            </h2>
+            <p className="text-base text-slate-700 leading-relaxed mb-4">
+              A V MODA Brasil é nativamente desenvolvida sobre uma arquitetura Cloud
+              state-of-the-art, pronta para consumir as APIs e SDKs da Zoop:
+            </p>
+            <ul className="space-y-3 text-slate-700">
+              <li className="flex gap-2">
+                <span className="text-slate-400">•</span>
+                <span>
+                  Frontend de altíssima performance construído com Vite, React, TypeScript e
+                  TailwindCSS.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-slate-400">•</span>
+                <span>
+                  Backend robusto (Skip Cloud) desenhado para modelar relacionamentos complexos
+                  B2B2C e gerenciar volumes transacionais escaláveis.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-slate-400">•</span>
+                <span>
+                  Motor de Regras de Acesso (RLS) estrito integrado nativamente, garantindo
+                  segurança e isolamento de dados a nível de registro financeiro.
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Contact */}
+          <div className="mt-16 pt-8 border-t-2 border-slate-100 text-center">
+            <div className="inline-block bg-slate-900 text-white px-6 py-4 rounded-xl">
+              <p className="text-lg font-bold">V MODA Brasil</p>
+              <p className="text-sm text-slate-300 mt-1">Departamento Comercial e Parcerias</p>
+              <p className="text-sm text-slate-400 mt-2 font-mono">
+                contato@vmoda.com.br | www.vmoda.com.br
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
