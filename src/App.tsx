@@ -17,8 +17,7 @@ import ManufacturerSettings from '@/pages/manufacturer/Settings'
 import ManufacturerNegotiationHub from '@/pages/manufacturer/NegotiationHub'
 import AdminLayout from '@/pages/admin/AdminLayout'
 import AdminCommissions from '@/pages/admin/Commissions'
-import AdminAffiliates from '@/pages/admin/Affiliates'
-import AdminAgents from '@/pages/admin/Agents'
+import AdminPartners from '@/pages/admin/Partners'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
 import DashboardLogistics from '@/pages/dashboard/Logistics'
 import ManufacturersHub from '@/pages/dashboard/Manufacturers'
@@ -80,8 +79,9 @@ export default function App() {
 
               <Route path="/admin" element={<AdminLayout />}>
                 <Route path="comissoes" element={<AdminCommissions />} />
-                <Route path="agentes" element={<AdminAgents />} />
-                <Route path="afiliados" element={<AdminAffiliates />} />
+                <Route path="agentes" element={<AdminPartners defaultTab="agent" />} />
+                <Route path="afiliados" element={<AdminPartners defaultTab="affiliate" />} />
+                <Route path="parceiros" element={<AdminPartners />} />
                 <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
                 <Route path="produtos" element={<PlaceholderPage title="Produtos" />} />
                 <Route path="clientes" element={<PlaceholderPage title="Clientes" />} />

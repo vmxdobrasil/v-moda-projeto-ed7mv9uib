@@ -1,8 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
 import pb from '@/lib/pocketbase/client'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { BarChart3, TrendingUp, Calendar, Printer, Target, Users } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { DollarSign, Target, Users, TrendingUp, Activity } from 'lucide-react'
 import {
   ChartContainer,
   ChartTooltip,
@@ -10,210 +16,277 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart'
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid } from 'recharts'
-import { format, subMonths, isAfter, parseISO } from 'date-fns'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+} from 'recharts'
+import { subDays, isAfter, format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useRealtime } from '@/hooks/use-realtime'
 
 export default function Reports() {
-  const [customers, setCustomers] = useState<any[]>([])
+  const [referrals, setReferrals] = useState<any[]>([])
+  const [period, setPeriod] = useState('30')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const records = await pb.collection('customers').getFullList({ sort: '-created' })
-        setCustomers(records)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
+  const loadData = async () => {
+    try {
+      const refs = await pb
+        .collection('referrals')
+        .getFullList({ sort: '-created', expand: 'affiliate' })
+      setReferrals(refs)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
     }
-    loadData()
-  }, [])
-
-  const handlePrint = () => {
-    window.print()
   }
 
-  const { stats, conversionData, distributionData } = useMemo(() => {
-    const statusCounts = {
-      new: 0,
-      interested: 0,
-      negotiating: 0,
-      converted: 0,
-      inactive: 0,
-    }
+  useEffect(() => {
+    loadData()
+  }, [])
+  useRealtime('referrals', () => loadData())
+  useRealtime('customers', () => loadData())
 
-    const monthsMap: Record<string, { new: number; converted: number }> = {}
-    const sixMonthsAgo = subMonths(new Date(), 6)
+  const metrics = useMemo(() => {
+    const timeLimit = subDays(new Date(), parseInt(period))
+    const validRefs = referrals.filter((r) => isAfter(parseISO(r.created), timeLimit))
 
-    customers.forEach((c) => {
-      if (c.status && statusCounts[c.status as keyof typeof statusCounts] !== undefined) {
-        statusCounts[c.status as keyof typeof statusCounts]++
-      }
+    let affLeads = 0,
+      affConv = 0,
+      affPaid = 0,
+      affToPay = 0
+    let agLeads = 0,
+      agConv = 0,
+      agPaid = 0,
+      agToPay = 0
+    const TICKET = 500
 
-      const createdDate = parseISO(c.created)
-      if (isAfter(createdDate, sixMonthsAgo)) {
-        const monthKey = format(createdDate, 'MMM yyyy', { locale: ptBR })
-        if (!monthsMap[monthKey]) {
-          monthsMap[monthKey] = { new: 0, converted: 0 }
+    validRefs.forEach((r) => {
+      const role = r.expand?.affiliate?.role
+      const rate = r.expand?.affiliate?.commission_rate || (role === 'affiliate' ? 2 : 1)
+      const comm = TICKET * (rate / 100)
+
+      if (role === 'affiliate') {
+        if (r.type === 'lead') affLeads++
+        if (r.type === 'conversion') {
+          affConv++
+          r.is_paid ? (affPaid += comm) : (affToPay += comm)
         }
-        monthsMap[monthKey].new++
-        if (c.status === 'converted') {
-          monthsMap[monthKey].converted++
+      } else if (role === 'agent') {
+        if (r.type === 'lead') agLeads++
+        if (r.type === 'conversion') {
+          agConv++
+          r.is_paid ? (agPaid += comm) : (agToPay += comm)
         }
       }
     })
 
-    const chartData = Object.entries(monthsMap)
-      .map(([month, data]) => ({
-        month,
-        novos: data.new,
-        convertidos: data.converted,
-      }))
-      .reverse()
-
-    const distData = [
-      { name: 'Novos', value: statusCounts.new, fill: 'hsl(var(--chart-1))' },
-      { name: 'Interessados', value: statusCounts.interested, fill: 'hsl(var(--chart-2))' },
-      { name: 'Negociando', value: statusCounts.negotiating, fill: 'hsl(var(--chart-3))' },
-      { name: 'Convertidos', value: statusCounts.converted, fill: 'hsl(var(--chart-4))' },
-      { name: 'Inativos', value: statusCounts.inactive, fill: 'hsl(var(--chart-5))' },
-    ]
-
-    const totalLeads = customers.length
-    const convRate = totalLeads ? Math.round((statusCounts.converted / totalLeads) * 100) : 0
+    const chartMap: Record<string, any> = {}
+    validRefs
+      .filter((r) => r.type === 'conversion')
+      .forEach((r) => {
+        const m = format(parseISO(r.created), 'MMM/yy', { locale: ptBR })
+        if (!chartMap[m]) chartMap[m] = { month: m, affiliate: 0, agent: 0 }
+        if (r.expand?.affiliate?.role === 'affiliate') chartMap[m].affiliate++
+        if (r.expand?.affiliate?.role === 'agent') chartMap[m].agent++
+      })
 
     return {
-      stats: { total: totalLeads, converted: statusCounts.converted, rate: convRate },
-      conversionData: chartData,
-      distributionData: distData,
+      aff: { leads: affLeads, conv: affConv, paid: affPaid, toPay: affToPay },
+      ag: { leads: agLeads, conv: agConv, paid: agPaid, toPay: agToPay },
+      global: {
+        leads: affLeads + agLeads,
+        conv: affConv + agConv,
+        paid: affPaid + agPaid,
+        toPay: affToPay + agToPay,
+      },
+      chartData: Object.values(chartMap).reverse(),
     }
-  }, [customers])
+  }, [period, referrals])
 
-  const conversionConfig = {
-    novos: { label: 'Novos Leads', color: 'hsl(var(--chart-1))' },
-    convertidos: { label: 'Leads Convertidos', color: 'hsl(var(--chart-2))' },
-  }
+  if (loading) return <div className="p-8 text-center text-muted-foreground">Carregando...</div>
 
-  const distributionConfig = {
-    value: { label: 'Leads' },
-  }
-
-  if (loading) {
-    return <div className="p-8 text-center text-muted-foreground">Carregando relatórios...</div>
-  }
+  const pieData = [
+    { name: 'Afiliados', value: metrics.aff.conv, fill: 'hsl(var(--chart-1))' },
+    { name: 'Agentes', value: metrics.ag.conv, fill: 'hsl(var(--chart-2))' },
+  ]
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Relatórios Analíticos</h2>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Visualize métricas de conversão e crescimento de leads.
+          <h2 className="text-3xl font-bold tracking-tight">Performance e ROI</h2>
+          <p className="text-muted-foreground">
+            Análise segmentada do impacto financeiro de parceiros.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Calendar className="w-4 h-4 mr-2" />
-            Últimos 6 Meses
-          </Button>
-          <Button onClick={handlePrint}>
-            <Printer className="w-4 h-4 mr-2" />
-            Imprimir
-          </Button>
-        </div>
+        <Select value={period} onValueChange={setPeriod}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="30">Mensal (Últimos 30 dias)</SelectItem>
+            <SelectItem value="90">Trimestral (Últimos 90 dias)</SelectItem>
+            <SelectItem value="180">Semestral (Últimos 180 dias)</SelectItem>
+            <SelectItem value="365">Anual (Últimos 365 dias)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="hidden print:block mb-8">
-        <h1 className="text-3xl font-bold uppercase tracking-wider">V Moda</h1>
-        <h2 className="text-xl font-semibold mt-2">Relatório de Crescimento e Conversão</h2>
-        <p className="text-sm text-muted-foreground">
-          Gerado em: {new Date().toLocaleDateString('pt-BR')}
-        </p>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total de Leads</CardTitle>
-            <Users className="w-4 h-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Users className="w-4 h-4 mr-2" />
+              Total Leads
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground mt-1">Registrados no sistema</p>
+            <div className="text-2xl font-bold">{metrics.global.leads}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Leads Convertidos</CardTitle>
-            <Target className="w-4 h-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Target className="w-4 h-4 mr-2" />
+              Conversões
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.converted}</div>
-            <p className="text-xs text-muted-foreground mt-1">Clientes ativos</p>
+            <div className="text-2xl font-bold">{metrics.global.conv}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Conversão Global</CardTitle>
-            <TrendingUp className="w-4 h-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Total Pago
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.rate}%</div>
-            <p className="text-xs text-muted-foreground mt-1">Dos leads se tornaram clientes</p>
+            <div className="text-2xl font-bold text-emerald-600">
+              R$ {metrics.global.paid.toFixed(2)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Activity className="w-4 h-4 mr-2" />
+              Total a Pagar
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-500">
+              R$ {metrics.global.toPay.toFixed(2)}
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
+        <Card className="border-l-4 border-l-primary">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              Crescimento e Conversão Mensal
-            </CardTitle>
-            <CardDescription className="print:hidden">
-              Comparativo de novos leads x leads convertidos nos últimos 6 meses.
+            <CardTitle>ROI - Afiliados (Fixos 2%)</CardTitle>
+            <CardDescription>Retorno sobre vendas geradas por influenciadores.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between">
+              <span>Vendas Geradas (Est.)</span>
+              <span className="font-bold">R$ {(metrics.aff.conv * 500).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Custo de Comissões</span>
+              <span className="font-bold text-red-500">
+                R$ {(metrics.aff.paid + metrics.aff.toPay).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between border-t pt-2 mt-2">
+              <span>Taxa de Conversão</span>
+              <span className="font-bold">
+                {metrics.aff.leads ? Math.round((metrics.aff.conv / metrics.aff.leads) * 100) : 0}%
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-secondary">
+          <CardHeader>
+            <CardTitle>ROI - Agentes (Variáveis)</CardTitle>
+            <CardDescription>
+              Retorno sobre vendas geradas por consultores credenciados.
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-4">
-            <ChartContainer config={conversionConfig} className="h-[300px] w-full">
-              <BarChart data={conversionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tickMargin={10}
-                  fontSize={12}
-                />
-                <YAxis axisLine={false} tickLine={false} tickMargin={10} fontSize={12} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="novos" fill="var(--color-novos)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="convertidos" fill="var(--color-convertidos)" radius={[4, 4, 0, 0]} />
-              </BarChart>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between">
+              <span>Vendas Geradas (Est.)</span>
+              <span className="font-bold">R$ {(metrics.ag.conv * 500).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Custo de Comissões</span>
+              <span className="font-bold text-red-500">
+                R$ {(metrics.ag.paid + metrics.ag.toPay).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between border-t pt-2 mt-2">
+              <span>Taxa de Conversão</span>
+              <span className="font-bold">
+                {metrics.ag.leads ? Math.round((metrics.ag.conv / metrics.ag.leads) * 100) : 0}%
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <TrendingUp className="w-5 h-5 mr-2 text-primary" />
+              Histórico de Conversões
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                affiliate: { label: 'Afiliados', color: 'hsl(var(--chart-1))' },
+                agent: { label: 'Agentes', color: 'hsl(var(--chart-2))' },
+              }}
+              className="h-[300px] w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={metrics.chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Bar dataKey="affiliate" fill="var(--color-affiliate)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="agent" fill="var(--color-agent)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-primary" />
-              Distribuição por Status
-            </CardTitle>
-            <CardDescription className="print:hidden">
-              Visão atual do funil de conversão.
-            </CardDescription>
+            <CardTitle>Participação no Funil</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={distributionConfig} className="h-[300px] w-full">
+            <ChartContainer
+              config={{ value: { label: 'Conversões' } }}
+              className="h-[300px] w-full"
+            >
               <PieChart>
                 <Pie
-                  data={distributionData}
+                  data={pieData}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -222,8 +295,8 @@ export default function Reports() {
                   dataKey="value"
                   nameKey="name"
                 >
-                  {distributionData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  {pieData.map((e, i) => (
+                    <Cell key={i} fill={e.fill} />
                   ))}
                 </Pie>
                 <ChartTooltip content={<ChartTooltipContent />} />

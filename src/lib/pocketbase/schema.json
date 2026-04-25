@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T21:33:33.845Z",
+  "generatedAt": "2026-04-25T21:45:40.955Z",
   "collections": [
     {
       "name": "users",
@@ -1096,6 +1096,12 @@
           "required": false,
           "system": false,
           "selectValues": ["whatsapp_group", "social_profile"]
+        },
+        {
+          "name": "is_paid",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -1395,6 +1401,60 @@
           "type": "file",
           "required": false,
           "system": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "commission_audit_logs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'",
+        "view": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'",
+        "create": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "admin_user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "target_partner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "previous_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "new_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": []

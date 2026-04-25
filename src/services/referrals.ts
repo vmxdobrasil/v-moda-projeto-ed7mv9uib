@@ -9,10 +9,16 @@ export interface Referral {
   created: string
   updated: string
   source_channel: 'whatsapp_group' | 'social_profile'
+  is_paid?: boolean
   expand?: {
     brand?: {
       name: string
       status: string
+    }
+    affiliate?: {
+      name: string
+      role: string
+      commission_rate: number
     }
   }
 }
@@ -25,6 +31,6 @@ export const getReferrals = async () => {
   return pb.collection('referrals').getFullList<Referral>({
     filter,
     sort: '-created',
-    expand: 'brand',
+    expand: 'brand,affiliate',
   })
 }
