@@ -78,13 +78,15 @@ export default function Reports() {
         if (r.type === 'lead') affLeads++
         if (r.type === 'conversion') {
           affConv++
-          r.is_paid ? (affPaid += comm) : (affToPay += comm)
+          if (r.is_paid) affPaid += comm
+          else affToPay += comm
         }
       } else if (role === 'agent') {
         if (r.type === 'lead') agLeads++
         if (r.type === 'conversion') {
           agConv++
-          r.is_paid ? (agPaid += comm) : (agToPay += comm)
+          if (r.is_paid) agPaid += comm
+          else agToPay += comm
         }
       }
     })
