@@ -38,7 +38,7 @@ export default function AffiliateDashboard() {
   useRealtime('referrals', () => loadData())
   useRealtime('customers', () => loadData())
 
-  if (user?.role !== 'affiliate' && !isAdmin) {
+  if (user?.role !== 'affiliate' && user?.role !== 'agent' && !isAdmin) {
     return <Navigate to="/" replace />
   }
 
@@ -62,7 +62,9 @@ export default function AffiliateDashboard() {
   return (
     <div className="space-y-6 animate-fade-in-up pb-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Painel do Agente Credenciado</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {user?.role === 'agent' ? 'Painel do Agente Credenciado' : 'Painel do Influenciador'}
+        </h1>
         <p className="text-muted-foreground">
           Acompanhe seu desempenho, gerencie sua carteira de clientes e comissões.
         </p>

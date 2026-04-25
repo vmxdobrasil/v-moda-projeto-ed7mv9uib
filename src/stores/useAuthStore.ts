@@ -7,7 +7,7 @@ export interface User {
   email: string
   type?: 'Varejo' | 'Atacado' | 'Lojista Fabricante'
   manufacturerId?: string
-  role?: 'manufacturer' | 'retailer' | 'affiliate' | 'admin'
+  role?: 'manufacturer' | 'retailer' | 'affiliate' | 'agent' | 'admin'
   affiliate_code?: string
   unlocked_benefits?: Record<string, boolean> | null
   avatar?: string

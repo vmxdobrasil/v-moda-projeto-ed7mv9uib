@@ -16,7 +16,11 @@ routerAdd(
     }
 
     const role = user.getString('role')
-    const isAffiliate = role === 'affiliate'
+    if (role === 'affiliate') {
+      throw new ForbiddenError('Influenciadores não têm permissão para importar clientes em massa.')
+    }
+
+    const isAgent = role === 'agent'
 
     const customersCol = $app.findCollectionByNameOrId('customers')
 
@@ -27,7 +31,7 @@ routerAdd(
 
     const existingRecords = $app.findRecordsByFilter(
       'customers',
-      isAffiliate ? 'affiliate_referrer = {:userId}' : 'manufacturer = {:userId}',
+      isAgent ? 'affiliate_referrer = {:userId}' : 'manufacturer = {:userId}',
       '',
       100000,
       0,
@@ -95,7 +99,7 @@ routerAdd(
 
           record.set('status', 'new')
 
-          if (isAffiliate) {
+          if (isAgent) {
             record.set('affiliate_referrer', user.id)
           } else {
             record.set('manufacturer', user.id)

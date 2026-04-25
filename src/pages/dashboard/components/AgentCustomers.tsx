@@ -75,6 +75,9 @@ export function AgentCustomers() {
     setPhone(val)
   }
 
+  const canRegister =
+    user?.role === 'agent' || user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
+
   const handleAddCustomer = async () => {
     if (!name || !phone || !city) {
       toast({ title: 'Preencha todos os campos obrigatórios.', variant: 'destructive' })
@@ -120,18 +123,20 @@ export function AgentCustomers() {
             className="pl-9"
           />
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Button
-            variant="outline"
-            className="w-full sm:w-auto"
-            onClick={() => setIsImportOpen(true)}
-          >
-            <UploadCloud className="w-4 h-4 mr-2" /> Importar
-          </Button>
-          <Button className="w-full sm:w-auto" onClick={() => setIsAddOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" /> Novo Cliente
-          </Button>
-        </div>
+        {canRegister && (
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setIsImportOpen(true)}
+            >
+              <UploadCloud className="w-4 h-4 mr-2" /> Importar
+            </Button>
+            <Button className="w-full sm:w-auto" onClick={() => setIsAddOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" /> Novo Cliente
+            </Button>
+          </div>
+        )}
       </div>
 
       <Card>

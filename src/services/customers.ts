@@ -79,15 +79,15 @@ export const createCustomer = async (data: Partial<Customer> | FormData) => {
   const user = pb.authStore.record
   if (data instanceof FormData) {
     if (user?.id) {
-      if (user.role === 'affiliate' && !data.has('affiliate_referrer')) {
+      if ((user.role === 'affiliate' || user.role === 'agent') && !data.has('affiliate_referrer')) {
         data.append('affiliate_referrer', user.id)
-      } else if (user.role !== 'affiliate' && !data.has('manufacturer')) {
+      } else if (user.role !== 'affiliate' && user.role !== 'agent' && !data.has('manufacturer')) {
         data.append('manufacturer', user.id)
       }
     }
   } else {
     if (user?.id) {
-      if (user.role === 'affiliate') {
+      if (user.role === 'affiliate' || user.role === 'agent') {
         data.affiliate_referrer = user.id
       } else if (!data.manufacturer) {
         data.manufacturer = user.id
