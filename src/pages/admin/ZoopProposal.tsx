@@ -13,7 +13,30 @@ import {
   Activity,
   TrendingUp,
   CheckCircle,
+  Landmark,
+  CreditCard,
+  type LucideIcon,
 } from 'lucide-react'
+
+function PitchFeature({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: LucideIcon
+  title: string
+  description: string
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Icon className="w-5 h-5 text-primary" />
+        <h4 className="font-semibold text-lg">{title}</h4>
+      </div>
+      <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+    </div>
+  )
+}
 
 export default function ZoopProposal() {
   return (
@@ -45,24 +68,26 @@ export default function ZoopProposal() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="bg-blue-500/10 p-2 rounded-full mt-1">
+              <div className="bg-blue-500/10 p-2 rounded-full mt-1 shrink-0">
                 <CheckCircle className="w-4 h-4 text-blue-500" />
               </div>
               <div>
                 <h4 className="font-semibold">16.000 Lojas Fabricantes</h4>
                 <p className="text-sm text-muted-foreground">
-                  Concentração no polo de moda de Goiânia, com potencial imediato de onboarding.
+                  Concentração somente no polo de moda de Goiânia-GO, com potencial imediato de
+                  onboarding em massa para soluções de pagamento.
                 </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <div className="bg-blue-500/10 p-2 rounded-full mt-1">
+              <div className="bg-blue-500/10 p-2 rounded-full mt-1 shrink-0">
                 <Network className="w-4 h-4 text-blue-500" />
               </div>
               <div>
-                <h4 className="font-semibold">Expansão Nacional Ativa</h4>
+                <h4 className="font-semibold">Milhares de Fabricantes Adicionais</h4>
                 <p className="text-sm text-muted-foreground">
-                  Presença forte em Brás, Bom Retiro e outros polos de moda estratégicos do país.
+                  Expansão ativa e presença consolidada nos polos do Brás (SP), Bom Retiro (SP) e
+                  outras regiões estratégicas do Brasil.
                 </p>
               </div>
             </div>
@@ -78,14 +103,14 @@ export default function ZoopProposal() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="bg-emerald-500/10 p-2 rounded-full mt-1">
+              <div className="bg-emerald-500/10 p-2 rounded-full mt-1 shrink-0">
                 <TrendingUp className="w-4 h-4 text-emerald-500" />
               </div>
               <div>
                 <h4 className="font-semibold text-lg">5 Milhões+</h4>
                 <p className="text-sm text-muted-foreground">
-                  De lojistas e revendedoras/sacoleiras que compram nestes polos e revendem por todo
-                  o Brasil.
+                  De lojistas, revendedoras e sacoleiras que compram regularmente nestes polos e
+                  revendem ativamente em todas as regiões do país.
                 </p>
               </div>
             </div>
@@ -115,8 +140,8 @@ export default function ZoopProposal() {
               <h3 className="text-4xl font-extrabold text-primary">315.000+</h3>
               <p className="font-semibold">Seguidores Orgânicos</p>
               <p className="text-xs text-muted-foreground">
-                Marco conquistado em 1 ano de operação, demonstrando alto fit de mercado e
-                autoridade B2B.
+                Marco conquistado demonstrando alto fit de mercado e autoridade B2B como principal
+                motor de tráfego e aquisição.
               </p>
             </div>
             <div className="sm:col-span-2 grid grid-cols-2 gap-4">
@@ -124,7 +149,7 @@ export default function ZoopProposal() {
                 <div className="p-2 bg-muted rounded-full">
                   <Globe className="w-5 h-5 text-muted-foreground" />
                 </div>
-                <span className="text-sm font-medium">revistamodaatual.com.br</span>
+                <span className="text-sm font-medium">www.revistamodaatual.com.br</span>
                 <Badge variant="secondary" className="text-[10px]">
                   Web Platform
                 </Badge>
@@ -136,10 +161,10 @@ export default function ZoopProposal() {
                 <span className="text-sm font-medium">Aplicativos Nativos</span>
                 <div className="flex flex-wrap justify-center gap-2">
                   <Badge variant="secondary" className="text-[10px]">
-                    iOS App Store
+                    Apple App Store
                   </Badge>
                   <Badge variant="secondary" className="text-[10px]">
-                    Google Play
+                    Google Play Store
                   </Badge>
                 </div>
               </div>
@@ -154,31 +179,29 @@ export default function ZoopProposal() {
           <CardHeader>
             <Briefcase className="w-8 h-8 text-primary mb-2" />
             <CardTitle>A Tese e Demanda para a Zoop</CardTitle>
-            <CardDescription>Necessidades arquitetônicas para escalar</CardDescription>
+            <CardDescription>Necessidades financeiras para escalar</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <ArrowRightLeft className="w-5 h-5 text-primary" />
-                <h4 className="font-semibold text-lg">Split de Pagamentos</h4>
-              </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Roteamento inteligente de recebíveis na fonte. Liquidação instantânea e automática
-                para o fabricante (fornecedor), V MODA (plataforma/take rate) e afiliados. Essencial
-                para o modelo marketplace B2B e B2C sem bitributação.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-primary" />
-                <h4 className="font-semibold text-lg">Sistema de Conciliação Bancária</h4>
-              </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Fim do controle manual de boletos e TEDs. Oferecer aos lojistas um painel financeiro
-                centralizado e conciliação automática das vendas originadas, reduzindo atrito
-                logístico e operacional.
-              </p>
-            </div>
+            <PitchFeature
+              icon={Landmark}
+              title="Visão Embedded Finance"
+              description="Transformar o V MODA em um verdadeiro hub financeiro para o setor, oferecendo soluções de pagamento white-label acopladas diretamente no fluxo de trabalho B2B."
+            />
+            <PitchFeature
+              icon={ArrowRightLeft}
+              title="Split de Pagamentos"
+              description="Roteamento inteligente de recebíveis na fonte. Liquidação instantânea para o fabricante, V MODA (take rate) e afiliados parceiros, essencial para o modelo marketplace."
+            />
+            <PitchFeature
+              icon={ShieldCheck}
+              title="Conciliação Bancária Automatizada"
+              description="Fim do controle manual de boletos e TEDs. Oferecer aos lojistas um painel financeiro centralizado, reduzindo atrito logístico e operacional com baixas automáticas."
+            />
+            <PitchFeature
+              icon={CreditCard}
+              title="Potencial CréditoModa"
+              description="Fornecimento de liquidez para a cadeia. Antecipação de recebíveis para fabricantes e limite de crédito facilitado para lojistas alavancarem o GMV dentro do hub."
+            />
           </CardContent>
         </Card>
 
