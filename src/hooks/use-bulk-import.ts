@@ -50,12 +50,18 @@ export function useBulkImport() {
       for (let i = 0; i < rows.length; i += BATCH_SIZE) {
         const batch = rows.slice(i, i + BATCH_SIZE)
 
+        const user = pb.authStore.record
         const mappedRecords = batch.map((row) => {
           const mapped: any = {}
           for (const [key, colName] of Object.entries(mapping)) {
             if (colName && row[colName] !== undefined) {
               mapped[key] = row[colName]
             }
+          }
+          if (user?.role === 'affiliate') {
+            mapped.affiliate_referrer = user.id
+          } else if (user?.id) {
+            mapped.manufacturer = user.id
           }
           return mapped
         })

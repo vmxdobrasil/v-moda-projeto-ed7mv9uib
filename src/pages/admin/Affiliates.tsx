@@ -54,10 +54,10 @@ export default function AdminAffiliates() {
 
   const handleSave = async () => {
     const numRate = parseFloat(rate)
-    if (isNaN(numRate) || numRate < 0.5 || numRate > 2.0) {
+    if (isNaN(numRate) || numRate < 1.0 || numRate > 5.0) {
       toast({
         title: 'Erro',
-        description: 'A taxa de comissão deve ser entre 0.5 e 2.0',
+        description: 'A taxa de comissão deve ser entre 1.0 e 5.0',
         variant: 'destructive',
       })
       return
@@ -76,9 +76,9 @@ export default function AdminAffiliates() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Gestão de Guias de Turismo de Compras</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Gestão de Agentes Credenciados</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Gerencie as taxas de comissão e acompanhe o desempenho dos guias.
+          Gerencie as taxas de comissão e acompanhe o desempenho dos agentes.
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export default function AdminAffiliates() {
         <CardHeader className="pb-4">
           <CardTitle className="text-lg flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Guias Cadastrados
+            Agentes Cadastrados
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -132,7 +132,7 @@ export default function AdminAffiliates() {
                   {affiliates.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        Nenhum guia encontrado.
+                        Nenhum agente encontrado.
                       </TableCell>
                     </TableRow>
                   )}
@@ -150,7 +150,7 @@ export default function AdminAffiliates() {
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
-              <Label>Guia</Label>
+              <Label>Agente</Label>
               <Input
                 value={editUser?.name || editUser?.email || ''}
                 disabled
@@ -158,14 +158,14 @@ export default function AdminAffiliates() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="rate">Taxa (%) - Entre 0.5 e 2.0</Label>
+              <Label htmlFor="rate">Taxa (%) - Entre 1.0 e 5.0</Label>
               <div className="relative">
                 <Input
                   id="rate"
                   type="number"
                   step="0.1"
-                  min="0.5"
-                  max="2.0"
+                  min="1.0"
+                  max="5.0"
                   value={rate}
                   onChange={(e) => setRate(e.target.value)}
                   className="pl-8"
