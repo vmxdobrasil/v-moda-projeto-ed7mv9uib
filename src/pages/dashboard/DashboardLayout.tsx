@@ -25,6 +25,7 @@ import {
   UserPlus,
   Factory,
   LogOut,
+  ShieldCheck,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
@@ -41,12 +42,20 @@ const navItems = [
   { icon: BookOpen, label: 'Revista', path: '/magazine' },
   { icon: UserPlus, label: 'Afiliados', path: '/affiliates' },
   { icon: Factory, label: 'Fabricantes', path: '/manufacturers' },
+  { icon: ShieldCheck, label: 'Agentes Credenciados', path: '/admin/agentes', adminOnly: true },
   { icon: Settings, label: 'Configurações', path: '/settings' },
 ]
 
 export default function DashboardLayout() {
   const { signOut, user } = useAuth()
   const location = useLocation()
+
+  const isAdmin = user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
+
+  const filteredNavItems = navItems.filter((item) => {
+    if (item.adminOnly && !isAdmin) return false
+    return true
+  })
 
   return (
     <SidebarProvider>
@@ -64,7 +73,7 @@ export default function DashboardLayout() {
               <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {navItems.map((item) => {
+                  {filteredNavItems.map((item) => {
                     const isActive =
                       location.pathname === item.path ||
                       (item.path !== '/' && location.pathname.startsWith(item.path))

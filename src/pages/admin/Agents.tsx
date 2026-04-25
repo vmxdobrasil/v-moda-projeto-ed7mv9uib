@@ -26,20 +26,21 @@ import { Edit2, Percent, Users, ShieldCheck, ShieldAlert } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { useRealtime } from '@/hooks/use-realtime'
 
-export default function AdminAffiliates() {
-  const [affiliates, setAffiliates] = useState<any[]>([])
+export default function AdminAgents() {
+  const [agents, setAgents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editUser, setEditUser] = useState<any>(null)
+  const [rate, setRate] = useState('')
   const [isVerified, setIsVerified] = useState(false)
   const { toast } = useToast()
 
-  const loadAffiliates = async () => {
+  const loadAgents = async () => {
     try {
       const res = await pb.collection('users').getFullList({
-        filter: 'role="affiliate"',
+        filter: 'role="agent"',
         sort: '-created',
       })
-      setAffiliates(res)
+      setAgents(res)
     } catch (e) {
       console.error(e)
     } finally {
@@ -48,25 +49,36 @@ export default function AdminAffiliates() {
   }
 
   useEffect(() => {
-    loadAffiliates()
+    loadAgents()
   }, [])
 
   useRealtime('users', () => {
-    loadAffiliates()
+    loadAgents()
   })
 
   const openEdit = (user: any) => {
     setEditUser(user)
+    setRate(user.commission_rate ? user.commission_rate.toString() : '1.0')
     setIsVerified(user.is_verified || false)
   }
 
   const handleSave = async () => {
+    const numRate = parseFloat(rate)
+    if (isNaN(numRate) || numRate < 1.0 || numRate > 5.0) {
+      toast({
+        title: 'Erro de Validação',
+        description: 'A taxa de comissão para agentes deve ser entre 1.0 e 5.0%.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
       await pb.collection('users').update(editUser.id, {
-        commission_rate: 2.0,
+        commission_rate: numRate,
         is_verified: isVerified,
       })
-      toast({ title: 'Sucesso', description: 'Dados do afiliado atualizados com sucesso!' })
+      toast({ title: 'Sucesso', description: 'Dados do agente atualizados com sucesso!' })
       setEditUser(null)
     } catch (e: any) {
       toast({
@@ -80,9 +92,9 @@ export default function AdminAffiliates() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Afiliados (Influenciadores)</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Agentes Credenciados</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Gerencie influenciadores no sistema. Eles possuem taxa fixa de 2.0%.
+          Gerencie agentes credenciados e configure suas comissões (1% a 5%).
         </p>
       </div>
 
@@ -90,7 +102,7 @@ export default function AdminAffiliates() {
         <CardHeader className="pb-4">
           <CardTitle className="text-lg flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Afiliados Cadastrados
+            Agentes Cadastrados
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -112,7 +124,7 @@ export default function AdminAffiliates() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {affiliates.map((user) => (
+                  {agents.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name || 'Sem nome'}</TableCell>
                       <TableCell>{user.email}</TableCell>
@@ -123,7 +135,7 @@ export default function AdminAffiliates() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 font-medium text-emerald-600">
-                          2.0%
+                          {user.commission_rate ? user.commission_rate : '1.0'}%
                         </div>
                       </TableCell>
                       <TableCell>
@@ -150,10 +162,10 @@ export default function AdminAffiliates() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {affiliates.length === 0 && (
+                  {agents.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        Nenhum afiliado encontrado.
+                        Nenhum agente encontrado.
                       </TableCell>
                     </TableRow>
                   )}
@@ -167,11 +179,11 @@ export default function AdminAffiliates() {
       <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Gerenciar Afiliado</DialogTitle>
+            <DialogTitle>Gerenciar Agente</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-6">
             <div className="space-y-2">
-              <Label>Afiliado (Influenciador)</Label>
+              <Label>Agente</Label>
               <Input
                 value={editUser?.name || editUser?.email || ''}
                 disabled
@@ -181,16 +193,25 @@ export default function AdminAffiliates() {
             <div className="space-y-2">
               <Label htmlFor="rate">Taxa de Comissão (%)</Label>
               <div className="relative">
-                <Input id="rate" type="text" value="2.0" disabled className="pl-8 bg-muted" />
+                <Input
+                  id="rate"
+                  type="number"
+                  step="0.1"
+                  min="1.0"
+                  max="5.0"
+                  value={rate}
+                  onChange={(e) => setRate(e.target.value)}
+                  className="pl-8"
+                />
                 <Percent className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               </div>
               <p className="text-xs text-muted-foreground">
-                Influenciadores possuem taxa fixa de 2.0%.
+                Defina um valor entre 1.0 e 5.0% para o agente.
               </p>
             </div>
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
-                <Label className="text-base">Status do Afiliado</Label>
+                <Label className="text-base">Status do Agente</Label>
                 <p className="text-sm text-muted-foreground">
                   Habilitar a participação no programa de comissões.
                 </p>
