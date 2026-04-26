@@ -41,7 +41,9 @@ export default function Login() {
     }
 
     const user = pb.authStore.record
-    if (user?.role === 'manufacturer') {
+    if (user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin') {
+      navigate('/admin')
+    } else if (user?.role === 'manufacturer') {
       navigate('/manufacturer')
     } else {
       navigate('/dashboard')

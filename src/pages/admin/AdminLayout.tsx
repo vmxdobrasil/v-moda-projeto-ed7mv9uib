@@ -19,6 +19,7 @@ import {
   ChevronRight,
   DollarSign,
   UserCheck,
+  Truck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BrandLogo } from '@/components/BrandLogo'
@@ -48,34 +49,27 @@ export default function AdminLayout() {
       roles: ['administrador', 'gerente'],
     },
     {
-      name: 'Pedidos',
-      href: '/admin/pedidos',
-      icon: ShoppingCart,
-      roles: ['administrador', 'gerente'],
+      name: 'Proposta Zoop',
+      href: '/admin/partnerships/zoop',
+      icon: Presentation,
+      roles: ['administrador'],
     },
     {
-      name: 'Produtos',
-      href: '/admin/produtos',
+      name: 'Fabricantes',
+      href: '/admin/fabricantes',
       icon: Package,
       roles: ['administrador', 'gerente'],
     },
-    { name: 'Clientes', href: '/admin/clientes', icon: Users, roles: ['administrador', 'gerente'] },
     {
-      name: 'Marketing',
-      href: '/admin/marketing',
-      icon: Megaphone,
+      name: 'Leads / Clientes',
+      href: '/admin/clientes',
+      icon: Users,
       roles: ['administrador', 'gerente'],
     },
     {
-      name: 'Categorias',
-      href: '/admin/categorias',
-      icon: Tags,
-      roles: ['administrador', 'gerente'],
-    },
-    {
-      name: 'Coleções',
-      href: '/admin/colecoes',
-      icon: ImageIcon,
+      name: 'Logística',
+      href: '/admin/logistica',
+      icon: Truck,
       roles: ['administrador', 'gerente'],
     },
     {
@@ -85,22 +79,15 @@ export default function AdminLayout() {
       roles: ['administrador'],
     },
     {
+      name: 'Pedidos',
+      href: '/admin/pedidos',
+      icon: ShoppingCart,
+      roles: ['administrador', 'gerente'],
+    },
+    {
       name: 'Agentes',
       href: '/admin/agentes',
       icon: UserCheck,
-      roles: ['administrador'],
-    },
-    {
-      name: 'Mídia',
-      href: '/admin/midia',
-      icon: ImageIcon,
-      roles: ['administrador', 'gerente'],
-    },
-    { name: 'Gestão de Planos', href: '/admin/assinaturas', icon: Award, roles: ['administrador'] },
-    {
-      name: 'Logs de Importação',
-      href: '/admin/logs-importacao',
-      icon: FileJson,
       roles: ['administrador'],
     },
     { name: 'Relatórios', href: '/admin/relatorios', icon: BarChart, roles: ['administrador'] },
@@ -108,12 +95,6 @@ export default function AdminLayout() {
       name: 'Configurações',
       href: '/admin/configuracoes',
       icon: Settings,
-      roles: ['administrador'],
-    },
-    {
-      name: 'Proposta Zoop',
-      href: '/admin/partnerships/zoop',
-      icon: Presentation,
       roles: ['administrador'],
     },
   ]

@@ -37,16 +37,21 @@ export default function AdminLogin() {
 
       const isAdmin =
         pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
-        pb.authStore.record?.role === 'manufacturer' ||
         pb.authStore.record?.role === 'admin'
+
+      const isManufacturer = pb.authStore.record?.role === 'manufacturer'
 
       toast.success('Login bem-sucedido. Bem-vindo ao painel.')
 
       const from = location.state?.from?.pathname
       if (from && !['/login', '/admin/login', '/cadastro', '/'].includes(from)) {
         navigate(from, { replace: true })
+      } else if (isAdmin) {
+        navigate('/admin', { replace: true })
+      } else if (isManufacturer) {
+        navigate('/manufacturer', { replace: true })
       } else {
-        navigate(isAdmin ? '/dashboard/crm' : '/admin', { replace: true })
+        navigate('/dashboard', { replace: true })
       }
     } catch (err: any) {
       pb.authStore.clear()
