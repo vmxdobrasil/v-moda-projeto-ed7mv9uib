@@ -4,6 +4,15 @@ import { Button } from '@/components/ui/button'
 import { Store, Users, DollarSign, Activity, FileText, Calculator, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import pb from '@/lib/pocketbase/client'
+import { useRealtime } from '@/hooks/use-realtime'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from '@/components/ui/chart'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -12,8 +21,33 @@ export default function AdminDashboard() {
     gmv: 0,
     pending: 0,
   })
+  const [chartData, setChartData] = useState<any[]>([])
+
+  const loadChartData = async () => {
+    try {
+      const res = await pb.collection('customers').getFullList()
+      const agg: Record<string, any> = {}
+      res.forEach((c) => {
+        const src = c.source || 'outros'
+        if (!agg[src]) agg[src] = { source: src, converted: 0, interested: 0, negotiating: 0 }
+        if (c.status === 'converted') agg[src].converted++
+        else if (c.status === 'interested') agg[src].interested++
+        else if (c.status === 'negotiating') agg[src].negotiating++
+      })
+      const data = Object.values(agg)
+        .map((item) => ({
+          ...item,
+          sourceLabel: item.source.charAt(0).toUpperCase() + item.source.slice(1).replace('_', ' '),
+        }))
+        .sort((a, b) => b.converted - a.converted)
+      setChartData(data)
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   useEffect(() => {
+    loadChartData()
     const fetchStats = async () => {
       try {
         const [mRes, cRes] = await Promise.all([
@@ -32,6 +66,8 @@ export default function AdminDashboard() {
     }
     fetchStats()
   }, [])
+
+  useRealtime('customers', () => loadChartData())
 
   return (
     <div className="space-y-8 animate-fade-in-up max-w-7xl mx-auto pb-12">
@@ -106,6 +142,48 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">{stats.pending}</div>
             <p className="text-xs text-muted-foreground mt-1">Aguardando integração com Zoop</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-1">
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Performance de Canais de Captação</CardTitle>
+            <CardDescription>
+              Distribuição de leads e conversões por origem de contato.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                converted: { label: 'Convertidos', color: 'hsl(var(--chart-1))' },
+                interested: { label: 'Interessados', color: 'hsl(var(--chart-2))' },
+                negotiating: { label: 'Em Negociação', color: 'hsl(var(--chart-3))' },
+              }}
+              className="h-[350px] w-full"
+            >
+              <BarChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <XAxis dataKey="sourceLabel" axisLine={false} tickLine={false} tickMargin={10} />
+                <YAxis axisLine={false} tickLine={false} tickMargin={10} />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dashed" />} />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar
+                  dataKey="converted"
+                  stackId="a"
+                  fill="var(--color-converted)"
+                  radius={[0, 0, 4, 4]}
+                />
+                <Bar dataKey="interested" stackId="a" fill="var(--color-interested)" />
+                <Bar
+                  dataKey="negotiating"
+                  stackId="a"
+                  fill="var(--color-negotiating)"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>

@@ -26,6 +26,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { getMessageTemplates, MessageTemplate } from '@/services/message_templates'
 import { useToast } from '@/hooks/use-toast'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -121,6 +123,8 @@ export default function ZoopProposal() {
   const [instagramMessage, setInstagramMessage] = useState(
     'Olá! 🚀 Temos uma proposta estratégica incrível entre a V MODA Brasil e a Zoop. Gostaria de apresentar os detalhes. Podemos agendar uma call?',
   )
+  const [templates, setTemplates] = useState<MessageTemplate[]>([])
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('none')
 
   // Real-time Delivery Feedback
   useRealtime('messages', (e) => {
@@ -134,6 +138,18 @@ export default function ZoopProposal() {
       })
     }
   })
+
+  useEffect(() => {
+    async function loadTemplates() {
+      try {
+        const data = await getMessageTemplates()
+        setTemplates(data)
+      } catch (e) {
+        console.error('Failed to load templates', e)
+      }
+    }
+    loadTemplates()
+  }, [])
 
   useEffect(() => {
     async function loadOptions() {
@@ -313,12 +329,18 @@ export default function ZoopProposal() {
 
       const emails = validRecipients.map((r) => r.email)
 
+      let finalMsg = emailMessage
+      if (validRecipients.length === 1) {
+        finalMsg = finalMsg.replace(/{{name}}/gi, validRecipients[0].label)
+      } else {
+        finalMsg = finalMsg.replace(/{{name}}/gi, 'Parceiro(a)')
+      }
+
       await pb.send('/backend/v1/send-proposal', {
         method: 'POST',
         body: JSON.stringify({
           subject,
-          message: emailMessage,
-          recipients: emails,
+          message: finalMsg,
           pdfBase64,
         }),
       })
@@ -326,9 +348,14 @@ export default function ZoopProposal() {
       const channelRecord = await getOrCreateChannel('email')
       if (channelRecord) {
         for (const rec of validRecipients) {
-          await logMessage(channelRecord.id, emailMessage, rec.id, rec.label)
+          await logMessage(channelRecord.id, finalMsg, rec.id, rec.label)
+          if (rec.group === 'Leads/Clientes') {
+            try {
+              await pb.collection('customers').update(rec.id, { last_contacted_at: new Date().toISOString() })
+            } catch { /* intentionally ignored */ }
+          }
         }
-      }
+      }      }
 
       toast({
         title: 'Enviado com Sucesso!',
@@ -350,19 +377,26 @@ export default function ZoopProposal() {
 
   const handleSendWhatsApp = async (rec: RecipientOption) => {
     if (!rec.phone) return
-    const text = encodeURIComponent(whatsappMessage + '\n\n' + proposalText)
+    const finalMsg = whatsappMessage.replace(/{{name}}/gi, rec.label)
+    const text = encodeURIComponent(finalMsg + '\n\n' + proposalText)
     const url = `https://wa.me/${rec.phone.replace(/\D/g, '')}?text=${text}`
     window.open(url, '_blank')
 
     const channelRecord = await getOrCreateChannel('whatsapp')
     if (channelRecord) {
-      await logMessage(channelRecord.id, whatsappMessage, rec.id, rec.label)
+      await logMessage(channelRecord.id, finalMsg, rec.id, rec.label)
+    }
+    if (rec.group === 'Leads/Clientes') {
+      try {
+        await pb.collection('customers').update(rec.id, { last_contacted_at: new Date().toISOString() })
+      } catch { /* intentionally ignored */ }
     }
   }
 
   const handleOpenInstagram = async (rec: RecipientOption) => {
     if (!rec.instagram) return
-    navigator.clipboard.writeText(instagramMessage + '\n\n' + proposalText)
+    const finalMsg = instagramMessage.replace(/{{name}}/gi, rec.label)
+    navigator.clipboard.writeText(finalMsg + '\n\n' + proposalText)
     toast({ title: 'Texto Copiado!', description: 'Cole o resumo na DM do Instagram.' })
 
     const handle = rec.instagram.replace('@', '')
@@ -370,7 +404,12 @@ export default function ZoopProposal() {
 
     const channelRecord = await getOrCreateChannel('instagram')
     if (channelRecord) {
-      await logMessage(channelRecord.id, instagramMessage, rec.id, rec.label)
+      await logMessage(channelRecord.id, finalMsg, rec.id, rec.label)
+    }
+    if (rec.group === 'Leads/Clientes') {
+      try {
+        await pb.collection('customers').update(rec.id, { last_contacted_at: new Date().toISOString() })
+      } catch { /* intentionally ignored */ }
     }
   }
 
@@ -523,7 +562,10 @@ export default function ZoopProposal() {
                     <Label>Canal de Envio</Label>
                     <RadioGroup
                       value={channel}
-                      onValueChange={(v) => setChannel(v as any)}
+                      onValueChange={(v) => {
+                        setChannel(v as any)
+                        setSelectedTemplateId('none')
+                      }}
                       className="flex flex-wrap gap-4"
                     >
                       <div className="flex items-center space-x-2">
@@ -545,6 +587,38 @@ export default function ZoopProposal() {
                         </Label>
                       </div>
                     </RadioGroup>
+                  </div>
+
+                  <div className="space-y-3 border-t pt-4 animate-fade-in">
+                    <Label>Template de Mensagem (Opcional)</Label>
+                    <Select
+                      value={selectedTemplateId}
+                      onValueChange={(val) => {
+                        setSelectedTemplateId(val)
+                        if (val !== 'none') {
+                          const t = templates.find((t) => t.id === val)
+                          if (t) {
+                            if (channel === 'email') setEmailMessage(t.content)
+                            if (channel === 'whatsapp') setWhatsappMessage(t.content)
+                            if (channel === 'instagram') setInstagramMessage(t.content)
+                          }
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um template..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum (Mensagem Personalizada)</SelectItem>
+                        {templates
+                          .filter((t) => t.channel_type === channel)
+                          .map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {channel === 'email' && (
