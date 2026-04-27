@@ -26,7 +26,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { getMessageTemplates, MessageTemplate } from '@/services/message_templates'
 import { useToast } from '@/hooks/use-toast'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -351,11 +357,15 @@ export default function ZoopProposal() {
           await logMessage(channelRecord.id, finalMsg, rec.id, rec.label)
           if (rec.group === 'Leads/Clientes') {
             try {
-              await pb.collection('customers').update(rec.id, { last_contacted_at: new Date().toISOString() })
-            } catch { /* intentionally ignored */ }
+              await pb
+                .collection('customers')
+                .update(rec.id, { last_contacted_at: new Date().toISOString() })
+            } catch {
+              /* intentionally ignored */
+            }
           }
         }
-      }      }
+      }
 
       toast({
         title: 'Enviado com Sucesso!',
@@ -388,8 +398,12 @@ export default function ZoopProposal() {
     }
     if (rec.group === 'Leads/Clientes') {
       try {
-        await pb.collection('customers').update(rec.id, { last_contacted_at: new Date().toISOString() })
-      } catch { /* intentionally ignored */ }
+        await pb
+          .collection('customers')
+          .update(rec.id, { last_contacted_at: new Date().toISOString() })
+      } catch {
+        /* intentionally ignored */
+      }
     }
   }
 
@@ -408,8 +422,12 @@ export default function ZoopProposal() {
     }
     if (rec.group === 'Leads/Clientes') {
       try {
-        await pb.collection('customers').update(rec.id, { last_contacted_at: new Date().toISOString() })
-      } catch { /* intentionally ignored */ }
+        await pb
+          .collection('customers')
+          .update(rec.id, { last_contacted_at: new Date().toISOString() })
+      } catch {
+        /* intentionally ignored */
+      }
     }
   }
 
