@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,7 +11,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import {
   Store,
@@ -30,6 +44,9 @@ import {
   ShoppingCart,
   PieChart,
   Cpu,
+  Mail,
+  Send,
+  X,
 } from 'lucide-react'
 
 declare global {
@@ -67,6 +84,56 @@ export default function ZoopProposal() {
   const [copied, setCopied] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
 
+  // Send Email State
+  const [sendModalOpen, setSendModalOpen] = useState(false)
+  const [openCombobox, setOpenCombobox] = useState(false)
+  const [inputValue, setInputValue] = useState('')
+  const [selectedEmails, setSelectedEmails] = useState<string[]>([])
+  const [subject, setSubject] = useState('Proposta Estratégica: Zoop + V MODA Brasil')
+  const [message, setMessage] = useState(
+    'Olá,\n\nSegue em anexo a proposta estratégica de parceria entre a V MODA Brasil e a Zoop.\n\nFicamos à disposição para agendar uma reunião de alinhamento.\n\nAtenciosamente,\nEquipe V MODA Brasil',
+  )
+  const [options, setOptions] = useState<{ label: string; email: string; group: string }[]>([])
+  const [isSending, setIsSending] = useState(false)
+
+  useEffect(() => {
+    async function loadOptions() {
+      try {
+        const m = await pb.collection('users').getFullList({ filter: 'role="manufacturer"' })
+        const c = await pb.collection('customers').getFullList()
+        const opts = [
+          {
+            label: 'Comercial Zoop (comercial@zoop.com.br)',
+            email: 'comercial@zoop.com.br',
+            group: 'Parceiros',
+          },
+        ]
+        m.forEach((x) => {
+          if (x.email)
+            opts.push({
+              label: `${x.name || 'Sem nome'} (${x.email})`,
+              email: x.email,
+              group: 'Fabricantes',
+            })
+        })
+        c.forEach((x) => {
+          if (x.email)
+            opts.push({
+              label: `${x.name || 'Sem nome'} (${x.email})`,
+              email: x.email,
+              group: 'Leads/Clientes',
+            })
+        })
+        setOptions(opts)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    if (sendModalOpen && options.length === 0) {
+      loadOptions()
+    }
+  }, [sendModalOpen, options.length])
+
   const handleCopy = () => {
     navigator.clipboard.writeText(proposalText)
     setCopied(true)
@@ -77,42 +144,50 @@ export default function ZoopProposal() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const loadHtml2Pdf = async () => {
+    if (!window.html2pdf) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src =
+          'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
+        script.onload = resolve
+        script.onerror = reject
+        document.head.appendChild(script)
+      })
+    }
+  }
+
+  const preparePdfOpt = (element: HTMLElement) => {
+    const container = document.createElement('div')
+    container.style.position = 'absolute'
+    container.style.top = '0'
+    container.style.left = '-9999px'
+    container.style.width = '800px'
+
+    const clone = element.cloneNode(true) as HTMLElement
+    clone.style.display = 'block'
+    container.appendChild(clone)
+    document.body.appendChild(container)
+
+    const opt = {
+      margin: [15, 0, 15, 0],
+      filename: 'Proposta_Zoop_VMODA.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    }
+
+    return { opt, clone, container }
+  }
+
   const generatePDF = async () => {
     setIsGenerating(true)
     try {
-      if (!window.html2pdf) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script')
-          script.src =
-            'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
-          script.onload = resolve
-          script.onerror = reject
-          document.head.appendChild(script)
-        })
-      }
-
+      await loadHtml2Pdf()
       const element = document.getElementById('proposal-pdf-content')
       if (!element) throw new Error('Element not found')
 
-      const container = document.createElement('div')
-      container.style.position = 'absolute'
-      container.style.top = '0'
-      container.style.left = '-9999px'
-      container.style.width = '800px'
-
-      const clone = element.cloneNode(true) as HTMLElement
-      clone.style.display = 'block'
-      container.appendChild(clone)
-      document.body.appendChild(container)
-
-      const opt = {
-        margin: [15, 0, 15, 0],
-        filename: 'Proposta_Zoop_VMODA.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      }
-
+      const { opt, clone, container } = preparePdfOpt(element)
       await window.html2pdf().set(opt).from(clone).save()
       document.body.removeChild(container)
 
@@ -126,6 +201,66 @@ export default function ZoopProposal() {
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  const handleSendEmail = async () => {
+    if (selectedEmails.length === 0) {
+      return toast({
+        title: 'Erro',
+        description: 'Adicione pelo menos um destinatário.',
+        variant: 'destructive',
+      })
+    }
+    if (!subject) {
+      return toast({
+        title: 'Erro',
+        description: 'O assunto é obrigatório.',
+        variant: 'destructive',
+      })
+    }
+
+    setIsSending(true)
+    try {
+      await loadHtml2Pdf()
+      const element = document.getElementById('proposal-pdf-content')
+      if (!element) throw new Error('Element not found')
+
+      const { opt, clone, container } = preparePdfOpt(element)
+      const pdfBase64 = await window.html2pdf().set(opt).from(clone).outputPdf('datauristring')
+      document.body.removeChild(container)
+
+      await pb.send('/backend/v1/send-proposal', {
+        method: 'POST',
+        body: JSON.stringify({
+          subject,
+          message,
+          recipients: selectedEmails,
+          pdfBase64,
+        }),
+      })
+
+      toast({
+        title: 'Enviado com Sucesso!',
+        description: `Proposta enviada para ${selectedEmails.length} destinatário(s).`,
+      })
+      setSendModalOpen(false)
+      setSelectedEmails([])
+      setSubject('Proposta Estratégica: Zoop + V MODA Brasil')
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao enviar',
+        description: error.message || 'Falha ao processar o envio.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  const toggleEmail = (email: string) => {
+    setSelectedEmails((prev) =>
+      prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email],
+    )
   }
 
   return (
@@ -150,20 +285,168 @@ export default function ZoopProposal() {
           </p>
         </div>
 
-        <div className="relative z-10 shrink-0 flex flex-col gap-3 w-full sm:w-auto">
-          <Button
-            size="lg"
-            className="w-full gap-2 shadow-lg"
-            onClick={generatePDF}
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Download className="w-5 h-5" />
-            )}
-            {isGenerating ? 'Processando...' : 'Gerar Pitch (PDF)'}
-          </Button>
+        <div className="relative z-10 shrink-0 flex flex-col gap-3 w-full sm:w-auto min-w-[200px]">
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <Dialog open={sendModalOpen} onOpenChange={setSendModalOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  size="lg"
+                  className="w-full gap-2 shadow-lg bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Mail className="w-5 h-5" />
+                  Enviar E-mail
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Enviar Proposta Estratégica</DialogTitle>
+                  <DialogDescription>
+                    Selecione os destinatários para enviar a proposta com o PDF em anexo.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Destinatários</Label>
+                    <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openCombobox}
+                          className="w-full justify-between h-auto min-h-[40px] px-3 py-2 text-left font-normal"
+                        >
+                          <div className="flex flex-wrap gap-1">
+                            {selectedEmails.length === 0 && (
+                              <span className="text-muted-foreground">
+                                Selecione ou digite e-mails...
+                              </span>
+                            )}
+                            {selectedEmails.map((email) => (
+                              <Badge key={email} variant="secondary" className="mr-1 mb-1">
+                                {email}
+                                <button
+                                  type="button"
+                                  className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') toggleEmail(email)
+                                  }}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                  }}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    toggleEmail(email)
+                                  }}
+                                >
+                                  <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0" align="start">
+                        <Command>
+                          <CommandInput
+                            placeholder="Buscar contatos ou digitar e-mail..."
+                            value={inputValue}
+                            onValueChange={setInputValue}
+                          />
+                          <CommandList>
+                            <CommandEmpty>
+                              {inputValue.includes('@') ? (
+                                <Button
+                                  variant="ghost"
+                                  className="w-full justify-start text-sm font-normal px-2 py-1.5 h-auto"
+                                  onClick={() => {
+                                    if (!selectedEmails.includes(inputValue)) {
+                                      setSelectedEmails([...selectedEmails, inputValue])
+                                    }
+                                    setInputValue('')
+                                    setOpenCombobox(false)
+                                  }}
+                                >
+                                  Adicionar "{inputValue}"
+                                </Button>
+                              ) : (
+                                'Nenhum contato encontrado.'
+                              )}
+                            </CommandEmpty>
+                            {['Parceiros', 'Fabricantes', 'Leads/Clientes'].map((group) => {
+                              const groupOpts = options.filter((o) => o.group === group)
+                              if (groupOpts.length === 0) return null
+                              return (
+                                <CommandGroup key={group} heading={group}>
+                                  {groupOpts.map((opt) => (
+                                    <CommandItem
+                                      key={opt.email}
+                                      onSelect={() => {
+                                        if (!selectedEmails.includes(opt.email)) {
+                                          setSelectedEmails([...selectedEmails, opt.email])
+                                        }
+                                        setInputValue('')
+                                        setOpenCombobox(false)
+                                      }}
+                                    >
+                                      {opt.label}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              )
+                            })}
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Assunto</Label>
+                    <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Mensagem</Label>
+                    <Textarea
+                      rows={6}
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setSendModalOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleSendEmail} disabled={isSending}>
+                    {isSending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4 mr-2" />
+                    )}
+                    {isSending ? 'Enviando...' : 'Enviar E-mails'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Button
+              size="lg"
+              variant="default"
+              className="w-full gap-2 shadow-lg"
+              onClick={generatePDF}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Download className="w-5 h-5" />
+              )}
+              {isGenerating ? 'Processando...' : 'Baixar PDF'}
+            </Button>
+          </div>
 
           <Dialog>
             <DialogTrigger asChild>
@@ -334,7 +617,7 @@ export default function ZoopProposal() {
                 <CardTitle>Hub Logístico</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                Gestão centralizada de fretes, conectando a inteligência de envio com as
+                Gestão centralizada de fretes, connecting a inteligência de envio com as
                 transportadoras locais e "caravanas" de ônibus que cruzam o país.
               </CardContent>
             </Card>
