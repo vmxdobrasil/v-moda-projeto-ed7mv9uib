@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { useRealtime } from '@/hooks/use-realtime'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Store,
   Users,
@@ -47,12 +50,24 @@ import {
   Mail,
   Send,
   X,
+  AlertCircle,
+  MessageCircle,
+  Instagram,
 } from 'lucide-react'
 
 declare global {
   interface Window {
     html2pdf: any
   }
+}
+
+type RecipientOption = {
+  id: string
+  label: string
+  email: string
+  phone: string
+  instagram: string
+  group: string
 }
 
 const proposalText = `Proposta Estratégica: Zoop + V MODA Brasil
@@ -84,45 +99,76 @@ export default function ZoopProposal() {
   const [copied, setCopied] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
 
-  // Send Email State
+  // Send Modal State
   const [sendModalOpen, setSendModalOpen] = useState(false)
   const [openCombobox, setOpenCombobox] = useState(false)
   const [inputValue, setInputValue] = useState('')
-  const [selectedEmails, setSelectedEmails] = useState<string[]>([])
+  const [selectedRecipients, setSelectedRecipients] = useState<RecipientOption[]>([])
+  const [options, setOptions] = useState<RecipientOption[]>([])
+  const [isSending, setIsSending] = useState(false)
+
+  // Channel State
+  const [channel, setChannel] = useState<'email' | 'whatsapp' | 'instagram'>('email')
+
+  // Templates State
   const [subject, setSubject] = useState('Proposta Estratégica: Zoop + V MODA Brasil')
-  const [message, setMessage] = useState(
+  const [emailMessage, setEmailMessage] = useState(
     'Olá,\n\nSegue em anexo a proposta estratégica de parceria entre a V MODA Brasil e a Zoop.\n\nFicamos à disposição para agendar uma reunião de alinhamento.\n\nAtenciosamente,\nEquipe V MODA Brasil',
   )
-  const [options, setOptions] = useState<{ label: string; email: string; group: string }[]>([])
-  const [isSending, setIsSending] = useState(false)
+  const [whatsappMessage, setWhatsappMessage] = useState(
+    'Olá! 🚀\n\nTemos uma proposta estratégica de parceria entre a V MODA Brasil e a Zoop que vai revolucionar o mercado atacadista.\n\nDá uma olhada no resumo e vamos agendar um bate-papo!',
+  )
+  const [instagramMessage, setInstagramMessage] = useState(
+    'Olá! 🚀 Temos uma proposta estratégica incrível entre a V MODA Brasil e a Zoop. Gostaria de apresentar os detalhes. Podemos agendar uma call?',
+  )
+
+  // Real-time Delivery Feedback
+  useRealtime('messages', (e) => {
+    if (
+      e.action === 'update' &&
+      (e.record.status === 'replied' || e.record.status === 'archived')
+    ) {
+      toast({
+        title: 'Status da Mensagem Atualizado',
+        description: `A mensagem para ${e.record.sender_name} foi marcada como ${e.record.status}.`,
+      })
+    }
+  })
 
   useEffect(() => {
     async function loadOptions() {
       try {
         const m = await pb.collection('users').getFullList({ filter: 'role="manufacturer"' })
         const c = await pb.collection('customers').getFullList()
-        const opts = [
+        const opts: RecipientOption[] = [
           {
-            label: 'Comercial Zoop (comercial@zoop.com.br)',
+            id: 'zoop',
+            label: 'Comercial Zoop',
             email: 'comercial@zoop.com.br',
+            phone: '11999999999',
+            instagram: 'zoop',
             group: 'Parceiros',
           },
         ]
         m.forEach((x) => {
-          if (x.email)
-            opts.push({
-              label: `${x.name || 'Sem nome'} (${x.email})`,
-              email: x.email,
-              group: 'Fabricantes',
-            })
+          opts.push({
+            id: x.id,
+            label: x.name || 'Sem nome',
+            email: x.email || '',
+            phone: '',
+            instagram: '',
+            group: 'Fabricantes',
+          })
         })
-        c.forEach((x) => {
-          if (x.email)
-            opts.push({
-              label: `${x.name || 'Sem nome'} (${x.email})`,
-              email: x.email,
-              group: 'Leads/Clientes',
-            })
+        c.forEach((x: any) => {
+          opts.push({
+            id: x.id,
+            label: x.name || 'Sem nome',
+            email: x.email || '',
+            phone: x.phone || '',
+            instagram: x.instagram_handle || '',
+            group: 'Leads/Clientes',
+          })
         })
         setOptions(opts)
       } catch (e) {
@@ -203,11 +249,47 @@ export default function ZoopProposal() {
     }
   }
 
+  const getOrCreateChannel = async (type: 'email' | 'whatsapp' | 'instagram') => {
+    try {
+      const channels = await pb
+        .collection('channels')
+        .getFullList({ filter: `type="${type}"`, requestKey: null })
+      if (channels.length > 0) return channels[0]
+      return await pb
+        .collection('channels')
+        .create({ name: `Canal ${type.toUpperCase()}`, type, status: true })
+    } catch (e) {
+      console.error('Error getting channel:', e)
+      return null
+    }
+  }
+
+  const logMessage = async (
+    channelId: string,
+    content: string,
+    recipientId: string,
+    recipientName: string,
+  ) => {
+    try {
+      await pb.collection('messages').create({
+        channel: channelId,
+        sender_id: recipientId || 'unknown',
+        sender_name: recipientName || 'Desconhecido',
+        content,
+        direction: 'outbound',
+        status: 'replied',
+      })
+    } catch (e) {
+      console.error('Failed to log message:', e)
+    }
+  }
+
   const handleSendEmail = async () => {
-    if (selectedEmails.length === 0) {
+    const validRecipients = selectedRecipients.filter((r) => r.email)
+    if (validRecipients.length === 0) {
       return toast({
         title: 'Erro',
-        description: 'Adicione pelo menos um destinatário.',
+        description: 'Nenhum destinatário com e-mail válido selecionado.',
         variant: 'destructive',
       })
     }
@@ -229,22 +311,31 @@ export default function ZoopProposal() {
       const pdfBase64 = await window.html2pdf().set(opt).from(clone).outputPdf('datauristring')
       document.body.removeChild(container)
 
+      const emails = validRecipients.map((r) => r.email)
+
       await pb.send('/backend/v1/send-proposal', {
         method: 'POST',
         body: JSON.stringify({
           subject,
-          message,
-          recipients: selectedEmails,
+          message: emailMessage,
+          recipients: emails,
           pdfBase64,
         }),
       })
 
+      const channelRecord = await getOrCreateChannel('email')
+      if (channelRecord) {
+        for (const rec of validRecipients) {
+          await logMessage(channelRecord.id, emailMessage, rec.id, rec.label)
+        }
+      }
+
       toast({
         title: 'Enviado com Sucesso!',
-        description: `Proposta enviada para ${selectedEmails.length} destinatário(s).`,
+        description: `Proposta enviada para ${emails.length} destinatário(s) por e-mail.`,
       })
       setSendModalOpen(false)
-      setSelectedEmails([])
+      setSelectedRecipients([])
       setSubject('Proposta Estratégica: Zoop + V MODA Brasil')
     } catch (error: any) {
       toast({
@@ -257,9 +348,35 @@ export default function ZoopProposal() {
     }
   }
 
-  const toggleEmail = (email: string) => {
-    setSelectedEmails((prev) =>
-      prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email],
+  const handleSendWhatsApp = async (rec: RecipientOption) => {
+    if (!rec.phone) return
+    const text = encodeURIComponent(whatsappMessage + '\n\n' + proposalText)
+    const url = `https://wa.me/${rec.phone.replace(/\D/g, '')}?text=${text}`
+    window.open(url, '_blank')
+
+    const channelRecord = await getOrCreateChannel('whatsapp')
+    if (channelRecord) {
+      await logMessage(channelRecord.id, whatsappMessage, rec.id, rec.label)
+    }
+  }
+
+  const handleOpenInstagram = async (rec: RecipientOption) => {
+    if (!rec.instagram) return
+    navigator.clipboard.writeText(instagramMessage + '\n\n' + proposalText)
+    toast({ title: 'Texto Copiado!', description: 'Cole o resumo na DM do Instagram.' })
+
+    const handle = rec.instagram.replace('@', '')
+    window.open(`https://instagram.com/${handle}`, '_blank')
+
+    const channelRecord = await getOrCreateChannel('instagram')
+    if (channelRecord) {
+      await logMessage(channelRecord.id, instagramMessage, rec.id, rec.label)
+    }
+  }
+
+  const toggleRecipient = (rec: RecipientOption) => {
+    setSelectedRecipients((prev) =>
+      prev.some((r) => r.id === rec.id) ? prev.filter((r) => r.id !== rec.id) : [...prev, rec],
     )
   }
 
@@ -294,17 +411,17 @@ export default function ZoopProposal() {
                   className="w-full gap-2 shadow-lg bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <Mail className="w-5 h-5" />
-                  Enviar E-mail
+                  Enviar Proposta
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Enviar Proposta Estratégica</DialogTitle>
                   <DialogDescription>
-                    Selecione os destinatários para enviar a proposta com o PDF em anexo.
+                    Selecione o canal de comunicação e os destinatários para o envio.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
+                <div className="space-y-6 py-4">
                   <div className="space-y-2">
                     <Label>Destinatários</Label>
                     <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
@@ -316,28 +433,21 @@ export default function ZoopProposal() {
                           className="w-full justify-between h-auto min-h-[40px] px-3 py-2 text-left font-normal"
                         >
                           <div className="flex flex-wrap gap-1">
-                            {selectedEmails.length === 0 && (
+                            {selectedRecipients.length === 0 && (
                               <span className="text-muted-foreground">
-                                Selecione ou digite e-mails...
+                                Selecione ou digite contatos...
                               </span>
                             )}
-                            {selectedEmails.map((email) => (
-                              <Badge key={email} variant="secondary" className="mr-1 mb-1">
-                                {email}
+                            {selectedRecipients.map((rec) => (
+                              <Badge key={rec.id} variant="secondary" className="mr-1 mb-1">
+                                {rec.label}
                                 <button
                                   type="button"
                                   className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') toggleEmail(email)
-                                  }}
-                                  onMouseDown={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                  }}
                                   onClick={(e) => {
                                     e.preventDefault()
                                     e.stopPropagation()
-                                    toggleEmail(email)
+                                    toggleRecipient(rec)
                                   }}
                                 >
                                   <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
@@ -350,20 +460,27 @@ export default function ZoopProposal() {
                       <PopoverContent className="w-[400px] p-0" align="start">
                         <Command>
                           <CommandInput
-                            placeholder="Buscar contatos ou digitar e-mail..."
+                            placeholder="Buscar contatos..."
                             value={inputValue}
                             onValueChange={setInputValue}
                           />
                           <CommandList>
                             <CommandEmpty>
-                              {inputValue.includes('@') ? (
+                              {inputValue.length > 2 ? (
                                 <Button
                                   variant="ghost"
                                   className="w-full justify-start text-sm font-normal px-2 py-1.5 h-auto"
                                   onClick={() => {
-                                    if (!selectedEmails.includes(inputValue)) {
-                                      setSelectedEmails([...selectedEmails, inputValue])
+                                    const isEmail = inputValue.includes('@')
+                                    const newRec: RecipientOption = {
+                                      id: `custom-${Date.now()}`,
+                                      label: inputValue,
+                                      email: isEmail ? inputValue : '',
+                                      phone: !isEmail ? inputValue.replace(/\D/g, '') : '',
+                                      instagram: !isEmail ? inputValue : '',
+                                      group: 'Custom',
                                     }
+                                    setSelectedRecipients([...selectedRecipients, newRec])
                                     setInputValue('')
                                     setOpenCombobox(false)
                                   }}
@@ -381,10 +498,10 @@ export default function ZoopProposal() {
                                 <CommandGroup key={group} heading={group}>
                                   {groupOpts.map((opt) => (
                                     <CommandItem
-                                      key={opt.email}
+                                      key={opt.id}
                                       onSelect={() => {
-                                        if (!selectedEmails.includes(opt.email)) {
-                                          setSelectedEmails([...selectedEmails, opt.email])
+                                        if (!selectedRecipients.some((r) => r.id === opt.id)) {
+                                          setSelectedRecipients([...selectedRecipients, opt])
                                         }
                                         setInputValue('')
                                         setOpenCombobox(false)
@@ -402,32 +519,186 @@ export default function ZoopProposal() {
                     </Popover>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Assunto</Label>
-                    <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+                  <div className="space-y-3">
+                    <Label>Canal de Envio</Label>
+                    <RadioGroup
+                      value={channel}
+                      onValueChange={(v) => setChannel(v as any)}
+                      className="flex flex-wrap gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="email" id="c-email" />
+                        <Label htmlFor="c-email" className="flex items-center cursor-pointer">
+                          <Mail className="w-4 h-4 mr-1.5 text-slate-500" /> E-mail
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="whatsapp" id="c-whatsapp" />
+                        <Label htmlFor="c-whatsapp" className="flex items-center cursor-pointer">
+                          <MessageCircle className="w-4 h-4 mr-1.5 text-emerald-500" /> WhatsApp
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="instagram" id="c-instagram" />
+                        <Label htmlFor="c-instagram" className="flex items-center cursor-pointer">
+                          <Instagram className="w-4 h-4 mr-1.5 text-pink-500" /> Instagram Direct
+                        </Label>
+                      </div>
+                    </RadioGroup>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Mensagem</Label>
-                    <Textarea
-                      rows={6}
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                    />
-                  </div>
+                  {channel === 'email' && (
+                    <div className="space-y-4 border-t pt-4 animate-fade-in">
+                      <div className="space-y-2">
+                        <Label>Assunto</Label>
+                        <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Mensagem</Label>
+                        <Textarea
+                          rows={5}
+                          value={emailMessage}
+                          onChange={(e) => setEmailMessage(e.target.value)}
+                        />
+                      </div>
+                      {selectedRecipients.length > 0 &&
+                        selectedRecipients.some((r) => !r.email) && (
+                          <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Atenção</AlertTitle>
+                            <AlertDescription>
+                              Alguns contatos selecionados não possuem E-mail cadastrado e serão
+                              ignorados.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                    </div>
+                  )}
+
+                  {channel === 'whatsapp' && (
+                    <div className="space-y-4 border-t pt-4 animate-fade-in">
+                      <div className="space-y-2">
+                        <Label>Mensagem Inicial (WhatsApp)</Label>
+                        <Textarea
+                          rows={4}
+                          value={whatsappMessage}
+                          onChange={(e) => setWhatsappMessage(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          O resumo estratégico em texto será anexado automaticamente.
+                        </p>
+                      </div>
+
+                      {selectedRecipients.length > 0 && (
+                        <div className="space-y-2 pt-2">
+                          <Label>Ações de Envio</Label>
+                          <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-2">
+                            {selectedRecipients.map((rec) => (
+                              <div
+                                key={rec.id}
+                                className="flex items-center justify-between p-3 border rounded-md shadow-sm"
+                              >
+                                <div className="flex flex-col truncate pr-4">
+                                  <span className="text-sm font-medium truncate">{rec.label}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {rec.phone || 'Sem telefone'}
+                                  </span>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  className="shrink-0 bg-emerald-600 hover:bg-emerald-700"
+                                  disabled={!rec.phone}
+                                  onClick={() => handleSendWhatsApp(rec)}
+                                >
+                                  <MessageCircle className="w-4 h-4 mr-2" />
+                                  Enviar
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                          {selectedRecipients.some((r) => !r.phone) && (
+                            <Alert variant="destructive" className="mt-2">
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertTitle>Atenção</AlertTitle>
+                              <AlertDescription>
+                                Alguns contatos não possuem telefone cadastrado.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {channel === 'instagram' && (
+                    <div className="space-y-4 border-t pt-4 animate-fade-in">
+                      <div className="space-y-2">
+                        <Label>Mensagem Inicial (Direct)</Label>
+                        <Textarea
+                          rows={4}
+                          value={instagramMessage}
+                          onChange={(e) => setInstagramMessage(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          O resumo completo será copiado para sua área de transferência.
+                        </p>
+                      </div>
+
+                      {selectedRecipients.length > 0 && (
+                        <div className="space-y-2 pt-2">
+                          <Label>Ações de Envio</Label>
+                          <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-2">
+                            {selectedRecipients.map((rec) => (
+                              <div
+                                key={rec.id}
+                                className="flex items-center justify-between p-3 border rounded-md shadow-sm"
+                              >
+                                <div className="flex flex-col truncate pr-4">
+                                  <span className="text-sm font-medium truncate">{rec.label}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {rec.instagram || 'Sem @ do Instagram'}
+                                  </span>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  className="shrink-0 bg-pink-600 hover:bg-pink-700"
+                                  disabled={!rec.instagram}
+                                  onClick={() => handleOpenInstagram(rec)}
+                                >
+                                  <Instagram className="w-4 h-4 mr-2" />
+                                  Copiar & Abrir
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                          {selectedRecipients.some((r) => !r.instagram) && (
+                            <Alert variant="destructive" className="mt-2">
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertTitle>Atenção</AlertTitle>
+                              <AlertDescription>
+                                Alguns contatos não possuem @ do Instagram cadastrado.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setSendModalOpen(false)}>
-                    Cancelar
+                    {channel === 'email' ? 'Cancelar' : 'Fechar'}
                   </Button>
-                  <Button onClick={handleSendEmail} disabled={isSending}>
-                    {isSending ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4 mr-2" />
-                    )}
-                    {isSending ? 'Enviando...' : 'Enviar E-mails'}
-                  </Button>
+                  {channel === 'email' && (
+                    <Button onClick={handleSendEmail} disabled={isSending}>
+                      {isSending ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4 mr-2" />
+                      )}
+                      {isSending ? 'Enviando...' : 'Enviar E-mails'}
+                    </Button>
+                  )}
                 </DialogFooter>
               </DialogContent>
             </Dialog>

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-27T00:01:28.845Z",
+  "generatedAt": "2026-04-27T00:12:51.005Z",
   "collections": [
     {
       "name": "users",
@@ -152,7 +152,7 @@
           "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
-      "indexes": []
+      "indexes": ["CREATE INDEX `idx_channels_type` ON `channels` (type)"]
     },
     {
       "name": "messages",
@@ -515,6 +515,12 @@
           "required": false,
           "system": false,
           "selectValues": ["manufacturer", "retailer"]
+        },
+        {
+          "name": "instagram_handle",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
