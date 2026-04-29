@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { BookOpen, FileText, ExternalLink, Loader2 } from 'lucide-react'
+import { BookOpen, FileText, ExternalLink, Loader2, Globe, Apple, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRealtime } from '@/hooks/use-realtime'
 
@@ -39,51 +39,106 @@ export default function Magazine() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-8 animate-fade-in-up pb-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Revista & Ebooks</h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mt-2">
           Acesse os melhores conteúdos editoriais e materiais de leitura.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 sm:p-8 border border-primary/20 shadow-sm">
+        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-serif font-bold tracking-tight">Moda Atual Digital</h2>
+            <p className="text-muted-foreground max-w-2xl text-sm sm:text-base">
+              Explore nosso portal oficial para notícias em tempo real, ou baixe nosso aplicativo
+              para ter as edições da revista sempre com você, onde quer que esteja.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+            <Button asChild variant="default" className="flex-1 sm:flex-none">
+              <a
+                href="https://www.revistamodaatual.com.br"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Globe className="w-4 h-4 mr-2" />
+                Site Oficial
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm"
+            >
+              <a
+                href="https://play.google.com/store/apps"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Google Play
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm"
+            >
+              <a href="https://apps.apple.com" target="_blank" rel="noopener noreferrer">
+                <Apple className="w-4 h-4 mr-2" />
+                App Store
+              </a>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {resources && resources.length > 0 ? (
           resources.map((res) => (
             <Card
               key={res.id}
-              className="hover:border-primary/50 transition-colors overflow-hidden flex flex-col shadow-sm"
+              className="hover:border-primary/50 transition-all duration-300 hover:shadow-md overflow-hidden flex flex-col group"
             >
               {res.thumbnail ? (
-                <div className="aspect-[4/3] w-full bg-muted border-b">
+                <div className="aspect-[3/4] w-full bg-muted border-b relative overflow-hidden">
                   <img
                     src={pb.files.getURL(res, res.thumbnail)}
                     alt={res.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <Button variant="secondary" size="sm" asChild className="pointer-events-none">
+                      <span>Ver Conteúdo</span>
+                    </Button>
+                  </div>
                 </div>
               ) : (
-                <div className="aspect-[4/3] w-full bg-muted flex items-center justify-center border-b">
+                <div className="aspect-[3/4] w-full bg-muted flex flex-col items-center justify-center border-b relative overflow-hidden group-hover:bg-muted/80 transition-colors">
                   {res.type === 'magazine' ? (
-                    <BookOpen className="w-12 h-12 text-muted-foreground opacity-50" />
+                    <BookOpen className="w-16 h-16 text-muted-foreground opacity-20 group-hover:scale-110 transition-transform duration-500" />
                   ) : (
-                    <FileText className="w-12 h-12 text-muted-foreground opacity-50" />
+                    <FileText className="w-16 h-16 text-muted-foreground opacity-20 group-hover:scale-110 transition-transform duration-500" />
                   )}
                 </div>
               )}
               <CardHeader className="pb-3 flex flex-row items-start justify-between flex-none">
                 <div>
                   <CardTitle
-                    className="text-base leading-tight font-serif line-clamp-2"
+                    className="text-base leading-tight font-serif line-clamp-2 group-hover:text-primary transition-colors"
                     title={res.name}
                   >
                     {res.name}
                   </CardTitle>
-                  <p className="text-xs text-muted-foreground capitalize mt-1">{res.type}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mt-2">
+                    {res.type === 'magazine' ? 'Revista' : 'E-Book'}
+                  </p>
                 </div>
               </CardHeader>
-              <CardContent className="flex flex-col flex-1">
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-3 flex-1">
+              <CardContent className="flex flex-col flex-1 pb-5">
+                <p className="text-sm text-muted-foreground mb-5 line-clamp-3 flex-1">
                   {res.description || 'Sem descrição adicional.'}
                 </p>
                 <Button variant="default" className="w-full mt-auto" asChild>
@@ -99,10 +154,12 @@ export default function Magazine() {
             </Card>
           ))
         ) : (
-          <div className="col-span-full py-16 text-center bg-card rounded-lg border shadow-sm">
-            <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-medium">Nenhum conteúdo disponível</h3>
-            <p className="text-muted-foreground mt-1">As revistas e ebooks aparecerão aqui.</p>
+          <div className="col-span-full py-20 text-center bg-card rounded-xl border shadow-sm flex flex-col items-center justify-center">
+            <BookOpen className="w-16 h-16 text-muted-foreground mb-4 opacity-20" />
+            <h3 className="text-xl font-serif font-medium">Nenhum conteúdo disponível</h3>
+            <p className="text-muted-foreground mt-2 max-w-md">
+              As revistas e e-books publicados aparecerão aqui em breve. Fique atento às novidades!
+            </p>
           </div>
         )}
       </div>

@@ -25,6 +25,7 @@ import DashboardHub from '@/pages/dashboard/DashboardHub'
 import DashboardLogistics from '@/pages/dashboard/Logistics'
 import ManufacturersHub from '@/pages/dashboard/Manufacturers'
 import AffiliateDashboard from '@/pages/dashboard/AffiliateDashboard'
+import Magazine from '@/pages/dashboard/Magazine'
 import VideoNegotiation from '@/pages/VideoNegotiation'
 import Login from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
@@ -120,7 +121,7 @@ export default function App() {
                 <Route path="messages" element={<PlaceholderPage title="Mensagens" />} />
                 <Route path="manufacturers" element={<ManufacturersHub />} />
                 <Route path="affiliates" element={<AffiliateDashboard />} />
-                <Route path="magazine" element={<PlaceholderPage title="Revista" />} />
+                <Route path="magazine" element={<Magazine />} />
                 <Route element={<ManufacturerGuard />}>
                   <Route path="logistics" element={<DashboardLogistics />} />
                 </Route>
