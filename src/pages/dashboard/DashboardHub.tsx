@@ -11,6 +11,9 @@ import {
   UserCheck,
   Clock,
   ChevronRight,
+  Globe,
+  Play,
+  Apple,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -140,6 +143,61 @@ export default function DashboardHub() {
         <p className="text-muted-foreground mt-1">
           Aqui está o resumo das suas atividades e métricas de hoje.
         </p>
+      </div>
+
+      <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 sm:p-8 border border-primary/20 shadow-sm flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-serif font-bold tracking-tight flex items-center gap-2">
+            Revista Moda Atual
+          </h2>
+          <p className="text-muted-foreground max-w-2xl text-sm sm:text-base">
+            Acesse o portal oficial para notícias e tendências em tempo real, ou baixe o aplicativo
+            para ter o melhor da moda sempre com você.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+          <Button asChild variant="default" className="flex-1 sm:flex-none">
+            <a
+              href="https://www.revistamodaatual.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Visitar site da Revista Moda Atual"
+            >
+              <Globe className="w-4 h-4 mr-2" />
+              Site Oficial
+            </a>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm hover:bg-primary/5 hover:border-primary/50 transition-colors"
+          >
+            <a
+              href="https://play.google.com/store/search?q=revista+moda+atual"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Baixar aplicativo da Revista Moda Atual no Google Play"
+            >
+              <Play className="w-4 h-4 mr-2" />
+              Google Play
+            </a>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm hover:bg-primary/5 hover:border-primary/50 transition-colors"
+          >
+            <a
+              href="https://www.apple.com/app-store/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Baixar aplicativo da Revista Moda Atual na App Store"
+            >
+              <Apple className="w-4 h-4 mr-2" />
+              App Store
+            </a>
+          </Button>
+        </div>
       </div>
 
       <MonthlySales />

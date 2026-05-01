@@ -3,7 +3,6 @@ import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BookOpen, FileText, ExternalLink, Loader2, Globe, Apple, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useRealtime } from '@/hooks/use-realtime'
 
 export default function Magazine() {
@@ -55,45 +54,42 @@ export default function Magazine() {
                 href="https://www.revistamodaatual.com.br"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Visitar site da Revista Moda Atual"
               >
                 <Globe className="w-4 h-4 mr-2" />
                 Site Oficial
               </a>
             </Button>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="flex-1 sm:flex-none cursor-not-allowed">
-                  <Button
-                    variant="outline"
-                    className="w-full bg-background/50 backdrop-blur-sm pointer-events-none"
-                    disabled
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Google Play
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Link em breve</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="flex-1 sm:flex-none cursor-not-allowed">
-                  <Button
-                    variant="outline"
-                    className="w-full bg-background/50 backdrop-blur-sm pointer-events-none"
-                    disabled
-                  >
-                    <Apple className="w-4 h-4 mr-2" />
-                    App Store
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Link em breve</p>
-              </TooltipContent>
-            </Tooltip>
+            <Button
+              asChild
+              variant="outline"
+              className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm hover:bg-primary/5 hover:border-primary/50 transition-colors"
+            >
+              <a
+                href="https://play.google.com/store/search?q=revista+moda+atual"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Baixar aplicativo da Revista Moda Atual no Google Play"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Google Play
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm hover:bg-primary/5 hover:border-primary/50 transition-colors"
+            >
+              <a
+                href="https://www.apple.com/app-store/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Baixar aplicativo da Revista Moda Atual na App Store"
+              >
+                <Apple className="w-4 h-4 mr-2" />
+                App Store
+              </a>
+            </Button>
           </div>
         </div>
       </div>
