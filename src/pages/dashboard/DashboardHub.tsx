@@ -3,6 +3,13 @@ import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription as DialogDesc,
+} from '@/components/ui/dialog'
+import {
   Users,
   Package,
   MessageSquare,
@@ -26,6 +33,7 @@ import { MonthlySales } from '@/components/dashboard/MonthlySales'
 export default function DashboardHub() {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
+  const [showWelcome, setShowWelcome] = useState(false)
   const [stats, setStats] = useState({
     customers: 0,
     converted: 0,
@@ -89,7 +97,31 @@ export default function DashboardHub() {
     }
 
     fetchDashboardData()
+
+    const seen = localStorage.getItem('vmoda_magazine_launch_seen')
+    if (!seen) {
+      const timer = setTimeout(() => setShowWelcome(true), 500)
+      return () => clearTimeout(timer)
+    }
   }, [user])
+
+  const handleCloseWelcome = () => {
+    setShowWelcome(false)
+    localStorage.setItem('vmoda_magazine_launch_seen', 'true')
+  }
+
+  const handleTrackClick = (target: string) => {
+    if (user) {
+      pb.collection('referrals')
+        .create({
+          affiliate: user.id,
+          type: 'click',
+          source_channel: 'social_profile',
+          metadata: { target },
+        })
+        .catch(console.error)
+    }
+  }
 
   const statCards = [
     {
@@ -156,12 +188,16 @@ export default function DashboardHub() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3 w-full lg:w-auto">
-          <Button asChild variant="default" className="flex-1 sm:flex-none">
+          <Button
+            asChild
+            className="flex-1 sm:flex-none bg-amber-500 hover:bg-amber-600 text-white shadow-md border-0"
+          >
             <a
               href="https://www.revistamodaatual.com.br"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Visitar site da Revista Moda Atual"
+              onClick={() => handleTrackClick('official_site')}
             >
               <Globe className="w-4 h-4 mr-2" />
               Site Oficial
@@ -170,35 +206,106 @@ export default function DashboardHub() {
           <Button
             asChild
             variant="outline"
-            className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm hover:bg-primary/5 hover:border-primary/50 transition-colors"
+            className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/60 transition-colors"
           >
             <a
               href="https://play.google.com/store/search?q=revista+moda+atual"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Baixar aplicativo da Revista Moda Atual no Google Play"
+              onClick={() => handleTrackClick('play_store')}
             >
-              <Play className="w-4 h-4 mr-2" />
+              <Play className="w-4 h-4 mr-2 text-amber-600" />
               Google Play
             </a>
           </Button>
           <Button
             asChild
             variant="outline"
-            className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm hover:bg-primary/5 hover:border-primary/50 transition-colors"
+            className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/60 transition-colors"
           >
             <a
               href="https://www.apple.com/app-store/"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Baixar aplicativo da Revista Moda Atual na App Store"
+              onClick={() => handleTrackClick('app_store')}
             >
-              <Apple className="w-4 h-4 mr-2" />
+              <Apple className="w-4 h-4 mr-2 text-amber-600" />
               App Store
             </a>
           </Button>
         </div>
       </div>
+
+      <Dialog
+        open={showWelcome}
+        onOpenChange={(open) => {
+          if (!open) handleCloseWelcome()
+        }}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-serif text-center text-amber-600">
+              Lançamento: Revista Moda Atual
+            </DialogTitle>
+            <DialogDesc className="text-center text-base pt-3 pb-2 text-muted-foreground">
+              Apresentamos a nova plataforma de conteúdo e tendências. Fique por dentro de tudo que
+              acontece no mundo da moda, baixe nosso aplicativo exclusivo ou acesse o portal agora
+              mesmo.
+            </DialogDesc>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 py-2">
+            <Button
+              asChild
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white border-0"
+              size="lg"
+            >
+              <a
+                href="https://www.revistamodaatual.com.br"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => handleTrackClick('official_site')}
+              >
+                <Globe className="mr-2 h-5 w-5" />
+                Acessar Site Oficial
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="w-full border-amber-200 hover:bg-amber-50"
+              size="lg"
+            >
+              <a
+                href="https://play.google.com/store/search?q=revista+moda+atual"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => handleTrackClick('play_store')}
+              >
+                <Play className="mr-2 h-5 w-5 text-amber-600" />
+                Download Google Play
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="w-full border-amber-200 hover:bg-amber-50"
+              size="lg"
+            >
+              <a
+                href="https://www.apple.com/app-store/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => handleTrackClick('app_store')}
+              >
+                <Apple className="mr-2 h-5 w-5 text-amber-600" />
+                Download App Store
+              </a>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <MonthlySales />
 

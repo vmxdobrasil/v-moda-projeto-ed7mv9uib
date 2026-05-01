@@ -1,13 +1,28 @@
 import { useEffect, useState } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { BookOpen, FileText, ExternalLink, Loader2, Globe, Apple, Play } from 'lucide-react'
+import { BookOpen, FileText, ExternalLink, Loader2, Globe, Apple, Play, Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { useRealtime } from '@/hooks/use-realtime'
+import { toast } from 'sonner'
 
 export default function Magazine() {
   const [resources, setResources] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  const handleTrackClick = (target: string) => {
+    if (pb.authStore.record) {
+      pb.collection('referrals')
+        .create({
+          affiliate: pb.authStore.record.id,
+          type: 'click',
+          source_channel: 'social_profile',
+          metadata: { target },
+        })
+        .catch(console.error)
+    }
+  }
 
   const loadData = async () => {
     try {
@@ -49,12 +64,16 @@ export default function Magazine() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3 w-full lg:w-auto">
-            <Button asChild variant="default" className="flex-1 sm:flex-none">
+            <Button
+              asChild
+              className="flex-1 sm:flex-none bg-amber-500 hover:bg-amber-600 text-white shadow-md border-0"
+            >
               <a
                 href="https://www.revistamodaatual.com.br"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Visitar site da Revista Moda Atual"
+                onClick={() => handleTrackClick('official_site')}
               >
                 <Globe className="w-4 h-4 mr-2" />
                 Site Oficial
@@ -63,34 +82,36 @@ export default function Magazine() {
             <Button
               asChild
               variant="outline"
-              className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm hover:bg-primary/5 hover:border-primary/50 transition-colors"
+              className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/60 transition-colors"
             >
               <a
                 href="https://play.google.com/store/search?q=revista+moda+atual"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Baixar aplicativo da Revista Moda Atual no Google Play"
+                onClick={() => handleTrackClick('play_store')}
               >
-                <Play className="w-4 h-4 mr-2" />
+                <Play className="w-4 h-4 mr-2 text-amber-600" />
                 Google Play
               </a>
             </Button>
             <Button
               asChild
               variant="outline"
-              className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm hover:bg-primary/5 hover:border-primary/50 transition-colors"
+              className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/60 transition-colors"
             >
               <a
                 href="https://www.apple.com/app-store/"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Baixar aplicativo da Revista Moda Atual na App Store"
+                onClick={() => handleTrackClick('app_store')}
               >
-                <Apple className="w-4 h-4 mr-2" />
+                <Apple className="w-4 h-4 mr-2 text-amber-600" />
                 App Store
               </a>
             </Button>
-          </div>
+          </div>{' '}
         </div>
       </div>
 
@@ -106,6 +127,13 @@ export default function Magazine() {
               key={res.id}
               className="hover:border-primary/50 transition-all duration-300 hover:shadow-md overflow-hidden flex flex-col group"
             >
+              {res.is_published === false && (
+                <div className="absolute top-3 right-3 z-10">
+                  <Badge className="bg-amber-500 hover:bg-amber-600 text-white font-bold border-none shadow-md">
+                    Em Breve
+                  </Badge>
+                </div>
+              )}
               {res.thumbnail ? (
                 <div className="aspect-[3/4] w-full bg-muted border-b relative overflow-hidden">
                   <img
@@ -115,7 +143,7 @@ export default function Magazine() {
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                     <Button variant="secondary" size="sm" asChild className="pointer-events-none">
-                      <span>Ver Conteúdo</span>
+                      <span>{res.is_published === false ? 'Aguarde' : 'Ver Conteúdo'}</span>
                     </Button>
                   </div>
                 </div>
@@ -145,15 +173,29 @@ export default function Magazine() {
                 <p className="text-sm text-muted-foreground mb-5 line-clamp-3 flex-1">
                   {res.description || 'Sem descrição adicional.'}
                 </p>
-                <Button variant="default" className="w-full mt-auto" asChild>
-                  <a
-                    href={res.content_file ? pb.files.getURL(res, res.content_file) : res.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {res.is_published === false ? (
+                  <Button
+                    variant="secondary"
+                    className="w-full mt-auto"
+                    onClick={() => {
+                      toast('Aviso', {
+                        description: 'Você será notificado quando esta edição for lançada!',
+                      })
+                    }}
                   >
-                    Ler Agora <ExternalLink className="w-4 h-4 ml-2" />
-                  </a>
-                </Button>
+                    Notificar-me <Bell className="w-4 h-4 ml-2" />
+                  </Button>
+                ) : (
+                  <Button variant="default" className="w-full mt-auto" asChild>
+                    <a
+                      href={res.content_file ? pb.files.getURL(res, res.content_file) : res.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Ler Agora <ExternalLink className="w-4 h-4 ml-2" />
+                    </a>
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))

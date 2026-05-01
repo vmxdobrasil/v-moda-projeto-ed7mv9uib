@@ -3,7 +3,7 @@ import pb from '@/lib/pocketbase/client'
 export interface Referral {
   id: string
   affiliate: string
-  brand: string
+  brand?: string
   type: 'click' | 'lead' | 'conversion'
   metadata: any
   created: string

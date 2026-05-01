@@ -8,6 +8,7 @@ export interface Resource {
   description?: string
   thumbnail?: string
   content_file?: string
+  is_published?: boolean
   created: string
   updated: string
 }

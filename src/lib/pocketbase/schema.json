@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-01T16:43:02.683Z",
+  "generatedAt": "2026-05-01T16:52:30.113Z",
   "collections": [
     {
       "name": "users",
@@ -1065,7 +1065,7 @@
         {
           "name": "brand",
           "type": "relation",
-          "required": true,
+          "required": false,
           "system": false,
           "collectionRef": "customers"
         },
@@ -1175,6 +1175,12 @@
         {
           "name": "content_file",
           "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_published",
+          "type": "bool",
           "required": false,
           "system": false
         }
