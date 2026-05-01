@@ -222,7 +222,7 @@ export function Header() {
                   <a
                     href="https://www.instagram.com/revistamodaatual"
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="p-2 text-primary hover:text-accent transition-colors"
                     aria-label="Instagram"
                   >
@@ -270,7 +270,7 @@ export function Header() {
           <a
             href="https://www.instagram.com/revistamodaatual"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             aria-label="Instagram @revistamodaatual"
             className="p-1 hidden lg:block"
           >

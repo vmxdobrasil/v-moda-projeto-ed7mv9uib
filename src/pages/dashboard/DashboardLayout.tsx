@@ -67,9 +67,16 @@ const navItems = [
 ]
 
 function DomainStatusBanner() {
-  const [isVisible, setIsVisible] = useState(true)
+  const [isVisible, setIsVisible] = useState(() => {
+    return sessionStorage.getItem('domain_banner_dismissed') !== 'true'
+  })
 
   if (!isVisible) return null
+
+  const handleDismiss = () => {
+    setIsVisible(false)
+    sessionStorage.setItem('domain_banner_dismissed', 'true')
+  }
 
   return (
     <div className="mb-6 bg-blue-50/50 border border-blue-200 rounded-lg p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-down">
@@ -97,7 +104,7 @@ function DomainStatusBanner() {
         </div>
       </div>
       <button
-        onClick={() => setIsVisible(false)}
+        onClick={handleDismiss}
         className="text-blue-500 hover:text-blue-700 transition-colors p-1"
         aria-label="Dispensar aviso"
       >
@@ -229,7 +236,7 @@ export default function DashboardLayout() {
             </div>
           </header>
           <div className="flex-1 overflow-auto p-4 md:p-8">
-            {isAdmin && <DomainStatusBanner />}
+            <DomainStatusBanner />
             <Outlet />
           </div>
         </main>

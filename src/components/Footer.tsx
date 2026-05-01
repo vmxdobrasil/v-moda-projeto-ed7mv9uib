@@ -115,7 +115,7 @@ export function Footer() {
               <a
                 href="https://www.instagram.com/revistamodaatual"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="p-3 bg-primary-foreground/10 hover:bg-accent hover:text-white rounded-full transition-all duration-300"
                 aria-label="Instagram"
               >
@@ -124,7 +124,7 @@ export function Footer() {
               <a
                 href="https://facebook.com"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="p-3 bg-primary-foreground/10 hover:bg-blue-600 hover:text-white rounded-full transition-all duration-300"
                 aria-label="Facebook"
               >
@@ -133,7 +133,7 @@ export function Footer() {
               <a
                 href="https://whatsapp.com"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="p-3 bg-primary-foreground/10 hover:bg-green-500 hover:text-white rounded-full transition-all duration-300"
                 aria-label="WhatsApp"
               >
