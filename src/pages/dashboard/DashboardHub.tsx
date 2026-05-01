@@ -110,14 +110,14 @@ export default function DashboardHub() {
     localStorage.setItem('vmoda_magazine_launch_seen', 'true')
   }
 
-  const handleTrackClick = (target: string) => {
+  const handleTrackClick = (destination: string) => {
     if (user) {
       pb.collection('referrals')
         .create({
           affiliate: user.id,
           type: 'click',
           source_channel: 'social_profile',
-          metadata: { target },
+          metadata: { destination },
         })
         .catch(console.error)
     }
@@ -193,7 +193,7 @@ export default function DashboardHub() {
             className="flex-1 sm:flex-none bg-amber-500 hover:bg-amber-600 text-white shadow-md border-0"
           >
             <a
-              href="https://www.revistamodaatual.com.br"
+              href="https://revistamodaatual.com.br"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Visitar site da Revista Moda Atual"
@@ -209,11 +209,11 @@ export default function DashboardHub() {
             className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/60 transition-colors"
           >
             <a
-              href="https://play.google.com/store/search?q=revista+moda+atual"
+              href="https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Baixar aplicativo da Revista Moda Atual no Google Play"
-              onClick={() => handleTrackClick('play_store')}
+              onClick={() => handleTrackClick('google_play')}
             >
               <Play className="w-4 h-4 mr-2 text-amber-600" />
               Google Play
@@ -262,7 +262,7 @@ export default function DashboardHub() {
               size="lg"
             >
               <a
-                href="https://www.revistamodaatual.com.br"
+                href="https://revistamodaatual.com.br"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => handleTrackClick('official_site')}
@@ -278,10 +278,10 @@ export default function DashboardHub() {
               size="lg"
             >
               <a
-                href="https://play.google.com/store/search?q=revista+moda+atual"
+                href="https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663"
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => handleTrackClick('play_store')}
+                onClick={() => handleTrackClick('google_play')}
               >
                 <Play className="mr-2 h-5 w-5 text-amber-600" />
                 Download Google Play

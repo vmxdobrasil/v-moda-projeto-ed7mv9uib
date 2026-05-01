@@ -30,6 +30,7 @@ import {
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import pb from '@/lib/pocketbase/client'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 const navItems = [
@@ -39,7 +40,12 @@ const navItems = [
   { icon: MessageSquare, label: 'Mensagens', path: '/messages' },
   { icon: Truck, label: 'Logística', path: '/logistics' },
   { icon: TrendingUp, label: 'Analytics', path: '/analytics' },
-  { icon: BookOpen, label: 'Revista', path: '/magazine' },
+  {
+    icon: BookOpen,
+    label: 'Site Oficial',
+    path: 'https://revistamodaatual.com.br',
+    external: true,
+  },
   { icon: UserPlus, label: 'Afiliados', path: '/affiliates' },
   { icon: Factory, label: 'Fabricantes', path: '/manufacturers' },
   { icon: ShieldCheck, label: 'Agentes Credenciados', path: '/admin/agentes', adminOnly: true },
@@ -75,8 +81,9 @@ export default function DashboardLayout() {
                 <SidebarMenu>
                   {filteredNavItems.map((item) => {
                     const isActive =
-                      location.pathname === item.path ||
-                      (item.path !== '/' && location.pathname.startsWith(item.path))
+                      !item.external &&
+                      (location.pathname === item.path ||
+                        (item.path !== '/' && location.pathname.startsWith(item.path)))
                     return (
                       <SidebarMenuItem key={item.path}>
                         <SidebarMenuButton
@@ -85,13 +92,39 @@ export default function DashboardLayout() {
                           tooltip={item.label}
                           className={isActive ? 'text-primary hover:text-primary' : ''}
                         >
-                          <Link to={item.path}>
-                            <item.icon
-                              className={cn('h-4 w-4', isActive && 'text-primary')}
-                              strokeWidth={isActive ? 2.5 : 2}
-                            />
-                            <span className={cn(isActive && 'font-semibold')}>{item.label}</span>
-                          </Link>
+                          {item.external ? (
+                            <a
+                              href={item.path}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => {
+                                if (user) {
+                                  pb.collection('referrals')
+                                    .create({
+                                      affiliate: user.id,
+                                      type: 'click',
+                                      source_channel: 'social_profile',
+                                      metadata: { destination: 'official_site' },
+                                    })
+                                    .catch(console.error)
+                                }
+                              }}
+                            >
+                              <item.icon
+                                className={cn('h-4 w-4', isActive && 'text-primary')}
+                                strokeWidth={isActive ? 2.5 : 2}
+                              />
+                              <span className={cn(isActive && 'font-semibold')}>{item.label}</span>
+                            </a>
+                          ) : (
+                            <Link to={item.path}>
+                              <item.icon
+                                className={cn('h-4 w-4', isActive && 'text-primary')}
+                                strokeWidth={isActive ? 2.5 : 2}
+                              />
+                              <span className={cn(isActive && 'font-semibold')}>{item.label}</span>
+                            </Link>
+                          )}
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     )
