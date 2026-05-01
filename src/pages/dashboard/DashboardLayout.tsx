@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import {
   Sidebar,
@@ -26,6 +27,11 @@ import {
   Factory,
   LogOut,
   ShieldCheck,
+  GraduationCap,
+  Globe,
+  CheckCircle2,
+  Clock,
+  X,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
@@ -36,6 +42,7 @@ import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 const navItems = [
   { icon: Home, label: 'Dashboard', path: '/' },
   { icon: Users, label: 'Leads / Clientes', path: '/customers' },
+  { icon: GraduationCap, label: 'Academy', path: '/resources' },
   { icon: Package, label: 'Projetos', path: '/products' },
   { icon: MessageSquare, label: 'Mensagens', path: '/messages' },
   { icon: Truck, label: 'Logística', path: '/logistics' },
@@ -51,6 +58,47 @@ const navItems = [
   { icon: ShieldCheck, label: 'Agentes Credenciados', path: '/admin/agentes', adminOnly: true },
   { icon: Settings, label: 'Configurações', path: '/settings' },
 ]
+
+function DomainStatusBanner() {
+  const [isVisible, setIsVisible] = useState(true)
+
+  if (!isVisible) return null
+
+  return (
+    <div className="mb-6 bg-blue-50/50 border border-blue-200 rounded-lg p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-down">
+      <div className="flex items-start gap-3">
+        <div className="p-2 bg-blue-100 rounded-full shrink-0">
+          <Globe className="w-5 h-5 text-blue-600" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-blue-900">Configuração de Domínio em Andamento</h3>
+          <p className="text-sm text-blue-800/80 mt-1">
+            O domínio <strong>revistamodaatual.com.br</strong> está em fase de propagação. O acesso
+            via URL interna está totalmente liberado e funcional.
+          </p>
+          <div className="flex flex-wrap items-center gap-3 mt-3 text-xs font-medium">
+            <span className="flex items-center gap-1 text-green-600">
+              <CheckCircle2 className="w-3.5 h-3.5" /> DNS OK
+            </span>
+            <span className="flex items-center gap-1 text-amber-600">
+              <Clock className="w-3.5 h-3.5" /> Roteamento
+            </span>
+            <span className="flex items-center gap-1 text-amber-600">
+              <Clock className="w-3.5 h-3.5" /> Certificado SSL Pendente
+            </span>
+          </div>
+        </div>
+      </div>
+      <button
+        onClick={() => setIsVisible(false)}
+        className="text-blue-500 hover:text-blue-700 transition-colors p-1"
+        aria-label="Dispensar aviso"
+      >
+        <X className="w-5 h-5" />
+      </button>
+    </div>
+  )
+}
 
 export default function DashboardLayout() {
   const { signOut, user } = useAuth()
@@ -174,6 +222,7 @@ export default function DashboardLayout() {
             </div>
           </header>
           <div className="flex-1 overflow-auto p-4 md:p-8">
+            {isAdmin && <DomainStatusBanner />}
             <Outlet />
           </div>
         </main>

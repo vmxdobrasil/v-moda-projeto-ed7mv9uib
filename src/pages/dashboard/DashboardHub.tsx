@@ -21,6 +21,7 @@ import {
   Globe,
   Play,
   Apple,
+  GraduationCap,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -352,7 +353,7 @@ export default function DashboardHub() {
             </CardTitle>
             <CardDescription>Links para as principais áreas do sistema</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2 flex-1">
+          <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 flex-1">
             <Button
               asChild
               variant="outline"
@@ -395,6 +396,21 @@ export default function DashboardHub() {
                 </div>
                 <span className="text-xs text-muted-foreground whitespace-normal text-left">
                   Responda clientes e interaja via WhatsApp.
+                </span>
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="h-auto p-4 justify-start hover:border-primary/50 hover:bg-primary/5 group"
+            >
+              <Link to="/resources" className="flex flex-col items-start gap-2">
+                <div className="flex items-center gap-2 w-full">
+                  <GraduationCap className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="font-semibold text-base">Academy</span>
+                </div>
+                <span className="text-xs text-muted-foreground whitespace-normal text-left">
+                  Acesse cursos, revistas e vídeos exclusivos.
                 </span>
               </Link>
             </Button>

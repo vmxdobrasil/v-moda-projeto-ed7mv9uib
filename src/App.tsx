@@ -25,6 +25,8 @@ import DashboardHub from '@/pages/dashboard/DashboardHub'
 import DashboardLogistics from '@/pages/dashboard/Logistics'
 import ManufacturersHub from '@/pages/dashboard/Manufacturers'
 import AffiliateDashboard from '@/pages/dashboard/AffiliateDashboard'
+import DashboardProjects from '@/pages/dashboard/Projects'
+import Resources from '@/pages/dashboard/Resources'
 import Magazine from '@/pages/dashboard/Magazine'
 import VideoNegotiation from '@/pages/VideoNegotiation'
 import Login from '@/pages/Login'
@@ -116,11 +118,12 @@ export default function App() {
                   path="customers/:id"
                   element={<PlaceholderPage title="Detalhes do Cliente" />}
                 />
-                <Route path="products" element={<PlaceholderPage title="Projetos" />} />
+                <Route path="products" element={<DashboardProjects />} />
                 <Route path="admin-products" element={<PlaceholderPage title="Admin Produtos" />} />
                 <Route path="messages" element={<PlaceholderPage title="Mensagens" />} />
                 <Route path="manufacturers" element={<ManufacturersHub />} />
                 <Route path="affiliates" element={<AffiliateDashboard />} />
+                <Route path="resources" element={<Resources />} />
                 <Route path="magazine" element={<Magazine />} />
                 <Route element={<ManufacturerGuard />}>
                   <Route path="logistics" element={<DashboardLogistics />} />
