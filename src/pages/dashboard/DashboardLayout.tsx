@@ -32,6 +32,7 @@ import {
   CheckCircle2,
   Clock,
   X,
+  Play,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
@@ -51,6 +52,12 @@ const navItems = [
     icon: BookOpen,
     label: 'Site Oficial',
     path: 'https://revistamodaatual.com.br',
+    external: true,
+  },
+  {
+    icon: Play,
+    label: 'Play Store',
+    path: 'https://play.google.com',
     external: true,
   },
   { icon: UserPlus, label: 'Afiliados', path: '/affiliates' },
@@ -146,7 +153,7 @@ export default function DashboardLayout() {
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={() => {
-                                if (user) {
+                                if (user && item.label === 'Site Oficial') {
                                   pb.collection('referrals')
                                     .create({
                                       affiliate: user.id,
