@@ -3,6 +3,7 @@ import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BookOpen, FileText, ExternalLink, Loader2, Globe, Apple, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useRealtime } from '@/hooks/use-realtime'
 
 export default function Magazine() {
@@ -29,14 +30,6 @@ export default function Magazine() {
   }, [])
 
   useRealtime('resources', loadData)
-
-  if (loading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-8 animate-fade-in-up pb-8">
@@ -67,36 +60,51 @@ export default function Magazine() {
                 Site Oficial
               </a>
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm"
-            >
-              <a
-                href="https://play.google.com/store/apps"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Play className="w-4 h-4 mr-2" />
-                Google Play
-              </a>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm"
-            >
-              <a href="https://apps.apple.com" target="_blank" rel="noopener noreferrer">
-                <Apple className="w-4 h-4 mr-2" />
-                App Store
-              </a>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex-1 sm:flex-none cursor-not-allowed">
+                  <Button
+                    variant="outline"
+                    className="w-full bg-background/50 backdrop-blur-sm pointer-events-none"
+                    disabled
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Google Play
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Link em breve</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex-1 sm:flex-none cursor-not-allowed">
+                  <Button
+                    variant="outline"
+                    className="w-full bg-background/50 backdrop-blur-sm pointer-events-none"
+                    disabled
+                  >
+                    <Apple className="w-4 h-4 mr-2" />
+                    App Store
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Link em breve</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {resources && resources.length > 0 ? (
+        {loading ? (
+          <div className="col-span-full py-20 flex flex-col items-center justify-center text-center bg-card rounded-xl border shadow-sm">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">Carregando edições...</p>
+          </div>
+        ) : resources && resources.length > 0 ? (
           resources.map((res) => (
             <Card
               key={res.id}
