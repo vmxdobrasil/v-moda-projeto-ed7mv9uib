@@ -92,13 +92,13 @@ function DomainStatusBanner() {
           </p>
           <div className="flex flex-wrap items-center gap-3 mt-3 text-xs font-medium">
             <span className="flex items-center gap-1 text-green-600">
-              <CheckCircle2 className="w-3.5 h-3.5" /> DNS OK
+              <CheckCircle2 className="w-3.5 h-3.5" /> DNS: OK
             </span>
             <span className="flex items-center gap-1 text-amber-600">
-              <Clock className="w-3.5 h-3.5" /> Roteamento
+              <Clock className="w-3.5 h-3.5" /> Roteamento: Em andamento
             </span>
             <span className="flex items-center gap-1 text-amber-600">
-              <Clock className="w-3.5 h-3.5" /> Certificado SSL Pendente
+              <Clock className="w-3.5 h-3.5" /> Certificado SSL: Pendente
             </span>
           </div>
         </div>
