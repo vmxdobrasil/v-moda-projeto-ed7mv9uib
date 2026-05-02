@@ -159,6 +159,11 @@ export default function DashboardLayout() {
                             href={item.path}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              window.open(item.path, '_blank', 'noopener,noreferrer')
+                            }}
                             className="group flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm font-medium text-sidebar-foreground outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2"
                             title={item.label}
                           >
@@ -226,6 +231,11 @@ export default function DashboardLayout() {
                   href="https://revistamodaatual.com.br"
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    window.open('https://revistamodaatual.com.br', '_blank', 'noopener,noreferrer')
+                  }}
                   className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                 >
                   <BookOpen className="h-4 w-4 text-blue-500" />
@@ -236,6 +246,15 @@ export default function DashboardLayout() {
                   href="https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663"
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    window.open(
+                      'https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663',
+                      '_blank',
+                      'noopener,noreferrer',
+                    )
+                  }}
                   className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Play className="h-4 w-4 text-emerald-500" />
