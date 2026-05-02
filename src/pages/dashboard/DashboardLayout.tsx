@@ -154,38 +154,27 @@ export default function DashboardLayout() {
                         (item.path !== '/' && location.pathname.startsWith(item.path)))
                     return (
                       <SidebarMenuItem key={item.path}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={isActive}
-                          tooltip={item.label}
-                          className={isActive ? 'text-primary hover:text-primary' : ''}
-                        >
-                          {item.external ? (
-                            <a
-                              href={item.path}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="group w-full flex items-center justify-between"
-                              onClick={(e) => {
-                                // Stop propagation to prevent any parent element,
-                                // global listener, or React Router from intercepting the external link click
-                                e.stopPropagation()
-                              }}
-                            >
-                              <div className="flex items-center gap-2 overflow-hidden">
-                                <item.icon
-                                  className={cn('h-4 w-4 shrink-0', isActive && 'text-primary')}
-                                  strokeWidth={isActive ? 2.5 : 2}
-                                />
-                                <span
-                                  className={cn('flex-1 truncate', isActive && 'font-semibold')}
-                                >
-                                  {item.label}
-                                </span>
-                              </div>
-                              <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-50 transition-opacity group-hover:opacity-100 ml-auto" />
-                            </a>
-                          ) : (
+                        {item.external ? (
+                          <a
+                            href={item.path}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm font-medium text-sidebar-foreground outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2"
+                            title={item.label}
+                          >
+                            <div className="flex flex-1 items-center gap-2 overflow-hidden">
+                              <item.icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+                              <span className="truncate">{item.label}</span>
+                            </div>
+                            <ExternalLink className="ml-auto h-3.5 w-3.5 shrink-0 opacity-50 transition-opacity group-hover:opacity-100" />
+                          </a>
+                        ) : (
+                          <SidebarMenuButton
+                            asChild
+                            isActive={isActive}
+                            tooltip={item.label}
+                            className={isActive ? 'text-primary hover:text-primary' : ''}
+                          >
                             <Link to={item.path}>
                               <item.icon
                                 className={cn('h-4 w-4', isActive && 'text-primary')}
@@ -193,8 +182,8 @@ export default function DashboardLayout() {
                               />
                               <span className={cn(isActive && 'font-semibold')}>{item.label}</span>
                             </Link>
-                          )}
-                        </SidebarMenuButton>
+                          </SidebarMenuButton>
+                        )}
                       </SidebarMenuItem>
                     )
                   })}
@@ -233,44 +222,26 @@ export default function DashboardLayout() {
             <div className="flex-1" />
             <div className="flex items-center gap-4">
               <div className="hidden md:flex items-center gap-3 mr-2">
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                <a
+                  href="https://revistamodaatual.com.br"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                 >
-                  <a
-                    href="https://revistamodaatual.com.br"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                    }}
-                  >
-                    <BookOpen className="h-4 w-4 text-blue-500" />
-                    <span className="font-medium">Site Oficial</span>
-                    <ExternalLink className="h-3 w-3 opacity-50 ml-0.5" />
-                  </a>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  <BookOpen className="h-4 w-4 text-blue-500" />
+                  <span>Site Oficial</span>
+                  <ExternalLink className="ml-0.5 h-3 w-3 opacity-50" />
+                </a>
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                 >
-                  <a
-                    href="https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                    }}
-                  >
-                    <Play className="h-4 w-4 text-emerald-500" />
-                    <span className="font-medium">Play Store</span>
-                    <ExternalLink className="h-3 w-3 opacity-50 ml-0.5" />
-                  </a>
-                </Button>
+                  <Play className="h-4 w-4 text-emerald-500" />
+                  <span>Play Store</span>
+                  <ExternalLink className="ml-0.5 h-3 w-3 opacity-50" />
+                </a>
               </div>
               <div className="text-sm font-medium text-muted-foreground hidden lg:block border-l pl-4 py-1">
                 {new Date().toLocaleDateString('pt-BR', {
