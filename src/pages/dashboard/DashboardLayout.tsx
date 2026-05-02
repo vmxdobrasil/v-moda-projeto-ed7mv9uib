@@ -232,7 +232,47 @@ export default function DashboardLayout() {
             <SidebarTrigger className="md:hidden mr-4" />
             <div className="flex-1" />
             <div className="flex items-center gap-4">
-              <div className="text-sm font-medium text-muted-foreground">
+              <div className="hidden md:flex items-center gap-3 mr-2">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <a
+                    href="https://revistamodaatual.com.br"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                    }}
+                  >
+                    <BookOpen className="h-4 w-4 text-blue-500" />
+                    <span className="font-medium">Site Oficial</span>
+                    <ExternalLink className="h-3 w-3 opacity-50 ml-0.5" />
+                  </a>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <a
+                    href="https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                    }}
+                  >
+                    <Play className="h-4 w-4 text-emerald-500" />
+                    <span className="font-medium">Play Store</span>
+                    <ExternalLink className="h-3 w-3 opacity-50 ml-0.5" />
+                  </a>
+                </Button>
+              </div>
+              <div className="text-sm font-medium text-muted-foreground hidden lg:block border-l pl-4 py-1">
                 {new Date().toLocaleDateString('pt-BR', {
                   weekday: 'long',
                   year: 'numeric',
