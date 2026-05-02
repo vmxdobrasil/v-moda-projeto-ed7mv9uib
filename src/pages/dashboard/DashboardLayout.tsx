@@ -155,13 +155,10 @@ export default function DashboardLayout() {
                     return (
                       <SidebarMenuItem key={item.path}>
                         {item.external ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              window.open(item.path, '_blank', 'noopener,noreferrer')
-                            }}
+                          <a
+                            href={item.path}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="group flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm font-medium text-sidebar-foreground outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2"
                             title={item.label}
                           >
@@ -170,7 +167,7 @@ export default function DashboardLayout() {
                               <span className="truncate">{item.label}</span>
                             </div>
                             <ExternalLink className="ml-auto h-3.5 w-3.5 shrink-0 opacity-50 transition-opacity group-hover:opacity-100" />
-                          </button>
+                          </a>
                         ) : (
                           <SidebarMenuButton
                             asChild
@@ -225,36 +222,26 @@ export default function DashboardLayout() {
             <div className="flex-1" />
             <div className="flex items-center gap-4">
               <div className="hidden md:flex items-center gap-3 mr-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    window.open('https://revistamodaatual.com.br', '_blank', 'noopener,noreferrer')
-                  }}
+                <a
+                  href="https://revistamodaatual.com.br"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                 >
                   <BookOpen className="h-4 w-4 text-blue-500" />
                   <span>Site Oficial</span>
                   <ExternalLink className="ml-0.5 h-3 w-3 opacity-50" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    window.open(
-                      'https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663',
-                      '_blank',
-                      'noopener,noreferrer',
-                    )
-                  }}
+                </a>
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Play className="h-4 w-4 text-emerald-500" />
                   <span>Play Store</span>
                   <ExternalLink className="ml-0.5 h-3 w-3 opacity-50" />
-                </button>
+                </a>
               </div>
               <div className="text-sm font-medium text-muted-foreground hidden lg:block border-l pl-4 py-1">
                 {new Date().toLocaleDateString('pt-BR', {
