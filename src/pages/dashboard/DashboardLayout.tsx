@@ -58,7 +58,7 @@ const navItems = [
   {
     icon: Play,
     label: 'Play Store',
-    path: 'https://play.google.com',
+    path: 'https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663',
     external: true,
   },
   { icon: UserPlus, label: 'Afiliados', path: '/affiliates' },
@@ -164,16 +164,27 @@ export default function DashboardLayout() {
                               href={item.path}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={() => {
-                                if (user && item.label === 'Site Oficial') {
-                                  pb.collection('referrals')
-                                    .create({
-                                      affiliate: user.id,
-                                      type: 'click',
-                                      source_channel: 'social_profile',
-                                      metadata: { destination: 'official_site' },
-                                    })
-                                    .catch(console.error)
+                              onClick={(e) => {
+                                if (user) {
+                                  if (item.label === 'Site Oficial') {
+                                    pb.collection('referrals')
+                                      .create({
+                                        affiliate: user.id,
+                                        type: 'click',
+                                        source_channel: 'social_profile',
+                                        metadata: { destination: 'official_site' },
+                                      })
+                                      .catch(console.error)
+                                  } else if (item.label === 'Play Store') {
+                                    pb.collection('referrals')
+                                      .create({
+                                        affiliate: user.id,
+                                        type: 'click',
+                                        source_channel: 'social_profile',
+                                        metadata: { destination: 'google_play' },
+                                      })
+                                      .catch(console.error)
+                                  }
                                 }
                               }}
                             >
