@@ -166,30 +166,6 @@ export default function DashboardLayout() {
                               target="_blank"
                               rel="noopener noreferrer"
                               className="group w-full flex items-center justify-between"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                if (user) {
-                                  if (item.label === 'Site Oficial') {
-                                    pb.collection('referrals')
-                                      .create({
-                                        affiliate: user.id,
-                                        type: 'click',
-                                        source_channel: 'social_profile',
-                                        metadata: { destination: 'official_site' },
-                                      })
-                                      .catch(console.error)
-                                  } else if (item.label === 'Play Store') {
-                                    pb.collection('referrals')
-                                      .create({
-                                        affiliate: user.id,
-                                        type: 'click',
-                                        source_channel: 'social_profile',
-                                        metadata: { destination: 'google_play' },
-                                      })
-                                      .catch(console.error)
-                                  }
-                                }
-                              }}
                             >
                               <div className="flex items-center gap-2 overflow-hidden">
                                 <item.icon
