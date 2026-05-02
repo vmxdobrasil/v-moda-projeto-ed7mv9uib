@@ -33,6 +33,7 @@ import {
   Clock,
   X,
   Play,
+  ExternalLink,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
@@ -164,7 +165,9 @@ export default function DashboardLayout() {
                               href={item.path}
                               target="_blank"
                               rel="noopener noreferrer"
+                              className="group w-full flex items-center justify-between"
                               onClick={(e) => {
+                                e.stopPropagation()
                                 if (user) {
                                   if (item.label === 'Site Oficial') {
                                     pb.collection('referrals')
@@ -188,11 +191,18 @@ export default function DashboardLayout() {
                                 }
                               }}
                             >
-                              <item.icon
-                                className={cn('h-4 w-4', isActive && 'text-primary')}
-                                strokeWidth={isActive ? 2.5 : 2}
-                              />
-                              <span className={cn(isActive && 'font-semibold')}>{item.label}</span>
+                              <div className="flex items-center gap-2 overflow-hidden">
+                                <item.icon
+                                  className={cn('h-4 w-4 shrink-0', isActive && 'text-primary')}
+                                  strokeWidth={isActive ? 2.5 : 2}
+                                />
+                                <span
+                                  className={cn('flex-1 truncate', isActive && 'font-semibold')}
+                                >
+                                  {item.label}
+                                </span>
+                              </div>
+                              <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-50 transition-opacity group-hover:opacity-100 ml-auto" />
                             </a>
                           ) : (
                             <Link to={item.path}>
