@@ -36,6 +36,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 import pb from '@/lib/pocketbase/client'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
@@ -79,38 +80,42 @@ function DomainStatusBanner() {
   }
 
   return (
-    <div className="mb-6 bg-blue-50/50 border border-blue-200 rounded-lg p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-down">
-      <div className="flex items-start gap-3">
-        <div className="p-2 bg-blue-100 rounded-full shrink-0">
-          <Globe className="w-5 h-5 text-blue-600" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-blue-900">Configuração de Domínio em Andamento</h3>
-          <p className="text-sm text-blue-800/80 mt-1">
-            O domínio <strong>revistamodaatual.com.br</strong> está em fase de propagação. O acesso
-            via URL interna está totalmente liberado e funcional.
-          </p>
-          <div className="flex flex-wrap items-center gap-3 mt-3 text-xs font-medium">
-            <span className="flex items-center gap-1 text-green-600">
-              <CheckCircle2 className="w-3.5 h-3.5" /> DNS: OK
-            </span>
-            <span className="flex items-center gap-1 text-amber-600">
-              <Clock className="w-3.5 h-3.5" /> Roteamento: Em andamento
-            </span>
-            <span className="flex items-center gap-1 text-amber-600">
-              <Clock className="w-3.5 h-3.5" /> Certificado SSL: Pendente
-            </span>
-          </div>
+    <Alert className="mb-6 animate-fade-in-down border-blue-200 bg-blue-50/50 text-blue-900 flex flex-row justify-between items-start md:items-center shadow-sm">
+      <div className="flex flex-row gap-4 items-start w-full">
+        <Globe className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+        <div className="flex-1">
+          <AlertTitle className="font-semibold text-blue-900">
+            Configuração de Domínio em Andamento
+          </AlertTitle>
+          <AlertDescription className="text-blue-800/80 mt-1 flex flex-col gap-2">
+            <p>
+              O domínio <strong>revistamodaatual.com.br</strong> está em fase de propagação. O
+              acesso via URL interna está totalmente liberado e funcional.
+            </p>
+            <div className="flex flex-wrap items-center gap-3 mt-1 text-xs font-medium">
+              <span className="flex items-center gap-1 text-green-600">
+                <CheckCircle2 className="w-3.5 h-3.5" /> DNS: OK
+              </span>
+              <span className="flex items-center gap-1 text-amber-600">
+                <Clock className="w-3.5 h-3.5" /> Roteamento: Em andamento
+              </span>
+              <span className="flex items-center gap-1 text-amber-600">
+                <Clock className="w-3.5 h-3.5" /> Certificado SSL: Pendente
+              </span>
+            </div>
+          </AlertDescription>
         </div>
       </div>
-      <button
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={handleDismiss}
-        className="text-blue-500 hover:text-blue-700 transition-colors p-1"
+        className="text-blue-500 hover:text-blue-700 hover:bg-blue-100/50 -mr-2 -mt-2 shrink-0 h-8 w-8"
         aria-label="Dispensar aviso"
       >
-        <X className="w-5 h-5" />
-      </button>
-    </div>
+        <X className="h-4 w-4" />
+      </Button>
+    </Alert>
   )
 }
 
