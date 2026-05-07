@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { MessageSquare, Send, Loader2 } from 'lucide-react'
+import { MessageSquare, Send, Loader2, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -27,14 +27,35 @@ export function WhatsappStatusWidget() {
   const [phone, setPhone] = useState('')
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
+  const [identity, setIdentity] = useState<{ name?: string; number?: string }>({})
 
   const fetchStatus = async () => {
     try {
-      const res = await pb.send('/backend/v1/evolution/status', { method: 'GET' })
+      const user = pb.authStore.model
+      if (!user) return
+
+      const config = await pb
+        .collection('whatsapp_configs')
+        .getFirstListItem(`user="${user.id}"`)
+        .catch(() => null)
+
+      const res = await pb.send('/backend/v1/evolution/status', { method: 'GET' }).catch(() => null)
+
       if (res?.instance?.state) {
         setStatus(res.instance.state)
+        setIdentity({
+          name: res.instance.profileName || res.instance.instanceName,
+          number: res.instance.ownerJid?.split('@')[0] || res.instance.profileNumber,
+        })
       } else if (res?.state) {
         setStatus(res.state)
+        setIdentity({
+          name: res.profileName || res.instanceName,
+          number: res.ownerJid?.split('@')[0] || res.profileNumber,
+        })
+      } else if (config?.instance_id) {
+        setStatus('disconnected')
+        setIdentity({ name: config.instance_id })
       } else {
         setStatus('disconnected')
       }
@@ -47,7 +68,7 @@ export function WhatsappStatusWidget() {
 
   useEffect(() => {
     fetchStatus()
-    const interval = setInterval(fetchStatus, 30000) // Poll every 30s
+    const interval = setInterval(fetchStatus, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -58,15 +79,45 @@ export function WhatsappStatusWidget() {
     }
     setSending(true)
     try {
+      const user = pb.authStore.model
+      if (!user) throw new Error('Usuário não autenticado')
+
+      const config = await pb
+        .collection('whatsapp_configs')
+        .getFirstListItem(`user="${user.id}"`)
+        .catch(() => null)
+
+      let channel = await pb
+        .collection('channels')
+        .getFirstListItem(`type="whatsapp"`)
+        .catch(() => null)
+      if (!channel) {
+        channel = await pb
+          .collection('channels')
+          .create({ name: 'WhatsApp Principal', type: 'whatsapp', status: true })
+      }
+
       await pb.send('/backend/v1/evolution/send', {
         method: 'POST',
-        body: JSON.stringify({ phone, message }),
+        body: JSON.stringify({ phone, message, instance_id: config?.instance_id }),
       })
-      toast.success('Mensagem de teste enviada com sucesso!')
+
+      await pb.collection('messages').create({
+        channel: channel.id,
+        sender_id: user.id,
+        sender_name: user.name || user.email,
+        content: message,
+        direction: 'outbound',
+        status: 'replied',
+      })
+
+      toast.success('Message sent successfully!')
       setIsDialogOpen(false)
       setMessage('')
-    } catch (e) {
-      toast.error('Falha ao enviar mensagem de teste. Verifique se a instância está conectada.')
+    } catch (e: any) {
+      toast.error(
+        e.message || 'Falha ao enviar mensagem de teste. Verifique se a instância está conectada.',
+      )
     } finally {
       setSending(false)
     }
@@ -96,9 +147,22 @@ export function WhatsappStatusWidget() {
 
   return (
     <div className="flex items-center gap-3">
+      {identity.number && status === 'open' && (
+        <div className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground mr-2 bg-muted/50 px-2 py-1 rounded-md border border-border/50 animate-fade-in">
+          <Phone className="h-3 w-3" />
+          <span className="font-medium">{identity.number}</span>
+          {identity.name && (
+            <span className="opacity-70 truncate max-w-[120px]">({identity.name})</span>
+          )}
+        </div>
+      )}
+
       <Badge
         variant="outline"
-        className={cn('gap-1.5 px-2.5 py-1 hidden md:inline-flex', getStatusColor())}
+        className={cn(
+          'gap-1.5 px-2.5 py-1 hidden md:inline-flex transition-colors',
+          getStatusColor(),
+        )}
       >
         {loading ? (
           <Loader2 className="h-3 w-3 animate-spin" />

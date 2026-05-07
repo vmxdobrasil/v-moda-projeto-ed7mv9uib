@@ -35,6 +35,7 @@ import {
   Play,
   ExternalLink,
 } from 'lucide-react'
+import { Suspense } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
@@ -43,6 +44,7 @@ import pb from '@/lib/pocketbase/client'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 import { ExternalLink as CustomExternalLink } from '@/components/ExternalLink'
 import { WhatsappStatusWidget } from '@/components/WhatsappStatusWidget'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 const navItems = [
   { icon: Home, label: 'Dashboard', path: '/' },
@@ -201,7 +203,20 @@ export default function DashboardLayout() {
             </div>
           </header>
           <div className="flex-1 overflow-auto p-4 md:p-8">
-            <Outlet />
+            <ErrorBoundary>
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center p-8">
+                    <div className="flex flex-col items-center space-y-4">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                      <p className="text-muted-foreground">Sincronizando Dados do Serviço...</p>
+                    </div>
+                  </div>
+                }
+              >
+                <Outlet />
+              </Suspense>
+            </ErrorBoundary>
           </div>
         </main>
       </div>

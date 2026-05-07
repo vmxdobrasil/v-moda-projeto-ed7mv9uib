@@ -30,6 +30,8 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { MonthlySales } from '@/components/dashboard/MonthlySales'
+import { MessageAnalytics } from '@/components/dashboard/MessageAnalytics'
+import { MessageFeed } from '@/components/dashboard/MessageFeed'
 
 export default function DashboardHub() {
   const { user } = useAuth()
@@ -343,6 +345,15 @@ export default function DashboardHub() {
           ))}
         </div>
       )}
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
+        <div className="col-span-full lg:col-span-2 h-full">
+          <MessageAnalytics />
+        </div>
+        <div className="col-span-full lg:col-span-1 h-full">
+          <MessageFeed />
+        </div>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="col-span-full lg:col-span-2 border-border/50 shadow-sm flex flex-col">
