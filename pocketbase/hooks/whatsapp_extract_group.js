@@ -6,7 +6,33 @@ routerAdd(
     const instance = body.instance
     const groupId = body.groupId
 
-    const config = $app.findFirstRecordByData('whatsapp_configs', 'user', e.auth.id)
+    let config
+    try {
+      const configs = $app.findRecordsByFilter(
+        'whatsapp_configs',
+        'user = {:userId}',
+        '-created',
+        100,
+        0,
+        { userId: e.auth.id },
+      )
+      config = configs.find((c) => {
+        const insts = c
+          .getString('instance_id')
+          .split(',')
+          .map((i) => i.trim())
+        return insts.includes(instance)
+      })
+      if (!config && configs.length > 0) {
+        config = configs[0]
+      }
+      if (!config) throw new Error('Not found')
+    } catch (_) {
+      return e.badRequestError(
+        'Erro de permissão: Configurações do WhatsApp não encontradas para este usuário.',
+      )
+    }
+
     const apiUrl = config.getString('api_url').replace(/\/$/, '')
     const token = config.getString('token')
 

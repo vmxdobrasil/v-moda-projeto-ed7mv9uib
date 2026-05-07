@@ -30,7 +30,7 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
   const [rotationEnabled, setRotationEnabled] = useState(false)
 
   useEffect(() => {
-    if (instances.length > 0 && !selectedInstance) {
+    if (instances.length > 0 && (!selectedInstance || !instances.includes(selectedInstance))) {
       setSelectedInstance(instances[0])
     }
   }, [instances, selectedInstance])
@@ -59,7 +59,7 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
 
   const handleExtractGroup = async () => {
     if (!selectedInstance || !selectedGroup) {
-      toast.error('Selecione uma instância e um grupo.')
+      toast.error('Selecione uma instância e um grupo (ou insira o Group ID).')
       return
     }
     setExtracting(true)
@@ -113,7 +113,7 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
         }),
         headers: { 'Content-Type': 'application/json' },
       })
-      toast.success('Mensagem de teste enviada com sucesso!')
+      toast.success(`Mensagem de teste enviada com sucesso! (Via ${instanceToSend})`)
     } catch (e: any) {
       const errorMsg = getErrorMessage(e)
       toast.error(errorMsg || 'Erro ao enviar mensagem de teste.')
@@ -127,8 +127,8 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
       <div className="p-8 text-center text-muted-foreground border rounded-md bg-muted/20">
         <AlertCircle className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
         <p>
-          Você precisa configurar pelo menos uma instância na aba "Configurações de API" para usar
-          as ferramentas.
+          Você precisa configurar pelo menos uma instância na aba "Gerenciamento de Instâncias" para
+          usar as ferramentas.
         </p>
       </div>
     )
@@ -164,44 +164,66 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Grupo do WhatsApp</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={fetchGroups}
-                  disabled={loadingGroups || !selectedInstance}
-                  className="h-8"
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Selecionar Grupo da Instância</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={fetchGroups}
+                    disabled={loadingGroups || !selectedInstance}
+                    className="h-8"
+                  >
+                    {loadingGroups ? (
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                    )}
+                    Atualizar Lista
+                  </Button>
+                </div>
+                <Select
+                  value={selectedGroup}
+                  onValueChange={setSelectedGroup}
+                  disabled={groups.length === 0}
                 >
-                  {loadingGroups ? (
-                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-3 h-3 mr-1" />
-                  )}
-                  Atualizar Lista
-                </Button>
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        groups.length === 0
+                          ? 'Busque os grupos ou cole o ID abaixo...'
+                          : 'Selecione o grupo...'
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {groups.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        {g.subject || g.id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Select
-                value={selectedGroup}
-                onValueChange={setSelectedGroup}
-                disabled={groups.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      groups.length === 0 ? 'Busque os grupos primeiro...' : 'Selecione o grupo...'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {groups.map((g) => (
-                    <SelectItem key={g.id} value={g.id}>
-                      {g.subject || g.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Ou insira manualmente</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Group ID (JID)</Label>
+                <Input
+                  placeholder="ex: 1234567890-12345@g.us"
+                  value={selectedGroup}
+                  onChange={(e) => setSelectedGroup(e.target.value)}
+                />
+              </div>
             </div>
 
             <Button
@@ -259,7 +281,7 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
                 onChange={(e) => setRotationEnabled(e.target.checked)}
                 className="rounded border-input text-primary focus:ring-primary"
               />
-              <Label htmlFor="rotation-toggle" className="text-sm cursor-pointer">
+              <Label htmlFor="rotation-toggle" className="text-sm cursor-pointer leading-tight">
                 Ativar Rotação Aleatória (Usa uma instância aleatória entre as cadastradas)
               </Label>
             </div>

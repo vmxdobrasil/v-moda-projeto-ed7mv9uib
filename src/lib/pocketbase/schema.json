@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T11:45:59.762Z",
+  "generatedAt": "2026-05-07T11:57:45.732Z",
   "collections": [
     {
       "name": "users",
@@ -700,7 +700,7 @@
           "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
-      "indexes": ["CREATE UNIQUE INDEX idx_whatsapp_configs_user ON whatsapp_configs (user)"]
+      "indexes": []
     },
     {
       "name": "whatsapp_templates",

@@ -13,7 +13,25 @@ routerAdd(
 
     let config
     try {
-      config = $app.findFirstRecordByData('whatsapp_configs', 'user', e.auth.id)
+      const configs = $app.findRecordsByFilter(
+        'whatsapp_configs',
+        'user = {:userId}',
+        '-created',
+        100,
+        0,
+        { userId: e.auth.id },
+      )
+      config = configs.find((c) => {
+        const insts = c
+          .getString('instance_id')
+          .split(',')
+          .map((i) => i.trim())
+        return insts.includes(instance)
+      })
+      if (!config && configs.length > 0) {
+        config = configs[0]
+      }
+      if (!config) throw new Error('Not found')
     } catch (_) {
       return e.badRequestError(
         'Erro de permissão: Configurações do WhatsApp não encontradas para este usuário.',
@@ -36,7 +54,7 @@ routerAdd(
         timeout: 15,
       })
     } catch (err) {
-      return e.badRequestError('Erro ao comunicar com a Evolution API.')
+      return e.badRequestError('Erro ao comunicar com a Evolution API: ' + err.message)
     }
 
     if (res.statusCode >= 400) {
@@ -67,8 +85,14 @@ routerAdd(
         $app.save(channelRecord)
       } catch (err) {
         $app.logger().error('Erro ao criar canal', 'error', err.message)
-        return e.badRequestError('Falha ao criar o registro de canal: ' + err.message)
+        return e.badRequestError(
+          "Field 'channel' is required. Falha ao criar o registro de canal: " + err.message,
+        )
       }
+    }
+
+    if (!channelRecord || !channelRecord.id) {
+      return e.badRequestError("Field 'channel' is required. Canal inválido ou não encontrado.")
     }
 
     // Create message record for auditing
@@ -83,7 +107,7 @@ routerAdd(
       $app.save(messageRecord)
     } catch (err) {
       $app.logger().error('Erro ao criar registro em messages', 'error', err.message)
-      return e.badRequestError('Falha ao registrar a mensagem na coleção messages: ' + err.message)
+      return e.badRequestError('Failed to create record. Validation error: ' + err.message)
     }
 
     return e.json(200, res.json || { success: true })

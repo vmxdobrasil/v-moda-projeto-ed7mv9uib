@@ -99,7 +99,9 @@ export default function Customers() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">CRM</h1>
-          <p className="text-muted-foreground">Gerencie seus {totalItems} clientes e leads.</p>
+          <p className="text-muted-foreground">
+            Gerencie seus {totalItems.toLocaleString('pt-BR')} clientes e leads.
+          </p>
         </div>
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -119,6 +121,7 @@ export default function Customers() {
               <Users className="h-5 w-5 text-primary" />
               Lista de Clientes
             </div>
+            {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -132,12 +135,12 @@ export default function Customers() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {loading && customers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      <span>Carregando dados...</span>
+                      <span>Carregando base de clientes...</span>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -166,33 +169,35 @@ export default function Customers() {
             </TableBody>
           </Table>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between p-4 border-t bg-muted/20">
-              <div className="text-sm text-muted-foreground">
-                Página {page} de {totalPages}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1 || loading}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Anterior
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages || loading}
-                >
-                  Próxima
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+          <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t bg-muted/20 gap-4">
+            <div className="text-sm text-muted-foreground">
+              Mostrando {(page - 1) * 50 + 1} até {Math.min(page * 50, totalItems)} de{' '}
+              {totalItems.toLocaleString('pt-BR')} registros
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1 || loading}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Anterior
+              </Button>
+              <div className="text-sm font-medium px-2">
+                {page} / {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages || loading}
+              >
+                Próxima
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

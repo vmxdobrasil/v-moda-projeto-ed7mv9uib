@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import pb from '@/lib/pocketbase/client'
-import { getWhatsappConfig, saveWhatsappConfig, type WhatsappConfig } from '@/services/whatsapp'
+import {
+  getWhatsappConfigs,
+  saveWhatsappConfig,
+  deleteWhatsappConfig,
+  type WhatsappConfig,
+} from '@/services/whatsapp'
 import {
   Card,
   CardHeader,
@@ -32,24 +37,21 @@ import {
   ExternalLink,
   Plus,
   Trash2,
+  Server,
+  Activity,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { WhatsappTemplatesManager } from './components/WhatsappTemplatesManager'
 import { WhatsappTools } from './components/WhatsappTools'
 import { useRealtime } from '@/hooks/use-realtime'
+import { Badge } from '@/components/ui/badge'
 
 const schema = z.object({
   api_url: z
     .string()
     .url('A URL deve ser válida (ex: https://evolution-evolution.6xxwvj.easypanel.host)'),
   token: z.string().optional(),
-  instances: z
-    .array(
-      z.object({
-        id: z.string().min(1, 'O ID da Instância é obrigatório'),
-      }),
-    )
-    .min(1, 'Adicione pelo menos uma instância'),
+  instance_id: z.string().min(1, 'O ID da Instância é obrigatório'),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -57,68 +59,42 @@ type FormValues = z.infer<typeof schema>
 export default function WhatsappSettings() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [testing, setTesting] = useState(false)
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
-  const [configId, setConfigId] = useState<string | null>(null)
+  const [testingId, setTestingId] = useState<string | null>(null)
+  const [statuses, setStatuses] = useState<Record<string, 'success' | 'error'>>({})
+  const [configs, setConfigs] = useState<WhatsappConfig[]>([])
+  const [isAdding, setIsAdding] = useState(false)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       api_url: '',
       token: '',
-      instances: [{ id: '' }],
+      instance_id: '',
     },
   })
 
-  const { fields, append, remove } = useFieldArray({
-    name: 'instances',
-    control: form.control,
-  })
+  const loadData = async () => {
+    try {
+      const userId = pb.authStore.record?.id
+      if (!userId) return
+      const data = await getWhatsappConfigs(userId)
+      setConfigs(data)
+      if (data.length === 0) setIsAdding(true)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const userId = pb.authStore.record?.id
-        if (!userId) return
-        const config = await getWhatsappConfig(userId)
-        if (config) {
-          setConfigId(config.id || null)
-          const parsedInstances = config.instance_id
-            ? config.instance_id.split(',').map((id) => ({ id: id.trim() }))
-            : [{ id: '' }]
-
-          form.reset({
-            api_url: config.api_url,
-            token: config.token || '',
-            instances: parsedInstances,
-          })
-        }
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [form])
+    loadData()
+  }, [])
 
   useRealtime('whatsapp_configs', (e) => {
     const userId = pb.authStore.record?.id
     if (e.record.user === userId) {
-      if (e.action === 'update' || e.action === 'create') {
-        setConfigId(e.record.id)
-        if (!saving) {
-          const parsedInstances = e.record.instance_id
-            ? e.record.instance_id.split(',').map((id: string) => ({ id: id.trim() }))
-            : [{ id: '' }]
-          form.reset({
-            api_url: e.record.api_url,
-            token: e.record.token || '',
-            instances: parsedInstances,
-          })
-          toast.info('Configurações sincronizadas do servidor.')
-        }
-      }
+      loadData()
     }
   })
 
@@ -129,51 +105,55 @@ export default function WhatsappSettings() {
     setSaving(true)
     try {
       const payload: Partial<WhatsappConfig> = {
-        id: configId || undefined,
         user: userId,
         api_url: data.api_url,
-        instance_id: data.instances.map((i) => i.id).join(','),
+        instance_id: data.instance_id,
       }
       if (data.token) {
         payload.token = data.token
       }
-      const saved = await saveWhatsappConfig(payload)
-      setConfigId(saved.id)
-      toast.success('Configurações salvas com sucesso!')
+      await saveWhatsappConfig(payload)
+      toast.success('Instância adicionada com sucesso!')
+      setIsAdding(false)
+      form.reset()
+      loadData()
     } catch (e) {
-      toast.error('Erro ao salvar as configurações.')
+      toast.error('Erro ao salvar a instância.')
     } finally {
       setSaving(false)
     }
   }
 
-  const testConnection = async () => {
-    const values = form.getValues()
-    if (!values.api_url) {
-      form.trigger('api_url')
-      return
-    }
-
-    setTesting(true)
-    setStatus('idle')
+  const removeConfig = async (id: string) => {
+    if (!confirm('Tem certeza que deseja remover esta instância?')) return
     try {
-      const firstInstance = values.instances[0]?.id || ''
-      const url = `/backend/v1/evolution/status${firstInstance ? `?instance=${firstInstance}` : ''}`
+      await deleteWhatsappConfig(id)
+      toast.success('Instância removida')
+      loadData()
+    } catch (e) {
+      toast.error('Erro ao remover a instância')
+    }
+  }
+
+  const testConnection = async (config: WhatsappConfig) => {
+    setTestingId(config.id!)
+    try {
+      const url = `/backend/v1/evolution/status${config.instance_id ? `?instance=${config.instance_id}` : ''}`
       const res = await pb.send(url, { method: 'GET' })
       if (res?.instance?.state === 'open' || res?.state === 'open') {
-        setStatus('success')
-        toast.success('Conexão estabelecida com sucesso!')
+        setStatuses((prev) => ({ ...prev, [config.id!]: 'success' }))
+        toast.success(`Conexão estabelecida com a instância ${config.instance_id}!`)
       } else {
-        setStatus('error')
+        setStatuses((prev) => ({ ...prev, [config.id!]: 'error' }))
         toast.error(
-          `Instância não está conectada. Status: ${res?.instance?.state || res?.state || 'Desconhecido'}`,
+          `A instância ${config.instance_id} não está conectada. Status: ${res?.instance?.state || res?.state || 'Desconhecido'}`,
         )
       }
     } catch (e) {
-      setStatus('error')
-      toast.error('Falha ao conectar com a API.')
+      setStatuses((prev) => ({ ...prev, [config.id!]: 'error' }))
+      toast.error(`Falha ao conectar com a instância ${config.instance_id}.`)
     } finally {
-      setTesting(false)
+      setTestingId(null)
     }
   }
 
@@ -188,6 +168,10 @@ export default function WhatsappSettings() {
     )
   }
 
+  const allInstances = configs.flatMap((c) =>
+    c.instance_id ? c.instance_id.split(',').map((i) => i.trim()) : [],
+  )
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in-up">
       <div>
@@ -200,7 +184,7 @@ export default function WhatsappSettings() {
 
       <Tabs defaultValue="api" className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="api">Configurações de API</TabsTrigger>
+          <TabsTrigger value="api">Gerenciamento de Instâncias</TabsTrigger>
           <TabsTrigger value="templates">Modelos de Mensagem</TabsTrigger>
           <TabsTrigger value="tools">Ferramentas & Extrator</TabsTrigger>
         </TabsList>
@@ -208,149 +192,145 @@ export default function WhatsappSettings() {
         <TabsContent value="api" className="space-y-6">
           <div className="grid grid-cols-1 gap-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Smartphone className="w-5 h-5" /> Credenciais da API e Instâncias
-                </CardTitle>
-                <CardDescription>
-                  Insira os dados de conexão do seu servidor e adicione múltiplas instâncias para
-                  rotacionar envios e evitar bloqueios.
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Smartphone className="w-5 h-5" /> Instâncias Registradas
+                  </CardTitle>
+                  <CardDescription>
+                    Gerencie suas conexões do WhatsApp. Múltiplas instâncias permitem rotação de
+                    mensagens.
+                  </CardDescription>
+                </div>
+                {!isAdding && (
+                  <Button onClick={() => setIsAdding(true)} size="sm">
+                    <Plus className="w-4 h-4 mr-2" /> Nova Instância
+                  </Button>
+                )}
               </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="api_url"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>URL da Evolution API ou Webhook</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="https://evolution-evolution.6xxwvj.easypanel.host"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            A URL base da sua instância Evolution API ou servidor n8n.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+              <CardContent className="space-y-4">
+                {configs.length === 0 && !isAdding && (
+                  <div className="text-center py-8 text-muted-foreground border rounded-md border-dashed">
+                    Nenhuma instância cadastrada. Clique em "Nova Instância" para começar.
+                  </div>
+                )}
 
-                    <FormField
-                      control={form.control}
-                      name="token"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Global API Key (Token)</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder={configId ? '••••••••••••••••' : 'Sua Global API Key'}
-                              type="password"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Deixe em branco para manter a chave salva atual.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="space-y-4 pt-4 border-t">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-sm font-medium">Instâncias do WhatsApp (Rotação)</h4>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Você pode registrar quantos números sua Evolution API suportar. É
-                            recomendado rotacionar as instâncias a cada 200-500 mensagens para
-                            evitar bloqueios.
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => append({ id: '' })}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Adicionar
-                        </Button>
+                {configs.map((config) => (
+                  <div
+                    key={config.id}
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-md bg-card shadow-sm gap-4"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Server className="w-4 h-4 text-primary" />
+                        <span className="font-semibold text-base">
+                          {config.instance_id || 'Instância sem nome'}
+                        </span>
+                        {statuses[config.id!] === 'success' && (
+                          <Badge className="bg-green-500 hover:bg-green-600">Conectada</Badge>
+                        )}
+                        {statuses[config.id!] === 'error' && (
+                          <Badge variant="destructive">Desconectada</Badge>
+                        )}
                       </div>
+                      <p className="text-xs text-muted-foreground break-all">{config.api_url}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => testConnection(config)}
+                        disabled={testingId === config.id}
+                      >
+                        {testingId === config.id ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Activity className="w-4 h-4 mr-2" />
+                        )}
+                        Testar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeConfig(config.id!)}
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
 
-                      {fields.map((field, index) => (
+                {isAdding && (
+                  <div className="mt-6 p-4 border rounded-md bg-muted/30">
+                    <h3 className="font-semibold mb-4 text-sm flex items-center gap-2">
+                      <Plus className="w-4 h-4" /> Adicionar Nova Instância
+                    </h3>
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField
-                          key={field.id}
                           control={form.control}
-                          name={`instances.${index}.id`}
-                          render={({ field: inputField }) => (
+                          name="api_url"
+                          render={({ field }) => (
                             <FormItem>
+                              <FormLabel>URL da Evolution API</FormLabel>
                               <FormControl>
-                                <div className="flex items-center gap-2">
-                                  <Input
-                                    placeholder="Nome da Instância (ex: vmoda_master)"
-                                    {...inputField}
-                                  />
-                                  {fields.length > 1 && (
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => remove(index)}
-                                    >
-                                      <Trash2 className="w-4 h-4 text-destructive" />
-                                    </Button>
-                                  )}
-                                </div>
+                                <Input placeholder="https://evolution.seuservidor.com" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                      ))}
-                    </div>
-
-                    <div className="pt-4 flex flex-col sm:flex-row gap-3">
-                      <Button type="submit" disabled={saving || testing}>
-                        {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                        Salvar Configurações
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={testConnection}
-                        disabled={testing || saving || !configId}
-                      >
-                        {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                        Testar Conexão Salva
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
+                        <FormField
+                          control={form.control}
+                          name="instance_id"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nome/ID da Instância</FormLabel>
+                              <FormControl>
+                                <Input placeholder="ex: vmoda_vendas_1" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="token"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Global API Key (Token)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Sua Global API Key"
+                                  type="password"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="flex items-center gap-2 pt-2">
+                          <Button type="submit" disabled={saving}>
+                            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            Salvar Instância
+                          </Button>
+                          {configs.length > 0 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setIsAdding(false)}
+                            >
+                              Cancelar
+                            </Button>
+                          )}
+                        </div>
+                      </form>
+                    </Form>
+                  </div>
+                )}
               </CardContent>
-              {status !== 'idle' && (
-                <CardFooter className="bg-muted/50 border-t p-4 flex items-center gap-2">
-                  {status === 'success' ? (
-                    <>
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      <span className="text-sm font-medium text-green-700">
-                        Conexão verificada com sucesso! Seu CRM está pronto para enviar mensagens.
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="w-5 h-5 text-destructive" />
-                      <span className="text-sm font-medium text-destructive">
-                        Não foi possível conectar. Verifique seus dados.
-                      </span>
-                    </>
-                  )}
-                </CardFooter>
-              )}
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -431,12 +411,7 @@ export default function WhatsappSettings() {
         </TabsContent>
 
         <TabsContent value="tools">
-          <WhatsappTools
-            instances={form
-              .watch('instances')
-              .map((i) => i.id)
-              .filter(Boolean)}
-          />
+          <WhatsappTools instances={allInstances} />
         </TabsContent>
       </Tabs>
     </div>

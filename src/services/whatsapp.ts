@@ -36,14 +36,15 @@ export const deleteWhatsappTemplate = async (id: string) => {
   return pb.collection('whatsapp_templates').delete(id)
 }
 
-export const getWhatsappConfig = async (userId: string) => {
-  try {
-    return await pb
-      .collection('whatsapp_configs')
-      .getFirstListItem<WhatsappConfig>(`user = "${userId}"`)
-  } catch (e) {
-    return null
-  }
+export const getWhatsappConfigs = async (userId: string) => {
+  return pb.collection('whatsapp_configs').getFullList<WhatsappConfig>({
+    filter: `user = "${userId}"`,
+    sort: '-created',
+  })
+}
+
+export const deleteWhatsappConfig = async (id: string) => {
+  return pb.collection('whatsapp_configs').delete(id)
 }
 
 export const saveWhatsappConfig = async (data: Partial<WhatsappConfig>) => {
