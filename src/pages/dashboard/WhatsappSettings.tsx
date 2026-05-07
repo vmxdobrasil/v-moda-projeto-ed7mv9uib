@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { WhatsappTemplatesManager } from './components/WhatsappTemplatesManager'
+import { WhatsappTools } from './components/WhatsappTools'
 import { useRealtime } from '@/hooks/use-realtime'
 
 const schema = z.object({
@@ -200,7 +201,8 @@ export default function WhatsappSettings() {
       <Tabs defaultValue="api" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="api">Configurações de API</TabsTrigger>
-          <TabsTrigger value="templates">Modelos de Mensagem (Templates)</TabsTrigger>
+          <TabsTrigger value="templates">Modelos de Mensagem</TabsTrigger>
+          <TabsTrigger value="tools">Ferramentas & Extrator</TabsTrigger>
         </TabsList>
 
         <TabsContent value="api" className="space-y-6">
@@ -426,6 +428,15 @@ export default function WhatsappSettings() {
 
         <TabsContent value="templates">
           <WhatsappTemplatesManager />
+        </TabsContent>
+
+        <TabsContent value="tools">
+          <WhatsappTools
+            instances={form
+              .watch('instances')
+              .map((i) => i.id)
+              .filter(Boolean)}
+          />
         </TabsContent>
       </Tabs>
     </div>

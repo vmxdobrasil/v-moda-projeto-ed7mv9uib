@@ -67,6 +67,24 @@ export const getCustomers = async () => {
   })
 }
 
+export const getCustomersPaginated = async (page: number, limit: number, search?: string) => {
+  const user = pb.authStore.record
+  if (!user) return { items: [], totalItems: 0, totalPages: 0 }
+
+  const isAdmin = user.email === 'valterpmendonca@gmail.com' || user.role === 'admin'
+  let filter = isAdmin ? '' : `manufacturer = "${user.id}" || affiliate_referrer = "${user.id}"`
+
+  if (search) {
+    const searchFilter = `(name ~ "${search}" || phone ~ "${search}" || email ~ "${search}")`
+    filter = filter ? `(${filter}) && ${searchFilter}` : searchFilter
+  }
+
+  return pb.collection('customers').getList<Customer>(page, limit, {
+    filter,
+    sort: '-created',
+  })
+}
+
 export const getReferredCustomers = async () => {
   const user = pb.authStore.record
   if (!user) return []

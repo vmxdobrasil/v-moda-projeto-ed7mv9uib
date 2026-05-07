@@ -54,8 +54,8 @@ export default function ManufacturerCRM() {
       if (!user) return
       const records = await pb
         .collection('customers')
-        .getFullList({ filter: `manufacturer = "${user.id}"`, sort: '-created' })
-      setLeads(records)
+        .getList(1, 500, { filter: `manufacturer = "${user.id}"`, sort: '-created' })
+      setLeads(records.items)
     } catch (error) {
       console.error('Error loading leads', error)
     } finally {
