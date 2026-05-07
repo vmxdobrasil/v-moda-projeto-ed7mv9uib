@@ -105,8 +105,10 @@ export default function WhatsappSettings() {
         id: configId || undefined,
         user: userId,
         api_url: data.api_url,
-        token: data.token,
         instance_id: data.instance_id,
+      }
+      if (data.token) {
+        payload.token = data.token
       }
       const saved = await saveWhatsappConfig(payload)
       setConfigId(saved.id)
@@ -128,27 +130,26 @@ export default function WhatsappSettings() {
     setTesting(true)
     setStatus('idle')
     try {
-      await pb.send('/backend/v1/whatsapp/test-connection', {
-        method: 'POST',
-        body: JSON.stringify({
-          api_url: values.api_url,
-          token: values.token,
-          instance_id: values.instance_id,
-        }),
-        headers: { 'Content-Type': 'application/json' },
-      })
-      setStatus('success')
-      toast.success('Conexão estabelecida com sucesso!')
+      // Test via evolution proxy
+      const res = await pb.send('/backend/v1/evolution/status', { method: 'GET' })
+      if (res?.instance?.state === 'open' || res?.state === 'open') {
+        setStatus('success')
+        toast.success('Conexão estabelecida com sucesso!')
+      } else {
+        setStatus('error')
+        toast.error(
+          `Instância não está conectada. Status: ${res?.instance?.state || res?.state || 'Desconhecido'}`,
+        )
+      }
     } catch (e) {
       setStatus('error')
-      toast.error('Falha ao conectar com a API. Verifique a URL e o Token.')
+      toast.error('Falha ao conectar com a API.')
     } finally {
       setTesting(false)
     }
   }
-
   const pbUrl = import.meta.env.VITE_POCKETBASE_URL || window.location.origin
-  const webhookUrl = `${pbUrl}/backend/v1/meo-zap/webhook`
+  const webhookUrl = `${pbUrl}/backend/v1/n8n-webhook`
 
   if (loading) {
     return (
@@ -229,8 +230,15 @@ export default function WhatsappSettings() {
                           <FormItem>
                             <FormLabel>Global API Key (Token)</FormLabel>
                             <FormControl>
-                              <Input placeholder="Sua Global API Key" type="password" {...field} />
+                              <Input
+                                placeholder={configId ? '••••••••••••••••' : 'Sua Global API Key'}
+                                type="password"
+                                {...field}
+                              />
                             </FormControl>
+                            <FormDescription>
+                              Deixe em branco para manter a chave salva atual.
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -238,18 +246,18 @@ export default function WhatsappSettings() {
                     </div>
 
                     <div className="pt-4 flex flex-col sm:flex-row gap-3">
+                      <Button type="submit" disabled={saving || testing}>
+                        {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                        Salvar Configurações
+                      </Button>
                       <Button
                         type="button"
                         variant="secondary"
                         onClick={testConnection}
-                        disabled={testing || saving}
+                        disabled={testing || saving || !configId}
                       >
                         {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                        Testar Conexão
-                      </Button>
-                      <Button type="submit" disabled={saving || testing}>
-                        {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                        Salvar Configurações
+                        Testar Conexão Salva
                       </Button>
                     </div>
                   </form>

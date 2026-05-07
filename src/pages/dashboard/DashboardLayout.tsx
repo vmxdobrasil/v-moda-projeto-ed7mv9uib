@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils'
 import pb from '@/lib/pocketbase/client'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 import { ExternalLink as CustomExternalLink } from '@/components/ExternalLink'
+import { WhatsappStatusWidget } from '@/components/WhatsappStatusWidget'
 
 const navItems = [
   { icon: Home, label: 'Dashboard', path: '/' },
@@ -188,6 +189,7 @@ export default function DashboardLayout() {
                   <ExternalLink className="ml-0.5 h-3 w-3 opacity-50" />
                 </CustomExternalLink>
               </div>
+              <WhatsappStatusWidget />
               <div className="text-sm font-medium text-muted-foreground hidden lg:block border-l pl-4 py-1">
                 {new Date().toLocaleDateString('pt-BR', {
                   weekday: 'long',
