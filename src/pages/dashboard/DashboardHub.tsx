@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils'
 import { MonthlySales } from '@/components/dashboard/MonthlySales'
 import { MessageAnalytics } from '@/components/dashboard/MessageAnalytics'
 import { MessageFeed } from '@/components/dashboard/MessageFeed'
+import { ImportAuditWidget } from '@/components/dashboard/ImportAuditWidget'
 
 export default function DashboardHub() {
   const { user } = useAuth()
@@ -347,8 +348,9 @@ export default function DashboardHub() {
       )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
-        <div className="col-span-full lg:col-span-2 h-full">
+        <div className="col-span-full lg:col-span-2 h-full flex flex-col gap-6">
           <MessageAnalytics />
+          <ImportAuditWidget />
         </div>
         <div className="col-span-full lg:col-span-1 h-full">
           <MessageFeed />

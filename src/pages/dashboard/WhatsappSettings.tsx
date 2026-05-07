@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import pb from '@/lib/pocketbase/client'
@@ -24,7 +24,15 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { Loader2, CheckCircle2, XCircle, Smartphone, ExternalLink } from 'lucide-react'
+import {
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Smartphone,
+  ExternalLink,
+  Plus,
+  Trash2,
+} from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { WhatsappTemplatesManager } from './components/WhatsappTemplatesManager'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -34,7 +42,13 @@ const schema = z.object({
     .string()
     .url('A URL deve ser válida (ex: https://evolution-evolution.6xxwvj.easypanel.host)'),
   token: z.string().optional(),
-  instance_id: z.string().min(1, 'O ID da Instância é obrigatório'),
+  instances: z
+    .array(
+      z.object({
+        id: z.string().min(1, 'O ID da Instância é obrigatório'),
+      }),
+    )
+    .min(1, 'Adicione pelo menos uma instância'),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -51,8 +65,13 @@ export default function WhatsappSettings() {
     defaultValues: {
       api_url: '',
       token: '',
-      instance_id: '',
+      instances: [{ id: '' }],
     },
+  })
+
+  const { fields, append, remove } = useFieldArray({
+    name: 'instances',
+    control: form.control,
   })
 
   useEffect(() => {
@@ -63,10 +82,14 @@ export default function WhatsappSettings() {
         const config = await getWhatsappConfig(userId)
         if (config) {
           setConfigId(config.id || null)
+          const parsedInstances = config.instance_id
+            ? config.instance_id.split(',').map((id) => ({ id: id.trim() }))
+            : [{ id: '' }]
+
           form.reset({
             api_url: config.api_url,
             token: config.token || '',
-            instance_id: config.instance_id || '',
+            instances: parsedInstances,
           })
         }
       } catch (e) {
@@ -84,10 +107,13 @@ export default function WhatsappSettings() {
       if (e.action === 'update' || e.action === 'create') {
         setConfigId(e.record.id)
         if (!saving) {
+          const parsedInstances = e.record.instance_id
+            ? e.record.instance_id.split(',').map((id: string) => ({ id: id.trim() }))
+            : [{ id: '' }]
           form.reset({
             api_url: e.record.api_url,
             token: e.record.token || '',
-            instance_id: e.record.instance_id || '',
+            instances: parsedInstances,
           })
           toast.info('Configurações sincronizadas do servidor.')
         }
@@ -105,7 +131,7 @@ export default function WhatsappSettings() {
         id: configId || undefined,
         user: userId,
         api_url: data.api_url,
-        instance_id: data.instance_id,
+        instance_id: data.instances.map((i) => i.id).join(','),
       }
       if (data.token) {
         payload.token = data.token
@@ -130,8 +156,9 @@ export default function WhatsappSettings() {
     setTesting(true)
     setStatus('idle')
     try {
-      // Test via evolution proxy
-      const res = await pb.send('/backend/v1/evolution/status', { method: 'GET' })
+      const firstInstance = values.instances[0]?.id || ''
+      const url = `/backend/v1/evolution/status${firstInstance ? `?instance=${firstInstance}` : ''}`
+      const res = await pb.send(url, { method: 'GET' })
       if (res?.instance?.state === 'open' || res?.state === 'open') {
         setStatus('success')
         toast.success('Conexão estabelecida com sucesso!')
@@ -148,6 +175,7 @@ export default function WhatsappSettings() {
       setTesting(false)
     }
   }
+
   const pbUrl = import.meta.env.VITE_POCKETBASE_URL || window.location.origin
   const webhookUrl = `${pbUrl}/backend/v1/n8n-webhook`
 
@@ -164,7 +192,8 @@ export default function WhatsappSettings() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Integração WhatsApp & n8n</h1>
         <p className="text-muted-foreground">
-          Configure a conexão com sua Evolution API e n8n para gerenciar automações no WhatsApp.
+          Configure a conexão com sua Evolution API e n8n para gerenciar automações e envio em massa
+          no WhatsApp.
         </p>
       </div>
 
@@ -179,16 +208,16 @@ export default function WhatsappSettings() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Smartphone className="w-5 h-5" /> Credenciais da API
+                  <Smartphone className="w-5 h-5" /> Credenciais da API e Instâncias
                 </CardTitle>
                 <CardDescription>
-                  Insira os dados de conexão do seu servidor para envio de mensagens e sincronização
-                  com n8n.
+                  Insira os dados de conexão do seu servidor e adicione múltiplas instâncias para
+                  rotacionar envios e evitar bloqueios.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <FormField
                       control={form.control}
                       name="api_url"
@@ -209,40 +238,78 @@ export default function WhatsappSettings() {
                       )}
                     />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="instance_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Nome da Instância</FormLabel>
-                            <FormControl>
-                              <Input placeholder="ex: vmoda_master" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="token"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Global API Key (Token)</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder={configId ? '••••••••••••••••' : 'Sua Global API Key'}
-                                type="password"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Deixe em branco para manter a chave salva atual.
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    <FormField
+                      control={form.control}
+                      name="token"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Global API Key (Token)</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder={configId ? '••••••••••••••••' : 'Sua Global API Key'}
+                              type="password"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Deixe em branco para manter a chave salva atual.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="space-y-4 pt-4 border-t">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-medium">Instâncias do WhatsApp (Rotação)</h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Você pode registrar quantos números sua Evolution API suportar. É
+                            recomendado rotacionar as instâncias a cada 200-500 mensagens para
+                            evitar bloqueios.
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => append({ id: '' })}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Adicionar
+                        </Button>
+                      </div>
+
+                      {fields.map((field, index) => (
+                        <FormField
+                          key={field.id}
+                          control={form.control}
+                          name={`instances.${index}.id`}
+                          render={({ field: inputField }) => (
+                            <FormItem>
+                              <FormControl>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    placeholder="Nome da Instância (ex: vmoda_master)"
+                                    {...inputField}
+                                  />
+                                  {fields.length > 1 && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => remove(index)}
+                                    >
+                                      <Trash2 className="w-4 h-4 text-destructive" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ))}
                     </div>
 
                     <div className="pt-4 flex flex-col sm:flex-row gap-3">

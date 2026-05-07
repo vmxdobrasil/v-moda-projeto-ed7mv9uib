@@ -14,12 +14,19 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { MessageSquare, Send, Loader2, Phone } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { MessageSquare, Send, Loader2, Phone, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 export function WhatsappStatusWidget() {
-  const [status, setStatus] = useState<'open' | 'close' | 'connecting' | 'disconnected'>(
+  const [status, setStatus] = useState<'open' | 'close' | 'connecting' | 'disconnected' | 'error'>(
     'disconnected',
   )
   const [loading, setLoading] = useState(true)
@@ -28,10 +35,12 @@ export function WhatsappStatusWidget() {
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [identity, setIdentity] = useState<{ name?: string; number?: string }>({})
+  const [instances, setInstances] = useState<string[]>([])
+  const [selectedInstance, setSelectedInstance] = useState<string>('')
 
   const fetchStatus = async () => {
     try {
-      const user = pb.authStore.model
+      const user = pb.authStore.record
       if (!user) return
 
       const config = await pb
@@ -39,7 +48,27 @@ export function WhatsappStatusWidget() {
         .getFirstListItem(`user="${user.id}"`)
         .catch(() => null)
 
-      const res = await pb.send('/backend/v1/evolution/status', { method: 'GET' }).catch(() => null)
+      const availableInstances = config?.instance_id
+        ? config.instance_id.split(',').map((i: string) => i.trim())
+        : []
+      setInstances(availableInstances)
+
+      const instanceToTest = selectedInstance || availableInstances[0] || ''
+      if (!selectedInstance && availableInstances.length > 0) {
+        setSelectedInstance(availableInstances[0])
+      }
+
+      let res = null
+      try {
+        res = await pb.send(
+          `/backend/v1/evolution/status${instanceToTest ? `?instance=${instanceToTest}` : ''}`,
+          { method: 'GET' },
+        )
+      } catch (e) {
+        console.warn('Evolution API status fetch failed', e)
+        res = null
+        setStatus('error')
+      }
 
       if (res?.instance?.state) {
         setStatus(res.instance.state)
@@ -53,14 +82,14 @@ export function WhatsappStatusWidget() {
           name: res.profileName || res.instanceName,
           number: res.ownerJid?.split('@')[0] || res.profileNumber,
         })
-      } else if (config?.instance_id) {
-        setStatus('disconnected')
-        setIdentity({ name: config.instance_id })
+      } else if (availableInstances.length > 0) {
+        if (status !== 'error') setStatus('disconnected')
+        setIdentity({ name: instanceToTest })
       } else {
-        setStatus('disconnected')
+        if (status !== 'error') setStatus('disconnected')
       }
     } catch (e) {
-      setStatus('disconnected')
+      setStatus('error')
     } finally {
       setLoading(false)
     }
@@ -70,7 +99,7 @@ export function WhatsappStatusWidget() {
     fetchStatus()
     const interval = setInterval(fetchStatus, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [selectedInstance])
 
   const handleSendTest = async () => {
     if (!phone || !message) {
@@ -79,13 +108,8 @@ export function WhatsappStatusWidget() {
     }
     setSending(true)
     try {
-      const user = pb.authStore.model
+      const user = pb.authStore.record
       if (!user) throw new Error('Usuário não autenticado')
-
-      const config = await pb
-        .collection('whatsapp_configs')
-        .getFirstListItem(`user="${user.id}"`)
-        .catch(() => null)
 
       let channel = await pb
         .collection('channels')
@@ -99,7 +123,7 @@ export function WhatsappStatusWidget() {
 
       await pb.send('/backend/v1/evolution/send', {
         method: 'POST',
-        body: JSON.stringify({ phone, message, instance_id: config?.instance_id }),
+        body: JSON.stringify({ phone, message, instance_id: selectedInstance }),
       })
 
       await pb.collection('messages').create({
@@ -111,7 +135,7 @@ export function WhatsappStatusWidget() {
         status: 'replied',
       })
 
-      toast.success('Message sent successfully!')
+      toast.success('Mensagem enviada com sucesso!')
       setIsDialogOpen(false)
       setMessage('')
     } catch (e: any) {
@@ -129,8 +153,10 @@ export function WhatsappStatusWidget() {
         return 'bg-green-500/15 text-green-700 border-green-500/30'
       case 'connecting':
         return 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30'
-      default:
+      case 'error':
         return 'bg-red-500/15 text-red-700 border-red-500/30'
+      default:
+        return 'bg-muted text-muted-foreground border-border'
     }
   }
 
@@ -140,6 +166,8 @@ export function WhatsappStatusWidget() {
         return 'Conectado'
       case 'connecting':
         return 'Conectando...'
+      case 'error':
+        return 'Serviço Indisponível'
       default:
         return 'Desconectado'
     }
@@ -147,6 +175,12 @@ export function WhatsappStatusWidget() {
 
   return (
     <div className="flex items-center gap-3">
+      {status === 'error' && (
+        <div className="hidden lg:flex items-center gap-1.5 text-xs text-destructive mr-2 bg-destructive/10 px-2 py-1 rounded-md border border-destructive/20 animate-fade-in">
+          <AlertCircle className="h-3 w-3" />
+          <span className="font-medium">Falha na API</span>
+        </div>
+      )}
       {identity.number && status === 'open' && (
         <div className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground mr-2 bg-muted/50 px-2 py-1 rounded-md border border-border/50 animate-fade-in">
           <Phone className="h-3 w-3" />
@@ -174,7 +208,9 @@ export function WhatsappStatusWidget() {
                 ? 'bg-green-500'
                 : status === 'connecting'
                   ? 'bg-yellow-500 animate-pulse'
-                  : 'bg-red-500',
+                  : status === 'error'
+                    ? 'bg-red-500'
+                    : 'bg-muted-foreground',
             )}
           />
         )}
@@ -200,8 +236,25 @@ export function WhatsappStatusWidget() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {instances.length > 1 && (
+              <div className="grid gap-2">
+                <Label htmlFor="instance">Instância de Envio (Rotação)</Label>
+                <Select value={selectedInstance} onValueChange={setSelectedInstance}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a instância" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {instances.map((inst) => (
+                      <SelectItem key={inst} value={inst}>
+                        {inst}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid gap-2">
-              <Label htmlFor="phone">Telefone (com DDI e DDD)</Label>
+              <Label htmlFor="phone">Telefone de Destino (com DDI e DDD)</Label>
               <Input
                 id="phone"
                 placeholder="Ex: 5511999999999"
