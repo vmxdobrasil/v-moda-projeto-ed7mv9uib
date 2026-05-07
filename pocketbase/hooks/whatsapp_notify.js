@@ -69,22 +69,45 @@ routerAdd(
     }
 
     try {
+      let endpoint = apiUrl
+      let reqBody = {
+        phone: phone,
+        message: msg,
+      }
+      let reqHeaders = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      }
+
+      if (apiUrl.includes('evolution') || apiUrl.includes('n8n')) {
+        const instanceId = config.get('instance_id') || 'Evolution'
+        const base = apiUrl.replace(/\/$/, '')
+
+        if (apiUrl.includes('evolution')) {
+          endpoint = `${base}/message/sendText/${instanceId}`
+          reqHeaders['apikey'] = token
+          reqBody = {
+            number: phone,
+            textMessage: { text: msg },
+            text: msg,
+            options: {
+              delay: 1200,
+              presence: 'composing',
+            },
+          }
+        }
+      }
+
       const res = $http.send({
-        url: apiUrl,
+        url: endpoint,
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          phone: phone,
-          message: msg,
-        }),
+        headers: reqHeaders,
+        body: JSON.stringify(reqBody),
         timeout: 10,
       })
 
       if (res.statusCode >= 400) {
-        throw new Error(`API retornou ${res.statusCode}`)
+        throw new Error(`API retornou ${res.statusCode} na URL ${endpoint}`)
       }
 
       $app

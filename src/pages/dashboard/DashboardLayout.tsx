@@ -69,58 +69,6 @@ const navItems = [
   { icon: Settings, label: 'Configurações', path: '/settings' },
 ]
 
-function DomainStatusBanner() {
-  const [isVisible, setIsVisible] = useState(() => {
-    return sessionStorage.getItem('domain_banner_dismissed') !== 'true'
-  })
-
-  if (!isVisible) return null
-
-  const handleDismiss = () => {
-    setIsVisible(false)
-    sessionStorage.setItem('domain_banner_dismissed', 'true')
-  }
-
-  return (
-    <Alert className="mb-6 animate-fade-in-down border-blue-200 bg-blue-50/50 text-blue-900 flex flex-row justify-between items-start md:items-center shadow-sm">
-      <div className="flex flex-row gap-4 items-start w-full">
-        <Globe className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
-        <div className="flex-1">
-          <AlertTitle className="font-semibold text-blue-900">
-            Configuração de Domínio em Andamento
-          </AlertTitle>
-          <AlertDescription className="text-blue-800/80 mt-1 flex flex-col gap-2">
-            <p>
-              O domínio <strong>revistamodaatual.com.br</strong> está em fase de propagação. O
-              acesso via URL interna está totalmente liberado e funcional.
-            </p>
-            <div className="flex flex-wrap items-center gap-3 mt-1 text-xs font-medium">
-              <span className="flex items-center gap-1 text-green-600">
-                <CheckCircle2 className="w-3.5 h-3.5" /> DNS: OK
-              </span>
-              <span className="flex items-center gap-1 text-amber-600">
-                <Clock className="w-3.5 h-3.5" /> Roteamento: Em andamento
-              </span>
-              <span className="flex items-center gap-1 text-amber-600">
-                <Clock className="w-3.5 h-3.5" /> Certificado SSL: Pendente
-              </span>
-            </div>
-          </AlertDescription>
-        </div>
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleDismiss}
-        className="text-blue-500 hover:text-blue-700 hover:bg-blue-100/50 -mr-2 -mt-2 shrink-0 h-8 w-8"
-        aria-label="Dispensar aviso"
-      >
-        <X className="h-4 w-4" />
-      </Button>
-    </Alert>
-  )
-}
-
 export default function DashboardLayout() {
   const { signOut, user } = useAuth()
   const location = useLocation()
@@ -251,7 +199,6 @@ export default function DashboardLayout() {
             </div>
           </header>
           <div className="flex-1 overflow-auto p-4 md:p-8">
-            <DomainStatusBanner />
             <Outlet />
           </div>
         </main>

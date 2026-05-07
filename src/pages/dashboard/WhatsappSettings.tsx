@@ -24,12 +24,15 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { Loader2, CheckCircle2, XCircle, Smartphone } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, Smartphone, ExternalLink } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { WhatsappTemplatesManager } from './components/WhatsappTemplatesManager'
+import { useRealtime } from '@/hooks/use-realtime'
 
 const schema = z.object({
-  api_url: z.string().url('A URL deve ser válida (ex: https://api.meozap.com)'),
+  api_url: z
+    .string()
+    .url('A URL deve ser válida (ex: https://evolution-evolution.6xxwvj.easypanel.host)'),
   token: z.string().optional(),
   instance_id: z.string().min(1, 'O ID da Instância é obrigatório'),
 })
@@ -75,6 +78,23 @@ export default function WhatsappSettings() {
     load()
   }, [form])
 
+  useRealtime('whatsapp_configs', (e) => {
+    const userId = pb.authStore.record?.id
+    if (e.record.user === userId) {
+      if (e.action === 'update' || e.action === 'create') {
+        setConfigId(e.record.id)
+        if (!saving) {
+          form.reset({
+            api_url: e.record.api_url,
+            token: e.record.token || '',
+            instance_id: e.record.instance_id || '',
+          })
+          toast.info('Configurações sincronizadas do servidor.')
+        }
+      }
+    }
+  })
+
   const onSubmit = async (data: FormValues) => {
     const userId = pb.authStore.record?.id
     if (!userId) return
@@ -113,6 +133,7 @@ export default function WhatsappSettings() {
         body: JSON.stringify({
           api_url: values.api_url,
           token: values.token,
+          instance_id: values.instance_id,
         }),
         headers: { 'Content-Type': 'application/json' },
       })
@@ -140,9 +161,9 @@ export default function WhatsappSettings() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in-up">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Integração WhatsApp API</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Integração WhatsApp & n8n</h1>
         <p className="text-muted-foreground">
-          Configure a conexão com seu servidor MEO Zap ou Hostinger VPS e gerencie automações.
+          Configure a conexão com sua Evolution API e n8n para gerenciar automações no WhatsApp.
         </p>
       </div>
 
@@ -153,130 +174,179 @@ export default function WhatsappSettings() {
         </TabsList>
 
         <TabsContent value="api" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Smartphone className="w-5 h-5" /> Credenciais da API
-              </CardTitle>
-              <CardDescription>
-                Insira os dados de conexão do seu servidor para sincronizar leads automaticamente
-                com o CRM.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="api_url"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>URL da API (Hostinger VPS)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="https://api.seudominio.com" {...field} />
-                        </FormControl>
-                        <FormDescription>A URL base da sua instância do WhatsApp.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Smartphone className="w-5 h-5" /> Credenciais da API
+                </CardTitle>
+                <CardDescription>
+                  Insira os dados de conexão do seu servidor para envio de mensagens e sincronização
+                  com n8n.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="instance_id"
+                      name="api_url"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>ID da Instância</FormLabel>
+                          <FormLabel>URL da Evolution API ou Webhook</FormLabel>
                           <FormControl>
-                            <Input placeholder="ex: inst_12345" {...field} />
+                            <Input
+                              placeholder="https://evolution-evolution.6xxwvj.easypanel.host"
+                              {...field}
+                            />
                           </FormControl>
+                          <FormDescription>
+                            A URL base da sua instância Evolution API ou servidor n8n.
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="token"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Token de Autenticação</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Seu token de acesso" type="password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
 
-                  <div className="pt-4 flex flex-col sm:flex-row gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="instance_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome da Instância</FormLabel>
+                            <FormControl>
+                              <Input placeholder="ex: vmoda_master" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="token"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Global API Key (Token)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Sua Global API Key" type="password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="pt-4 flex flex-col sm:flex-row gap-3">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={testConnection}
+                        disabled={testing || saving}
+                      >
+                        {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                        Testar Conexão
+                      </Button>
+                      <Button type="submit" disabled={saving || testing}>
+                        {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                        Salvar Configurações
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+              {status !== 'idle' && (
+                <CardFooter className="bg-muted/50 border-t p-4 flex items-center gap-2">
+                  {status === 'success' ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      <span className="text-sm font-medium text-green-700">
+                        Conexão verificada com sucesso! Seu CRM está pronto para enviar mensagens.
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-5 h-5 text-destructive" />
+                      <span className="text-sm font-medium text-destructive">
+                        Não foi possível conectar. Verifique seus dados.
+                      </span>
+                    </>
+                  )}
+                </CardFooter>
+              )}
+            </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Links de Infraestrutura</CardTitle>
+                  <CardDescription>Acesse rapidamente seus painéis de controle.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <a
+                    href="https://evolution-evolution.6xxwvj.easypanel.host"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-3 border rounded-md hover:bg-muted/50 transition-colors group"
+                  >
+                    <div>
+                      <h4 className="font-medium text-sm group-hover:text-primary transition-colors">
+                        Painel Evolution API
+                      </h4>
+                      <p className="text-xs text-muted-foreground">Gerenciar instâncias WhatsApp</p>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </a>
+
+                  <a
+                    href="https://n8n-n8n.6xxwvj.easypanel.host"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-3 border rounded-md hover:bg-muted/50 transition-colors group"
+                  >
+                    <div>
+                      <h4 className="font-medium text-sm group-hover:text-primary transition-colors">
+                        Painel n8n
+                      </h4>
+                      <p className="text-xs text-muted-foreground">Workflows de automação</p>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </a>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Webhook n8n</CardTitle>
+                  <CardDescription>
+                    Configure esta URL nos seus nós do n8n para enviar leads recebidos ao CRM.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="p-3 bg-muted rounded-md flex items-center justify-between gap-4 overflow-hidden">
+                    <code className="text-xs truncate text-muted-foreground" title={webhookUrl}>
+                      {webhookUrl}
+                    </code>
                     <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={testConnection}
-                      disabled={testing || saving}
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0 h-8"
+                      onClick={() => {
+                        navigator.clipboard.writeText(webhookUrl)
+                        toast.success('URL copiada!')
+                      }}
                     >
-                      {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                      Testar Conexão
-                    </Button>
-                    <Button type="submit" disabled={saving || testing}>
-                      {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                      Salvar Configurações
+                      Copiar
                     </Button>
                   </div>
-                </form>
-              </Form>
-            </CardContent>
-            {status !== 'idle' && (
-              <CardFooter className="bg-muted/50 border-t p-4 flex items-center gap-2">
-                {status === 'success' ? (
-                  <>
-                    <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    <span className="text-sm font-medium text-green-700">
-                      Conexão verificada com sucesso! Seu CRM está pronto.
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-5 h-5 text-destructive" />
-                    <span className="text-sm font-medium text-destructive">
-                      Não foi possível conectar. Verifique seus dados.
-                    </span>
-                  </>
-                )}
-              </CardFooter>
-            )}
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Webhook para Recebimento</CardTitle>
-              <CardDescription>
-                Configure esta URL no seu servidor VPS para enviar novos leads e mensagens recebidas
-                para o CRM.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="p-3 bg-muted rounded-md flex items-center justify-between">
-                <code className="text-sm break-all">{webhookUrl}</code>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(webhookUrl)
-                    toast.success('URL copiada!')
-                  }}
-                >
-                  Copiar
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-4">
-                O payload deve ser enviado via POST (application/json) contendo <code>name</code>,{' '}
-                <code>phone</code> e <code>instance_id</code>.
-              </p>
-            </CardContent>
-          </Card>
+                  <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
+                    Payload esperado (POST json) contendo os campos: <br />
+                    <code>name</code>, <code>phone</code> e <code>instance_id</code>.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="templates">
