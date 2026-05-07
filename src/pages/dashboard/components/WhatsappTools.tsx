@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import pb from '@/lib/pocketbase/client'
 import { Loader2, Users, Send, RefreshCw, AlertCircle } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 export function WhatsappTools({ instances }: { instances: string[] }) {
   const [selectedInstance, setSelectedInstance] = useState<string>('')
@@ -75,7 +76,8 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
         `Extração concluída! ${res.added} novos leads adicionados. (${res.skipped} ignorados/duplicados)`,
       )
     } catch (e: any) {
-      toast.error('Erro na extração. ' + (e.message || ''))
+      const errorMsg = getErrorMessage(e)
+      toast.error(errorMsg || 'Erro na extração.')
     } finally {
       setExtracting(false)
     }
@@ -94,7 +96,9 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
     }
 
     if (!instanceToSend) {
-      toast.error('Nenhuma instância disponível.')
+      toast.error(
+        'Erro: Configuração da instância incompleta. Por favor, adicione e selecione uma instância.',
+      )
       return
     }
 
@@ -109,9 +113,10 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
         }),
         headers: { 'Content-Type': 'application/json' },
       })
-      toast.success(`Mensagem enviada com sucesso usando a instância: ${instanceToSend}`)
+      toast.success('Mensagem de teste enviada com sucesso!')
     } catch (e: any) {
-      toast.error('Erro ao enviar mensagem. ' + (e.message || ''))
+      const errorMsg = getErrorMessage(e)
+      toast.error(errorMsg || 'Erro ao enviar mensagem de teste.')
     } finally {
       setSendingTest(false)
     }
