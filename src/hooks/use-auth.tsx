@@ -18,15 +18,43 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(pb.authStore.record)
+  const [user, setUser] = useState<any>(pb.authStore.isValid ? pb.authStore.record : null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let mounted = true
+
+    const initAuth = async () => {
+      if (pb.authStore.isValid && pb.authStore.token) {
+        try {
+          const collection = pb.authStore.record?.collectionName || 'users'
+          if (
+            collection !== '_superusers' &&
+            pb.authStore.record?.email !== 'valterpmendonca@gmail.com'
+          ) {
+            await pb.collection(collection).authRefresh()
+          }
+          if (mounted) setUser(pb.authStore.record)
+        } catch (err) {
+          pb.authStore.clear()
+          if (mounted) setUser(null)
+        }
+      } else {
+        if (mounted) setUser(null)
+      }
+      if (mounted) setLoading(false)
+    }
+
+    initAuth()
+
     const unsubscribe = pb.authStore.onChange((_token, record) => {
-      setUser(record)
+      if (mounted) {
+        setUser(pb.authStore.isValid ? record : null)
+      }
     })
-    setLoading(false)
+
     return () => {
+      mounted = false
       unsubscribe()
     }
   }, [])

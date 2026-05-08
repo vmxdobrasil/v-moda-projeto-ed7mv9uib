@@ -56,10 +56,16 @@ export const saveWhatsappConfig = async (data: Partial<WhatsappConfig>) => {
 }
 
 export const sendManualWhatsapp = async (customerId: string) => {
+  if (!pb.authStore.isValid || !pb.authStore.token) {
+    throw new Error('Sessão expirada. Por favor, faça login novamente para enviar mensagens.')
+  }
   return pb.send(`/backend/v1/whatsapp/notify/${customerId}`, { method: 'POST' })
 }
 
 export const sendReactivationCampaign = async (customerIds: string[]) => {
+  if (!pb.authStore.isValid || !pb.authStore.token) {
+    throw new Error('Sessão expirada. Por favor, faça login novamente para enviar mensagens.')
+  }
   return pb.send('/backend/v1/whatsapp/reactivate', {
     method: 'POST',
     body: JSON.stringify({ customerIds }),

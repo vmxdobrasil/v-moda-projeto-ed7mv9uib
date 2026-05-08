@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/use-auth'
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -29,17 +30,21 @@ export default function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const { user, loading } = useAuth()
 
   const isAdmin =
-    pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
-    pb.authStore.record?.role === 'manufacturer'
+    user?.email === 'valterpmendonca@gmail.com' ||
+    user?.role === 'admin' ||
+    user?.role === 'manufacturer'
 
   // Rely exclusively on standard auth check to prevent loops and bypasses
-  const isAuthenticated = pb.authStore.isValid && isAdmin
+  const isAuthenticated = !!user && isAdmin
 
   // Determine internal admin role securely from record
   const role =
-    pb.authStore.record?.email === 'valterpmendonca@gmail.com' ? 'administrador' : 'gerente'
+    user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
+      ? 'administrador'
+      : 'gerente'
 
   const navigation = [
     {
@@ -112,11 +117,19 @@ export default function AdminLayout() {
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault()
     pb.authStore.clear()
-    navigate('/admin/login')
+    navigate('/login')
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   return (
@@ -236,9 +249,9 @@ export default function AdminLayout() {
             </span>
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full overflow-hidden border bg-muted flex items-center justify-center shrink-0">
-                {pb.authStore.record?.avatar ? (
+                {user?.avatar ? (
                   <img
-                    src={pb.files.getUrl(pb.authStore.record, pb.authStore.record.avatar, {
+                    src={pb.files.getUrl(user, user.avatar, {
                       thumb: '100x100',
                     })}
                     alt="Avatar"
@@ -246,12 +259,12 @@ export default function AdminLayout() {
                   />
                 ) : (
                   <span className="text-xs font-bold">
-                    {pb.authStore.record?.name?.substring(0, 2).toUpperCase() || 'AD'}
+                    {user?.name?.substring(0, 2).toUpperCase() || 'AD'}
                   </span>
                 )}
               </div>
               <span className="text-sm font-medium hidden sm:inline-block">
-                {pb.authStore.record?.name || pb.authStore.record?.email}
+                {user?.name || user?.email}
               </span>
             </div>
           </div>
