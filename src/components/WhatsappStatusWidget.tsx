@@ -38,64 +38,64 @@ export function WhatsappStatusWidget() {
   const [identity, setIdentity] = useState<{ name?: string; number?: string }>({})
   const [instances, setInstances] = useState<string[]>([])
   const [selectedInstance, setSelectedInstance] = useState<string>('')
+  const [failCount, setFailCount] = useState(0)
 
-  const fetchStatus = async () => {
+  const fetchStatus = async (isManualRefresh = false) => {
+    if (!isManualRefresh && failCount >= 3) {
+      setStatus('offline')
+      setErrorMessage('Serviço offline (Múltiplas falhas)')
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     setErrorMessage(null)
+
     try {
       const user = pb.authStore.record
-      if (!user) return
-
-      const config = await pb
-        .collection('whatsapp_configs')
-        .getFirstListItem(`user="${user.id}"`)
-        .catch(() => null)
-
-      const availableInstances = config?.instance_id
-        ? config.instance_id.split(',').map((i: string) => i.trim())
-        : ['vmoda']
-      setInstances(availableInstances)
-
-      const instanceToTest = selectedInstance || availableInstances[0] || 'vmoda'
-      if (!selectedInstance && availableInstances.length > 0) {
-        setSelectedInstance(availableInstances[0])
+      if (!user) {
+        setLoading(false)
+        return
       }
 
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000)
 
-      let res = null
       try {
-        res = await pb.send(
+        const config = await pb
+          .collection('whatsapp_configs')
+          .getFirstListItem(`user="${user.id}"`, { signal: controller.signal })
+          .catch(() => null)
+
+        const availableInstances = config?.instance_id
+          ? config.instance_id.split(',').map((i: string) => i.trim())
+          : ['vmoda']
+        setInstances(availableInstances)
+
+        const instanceToTest = selectedInstance || availableInstances[0] || 'vmoda'
+        if (!selectedInstance && availableInstances.length > 0) {
+          setSelectedInstance(availableInstances[0])
+        }
+
+        const res = await pb.send(
           `/backend/v1/whatsapp/status${instanceToTest ? `?instance=${instanceToTest}` : ''}`,
           { method: 'GET', signal: controller.signal },
         )
-      } catch (e: any) {
-        // Fallback catch if the backend is completely unreachable
-        res = null
-        setStatus('offline')
-        setErrorMessage(
-          e.name === 'AbortError' || e.isAbort
-            ? 'Timeout: Serviço Indisponível'
-            : 'Falha de conexão de rede com o servidor.',
-        )
-        setIdentity({ name: instanceToTest })
-      } finally {
-        clearTimeout(timeoutId)
-      }
 
-      if (res) {
+        clearTimeout(timeoutId)
+        setFailCount(0)
+
         if (res.state === 'auth_error') {
           setStatus('auth_error')
-          setErrorMessage(res.error)
+          setErrorMessage(res.error || 'Erro de Autenticação')
           setIdentity({ name: instanceToTest })
         } else if (res.state === 'offline') {
           setStatus('offline')
-          setErrorMessage(res.error)
+          setErrorMessage(res.error || 'Serviço Offline')
           setIdentity({ name: instanceToTest })
         } else if (res.state === 'disconnected') {
           setStatus('disconnected')
-          if (res.error) setErrorMessage(res.error)
+          setErrorMessage(res.error || 'Desconectado')
           setIdentity({ name: instanceToTest })
         } else if (res.instance?.state) {
           setStatus(res.instance.state)
@@ -111,9 +111,27 @@ export function WhatsappStatusWidget() {
             number: res.ownerJid?.split('@')[0] || res.profileNumber,
           })
           setErrorMessage(null)
+        } else {
+          setStatus('disconnected')
+          setErrorMessage('Status desconhecido')
         }
+      } catch (e: any) {
+        clearTimeout(timeoutId)
+        if (!isManualRefresh) {
+          setFailCount((prev) => prev + 1)
+        }
+        setStatus('offline')
+        setErrorMessage(
+          e.name === 'AbortError' || e.isAbort
+            ? 'Timeout: Serviço Indisponível'
+            : 'Falha de conexão com a API',
+        )
+        setIdentity({ name: selectedInstance || 'vmoda' })
       }
     } catch (e) {
+      if (!isManualRefresh) {
+        setFailCount((prev) => prev + 1)
+      }
       setStatus('offline')
       setErrorMessage('Falha interna ao processar o status')
     } finally {
@@ -123,7 +141,7 @@ export function WhatsappStatusWidget() {
 
   useEffect(() => {
     fetchStatus()
-    const interval = setInterval(fetchStatus, 30000)
+    const interval = setInterval(() => fetchStatus(), 30000)
     return () => clearInterval(interval)
   }, [selectedInstance])
 
@@ -137,29 +155,49 @@ export function WhatsappStatusWidget() {
       const user = pb.authStore.record
       if (!user) throw new Error('Usuário não autenticado')
 
-      let channel = await pb
-        .collection('channels')
-        .getFirstListItem(`type="whatsapp"`)
-        .catch(() => null)
-      if (!channel) {
-        channel = await pb
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 8000)
+
+      try {
+        let channel = await pb
           .collection('channels')
-          .create({ name: 'WhatsApp Principal', type: 'whatsapp', status: true })
+          .getFirstListItem(`type="whatsapp"`, { signal: controller.signal })
+          .catch(() => null)
+        if (!channel) {
+          channel = await pb
+            .collection('channels')
+            .create(
+              { name: 'WhatsApp Principal', type: 'whatsapp', status: true },
+              { signal: controller.signal },
+            )
+        }
+
+        await pb.send('/backend/v1/whatsapp/send', {
+          method: 'POST',
+          body: JSON.stringify({ phone, message, instance_id: selectedInstance || 'vmoda' }),
+          signal: controller.signal,
+        })
+
+        await pb.collection('messages').create(
+          {
+            channel: channel.id,
+            sender_id: user.id,
+            sender_name: user.name || user.email,
+            content: message,
+            direction: 'outbound',
+            status: 'replied',
+          },
+          { signal: controller.signal },
+        )
+
+        clearTimeout(timeoutId)
+      } catch (e: any) {
+        clearTimeout(timeoutId)
+        if (e.name === 'AbortError' || e.isAbort) {
+          throw new Error('Timeout: O servidor demorou muito para responder.')
+        }
+        throw e
       }
-
-      await pb.send('/backend/v1/whatsapp/send', {
-        method: 'POST',
-        body: JSON.stringify({ phone, message, instance_id: selectedInstance || 'vmoda' }),
-      })
-
-      await pb.collection('messages').create({
-        channel: channel.id,
-        sender_id: user.id,
-        sender_name: user.name || user.email,
-        content: message,
-        direction: 'outbound',
-        status: 'replied',
-      })
 
       toast.success('Mensagem enviada com sucesso!')
       setIsDialogOpen(false)
@@ -252,7 +290,7 @@ export function WhatsappStatusWidget() {
         variant="ghost"
         size="icon"
         className="h-8 w-8 rounded-full hidden sm:flex"
-        onClick={fetchStatus}
+        onClick={() => fetchStatus(true)}
         disabled={loading}
         title="Atualizar Status"
       >

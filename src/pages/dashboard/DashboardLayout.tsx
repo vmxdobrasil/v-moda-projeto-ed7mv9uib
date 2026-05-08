@@ -116,54 +116,60 @@ export default function DashboardLayout() {
     setInstanceStatus('checking')
     setInstanceError('')
     try {
-      const configs = await pb
-        .collection('whatsapp_configs')
-        .getFullList({ filter: `user = "${user?.id}"` })
-      if (!configs || configs.length === 0) {
-        setInstanceStatus('disconnected')
-        setInstanceError('Nenhuma configuração de WhatsApp encontrada.')
-        return
-      }
-      const config = configs[0]
-      const instanceStr = config.instance_id || ''
-      const firstInstance = instanceStr.split(',')[0].trim()
-
-      if (!firstInstance) {
-        setInstanceStatus('disconnected')
-        setInstanceError('Nenhuma instância configurada.')
-        return
-      }
-      setTestInstance(firstInstance)
-
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000)
 
       let res
       try {
+        const configs = await pb
+          .collection('whatsapp_configs')
+          .getFullList({ filter: `user = "${user?.id}"`, signal: controller.signal })
+          .catch(() => [])
+
+        if (!configs || configs.length === 0) {
+          clearTimeout(timeoutId)
+          setInstanceStatus('disconnected')
+          setInstanceError('Nenhuma configuração de WhatsApp encontrada.')
+          return
+        }
+        const config = configs[0]
+        const instanceStr = config.instance_id || ''
+        const firstInstance = instanceStr.split(',')[0].trim()
+
+        if (!firstInstance) {
+          clearTimeout(timeoutId)
+          setInstanceStatus('disconnected')
+          setInstanceError('Nenhuma instância configurada.')
+          return
+        }
+        setTestInstance(firstInstance)
+
         res = await pb.send(`/backend/v1/whatsapp/status?instance=${firstInstance}`, {
           method: 'GET',
           signal: controller.signal,
         })
-      } catch (e: any) {
-        if (e.name === 'AbortError' || e.isAbort) {
-          throw new Error('Serviço Indisponível (Timeout)')
-        }
-        throw e
-      } finally {
         clearTimeout(timeoutId)
+      } catch (e: any) {
+        clearTimeout(timeoutId)
+        setInstanceStatus('disconnected')
+        if (e.name === 'AbortError' || e.isAbort) {
+          setInstanceError('Timeout: Serviço Indisponível após 5s')
+        } else {
+          setInstanceError(e.response?.message || e.message || 'Falha de conexão com a API')
+        }
+        return
       }
 
       if (res?.instance?.state === 'open' || res?.state === 'open') {
         setInstanceStatus('connected')
+        setInstanceError('')
       } else {
         setInstanceStatus('disconnected')
         setInstanceError(res?.error || res?.instance?.state || res?.state || 'Desconectado')
       }
     } catch (err: any) {
       setInstanceStatus('disconnected')
-      const statusStr = err.status ? ` (${err.status})` : ''
-      const msg = err.response?.error || err.message || 'Erro ao verificar status da instância.'
-      setInstanceError(`Serviço Indisponível${statusStr}: ${msg}`)
+      setInstanceError('Erro interno ao verificar status da instância.')
     }
   }
 
@@ -206,15 +212,25 @@ export default function DashboardLayout() {
       setIsSendingTest(true)
       const toastId = toast.loading('Enviando mensagem de teste...')
 
-      await pb.send('/backend/v1/whatsapp/test-message', {
-        method: 'POST',
-        body: JSON.stringify({
-          instance: testInstance,
-          phone: normalizedPhone,
-          text: testMessage,
-        }),
-        headers: { 'Content-Type': 'application/json' },
-      })
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 8000)
+
+      try {
+        await pb.send('/backend/v1/whatsapp/test-message', {
+          method: 'POST',
+          body: JSON.stringify({
+            instance: testInstance,
+            phone: normalizedPhone,
+            text: testMessage,
+          }),
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+      } catch (e: any) {
+        clearTimeout(timeoutId)
+        throw e
+      }
 
       toast.dismiss(toastId)
       toast.success(`Mensagem enviada com sucesso para ${normalizedPhone}`)
@@ -233,7 +249,25 @@ export default function DashboardLayout() {
     try {
       setIsNormalizing(true)
       toast.loading('Normalizando números de telefone...')
-      const res = await pb.send('/backend/v1/customers/normalize', { method: 'POST' })
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
+
+      let res
+      try {
+        res = await pb.send('/backend/v1/customers/normalize', {
+          method: 'POST',
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+      } catch (e: any) {
+        clearTimeout(timeoutId)
+        if (e.name === 'AbortError' || e.isAbort) {
+          throw new Error('Timeout: O servidor demorou muito para processar.')
+        }
+        throw e
+      }
+
       toast.dismiss()
       toast.success(`${res.count} números foram normalizados com sucesso.`)
     } catch (error: any) {
