@@ -280,6 +280,15 @@ export default function ImportLeadsDialog({
             <p className="text-base font-medium">Processando importação... ({progress}%)</p>
             <Progress value={progress} className="w-full h-3" />
             <p className="text-sm text-muted-foreground">Por favor, não feche esta janela.</p>
+            <div className="bg-primary/10 text-primary p-3 rounded-md text-sm text-center flex flex-col items-center gap-2 max-w-sm mt-4">
+              <CheckCircle2 className="w-5 h-5" />
+              <span>
+                <strong>Validação Inteligente Ativa:</strong>
+                <br />
+                Os números de telefone estão sendo formatados automaticamente com DDI (55) e 9º
+                dígito.
+              </span>
+            </div>
           </div>
         )}
 

@@ -55,7 +55,22 @@ export function useBulkImport() {
           const mapped: any = {}
           for (const [key, colName] of Object.entries(mapping)) {
             if (colName && row[colName] !== undefined) {
-              mapped[key] = row[colName]
+              let val = String(row[colName])
+
+              if (key === 'phone' && val) {
+                let digits = val.replace(/\D/g, '')
+                if (digits.length === 10 || digits.length === 11) {
+                  digits = '55' + digits
+                }
+                if (digits.startsWith('55') && digits.length === 12) {
+                  const ddd = digits.substring(2, 4)
+                  const num = digits.substring(4)
+                  digits = '55' + ddd + '9' + num
+                }
+                val = digits
+              }
+
+              mapped[key] = val
             }
           }
           if (user?.role === 'affiliate') {

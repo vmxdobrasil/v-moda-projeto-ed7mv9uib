@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 export function WhatsappTools({ instances }: { instances: string[] }) {
+  const isAuthenticated = pb.authStore.isValid
   const [selectedInstance, setSelectedInstance] = useState<string>('')
 
   const [groups, setGroups] = useState<any[]>([])
@@ -304,19 +305,30 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
               </Label>
             </div>
 
-            <Button
-              className="w-full"
-              onClick={handleTestMessage}
-              disabled={sendingTest || !testPhone}
-            >
-              {sendingTest ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...
-                </>
-              ) : (
-                <>Enviar Mensagem de Teste</>
-              )}
-            </Button>
+            {!isAuthenticated ? (
+              <div className="p-4 bg-muted/50 rounded-md text-center border">
+                <p className="text-sm font-medium text-muted-foreground mb-3">
+                  Faça login para utilizar as ferramentas de teste.
+                </p>
+                <Button variant="outline" className="w-full" asChild>
+                  <a href="/login">Ir para Login</a>
+                </Button>
+              </div>
+            ) : (
+              <Button
+                className="w-full"
+                onClick={handleTestMessage}
+                disabled={sendingTest || !testPhone}
+              >
+                {sendingTest ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...
+                  </>
+                ) : (
+                  <>Enviar Mensagem de Teste</>
+                )}
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

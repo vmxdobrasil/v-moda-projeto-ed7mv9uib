@@ -13,7 +13,9 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getCustomersPaginated, Customer } from '@/services/customers'
-import { Users, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { Users, Search, ChevronLeft, ChevronRight, Loader2, CheckCircle2 } from 'lucide-react'
+import pb from '@/lib/pocketbase/client'
+import { toast } from 'sonner'
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value)
@@ -31,8 +33,42 @@ export default function Customers() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const [search, setSearch] = useState('')
+  const [isNormalizing, setIsNormalizing] = useState(false)
+  const [normalizeProgress, setNormalizeProgress] = useState<{
+    processed: number
+    total: number
+  } | null>(null)
 
   const debouncedSearch = useDebounce(search, 500)
+
+  const handleNormalize = async () => {
+    try {
+      setIsNormalizing(true)
+      toast.loading('Normalizando números de telefone...')
+      const res = await pb.send('/backend/v1/customers/normalize', { method: 'POST' })
+      toast.dismiss()
+      toast.success(`${res.count} números foram normalizados com sucesso.`)
+      loadData()
+    } catch (error: any) {
+      toast.dismiss()
+      toast.error(error.message || 'Erro ao normalizar números')
+    } finally {
+      setIsNormalizing(false)
+    }
+  }
+
+  useRealtime('import_logs', (e) => {
+    if (e.action === 'create' || e.action === 'update') {
+      const record = e.record
+      if (record.filename === 'Normalização de Contatos' && record.status === 'processing') {
+        setIsNormalizing(true)
+        setNormalizeProgress({ processed: record.processed_records, total: record.total_records })
+      } else if (record.filename === 'Normalização de Contatos' && record.status === 'success') {
+        setIsNormalizing(false)
+        setNormalizeProgress(null)
+      }
+    }
+  })
 
   const loadData = async () => {
     setLoading(true)
@@ -97,12 +133,34 @@ export default function Customers() {
   return (
     <div className="space-y-6 animate-fade-in-up max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-bold tracking-tight">CRM</h1>
           <p className="text-muted-foreground">
             Gerencie seus {totalItems.toLocaleString('pt-BR')} clientes e leads.
           </p>
         </div>
+
+        <div className="flex flex-col gap-1 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            onClick={handleNormalize}
+            disabled={isNormalizing}
+            className="w-full"
+          >
+            {isNormalizing ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+            )}
+            {isNormalizing ? 'Normalizando...' : 'Normalizar Números'}
+          </Button>
+          {isNormalizing && normalizeProgress && (
+            <span className="text-[10px] text-muted-foreground text-center">
+              Progresso: {normalizeProgress.processed} / {normalizeProgress.total}
+            </span>
+          )}
+        </div>
+
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
