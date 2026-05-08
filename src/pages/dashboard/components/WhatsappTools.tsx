@@ -90,6 +90,15 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
       return
     }
 
+    let normalizedPhone = testPhone.replace(/\D/g, '')
+    if (normalizedPhone.length === 10 || normalizedPhone.length === 11) {
+      normalizedPhone = '55' + normalizedPhone
+    }
+    if (normalizedPhone.length < 12) {
+      toast.error('Número de telefone inválido. O formato esperado é 55 + DDD + 9 dígitos.')
+      return
+    }
+
     let instanceToSend = selectedInstance
     if (rotationEnabled && instances.length > 0) {
       const randomIdx = Math.floor(Math.random() * instances.length)
@@ -109,7 +118,7 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
         method: 'POST',
         body: JSON.stringify({
           instance: instanceToSend,
-          phone: testPhone,
+          phone: normalizedPhone,
           text: testMessage,
         }),
         headers: { 'Content-Type': 'application/json' },

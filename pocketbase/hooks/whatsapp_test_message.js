@@ -54,17 +54,47 @@ routerAdd(
         timeout: 15,
       })
     } catch (err) {
-      return e.badRequestError('Erro ao comunicar com a Evolution API: ' + err.message)
+      $app
+        .logger()
+        .error(
+          'WhatsApp Test Message Transport Error',
+          'error',
+          err.message,
+          'phone',
+          phone,
+          'instance',
+          instance,
+        )
+      return e.badRequestError('Erro de conexão com a Evolution API: ' + err.message)
     }
 
     if (res.statusCode >= 400) {
       let errorMsg = 'Erro na Evolution API: ' + res.statusCode
+      let errorCode = 'API_ERROR'
       try {
-        if (res.json && res.json.message) {
-          errorMsg = res.json.message
+        if (res.json) {
+          errorMsg = res.json.message || res.json.error || errorMsg
+          errorCode = res.json.code || errorCode
+        } else {
+          const bodyStr = new TextDecoder().decode(res.body)
+          errorMsg = bodyStr || errorMsg
         }
       } catch (_) {}
-      return e.badRequestError(errorMsg)
+
+      $app
+        .logger()
+        .error(
+          'WhatsApp Test Message API Error',
+          'statusCode',
+          res.statusCode,
+          'message',
+          errorMsg,
+          'phone',
+          phone,
+          'instance',
+          instance,
+        )
+      return e.badRequestError(`Falha no envio (${errorCode}): ${errorMsg}`)
     }
 
     // Find or create channel for the instance

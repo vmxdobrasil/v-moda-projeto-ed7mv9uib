@@ -2,25 +2,57 @@ routerAdd(
   'GET',
   '/backend/v1/evolution/status',
   (e) => {
+    const instanceQuery = e.request.url.query().get('instance')
     let config
+    let targetInstance = instanceQuery
+
     try {
-      config = $app.findFirstRecordByData('whatsapp_configs', 'user', e.auth.id)
+      const configs = $app.findRecordsByFilter(
+        'whatsapp_configs',
+        'user = {:userId}',
+        '-created',
+        100,
+        0,
+        { userId: e.auth.id },
+      )
+      if (!configs || configs.length === 0) {
+        return e.json(200, { state: 'disconnected', error: 'Configuração não encontrada' })
+      }
+
+      if (instanceQuery) {
+        config = configs.find((c) =>
+          c
+            .getString('instance_id')
+            .split(',')
+            .map((i) => i.trim())
+            .includes(instanceQuery),
+        )
+      } else {
+        config = configs[0]
+        targetInstance = config.getString('instance_id').split(',')[0].trim()
+      }
     } catch (_) {
-      return e.json(200, { state: 'disconnected' })
+      return e.json(200, { state: 'disconnected', error: 'Erro ao buscar configuração' })
+    }
+
+    if (!config) {
+      return e.json(200, {
+        state: 'disconnected',
+        error: 'Instância não encontrada na configuração',
+      })
     }
 
     const apiUrl = config.getString('api_url')
     const token = config.getString('token')
-    const instanceId = config.getString('instance_id')
 
-    if (!apiUrl || !token || !instanceId) {
-      return e.json(200, { state: 'disconnected' })
+    if (!apiUrl || !token || !targetInstance) {
+      return e.json(200, { state: 'disconnected', error: 'Configuração incompleta' })
     }
 
     try {
       const url = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
       const res = $http.send({
-        url: `${url}/instance/connectionState/${instanceId}`,
+        url: `${url}/instance/connectionState/${targetInstance}`,
         method: 'GET',
         headers: { apikey: token },
         timeout: 10,
@@ -28,12 +60,22 @@ routerAdd(
 
       if (res.statusCode === 200) {
         return e.json(200, res.json)
+      } else {
+        $app
+          .logger()
+          .error(
+            'Evolution API Status Error Response',
+            'status',
+            res.statusCode,
+            'body',
+            String(res.body),
+          )
+        return e.json(200, { state: 'disconnected', error: `Erro na API: ${res.statusCode}` })
       }
     } catch (err) {
       $app.logger().error('Evolution API Status Error', 'err', String(err))
+      return e.json(200, { state: 'disconnected', error: 'Falha de conexão com a API Evolution' })
     }
-
-    return e.json(200, { state: 'disconnected' })
   },
   $apis.requireAuth(),
 )
@@ -83,10 +125,31 @@ routerAdd(
         timeout: 15,
       })
 
+      if (res.statusCode >= 400) {
+        $app
+          .logger()
+          .error(
+            'Evolution API Send API Error',
+            'statusCode',
+            res.statusCode,
+            'body',
+            String(res.body),
+            'phone',
+            phone,
+          )
+        let errorMsg = 'Erro na API'
+        try {
+          if (res.json && res.json.message) errorMsg = res.json.message
+        } catch (_) {}
+        return e.badRequestError(`Erro ao enviar: ${errorMsg}`)
+      }
+
       return e.json(res.statusCode, res.json)
     } catch (err) {
-      $app.logger().error('Evolution API Send Error', 'err', String(err))
-      return e.internalServerError('Falha ao se conectar com a Evolution API.')
+      $app.logger().error('Evolution API Send Transport Error', 'err', String(err))
+      return e.internalServerError(
+        'Falha de transporte ao se conectar com a Evolution API: ' + err.message,
+      )
     }
   },
   $apis.requireAuth(),

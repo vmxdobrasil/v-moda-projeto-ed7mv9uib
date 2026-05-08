@@ -1,5 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { Loader2 } from 'lucide-react'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import {
   Sidebar,
   SidebarContent,
@@ -87,7 +101,71 @@ export default function DashboardLayout() {
   const [isNormalizing, setIsNormalizing] = useState(false)
 
   const navigate = useNavigate()
+
+  const [isTestDialogOpen, setIsTestDialogOpen] = useState(false)
+  const [testPhone, setTestPhone] = useState('')
+  const [testMessage, setTestMessage] = useState('Olá! Teste de conexão V MODA BRASIL.')
+  const [testInstance, setTestInstance] = useState('')
+  const [instanceStatus, setInstanceStatus] = useState<'checking' | 'connected' | 'disconnected'>(
+    'checking',
+  )
+  const [instanceError, setInstanceError] = useState('')
   const [isSendingTest, setIsSendingTest] = useState(false)
+
+  const checkInstanceHealth = async () => {
+    setInstanceStatus('checking')
+    setInstanceError('')
+    try {
+      const configs = await pb
+        .collection('whatsapp_configs')
+        .getFullList({ filter: `user = "${user?.id}"` })
+      if (!configs || configs.length === 0) {
+        setInstanceStatus('disconnected')
+        setInstanceError('Nenhuma configuração de WhatsApp encontrada.')
+        return
+      }
+      const config = configs[0]
+      const instanceStr = config.instance_id || ''
+      const firstInstance = instanceStr.split(',')[0].trim()
+
+      if (!firstInstance) {
+        setInstanceStatus('disconnected')
+        setInstanceError('Nenhuma instância configurada.')
+        return
+      }
+      setTestInstance(firstInstance)
+
+      const res = await pb.send(`/backend/v1/evolution/status?instance=${firstInstance}`, {
+        method: 'GET',
+      })
+      if (res?.instance?.state === 'open' || res?.state === 'open') {
+        setInstanceStatus('connected')
+      } else {
+        setInstanceStatus('disconnected')
+        setInstanceError(res?.error || res?.instance?.state || res?.state || 'Desconectado')
+      }
+    } catch (err: any) {
+      setInstanceStatus('disconnected')
+      setInstanceError('Erro ao verificar status da instância.')
+    }
+  }
+
+  useEffect(() => {
+    if (isTestDialogOpen && user) {
+      checkInstanceHealth()
+    }
+  }, [isTestDialogOpen, user])
+
+  const normalizePhone = (phoneStr: string) => {
+    const digits = phoneStr.replace(/\D/g, '')
+    if (digits.startsWith('55') && digits.length >= 12 && digits.length <= 13) {
+      return digits
+    }
+    if (digits.length === 10 || digits.length === 11) {
+      return '55' + digits
+    }
+    return digits
+  }
 
   const handleSendTest = async () => {
     if (!pb.authStore.isValid) {
@@ -96,61 +174,39 @@ export default function DashboardLayout() {
       return
     }
 
+    if (instanceStatus !== 'connected') {
+      toast.error('A instância não está conectada. Verifique as configurações.')
+      return
+    }
+
+    const normalizedPhone = normalizePhone(testPhone)
+    if (!normalizedPhone || normalizedPhone.length < 12) {
+      toast.error('Número de telefone inválido. O formato esperado é 55 + DDD + 9 dígitos.')
+      return
+    }
+
     try {
       setIsSendingTest(true)
       const toastId = toast.loading('Enviando mensagem de teste...')
 
-      if (!user) {
-        toast.dismiss(toastId)
-        toast.error('Usuário não encontrado.')
-        return
-      }
+      await pb.send('/backend/v1/whatsapp/test-message', {
+        method: 'POST',
+        body: JSON.stringify({
+          instance: testInstance,
+          phone: normalizedPhone,
+          text: testMessage,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      })
 
-      const configs = await pb
-        .collection('whatsapp_configs')
-        .getFullList({ filter: `user = "${user.id}"` })
-      if (!configs || configs.length === 0) {
-        toast.dismiss(toastId)
-        toast.error('Configuração do WhatsApp não encontrada. Verifique suas configurações de API.')
-        return
-      }
-
-      const config = configs[0]
-      const instanceStr = config.instance_id || ''
-      const firstInstance = instanceStr.split(',')[0].trim()
-
-      if (!firstInstance) {
-        toast.dismiss(toastId)
-        toast.error('Configuração do WhatsApp não encontrada. Verifique suas configurações de API.')
-        return
-      }
-
-      const phone = '5562992156222'
-      const text = 'teste mensagem whatsapp V MODA BRASIL'
-
-      try {
-        await pb.send('/backend/v1/whatsapp/test-message', {
-          method: 'POST',
-          body: JSON.stringify({
-            instance: firstInstance,
-            phone,
-            text,
-          }),
-          headers: { 'Content-Type': 'application/json' },
-        })
-
-        toast.dismiss(toastId)
-        toast.success(`Mensagem de teste enviada com sucesso para ${phone}`)
-      } catch (err: any) {
-        toast.dismiss(toastId)
-        if (err && err.status !== undefined) {
-          toast.error(`Erro de conexão com a Evolution API: ${err.status}`)
-        } else {
-          toast.error(err.message || 'Erro ao enviar mensagem de teste')
-        }
-      }
-    } catch (error: any) {
-      toast.error('Erro ao buscar configurações')
+      toast.dismiss(toastId)
+      toast.success(`Mensagem enviada com sucesso para ${normalizedPhone}`)
+      setIsTestDialogOpen(false)
+      setTestPhone('')
+    } catch (err: any) {
+      toast.dismiss()
+      const errorMsg = getErrorMessage(err)
+      toast.error(errorMsg || 'Erro ao enviar mensagem de teste')
     } finally {
       setIsSendingTest(false)
     }
@@ -252,17 +308,11 @@ export default function DashboardLayout() {
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton
-                        onClick={handleSendTest}
-                        disabled={isSendingTest}
+                        onClick={() => setIsTestDialogOpen(true)}
                         tooltip="Enviar Teste WhatsApp"
                       >
-                        <MessageSquare
-                          className={cn('h-4 w-4 shrink-0', isSendingTest && 'animate-pulse')}
-                          strokeWidth={2}
-                        />
-                        <span className="truncate">
-                          {isSendingTest ? 'Enviando...' : 'Enviar Teste'}
-                        </span>
+                        <MessageSquare className="h-4 w-4 shrink-0" strokeWidth={2} />
+                        <span className="truncate">Enviar Teste</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </SidebarMenu>
@@ -294,6 +344,97 @@ export default function DashboardLayout() {
             </Button>
           </SidebarFooter>
         </Sidebar>
+
+        <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Disparo de Teste WhatsApp</DialogTitle>
+              <DialogDescription>
+                Valide a conexão da sua instância enviando uma mensagem de teste.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md border">
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">Status da Instância</span>
+                  <span className="text-xs text-muted-foreground">
+                    {testInstance || 'Verificando...'}
+                  </span>
+                </div>
+                {instanceStatus === 'checking' && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Verificando
+                  </Badge>
+                )}
+                {instanceStatus === 'connected' && (
+                  <Badge className="bg-green-500 hover:bg-green-600 text-white">Conectado</Badge>
+                )}
+                {instanceStatus === 'disconnected' && (
+                  <Badge variant="destructive">Desconectado</Badge>
+                )}
+              </div>
+
+              {instanceStatus === 'disconnected' && instanceError && (
+                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
+                  <strong>Erro:</strong> {instanceError}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="test-phone">Telefone (WhatsApp)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground select-none pointer-events-none text-sm">
+                    🇧🇷 +
+                  </span>
+                  <Input
+                    id="test-phone"
+                    placeholder="5511999999999"
+                    className="pl-[3.5rem]"
+                    value={testPhone}
+                    onChange={(e) => setTestPhone(e.target.value)}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  O DDD e o DDI (55) serão formatados automaticamente.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="test-message">Mensagem</Label>
+                <Textarea
+                  id="test-message"
+                  placeholder="Digite sua mensagem de teste..."
+                  value={testMessage}
+                  onChange={(e) => setTestMessage(e.target.value)}
+                  className="resize-none h-24"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsTestDialogOpen(false)}
+                disabled={isSendingTest}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSendTest}
+                disabled={isSendingTest || instanceStatus !== 'connected' || !testPhone}
+              >
+                {isSendingTest ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...
+                  </>
+                ) : (
+                  'Enviar Mensagem'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-muted/20">
           <header className="h-16 border-b flex items-center px-6 bg-background shrink-0 shadow-sm z-10">
