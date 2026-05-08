@@ -136,7 +136,7 @@ export default function DashboardLayout() {
       setTestInstance(firstInstance)
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
 
       let res
       try {
@@ -477,7 +477,9 @@ export default function DashboardLayout() {
                   <ExternalLink className="ml-0.5 h-3 w-3 opacity-50" />
                 </CustomExternalLink>
               </div>
-              <WhatsappStatusWidget />
+              <ErrorBoundary>
+                <WhatsappStatusWidget />
+              </ErrorBoundary>
               <div className="text-sm font-medium text-muted-foreground hidden lg:block border-l pl-4 py-1">
                 {new Date().toLocaleDateString('pt-BR', {
                   weekday: 'long',

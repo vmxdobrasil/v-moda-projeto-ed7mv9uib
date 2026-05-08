@@ -62,7 +62,7 @@ export function WhatsappStatusWidget() {
       }
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
 
       let res = null
       try {
@@ -74,7 +74,11 @@ export function WhatsappStatusWidget() {
         // Fallback catch if the backend is completely unreachable
         res = null
         setStatus('offline')
-        setErrorMessage('Falha de conexão de rede com o servidor.')
+        setErrorMessage(
+          e.name === 'AbortError' || e.isAbort
+            ? 'Timeout: Serviço Indisponível'
+            : 'Falha de conexão de rede com o servidor.',
+        )
         setIdentity({ name: instanceToTest })
       } finally {
         clearTimeout(timeoutId)
