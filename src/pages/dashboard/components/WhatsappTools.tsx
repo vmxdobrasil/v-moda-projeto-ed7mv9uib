@@ -114,12 +114,12 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
 
     setSendingTest(true)
     try {
-      await pb.send('/backend/v1/whatsapp/test-message', {
+      await pb.send('/backend/v1/whatsapp/send', {
         method: 'POST',
         body: JSON.stringify({
-          instance: instanceToSend,
+          instance_id: instanceToSend,
           phone: normalizedPhone,
-          text: testMessage,
+          message: testMessage,
         }),
         headers: { 'Content-Type': 'application/json' },
       })

@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { MessageSquare, Send, Loader2, Phone, AlertCircle } from 'lucide-react'
+import { MessageSquare, Send, Loader2, Phone, AlertCircle, RefreshCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -29,16 +29,19 @@ export function WhatsappStatusWidget() {
   const [status, setStatus] = useState<'open' | 'close' | 'connecting' | 'disconnected' | 'error'>(
     'disconnected',
   )
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [phone, setPhone] = useState('')
-  const [message, setMessage] = useState('')
+  const [phone, setPhone] = useState('5562992156222')
+  const [message, setMessage] = useState('Teste de conexão - Evolution API')
   const [sending, setSending] = useState(false)
   const [identity, setIdentity] = useState<{ name?: string; number?: string }>({})
   const [instances, setInstances] = useState<string[]>([])
   const [selectedInstance, setSelectedInstance] = useState<string>('')
 
   const fetchStatus = async () => {
+    setLoading(true)
+    setErrorMessage(null)
     try {
       const user = pb.authStore.record
       if (!user) return
@@ -61,16 +64,21 @@ export function WhatsappStatusWidget() {
       let res = null
       try {
         res = await pb.send(
-          `/backend/v1/evolution/status${instanceToTest ? `?instance=${instanceToTest}` : ''}`,
+          `/backend/v1/whatsapp/status${instanceToTest ? `?instance=${instanceToTest}` : ''}`,
           { method: 'GET' },
         )
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Evolution API status fetch failed', e)
         res = null
         setStatus('error')
+        setErrorMessage(e.message || 'Falha de conexão')
       }
 
-      if (res?.instance?.state) {
+      if (res?.error && res.state === 'disconnected') {
+        setStatus('error')
+        setErrorMessage(res.error)
+        setIdentity({ name: instanceToTest })
+      } else if (res?.instance?.state) {
         setStatus(res.instance.state)
         setIdentity({
           name: res.instance.profileName || res.instance.instanceName,
@@ -90,6 +98,7 @@ export function WhatsappStatusWidget() {
       }
     } catch (e) {
       setStatus('error')
+      setErrorMessage('Falha ao processar o status')
     } finally {
       setLoading(false)
     }
@@ -121,7 +130,7 @@ export function WhatsappStatusWidget() {
           .create({ name: 'WhatsApp Principal', type: 'whatsapp', status: true })
       }
 
-      await pb.send('/backend/v1/evolution/send', {
+      await pb.send('/backend/v1/whatsapp/send', {
         method: 'POST',
         body: JSON.stringify({ phone, message, instance_id: selectedInstance }),
       })
@@ -137,11 +146,9 @@ export function WhatsappStatusWidget() {
 
       toast.success('Mensagem enviada com sucesso!')
       setIsDialogOpen(false)
-      setMessage('')
     } catch (e: any) {
-      toast.error(
-        e.message || 'Falha ao enviar mensagem de teste. Verifique se a instância está conectada.',
-      )
+      const specificError = e?.response?.message || e.message || 'Falha ao conectar'
+      toast.error(`Falha ao enviar mensagem de teste: ${specificError}`)
     } finally {
       setSending(false)
     }
@@ -174,15 +181,18 @@ export function WhatsappStatusWidget() {
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
       {status === 'error' && (
-        <div className="hidden lg:flex items-center gap-1.5 text-xs text-destructive mr-2 bg-destructive/10 px-2 py-1 rounded-md border border-destructive/20 animate-fade-in">
-          <AlertCircle className="h-3 w-3" />
-          <span className="font-medium">Falha na API</span>
+        <div
+          className="hidden lg:flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 px-2 py-1 rounded-md border border-destructive/20 animate-fade-in max-w-[250px]"
+          title={errorMessage || 'Falha na API'}
+        >
+          <AlertCircle className="h-3 w-3 shrink-0" />
+          <span className="font-medium truncate">{errorMessage || 'Falha na API'}</span>
         </div>
       )}
       {identity.number && status === 'open' && (
-        <div className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground mr-2 bg-muted/50 px-2 py-1 rounded-md border border-border/50 animate-fade-in">
+        <div className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md border border-border/50 animate-fade-in">
           <Phone className="h-3 w-3" />
           <span className="font-medium">{identity.number}</span>
           {identity.name && (
@@ -194,7 +204,7 @@ export function WhatsappStatusWidget() {
       <Badge
         variant="outline"
         className={cn(
-          'gap-1.5 px-2.5 py-1 hidden md:inline-flex transition-colors',
+          'gap-1.5 px-2.5 py-1 hidden md:inline-flex transition-colors cursor-default',
           getStatusColor(),
         )}
       >
@@ -217,9 +227,25 @@ export function WhatsappStatusWidget() {
         <span className="font-medium text-xs">{getStatusLabel()}</span>
       </Badge>
 
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 rounded-full hidden sm:flex"
+        onClick={fetchStatus}
+        disabled={loading}
+        title="Atualizar Status"
+      >
+        <RefreshCcw
+          className={cn(
+            'h-4 w-4 text-muted-foreground hover:text-foreground',
+            loading && 'animate-spin',
+          )}
+        />
+      </Button>
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs hidden sm:flex">
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs hidden sm:flex ml-1">
             <Send className="h-3.5 w-3.5" />
             Testar Mensagem
           </Button>
@@ -238,7 +264,7 @@ export function WhatsappStatusWidget() {
           <div className="grid gap-4 py-4">
             {instances.length > 1 && (
               <div className="grid gap-2">
-                <Label htmlFor="instance">Instância de Envio (Rotação)</Label>
+                <Label htmlFor="instance">Instância de Envio</Label>
                 <Select value={selectedInstance} onValueChange={setSelectedInstance}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a instância" />

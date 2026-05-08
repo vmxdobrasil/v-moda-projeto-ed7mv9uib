@@ -1,6 +1,6 @@
 routerAdd(
   'GET',
-  '/backend/v1/evolution/status',
+  '/backend/v1/whatsapp/status',
   (e) => {
     const instanceQuery = e.request.url.query().get('instance')
     let config
@@ -70,7 +70,18 @@ routerAdd(
             'body',
             String(res.body),
           )
-        return e.json(200, { state: 'disconnected', error: `Erro na API: ${res.statusCode}` })
+        let errorMsg = `Erro na API: ${res.statusCode}`
+        try {
+          if (res.json && res.json.response) {
+            errorMsg =
+              typeof res.json.response === 'string'
+                ? res.json.response
+                : JSON.stringify(res.json.response)
+          } else if (res.json && res.json.message) {
+            errorMsg = res.json.message
+          }
+        } catch (_) {}
+        return e.json(200, { state: 'disconnected', error: errorMsg })
       }
     } catch (err) {
       $app.logger().error('Evolution API Status Error', 'err', String(err))
@@ -82,7 +93,7 @@ routerAdd(
 
 routerAdd(
   'POST',
-  '/backend/v1/evolution/send',
+  '/backend/v1/whatsapp/send',
   (e) => {
     let config
     try {
@@ -93,18 +104,29 @@ routerAdd(
 
     const apiUrl = config.getString('api_url')
     const token = config.getString('token')
-    const instanceId = config.getString('instance_id')
+    const instanceId =
+      e.requestInfo().body.instance_id || config.getString('instance_id').split(',')[0].trim()
 
     if (!apiUrl || !token || !instanceId) {
       throw new Error('Configuração do WhatsApp incompleta.')
     }
 
     const body = e.requestInfo().body
-    const phone = body.phone
+    let phone = body.phone
     const message = body.message
 
     if (!phone || !message) {
       return e.badRequestError('Telefone e mensagem são obrigatórios.')
+    }
+
+    phone = phone.replace(/\D/g, '')
+    if (phone.length === 10 || phone.length === 11) {
+      phone = '55' + phone
+    }
+    if (phone.length < 12) {
+      return e.badRequestError(
+        'Número de telefone inválido. O formato esperado é 55 + DDD + 9 dígitos.',
+      )
     }
 
     const url = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
@@ -129,7 +151,7 @@ routerAdd(
         $app
           .logger()
           .error(
-            'Evolution API Send API Error',
+            'Evolution API Send Error',
             'statusCode',
             res.statusCode,
             'body',
@@ -137,9 +159,16 @@ routerAdd(
             'phone',
             phone,
           )
-        let errorMsg = 'Erro na API'
+        let errorMsg = `Erro na API (${res.statusCode})`
         try {
-          if (res.json && res.json.message) errorMsg = res.json.message
+          if (res.json && res.json.response) {
+            errorMsg =
+              typeof res.json.response === 'string'
+                ? res.json.response
+                : JSON.stringify(res.json.response)
+          } else if (res.json && res.json.message) {
+            errorMsg = res.json.message
+          }
         } catch (_) {}
         return e.badRequestError(`Erro ao enviar: ${errorMsg}`)
       }
