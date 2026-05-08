@@ -45,6 +45,7 @@ import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 import { ExternalLink as CustomExternalLink } from '@/components/ExternalLink'
 import { WhatsappStatusWidget } from '@/components/WhatsappStatusWidget'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { toast } from 'sonner'
 
 const navItems = [
   { icon: Home, label: 'Dashboard', path: '/' },
@@ -82,6 +83,23 @@ export default function DashboardLayout() {
     if (item.adminOnly && !isAdmin) return false
     return true
   })
+
+  const [isNormalizing, setIsNormalizing] = useState(false)
+
+  const handleNormalizePhones = async () => {
+    try {
+      setIsNormalizing(true)
+      toast.loading('Normalizando números de telefone...')
+      const res = await pb.send('/backend/v1/customers/normalize', { method: 'POST' })
+      toast.dismiss()
+      toast.success(`${res.count} números foram normalizados com sucesso.`)
+    } catch (error: any) {
+      toast.dismiss()
+      toast.error(error.message || 'Erro ao normalizar números')
+    } finally {
+      setIsNormalizing(false)
+    }
+  }
 
   return (
     <SidebarProvider>
@@ -141,6 +159,31 @@ export default function DashboardLayout() {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
+
+            {isAdmin && (
+              <SidebarGroup className="mt-auto">
+                <SidebarGroupLabel>Gerenciamento de Contatos</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={handleNormalizePhones}
+                        disabled={isNormalizing}
+                        tooltip="Normalizar Números"
+                      >
+                        <CheckCircle2
+                          className={cn('h-4 w-4 shrink-0', isNormalizing && 'animate-pulse')}
+                          strokeWidth={2}
+                        />
+                        <span className="truncate">
+                          {isNormalizing ? 'Normalizando...' : 'Normalizar Números'}
+                        </span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
           </SidebarContent>
           <SidebarFooter className="border-t p-4 shrink-0">
             <div className="flex items-center gap-3 mb-4 px-2">

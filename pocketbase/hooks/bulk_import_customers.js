@@ -57,8 +57,12 @@ routerAdd(
         const rawPhone = row.phone || ''
         let phone = rawPhone ? rawPhone.toString().replace(/\D/g, '') : ''
 
-        if (phone.length === 10 || phone.length === 11) {
+        if (phone.length === 10) {
+          phone = '55' + phone.substring(0, 2) + '9' + phone.substring(2)
+        } else if (phone.length === 11 && !phone.startsWith('55')) {
           phone = '55' + phone
+        } else if (phone.length === 12 && phone.startsWith('55')) {
+          phone = '55' + phone.substring(2, 4) + '9' + phone.substring(4)
         }
 
         const email = row.email

@@ -1,3 +1,37 @@
+onRecordCreate((e) => {
+  const record = e.record
+  let raw = record.getString('phone')
+  if (raw) {
+    let phone = raw.replace(/\D/g, '')
+    if (phone.length === 10) {
+      phone = '55' + phone.substring(0, 2) + '9' + phone.substring(2)
+    } else if (phone.length === 11 && !phone.startsWith('55')) {
+      phone = '55' + phone
+    } else if (phone.length === 12 && phone.startsWith('55')) {
+      phone = '55' + phone.substring(2, 4) + '9' + phone.substring(4)
+    }
+    record.set('phone', phone)
+  }
+  e.next()
+}, 'customers')
+
+onRecordUpdate((e) => {
+  const record = e.record
+  let raw = record.getString('phone')
+  if (raw) {
+    let phone = raw.replace(/\D/g, '')
+    if (phone.length === 10) {
+      phone = '55' + phone.substring(0, 2) + '9' + phone.substring(2)
+    } else if (phone.length === 11 && !phone.startsWith('55')) {
+      phone = '55' + phone
+    } else if (phone.length === 12 && phone.startsWith('55')) {
+      phone = '55' + phone.substring(2, 4) + '9' + phone.substring(4)
+    }
+    record.set('phone', phone)
+  }
+  e.next()
+}, 'customers')
+
 onRecordAfterCreateSuccess((e) => {
   const record = e.record
   const collection = $app.findCollectionByNameOrId('notifications')
