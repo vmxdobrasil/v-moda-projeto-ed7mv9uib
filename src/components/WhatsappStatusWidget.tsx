@@ -26,9 +26,9 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 export function WhatsappStatusWidget() {
-  const [status, setStatus] = useState<'open' | 'close' | 'connecting' | 'disconnected' | 'error'>(
-    'disconnected',
-  )
+  const [status, setStatus] = useState<
+    'open' | 'close' | 'connecting' | 'disconnected' | 'offline' | 'auth_error'
+  >('disconnected')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -53,10 +53,10 @@ export function WhatsappStatusWidget() {
 
       const availableInstances = config?.instance_id
         ? config.instance_id.split(',').map((i: string) => i.trim())
-        : []
+        : ['vmoda']
       setInstances(availableInstances)
 
-      const instanceToTest = selectedInstance || availableInstances[0] || ''
+      const instanceToTest = selectedInstance || availableInstances[0] || 'vmoda'
       if (!selectedInstance && availableInstances.length > 0) {
         setSelectedInstance(availableInstances[0])
       }
@@ -71,48 +71,47 @@ export function WhatsappStatusWidget() {
           { method: 'GET', signal: controller.signal },
         )
       } catch (e: any) {
-        console.warn('Evolution API status fetch failed', e)
+        // Fallback catch if the backend is completely unreachable
         res = null
-        setStatus('error')
-        if (e.name === 'AbortError' || e.isAbort) {
-          setErrorMessage('Serviço Indisponível (Timeout)')
-        } else {
-          const statusStr = e.status ? ` (${e.status})` : ''
-          const msg = e.response?.error || e.message || 'Falha de conexão'
-          setErrorMessage(`Serviço Indisponível${statusStr}: ${msg}`)
-        }
+        setStatus('offline')
+        setErrorMessage('Falha de conexão de rede com o servidor.')
         setIdentity({ name: instanceToTest })
       } finally {
         clearTimeout(timeoutId)
       }
 
       if (res) {
-        if (res?.error && res.state === 'disconnected') {
-          setStatus('error')
+        if (res.state === 'auth_error') {
+          setStatus('auth_error')
           setErrorMessage(res.error)
           setIdentity({ name: instanceToTest })
-        } else if (res?.instance?.state) {
+        } else if (res.state === 'offline') {
+          setStatus('offline')
+          setErrorMessage(res.error)
+          setIdentity({ name: instanceToTest })
+        } else if (res.state === 'disconnected') {
+          setStatus('disconnected')
+          if (res.error) setErrorMessage(res.error)
+          setIdentity({ name: instanceToTest })
+        } else if (res.instance?.state) {
           setStatus(res.instance.state)
           setIdentity({
             name: res.instance.profileName || res.instance.instanceName,
             number: res.instance.ownerJid?.split('@')[0] || res.instance.profileNumber,
           })
-        } else if (res?.state) {
+          setErrorMessage(null)
+        } else if (res.state) {
           setStatus(res.state)
           setIdentity({
             name: res.profileName || res.instanceName,
             number: res.ownerJid?.split('@')[0] || res.profileNumber,
           })
-        } else if (availableInstances.length > 0) {
-          if (status !== 'error') setStatus('disconnected')
-          setIdentity({ name: instanceToTest })
-        } else {
-          if (status !== 'error') setStatus('disconnected')
+          setErrorMessage(null)
         }
       }
     } catch (e) {
-      setStatus('error')
-      setErrorMessage('Falha ao processar o status')
+      setStatus('offline')
+      setErrorMessage('Falha interna ao processar o status')
     } finally {
       setLoading(false)
     }
@@ -146,7 +145,7 @@ export function WhatsappStatusWidget() {
 
       await pb.send('/backend/v1/whatsapp/send', {
         method: 'POST',
-        body: JSON.stringify({ phone, message, instance_id: selectedInstance }),
+        body: JSON.stringify({ phone, message, instance_id: selectedInstance || 'vmoda' }),
       })
 
       await pb.collection('messages').create({
@@ -174,8 +173,10 @@ export function WhatsappStatusWidget() {
         return 'bg-green-500/15 text-green-700 border-green-500/30'
       case 'connecting':
         return 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30'
-      case 'error':
+      case 'offline':
         return 'bg-red-500/15 text-red-700 border-red-500/30'
+      case 'auth_error':
+        return 'bg-orange-500/15 text-orange-700 border-orange-500/30'
       default:
         return 'bg-muted text-muted-foreground border-border'
     }
@@ -187,8 +188,10 @@ export function WhatsappStatusWidget() {
         return 'Conectado'
       case 'connecting':
         return 'Conectando...'
-      case 'error':
-        return 'Serviço Indisponível'
+      case 'offline':
+        return 'Serviço Offline'
+      case 'auth_error':
+        return 'Erro de Autenticação'
       default:
         return 'Desconectado'
     }
@@ -196,7 +199,7 @@ export function WhatsappStatusWidget() {
 
   return (
     <div className="flex items-center gap-2">
-      {status === 'error' && (
+      {(status === 'offline' || status === 'auth_error') && (
         <div
           className="hidden lg:flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 px-2 py-1 rounded-md border border-destructive/20 animate-fade-in max-w-[250px]"
           title={errorMessage || 'Falha na API'}
@@ -232,7 +235,7 @@ export function WhatsappStatusWidget() {
                 ? 'bg-green-500'
                 : status === 'connecting'
                   ? 'bg-yellow-500 animate-pulse'
-                  : status === 'error'
+                  : status === 'offline' || status === 'auth_error'
                     ? 'bg-red-500'
                     : 'bg-muted-foreground',
             )}

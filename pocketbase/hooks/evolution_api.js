@@ -3,8 +3,11 @@ routerAdd(
   '/backend/v1/whatsapp/status',
   (e) => {
     const instanceQuery = e.request.url.query().get('instance')
-    let config
-    let targetInstance = instanceQuery
+
+    let apiUrl =
+      $secrets.get('EVOLUTION_API_URL') || 'https://evolution-evolution.6xxwvj.easypanel.host'
+    let token = $secrets.get('EVOLUTION_API_KEY') || '7i5UsFq1MM8pEbt8NqCVDPglfY8v9LTd'
+    let targetInstance = instanceQuery || 'vmoda'
 
     try {
       const configs = $app.findRecordsByFilter(
@@ -15,35 +18,15 @@ routerAdd(
         0,
         { userId: e.auth.id },
       )
-      if (!configs || configs.length === 0) {
-        return e.json(200, { state: 'disconnected', error: 'Configuração não encontrada' })
+      if (configs && configs.length > 0) {
+        const config = configs[0]
+        if (config.getString('api_url')) apiUrl = config.getString('api_url')
+        if (config.getString('token')) token = config.getString('token')
+        if (!instanceQuery && config.getString('instance_id')) {
+          targetInstance = config.getString('instance_id').split(',')[0].trim()
+        }
       }
-
-      if (instanceQuery) {
-        config = configs.find((c) =>
-          c
-            .getString('instance_id')
-            .split(',')
-            .map((i) => i.trim())
-            .includes(instanceQuery),
-        )
-      } else {
-        config = configs[0]
-        targetInstance = config.getString('instance_id').split(',')[0].trim()
-      }
-    } catch (_) {
-      return e.json(200, { state: 'disconnected', error: 'Erro ao buscar configuração' })
-    }
-
-    if (!config) {
-      return e.json(200, {
-        state: 'disconnected',
-        error: 'Instância não encontrada na configuração',
-      })
-    }
-
-    const apiUrl = config.getString('api_url')
-    const token = config.getString('token')
+    } catch (_) {}
 
     if (!apiUrl || !token || !targetInstance) {
       return e.json(200, { state: 'disconnected', error: 'Configuração incompleta' })
@@ -55,11 +38,18 @@ routerAdd(
         url: `${url}/instance/connectionState/${targetInstance}`,
         method: 'GET',
         headers: { apikey: token },
-        timeout: 9,
+        timeout: 10,
       })
 
       if (res.statusCode === 200) {
         return e.json(200, res.json)
+      } else if (res.statusCode === 401 || res.statusCode === 403) {
+        return e.json(200, {
+          state: 'auth_error',
+          error: 'Erro de Autenticação: Chave de API inválida',
+        })
+      } else if (res.statusCode === 404) {
+        return e.json(200, { state: 'disconnected', error: 'Instância não encontrada' })
       } else {
         $app
           .logger()
@@ -70,26 +60,17 @@ routerAdd(
             'body',
             String(res.body),
           )
-        let errorMsg = `Erro na API: ${res.statusCode}`
-        try {
-          if (res.json && res.json.response) {
-            errorMsg =
-              typeof res.json.response === 'string'
-                ? res.json.response
-                : JSON.stringify(res.json.response)
-          } else if (res.json && res.json.message) {
-            errorMsg = res.json.message
-          }
-        } catch (_) {}
-        return e.json(res.statusCode >= 500 ? res.statusCode : 400, {
-          state: 'disconnected',
-          error: errorMsg,
-          code: res.statusCode,
+        return e.json(200, {
+          state: 'offline',
+          error: `Serviço Indisponível (${res.statusCode})`,
         })
       }
     } catch (err) {
       $app.logger().error('Evolution API Status Error', 'err', String(err))
-      return e.json(503, { state: 'disconnected', error: 'Serviço Indisponível' })
+      return e.json(200, {
+        state: 'offline',
+        error: 'Serviço Indisponível (Timeout ou Falha de Rede)',
+      })
     }
   },
   $apis.requireAuth(),
@@ -99,23 +80,25 @@ routerAdd(
   'POST',
   '/backend/v1/whatsapp/send',
   (e) => {
-    let config
-    try {
-      config = $app.findFirstRecordByData('whatsapp_configs', 'user', e.auth.id)
-    } catch (_) {
-      throw new Error('Configuração do WhatsApp não encontrada.')
-    }
+    let apiUrl =
+      $secrets.get('EVOLUTION_API_URL') || 'https://evolution-evolution.6xxwvj.easypanel.host'
+    let token = $secrets.get('EVOLUTION_API_KEY') || '7i5UsFq1MM8pEbt8NqCVDPglfY8v9LTd'
+    const body = e.requestInfo().body
+    let instanceId = body.instance_id || 'vmoda'
 
-    const apiUrl = config.getString('api_url')
-    const token = config.getString('token')
-    const instanceId =
-      e.requestInfo().body.instance_id || config.getString('instance_id').split(',')[0].trim()
+    try {
+      const config = $app.findFirstRecordByData('whatsapp_configs', 'user', e.auth.id)
+      if (config.getString('api_url')) apiUrl = config.getString('api_url')
+      if (config.getString('token')) token = config.getString('token')
+      if (!body.instance_id && config.getString('instance_id')) {
+        instanceId = config.getString('instance_id').split(',')[0].trim()
+      }
+    } catch (_) {}
 
     if (!apiUrl || !token || !instanceId) {
-      throw new Error('Configuração do WhatsApp incompleta.')
+      return e.badRequestError('Configuração do WhatsApp incompleta.')
     }
 
-    const body = e.requestInfo().body
     let phone = body.phone
     const message = body.message
 
@@ -148,7 +131,7 @@ routerAdd(
           options: { delay: 1200, presence: 'composing' },
           textMessage: { text: message },
         }),
-        timeout: 14,
+        timeout: 10,
       })
 
       if (res.statusCode >= 400) {
@@ -163,26 +146,13 @@ routerAdd(
             'phone',
             phone,
           )
-        let errorMsg = `Erro na API (${res.statusCode})`
-        try {
-          if (res.json && res.json.response) {
-            errorMsg =
-              typeof res.json.response === 'string'
-                ? res.json.response
-                : JSON.stringify(res.json.response)
-          } else if (res.json && res.json.message) {
-            errorMsg = res.json.message
-          }
-        } catch (_) {}
-        return e.badRequestError(`Erro ao enviar: ${errorMsg}`)
+        return e.badRequestError(`Erro ao enviar: ${res.statusCode}`)
       }
 
       return e.json(res.statusCode, res.json)
     } catch (err) {
       $app.logger().error('Evolution API Send Transport Error', 'err', String(err))
-      return e.internalServerError(
-        'Falha de transporte ao se conectar com a Evolution API: ' + err.message,
-      )
+      return e.internalServerError('Falha de transporte ao se conectar com a Evolution API.')
     }
   },
   $apis.requireAuth(),
