@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Sidebar,
   SidebarContent,
@@ -85,6 +85,76 @@ export default function DashboardLayout() {
   })
 
   const [isNormalizing, setIsNormalizing] = useState(false)
+
+  const navigate = useNavigate()
+  const [isSendingTest, setIsSendingTest] = useState(false)
+
+  const handleSendTest = async () => {
+    if (!pb.authStore.isValid) {
+      toast.error('Sessão expirada. Por favor, faça login novamente.')
+      navigate('/admin/login')
+      return
+    }
+
+    try {
+      setIsSendingTest(true)
+      const toastId = toast.loading('Enviando mensagem de teste...')
+
+      if (!user) {
+        toast.dismiss(toastId)
+        toast.error('Usuário não encontrado.')
+        return
+      }
+
+      const configs = await pb
+        .collection('whatsapp_configs')
+        .getFullList({ filter: `user = "${user.id}"` })
+      if (!configs || configs.length === 0) {
+        toast.dismiss(toastId)
+        toast.error('Configuração do WhatsApp não encontrada. Verifique suas configurações de API.')
+        return
+      }
+
+      const config = configs[0]
+      const instanceStr = config.instance_id || ''
+      const firstInstance = instanceStr.split(',')[0].trim()
+
+      if (!firstInstance) {
+        toast.dismiss(toastId)
+        toast.error('Configuração do WhatsApp não encontrada. Verifique suas configurações de API.')
+        return
+      }
+
+      const phone = '5562992156222'
+      const text = 'teste mensagem whatsapp V MODA BRASIL'
+
+      try {
+        await pb.send('/backend/v1/whatsapp/test-message', {
+          method: 'POST',
+          body: JSON.stringify({
+            instance: firstInstance,
+            phone,
+            text,
+          }),
+          headers: { 'Content-Type': 'application/json' },
+        })
+
+        toast.dismiss(toastId)
+        toast.success(`Mensagem de teste enviada com sucesso para ${phone}`)
+      } catch (err: any) {
+        toast.dismiss(toastId)
+        if (err && err.status !== undefined) {
+          toast.error(`Erro de conexão com a Evolution API: ${err.status}`)
+        } else {
+          toast.error(err.message || 'Erro ao enviar mensagem de teste')
+        }
+      }
+    } catch (error: any) {
+      toast.error('Erro ao buscar configurações')
+    } finally {
+      setIsSendingTest(false)
+    }
+  }
 
   const handleNormalizePhones = async () => {
     try {
@@ -177,6 +247,21 @@ export default function DashboardLayout() {
                         />
                         <span className="truncate">
                           {isNormalizing ? 'Normalizando...' : 'Normalizar Números'}
+                        </span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={handleSendTest}
+                        disabled={isSendingTest}
+                        tooltip="Enviar Teste WhatsApp"
+                      >
+                        <MessageSquare
+                          className={cn('h-4 w-4 shrink-0', isSendingTest && 'animate-pulse')}
+                          strokeWidth={2}
+                        />
+                        <span className="truncate">
+                          {isSendingTest ? 'Enviando...' : 'Enviar Teste'}
                         </span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
