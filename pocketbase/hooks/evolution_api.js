@@ -38,7 +38,7 @@ routerAdd(
         url: `${url}/instance/connectionState/${targetInstance}`,
         method: 'GET',
         headers: { apikey: token },
-        timeout: 10,
+        timeout: 3,
       })
 
       if (res.statusCode === 200) {
@@ -131,7 +131,7 @@ routerAdd(
           options: { delay: 1200, presence: 'composing' },
           textMessage: { text: message },
         }),
-        timeout: 10,
+        timeout: 3,
       })
 
       if (res.statusCode >= 400) {

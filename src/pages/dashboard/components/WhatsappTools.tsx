@@ -43,9 +43,22 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
     }
     setLoadingGroups(true)
     try {
-      const res = await pb.send(`/backend/v1/whatsapp/groups?instance=${selectedInstance}`, {
-        method: 'GET',
-      })
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
+
+      const res = await pb
+        .send(`/backend/v1/whatsapp/groups?instance=${selectedInstance}`, {
+          method: 'GET',
+          signal: controller.signal,
+        })
+        .catch((err) => {
+          clearTimeout(timeoutId)
+          if (err.name === 'AbortError' || err.isAbort)
+            throw new Error('Timeout de 3s atingido. Serviço Offline.')
+          throw err
+        })
+      clearTimeout(timeoutId)
+
       if (Array.isArray(res)) {
         setGroups(res)
       } else {
@@ -65,14 +78,27 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
     }
     setExtracting(true)
     try {
-      const res = await pb.send('/backend/v1/whatsapp/extract-group', {
-        method: 'POST',
-        body: JSON.stringify({
-          instance: selectedInstance,
-          groupId: selectedGroup,
-        }),
-        headers: { 'Content-Type': 'application/json' },
-      })
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+
+      const res = await pb
+        .send('/backend/v1/whatsapp/extract-group', {
+          method: 'POST',
+          body: JSON.stringify({
+            instance: selectedInstance,
+            groupId: selectedGroup,
+          }),
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+        })
+        .catch((err) => {
+          clearTimeout(timeoutId)
+          if (err.name === 'AbortError' || err.isAbort)
+            throw new Error('Timeout atingido. Serviço Offline.')
+          throw err
+        })
+      clearTimeout(timeoutId)
+
       toast.success(
         `Extração concluída! ${res.added} novos leads adicionados. (${res.skipped} ignorados/duplicados)`,
       )
@@ -114,15 +140,28 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
 
     setSendingTest(true)
     try {
-      await pb.send('/backend/v1/whatsapp/send', {
-        method: 'POST',
-        body: JSON.stringify({
-          instance_id: instanceToSend,
-          phone: normalizedPhone,
-          message: testMessage,
-        }),
-        headers: { 'Content-Type': 'application/json' },
-      })
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
+
+      await pb
+        .send('/backend/v1/whatsapp/send', {
+          method: 'POST',
+          body: JSON.stringify({
+            instance_id: instanceToSend,
+            phone: normalizedPhone,
+            message: testMessage,
+          }),
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+        })
+        .catch((err) => {
+          clearTimeout(timeoutId)
+          if (err.name === 'AbortError' || err.isAbort)
+            throw new Error('Timeout de 3s atingido. Serviço Offline.')
+          throw err
+        })
+      clearTimeout(timeoutId)
+
       toast.success(`Mensagem de teste enviada com sucesso! (Via ${instanceToSend})`)
     } catch (e: any) {
       const errorMsg = getErrorMessage(e)

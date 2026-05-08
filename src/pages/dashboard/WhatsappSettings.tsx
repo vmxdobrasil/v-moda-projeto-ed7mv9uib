@@ -138,8 +138,17 @@ export default function WhatsappSettings() {
   const testConnection = async (config: WhatsappConfig) => {
     setTestingId(config.id!)
     try {
-      const url = `/backend/v1/evolution/status${config.instance_id ? `?instance=${config.instance_id}` : ''}`
-      const res = await pb.send(url, { method: 'GET' })
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
+      const url = `/backend/v1/evolution_api/status${config.instance_id ? `?instance=${config.instance_id}` : ''}`
+
+      const res = await pb.send(url, { method: 'GET', signal: controller.signal }).catch((err) => {
+        clearTimeout(timeoutId)
+        if (err.name === 'AbortError' || err.isAbort) throw new Error('Timeout')
+        throw err
+      })
+      clearTimeout(timeoutId)
+
       if (res?.instance?.state === 'open' || res?.state === 'open') {
         setStatuses((prev) => ({ ...prev, [config.id!]: 'success' }))
         toast.success(`Conexão estabelecida com a instância ${config.instance_id}!`)
@@ -149,9 +158,13 @@ export default function WhatsappSettings() {
           `A instância ${config.instance_id} não está conectada. Status: ${res?.instance?.state || res?.state || 'Desconhecido'}`,
         )
       }
-    } catch (e) {
+    } catch (e: any) {
       setStatuses((prev) => ({ ...prev, [config.id!]: 'error' }))
-      toast.error(`Falha ao conectar com a instância ${config.instance_id}.`)
+      toast.error(
+        e.message === 'Timeout'
+          ? `Timeout de 3s: Instância ${config.instance_id} offline.`
+          : `Falha ao conectar com a instância ${config.instance_id}.`,
+      )
     } finally {
       setTestingId(null)
     }

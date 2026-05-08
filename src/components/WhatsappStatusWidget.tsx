@@ -59,7 +59,7 @@ export function WhatsappStatusWidget() {
       }
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 12000)
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
 
       try {
         const config = await pb
@@ -156,7 +156,7 @@ export function WhatsappStatusWidget() {
       if (!user) throw new Error('Usuário não autenticado')
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 8000)
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
 
       try {
         let channel = await pb
@@ -243,11 +243,20 @@ export function WhatsappStatusWidget() {
     <div className="flex items-center gap-2">
       {(status === 'offline' || status === 'auth_error') && (
         <div
-          className="hidden lg:flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 px-2 py-1 rounded-md border border-destructive/20 animate-fade-in max-w-[250px]"
+          className="hidden lg:flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 px-2 py-1 rounded-md border border-destructive/20 animate-fade-in max-w-[350px]"
           title={errorMessage || 'Falha na API'}
         >
           <AlertCircle className="h-3 w-3 shrink-0" />
           <span className="font-medium truncate">{errorMessage || 'Falha na API'}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-5 px-1.5 text-[10px] uppercase font-bold hover:bg-destructive/20 ml-1"
+            onClick={() => fetchStatus(true)}
+            disabled={loading}
+          >
+            Tentar Novamente
+          </Button>
         </div>
       )}
       {identity.number && status === 'open' && (
@@ -304,7 +313,17 @@ export function WhatsappStatusWidget() {
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs hidden sm:flex ml-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs hidden sm:flex ml-1"
+            disabled={status === 'offline' || status === 'auth_error'}
+            title={
+              status === 'offline' || status === 'auth_error'
+                ? 'Serviço Offline. Não é possível enviar mensagem.'
+                : 'Testar Mensagem'
+            }
+          >
             <Send className="h-3.5 w-3.5" />
             Testar Mensagem
           </Button>

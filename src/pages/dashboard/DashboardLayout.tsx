@@ -117,7 +117,7 @@ export default function DashboardLayout() {
     setInstanceError('')
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 12000)
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
 
       let res
       try {
@@ -153,7 +153,7 @@ export default function DashboardLayout() {
         clearTimeout(timeoutId)
         setInstanceStatus('disconnected')
         if (e.name === 'AbortError' || e.isAbort) {
-          setInstanceError('Timeout: Serviço Indisponível após 12s')
+          setInstanceError('Timeout: Serviço Indisponível após 3s')
         } else {
           setInstanceError(e.response?.message || e.message || 'Falha de conexão com a API')
         }
@@ -213,7 +213,7 @@ export default function DashboardLayout() {
       const toastId = toast.loading('Enviando mensagem de teste...')
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 8000)
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
 
       try {
         await pb.send('/backend/v1/whatsapp/test-message', {
@@ -229,6 +229,8 @@ export default function DashboardLayout() {
         clearTimeout(timeoutId)
       } catch (e: any) {
         clearTimeout(timeoutId)
+        if (e.name === 'AbortError' || e.isAbort)
+          throw new Error('Timeout de 3s atingido. Serviço Offline.')
         throw e
       }
 
