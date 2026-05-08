@@ -117,7 +117,7 @@ export default function DashboardLayout() {
     setInstanceError('')
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
+      const timeoutId = setTimeout(() => controller.abort(), 12000)
 
       let res
       try {
@@ -144,7 +144,7 @@ export default function DashboardLayout() {
         }
         setTestInstance(firstInstance)
 
-        res = await pb.send(`/backend/v1/whatsapp/status?instance=${firstInstance}`, {
+        res = await pb.send(`/backend/v1/evolution_api/status?instance=${firstInstance}`, {
           method: 'GET',
           signal: controller.signal,
         })
@@ -153,7 +153,7 @@ export default function DashboardLayout() {
         clearTimeout(timeoutId)
         setInstanceStatus('disconnected')
         if (e.name === 'AbortError' || e.isAbort) {
-          setInstanceError('Timeout: Serviço Indisponível após 5s')
+          setInstanceError('Timeout: Serviço Indisponível após 12s')
         } else {
           setInstanceError(e.response?.message || e.message || 'Falha de conexão com a API')
         }

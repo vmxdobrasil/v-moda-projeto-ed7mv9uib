@@ -1,6 +1,6 @@
 routerAdd(
   'GET',
-  '/backend/v1/whatsapp/status',
+  '/backend/v1/evolution_api/status',
   (e) => {
     const instanceQuery = e.request.url.query().get('instance')
 
@@ -78,7 +78,7 @@ routerAdd(
 
 routerAdd(
   'POST',
-  '/backend/v1/whatsapp/send',
+  '/backend/v1/evolution_api/send',
   (e) => {
     let apiUrl =
       $secrets.get('EVOLUTION_API_URL') || 'https://evolution-evolution.6xxwvj.easypanel.host'

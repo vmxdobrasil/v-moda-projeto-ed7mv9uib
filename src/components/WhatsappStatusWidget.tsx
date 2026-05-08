@@ -59,7 +59,7 @@ export function WhatsappStatusWidget() {
       }
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
+      const timeoutId = setTimeout(() => controller.abort(), 12000)
 
       try {
         const config = await pb
@@ -78,7 +78,7 @@ export function WhatsappStatusWidget() {
         }
 
         const res = await pb.send(
-          `/backend/v1/whatsapp/status${instanceToTest ? `?instance=${instanceToTest}` : ''}`,
+          `/backend/v1/evolution_api/status${instanceToTest ? `?instance=${instanceToTest}` : ''}`,
           { method: 'GET', signal: controller.signal },
         )
 
@@ -172,7 +172,7 @@ export function WhatsappStatusWidget() {
             )
         }
 
-        await pb.send('/backend/v1/whatsapp/send', {
+        await pb.send('/backend/v1/evolution_api/send', {
           method: 'POST',
           body: JSON.stringify({ phone, message, instance_id: selectedInstance || 'vmoda' }),
           signal: controller.signal,
