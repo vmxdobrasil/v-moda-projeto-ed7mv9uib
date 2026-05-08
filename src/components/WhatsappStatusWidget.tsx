@@ -61,40 +61,54 @@ export function WhatsappStatusWidget() {
         setSelectedInstance(availableInstances[0])
       }
 
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+
       let res = null
       try {
         res = await pb.send(
           `/backend/v1/whatsapp/status${instanceToTest ? `?instance=${instanceToTest}` : ''}`,
-          { method: 'GET' },
+          { method: 'GET', signal: controller.signal },
         )
       } catch (e: any) {
         console.warn('Evolution API status fetch failed', e)
         res = null
         setStatus('error')
-        setErrorMessage(e.message || 'Falha de conexão')
+        if (e.name === 'AbortError' || e.isAbort) {
+          setErrorMessage('Serviço Indisponível (Timeout)')
+        } else {
+          const statusStr = e.status ? ` (${e.status})` : ''
+          const msg = e.response?.error || e.message || 'Falha de conexão'
+          setErrorMessage(`Serviço Indisponível${statusStr}: ${msg}`)
+        }
+        setIdentity({ name: instanceToTest })
+      } finally {
+        clearTimeout(timeoutId)
       }
 
-      if (res?.error && res.state === 'disconnected') {
-        setStatus('error')
-        setErrorMessage(res.error)
-        setIdentity({ name: instanceToTest })
-      } else if (res?.instance?.state) {
-        setStatus(res.instance.state)
-        setIdentity({
-          name: res.instance.profileName || res.instance.instanceName,
-          number: res.instance.ownerJid?.split('@')[0] || res.instance.profileNumber,
-        })
-      } else if (res?.state) {
-        setStatus(res.state)
-        setIdentity({
-          name: res.profileName || res.instanceName,
-          number: res.ownerJid?.split('@')[0] || res.profileNumber,
-        })
-      } else if (availableInstances.length > 0) {
-        if (status !== 'error') setStatus('disconnected')
-        setIdentity({ name: instanceToTest })
-      } else {
-        if (status !== 'error') setStatus('disconnected')
+      if (res) {
+        if (res?.error && res.state === 'disconnected') {
+          setStatus('error')
+          setErrorMessage(res.error)
+          setIdentity({ name: instanceToTest })
+        } else if (res?.instance?.state) {
+          setStatus(res.instance.state)
+          setIdentity({
+            name: res.instance.profileName || res.instance.instanceName,
+            number: res.instance.ownerJid?.split('@')[0] || res.instance.profileNumber,
+          })
+        } else if (res?.state) {
+          setStatus(res.state)
+          setIdentity({
+            name: res.profileName || res.instanceName,
+            number: res.ownerJid?.split('@')[0] || res.profileNumber,
+          })
+        } else if (availableInstances.length > 0) {
+          if (status !== 'error') setStatus('disconnected')
+          setIdentity({ name: instanceToTest })
+        } else {
+          if (status !== 'error') setStatus('disconnected')
+        }
       }
     } catch (e) {
       setStatus('error')

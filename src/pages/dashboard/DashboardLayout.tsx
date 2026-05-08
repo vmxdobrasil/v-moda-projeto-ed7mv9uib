@@ -135,9 +135,24 @@ export default function DashboardLayout() {
       }
       setTestInstance(firstInstance)
 
-      const res = await pb.send(`/backend/v1/evolution/status?instance=${firstInstance}`, {
-        method: 'GET',
-      })
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+
+      let res
+      try {
+        res = await pb.send(`/backend/v1/whatsapp/status?instance=${firstInstance}`, {
+          method: 'GET',
+          signal: controller.signal,
+        })
+      } catch (e: any) {
+        if (e.name === 'AbortError' || e.isAbort) {
+          throw new Error('Serviço Indisponível (Timeout)')
+        }
+        throw e
+      } finally {
+        clearTimeout(timeoutId)
+      }
+
       if (res?.instance?.state === 'open' || res?.state === 'open') {
         setInstanceStatus('connected')
       } else {
@@ -146,7 +161,9 @@ export default function DashboardLayout() {
       }
     } catch (err: any) {
       setInstanceStatus('disconnected')
-      setInstanceError('Erro ao verificar status da instância.')
+      const statusStr = err.status ? ` (${err.status})` : ''
+      const msg = err.response?.error || err.message || 'Erro ao verificar status da instância.'
+      setInstanceError(`Serviço Indisponível${statusStr}: ${msg}`)
     }
   }
 

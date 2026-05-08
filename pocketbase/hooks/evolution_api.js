@@ -55,7 +55,7 @@ routerAdd(
         url: `${url}/instance/connectionState/${targetInstance}`,
         method: 'GET',
         headers: { apikey: token },
-        timeout: 10,
+        timeout: 9,
       })
 
       if (res.statusCode === 200) {
@@ -81,11 +81,15 @@ routerAdd(
             errorMsg = res.json.message
           }
         } catch (_) {}
-        return e.json(200, { state: 'disconnected', error: errorMsg })
+        return e.json(res.statusCode >= 500 ? res.statusCode : 400, {
+          state: 'disconnected',
+          error: errorMsg,
+          code: res.statusCode,
+        })
       }
     } catch (err) {
       $app.logger().error('Evolution API Status Error', 'err', String(err))
-      return e.json(200, { state: 'disconnected', error: 'Falha de conexão com a API Evolution' })
+      return e.json(503, { state: 'disconnected', error: 'Serviço Indisponível' })
     }
   },
   $apis.requireAuth(),
@@ -144,7 +148,7 @@ routerAdd(
           options: { delay: 1200, presence: 'composing' },
           textMessage: { text: message },
         }),
-        timeout: 15,
+        timeout: 14,
       })
 
       if (res.statusCode >= 400) {
