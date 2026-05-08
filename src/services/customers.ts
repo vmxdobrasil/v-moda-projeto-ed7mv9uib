@@ -1,4 +1,5 @@
 import pb from '@/lib/pocketbase/client'
+import { normalizePhoneBR } from '@/lib/utils'
 
 export interface Customer {
   id: string
@@ -97,6 +98,10 @@ export const getReferredCustomers = async () => {
 export const createCustomer = async (data: Partial<Customer> | FormData) => {
   const user = pb.authStore.record
   if (data instanceof FormData) {
+    const phone = data.get('phone') as string
+    if (phone) {
+      data.set('phone', normalizePhoneBR(phone))
+    }
     if (user?.id) {
       if ((user.role === 'affiliate' || user.role === 'agent') && !data.has('affiliate_referrer')) {
         data.append('affiliate_referrer', user.id)
@@ -105,6 +110,9 @@ export const createCustomer = async (data: Partial<Customer> | FormData) => {
       }
     }
   } else {
+    if (data.phone) {
+      data.phone = normalizePhoneBR(data.phone)
+    }
     if (user?.id) {
       if (user.role === 'affiliate' || user.role === 'agent') {
         data.affiliate_referrer = user.id
@@ -117,6 +125,14 @@ export const createCustomer = async (data: Partial<Customer> | FormData) => {
 }
 
 export const updateCustomer = async (id: string, data: Partial<Customer> | FormData) => {
+  if (data instanceof FormData) {
+    const phone = data.get('phone') as string
+    if (phone) {
+      data.set('phone', normalizePhoneBR(phone))
+    }
+  } else if (data.phone) {
+    data.phone = normalizePhoneBR(data.phone)
+  }
   return pb.collection('customers').update<Customer>(id, data)
 }
 

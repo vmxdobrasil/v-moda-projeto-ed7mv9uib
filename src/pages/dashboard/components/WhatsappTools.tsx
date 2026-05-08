@@ -256,12 +256,30 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Número do WhatsApp (com DDI)</Label>
-              <Input
-                placeholder="5511999999999"
-                value={testPhone}
-                onChange={(e) => setTestPhone(e.target.value.replace(/\D/g, ''))}
-              />
+              <Label>Número do WhatsApp</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground select-none pointer-events-none text-sm">
+                  🇧🇷 +
+                </span>
+                <Input
+                  placeholder="5511999999999"
+                  className="pl-[3.5rem]"
+                  value={testPhone}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '')
+                    setTestPhone(digits)
+                  }}
+                  onBlur={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '')
+                    if (digits.length === 10 || digits.length === 11) {
+                      setTestPhone('55' + digits)
+                    }
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O código 55 será adicionado automaticamente caso omitido.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Mensagem</Label>

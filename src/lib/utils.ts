@@ -11,4 +11,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Add any other utility functions here
+/**
+ * Normalizes a Brazilian phone number by stripping non-digits
+ * and prepending '55' if it's 10 or 11 digits.
+ */
+export function normalizePhoneBR(phone: string): string {
+  if (!phone) return ''
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10 || digits.length === 11) {
+    return '55' + digits
+  }
+  return digits
+}

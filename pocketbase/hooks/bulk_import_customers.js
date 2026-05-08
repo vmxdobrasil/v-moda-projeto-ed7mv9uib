@@ -55,7 +55,12 @@ routerAdd(
 
         let name = row.name || row.caravan_name || ''
         const rawPhone = row.phone || ''
-        const phone = rawPhone ? rawPhone.toString().replace(/\D/g, '') : ''
+        let phone = rawPhone ? rawPhone.toString().replace(/\D/g, '') : ''
+
+        if (phone.length === 10 || phone.length === 11) {
+          phone = '55' + phone
+        }
+
         const email = row.email
 
         if (!name && phone) {
@@ -79,7 +84,7 @@ routerAdd(
         try {
           const record = new Record(customersCol)
           record.set('name', name)
-          record.set('phone', rawPhone.toString())
+          record.set('phone', phone)
 
           if (email) {
             if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
