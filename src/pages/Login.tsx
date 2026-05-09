@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,7 +22,19 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const { signIn } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const { toast } = useToast()
+
+  const from = location.state?.from?.pathname
+
+  useEffect(() => {
+    if (from === '/settings' || from?.includes('settings')) {
+      toast({
+        title: 'Autenticação Necessária',
+        description: 'Por favor, faça login para acessar as configurações de conexão.',
+      })
+    }
+  }, [from, toast])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,12 +53,14 @@ export default function Login() {
     }
 
     const user = pb.authStore.record
-    if (user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin') {
+    if (from) {
+      navigate(from, { replace: true })
+    } else if (user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin') {
       navigate('/admin')
     } else if (user?.role === 'manufacturer') {
       navigate('/manufacturer')
     } else {
-      navigate('/dashboard')
+      navigate('/')
     }
   }
 

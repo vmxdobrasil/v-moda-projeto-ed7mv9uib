@@ -25,6 +25,7 @@ import {
 import { MessageSquare, Send, Loader2, Phone, AlertCircle, RefreshCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { Link } from 'react-router-dom'
 
 export function WhatsappStatusWidget() {
   const { status, errorMessage, setStatus } = useWhatsappStore()
@@ -50,7 +51,8 @@ export function WhatsappStatusWidget() {
 
     try {
       const user = pb.authStore.record
-      if (!user) {
+      if (!user || !pb.authStore.isValid) {
+        setStatus('auth_error', 'Sessão expirada. Por favor, faça login para testar a conexão.')
         setLoading(false)
         return
       }
@@ -216,6 +218,9 @@ export function WhatsappStatusWidget() {
   }
 
   const getStatusLabel = () => {
+    if (status === 'auth_error' && errorMessage?.includes('login')) {
+      return 'Login necessário'
+    }
     switch (status) {
       case 'open':
         return 'Serviço Online'
@@ -281,6 +286,15 @@ export function WhatsappStatusWidget() {
         />
       </Button>
 
+      {status !== 'open' && status !== 'connecting' && (
+        <Link
+          to="/settings"
+          className="text-[10px] text-muted-foreground hover:text-primary underline underline-offset-2 ml-1 hidden lg:inline-block"
+        >
+          acesse as configurações para testar a conexão
+        </Link>
+      )}
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
           <Button
@@ -289,9 +303,11 @@ export function WhatsappStatusWidget() {
             className="h-8 gap-1.5 text-xs hidden sm:flex ml-1"
             disabled={status !== 'open' && status !== 'connecting'}
             title={
-              status !== 'open' && status !== 'connecting'
-                ? 'Serviço offline. Não é possível enviar mensagem.'
-                : 'Testar Mensagem'
+              status === 'auth_error' && errorMessage?.includes('login')
+                ? 'Login necessário para testar conexão.'
+                : status !== 'open' && status !== 'connecting'
+                  ? 'Serviço offline. Não é possível enviar mensagem.'
+                  : 'Testar Mensagem'
             }
           >
             <Send className="h-3.5 w-3.5" />
