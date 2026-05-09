@@ -44,7 +44,7 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
     setLoadingGroups(true)
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
 
       const res = await pb
         .send(`/backend/v1/whatsapp/groups?instance=${selectedInstance}`, {
@@ -54,7 +54,9 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
         .catch((err) => {
           clearTimeout(timeoutId)
           if (err.name === 'AbortError' || err.isAbort)
-            throw new Error('Timeout de 3s atingido. Serviço Offline.')
+            throw new Error(
+              "Erro de Conexão: O servidor demorou muito para responder. Verifique se o serviço 'evolution' está rodando no Easypanel.",
+            )
           throw err
         })
       clearTimeout(timeoutId)
@@ -79,7 +81,7 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
     setExtracting(true)
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
 
       const res = await pb
         .send('/backend/v1/whatsapp/extract-group', {
@@ -94,7 +96,9 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
         .catch((err) => {
           clearTimeout(timeoutId)
           if (err.name === 'AbortError' || err.isAbort)
-            throw new Error('Timeout atingido. Serviço Offline.')
+            throw new Error(
+              "Erro de Conexão: O servidor demorou muito para responder. Verifique se o serviço 'evolution' está rodando no Easypanel.",
+            )
           throw err
         })
       clearTimeout(timeoutId)
@@ -141,7 +145,7 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
     setSendingTest(true)
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
 
       await pb
         .send('/backend/v1/whatsapp/send', {
@@ -157,7 +161,9 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
         .catch((err) => {
           clearTimeout(timeoutId)
           if (err.name === 'AbortError' || err.isAbort)
-            throw new Error('Timeout de 3s atingido. Serviço Offline.')
+            throw new Error(
+              "Erro de Conexão: O servidor demorou muito para responder. Verifique se o serviço 'evolution' está rodando no Easypanel.",
+            )
           throw err
         })
       clearTimeout(timeoutId)

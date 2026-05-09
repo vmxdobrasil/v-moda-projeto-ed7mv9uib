@@ -142,7 +142,7 @@ export default function WhatsappSettings() {
     setTestingId(config.id!)
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
       const url = `/backend/v1/evolution_api/status${config.instance_id ? `?instance=${config.instance_id}` : ''}`
 
       const res = await pb.send(url, { method: 'GET', signal: controller.signal }).catch((err) => {
@@ -164,7 +164,9 @@ export default function WhatsappSettings() {
     } catch (e: any) {
       setStatuses((prev) => ({ ...prev, [config.id!]: 'error' }))
       if (e.message === 'Timeout') {
-        toast.error('Erro de Conexão: O servidor demorou muito para responder (Timeout).')
+        toast.error(
+          "Erro de Conexão: O servidor demorou muito para responder. Verifique se o serviço 'evolution' está rodando no seu Easypanel.",
+        )
       } else {
         toast.error(`Falha ao conectar com a instância ${config.instance_id}.`)
       }

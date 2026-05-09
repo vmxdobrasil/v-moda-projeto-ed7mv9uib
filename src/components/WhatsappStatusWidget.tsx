@@ -56,7 +56,7 @@ export function WhatsappStatusWidget() {
       }
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
 
       try {
         const config = await pb
@@ -114,7 +114,7 @@ export function WhatsappStatusWidget() {
         setStatus(
           'offline',
           e.name === 'AbortError' || e.isAbort
-            ? 'Timeout: Serviço Indisponível'
+            ? "Erro de Conexão: O servidor demorou muito para responder. Verifique se o serviço 'evolution' está rodando no Easypanel."
             : 'Falha de conexão com a API',
         )
         setIdentity({ name: selectedInstance || 'vmodabrasil' })
@@ -146,7 +146,7 @@ export function WhatsappStatusWidget() {
       if (!user) throw new Error('Usuário não autenticado')
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
 
       try {
         let channel = await pb
@@ -184,7 +184,9 @@ export function WhatsappStatusWidget() {
       } catch (e: any) {
         clearTimeout(timeoutId)
         if (e.name === 'AbortError' || e.isAbort) {
-          throw new Error('Timeout: O servidor demorou muito para responder.')
+          throw new Error(
+            "Erro de Conexão: O servidor demorou muito para responder. Verifique se o serviço 'evolution' está rodando no Easypanel.",
+          )
         }
         throw e
       }
