@@ -14,7 +14,7 @@ export function Layout() {
           <div className="flex items-center gap-2 h-full">
             <img
               src={logoUrl}
-              alt="V Moda Brasil"
+              alt="V MODA BRASIL"
               className="h-full max-h-[3rem] w-auto object-contain"
             />
           </div>

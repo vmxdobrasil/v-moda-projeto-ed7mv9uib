@@ -102,7 +102,7 @@ export default function DashboardHub() {
 
     fetchDashboardData()
 
-    const seen = localStorage.getItem('vmoda_magazine_launch_seen')
+    const seen = localStorage.getItem('vmoda_brasil_magazine_launch_seen')
     if (!seen) {
       const timer = setTimeout(() => setShowWelcome(true), 500)
       return () => clearTimeout(timer)
@@ -111,7 +111,7 @@ export default function DashboardHub() {
 
   const handleCloseWelcome = () => {
     setShowWelcome(false)
-    localStorage.setItem('vmoda_magazine_launch_seen', 'true')
+    localStorage.setItem('vmoda_brasil_magazine_launch_seen', 'true')
   }
 
   const handleTrackClick = (destination: string) => {

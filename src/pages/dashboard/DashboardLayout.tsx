@@ -60,6 +60,8 @@ import { ExternalLink as CustomExternalLink } from '@/components/ExternalLink'
 import { WhatsappStatusWidget } from '@/components/WhatsappStatusWidget'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { toast } from 'sonner'
+import { useWhatsappStore } from '@/stores/useWhatsappStore'
+import { AlertCircle } from 'lucide-react'
 
 const navItems = [
   { icon: Home, label: 'Dashboard', path: '/' },
@@ -90,6 +92,7 @@ const navItems = [
 export default function DashboardLayout() {
   const { signOut, user } = useAuth()
   const location = useLocation()
+  const { status, errorMessage } = useWhatsappStore()
 
   const isAdmin = user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
 
@@ -282,267 +285,287 @@ export default function DashboardLayout() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen overflow-hidden w-full bg-background">
-        <Sidebar>
-          <SidebarHeader className="h-auto min-h-[6rem] flex items-center justify-center border-b px-6 py-6 shrink-0">
-            <img
-              src={logoUrl}
-              alt="V Moda Brasil"
-              className="w-full max-w-[240px] h-auto object-contain transition-all duration-300"
-            />
-          </SidebarHeader>
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {filteredNavItems.map((item) => {
-                    const isActive =
-                      !item.external &&
-                      (location.pathname === item.path ||
-                        (item.path !== '/' && location.pathname.startsWith(item.path)))
-                    return (
-                      <SidebarMenuItem key={item.path}>
-                        {item.external ? (
-                          <CustomExternalLink
-                            href={item.path}
-                            className="group flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm font-medium text-sidebar-foreground outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2"
-                            title={item.label}
-                            forceTopBreakout={item.path.includes('play.google.com')}
-                          >
-                            <div className="flex flex-1 items-center gap-2 overflow-hidden">
-                              <item.icon className="h-4 w-4 shrink-0" strokeWidth={2} />
-                              <span className="truncate">{item.label}</span>
-                            </div>
-                            <ExternalLink className="ml-auto h-3.5 w-3.5 shrink-0 opacity-50 transition-opacity group-hover:opacity-100" />
-                          </CustomExternalLink>
-                        ) : (
-                          <SidebarMenuButton
-                            asChild
-                            isActive={isActive}
-                            tooltip={item.label}
-                            className={isActive ? 'text-primary hover:text-primary' : ''}
-                          >
-                            <Link to={item.path}>
-                              <item.icon
-                                className={cn('h-4 w-4', isActive && 'text-primary')}
-                                strokeWidth={isActive ? 2.5 : 2}
-                              />
-                              <span className={cn(isActive && 'font-semibold')}>{item.label}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        )}
-                      </SidebarMenuItem>
-                    )
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            {isAdmin && (
-              <SidebarGroup className="mt-auto">
-                <SidebarGroupLabel>Gerenciamento de Contatos</SidebarGroupLabel>
+      <div className="flex flex-col h-screen overflow-hidden w-full bg-background">
+        {status !== 'open' && status !== 'connecting' && (
+          <div className="bg-destructive text-destructive-foreground px-4 py-2.5 flex items-center justify-center gap-3 text-sm font-medium shadow-md z-[100] shrink-0 w-full animate-fade-in-down">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <span className="text-center font-semibold">
+              Serviço Offline: A conexão com a Evolution API falhou (
+              {errorMessage || 'Desconectado'}).
+              <Link
+                to="/settings"
+                className="ml-2 underline underline-offset-2 hover:text-white/80"
+              >
+                Acesse as Configurações para testar a conexão.
+              </Link>
+            </span>
+          </div>
+        )}
+        <div className="flex flex-1 min-h-0 w-full overflow-hidden relative">
+          <Sidebar>
+            <SidebarHeader className="h-auto min-h-[6rem] flex items-center justify-center border-b px-6 py-6 shrink-0">
+              <img
+                src={logoUrl}
+                alt="V MODA BRASIL"
+                className="w-full max-w-[240px] h-auto object-contain transition-all duration-300"
+              />
+            </SidebarHeader>
+            <SidebarContent>
+              <SidebarGroup>
+                <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        onClick={handleNormalizePhones}
-                        disabled={isNormalizing}
-                        tooltip="Normalizar Números"
-                      >
-                        <CheckCircle2
-                          className={cn('h-4 w-4 shrink-0', isNormalizing && 'animate-pulse')}
-                          strokeWidth={2}
-                        />
-                        <span className="truncate">
-                          {isNormalizing ? 'Normalizando...' : 'Normalizar Números'}
-                        </span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        onClick={() => setIsTestDialogOpen(true)}
-                        tooltip="Enviar Teste WhatsApp"
-                      >
-                        <MessageSquare className="h-4 w-4 shrink-0" strokeWidth={2} />
-                        <span className="truncate">Enviar Teste</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    {filteredNavItems.map((item) => {
+                      const isActive =
+                        !item.external &&
+                        (location.pathname === item.path ||
+                          (item.path !== '/' && location.pathname.startsWith(item.path)))
+                      return (
+                        <SidebarMenuItem key={item.path}>
+                          {item.external ? (
+                            <CustomExternalLink
+                              href={item.path}
+                              className="group flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm font-medium text-sidebar-foreground outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2"
+                              title={item.label}
+                              forceTopBreakout={item.path.includes('play.google.com')}
+                            >
+                              <div className="flex flex-1 items-center gap-2 overflow-hidden">
+                                <item.icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+                                <span className="truncate">{item.label}</span>
+                              </div>
+                              <ExternalLink className="ml-auto h-3.5 w-3.5 shrink-0 opacity-50 transition-opacity group-hover:opacity-100" />
+                            </CustomExternalLink>
+                          ) : (
+                            <SidebarMenuButton
+                              asChild
+                              isActive={isActive}
+                              tooltip={item.label}
+                              className={isActive ? 'text-primary hover:text-primary' : ''}
+                            >
+                              <Link to={item.path}>
+                                <item.icon
+                                  className={cn('h-4 w-4', isActive && 'text-primary')}
+                                  strokeWidth={isActive ? 2.5 : 2}
+                                />
+                                <span className={cn(isActive && 'font-semibold')}>
+                                  {item.label}
+                                </span>
+                              </Link>
+                            </SidebarMenuButton>
+                          )}
+                        </SidebarMenuItem>
+                      )
+                    })}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
-            )}
-          </SidebarContent>
-          <SidebarFooter className="border-t p-4 shrink-0">
-            <div className="flex items-center gap-3 mb-4 px-2">
-              <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-sm">
-                {user?.name?.charAt(0)?.toUpperCase() ||
-                  user?.email?.charAt(0)?.toUpperCase() ||
-                  'U'}
-              </div>
-              <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-sm font-semibold truncate text-foreground">
-                  {user?.name || 'Administrador'}
-                </span>
-                <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
-              onClick={signOut}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Sair
-            </Button>
-          </SidebarFooter>
-        </Sidebar>
 
-        <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Disparo de Teste WhatsApp</DialogTitle>
-              <DialogDescription>
-                Valide a conexão da sua instância enviando uma mensagem de teste.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-4">
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md border">
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">Status da Instância</span>
-                  <span className="text-xs text-muted-foreground">
-                    {testInstance || 'Verificando...'}
-                  </span>
-                </div>
-                {instanceStatus === 'checking' && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Verificando
-                  </Badge>
-                )}
-                {instanceStatus === 'connected' && (
-                  <Badge className="bg-green-500 hover:bg-green-600 text-white">Conectado</Badge>
-                )}
-                {instanceStatus === 'disconnected' && (
-                  <Badge variant="destructive">Desconectado</Badge>
-                )}
-              </div>
-
-              {instanceStatus === 'disconnected' && instanceError && (
-                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
-                  <strong>Erro:</strong> {instanceError}
-                </div>
+              {isAdmin && (
+                <SidebarGroup className="mt-auto">
+                  <SidebarGroupLabel>Gerenciamento de Contatos</SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          onClick={handleNormalizePhones}
+                          disabled={isNormalizing}
+                          tooltip="Normalizar Números"
+                        >
+                          <CheckCircle2
+                            className={cn('h-4 w-4 shrink-0', isNormalizing && 'animate-pulse')}
+                            strokeWidth={2}
+                          />
+                          <span className="truncate">
+                            {isNormalizing ? 'Normalizando...' : 'Normalizar Números'}
+                          </span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          onClick={() => setIsTestDialogOpen(true)}
+                          tooltip="Enviar Teste WhatsApp"
+                        >
+                          <MessageSquare className="h-4 w-4 shrink-0" strokeWidth={2} />
+                          <span className="truncate">Enviar Teste</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
               )}
-
-              <div className="space-y-2">
-                <Label htmlFor="test-phone">Telefone (WhatsApp)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground select-none pointer-events-none text-sm">
-                    🇧🇷 +
-                  </span>
-                  <Input
-                    id="test-phone"
-                    placeholder="5511999999999"
-                    className="pl-[3.5rem]"
-                    value={testPhone}
-                    onChange={(e) => setTestPhone(e.target.value)}
-                  />
+            </SidebarContent>
+            <SidebarFooter className="border-t p-4 shrink-0">
+              <div className="flex items-center gap-3 mb-4 px-2">
+                <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-sm">
+                  {user?.name?.charAt(0)?.toUpperCase() ||
+                    user?.email?.charAt(0)?.toUpperCase() ||
+                    'U'}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  O DDD e o DDI (55) serão formatados automaticamente.
-                </p>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-sm font-semibold truncate text-foreground">
+                    {user?.name || 'Administrador'}
+                  </span>
+                  <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
+                </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="test-message">Mensagem</Label>
-                <Textarea
-                  id="test-message"
-                  placeholder="Digite sua mensagem de teste..."
-                  value={testMessage}
-                  onChange={(e) => setTestMessage(e.target.value)}
-                  className="resize-none h-24"
-                />
-              </div>
-            </div>
-
-            <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => setIsTestDialogOpen(false)}
-                disabled={isSendingTest}
+                className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
+                onClick={signOut}
               >
-                Cancelar
+                <LogOut className="mr-2 h-4 w-4" />
+                Sair
               </Button>
-              <Button
-                onClick={handleSendTest}
-                disabled={isSendingTest || instanceStatus !== 'connected' || !testPhone}
-              >
-                {isSendingTest ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...
-                  </>
-                ) : (
-                  'Enviar Mensagem'
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </SidebarFooter>
+          </Sidebar>
 
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-muted/20">
-          <header className="h-16 border-b flex items-center px-6 bg-background shrink-0 shadow-sm z-10">
-            <SidebarTrigger className="md:hidden mr-4" />
-            <div className="flex-1" />
-            <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-3 mr-2">
-                <CustomExternalLink
-                  href="https://revistamodaatual.com.br"
-                  className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-                >
-                  <BookOpen className="h-4 w-4 text-blue-500" />
-                  <span>Site Oficial</span>
-                  <ExternalLink className="ml-0.5 h-3 w-3 opacity-50" />
-                </CustomExternalLink>
-                <CustomExternalLink
-                  href="https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663"
-                  forceTopBreakout={true}
-                  className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-                >
-                  <Play className="h-4 w-4 text-emerald-500" />
-                  <span>Play Store</span>
-                  <ExternalLink className="ml-0.5 h-3 w-3 opacity-50" />
-                </CustomExternalLink>
-              </div>
-              <ErrorBoundary>
-                <WhatsappStatusWidget />
-              </ErrorBoundary>
-              <div className="text-sm font-medium text-muted-foreground hidden lg:block border-l pl-4 py-1">
-                {new Date().toLocaleDateString('pt-BR', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </div>
-            </div>
-          </header>
-          <div className="flex-1 overflow-auto p-4 md:p-8">
-            <ErrorBoundary>
-              <Suspense
-                fallback={
-                  <div className="flex h-full items-center justify-center p-8">
-                    <div className="flex flex-col items-center space-y-4">
-                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                      <p className="text-muted-foreground">Sincronizando Dados do Serviço...</p>
-                    </div>
+          <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Disparo de Teste WhatsApp</DialogTitle>
+                <DialogDescription>
+                  Valide a conexão da sua instância enviando uma mensagem de teste.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md border">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">Status da Instância</span>
+                    <span className="text-xs text-muted-foreground">
+                      {testInstance || 'Verificando...'}
+                    </span>
                   </div>
-                }
-              >
-                <Outlet />
-              </Suspense>
-            </ErrorBoundary>
-          </div>
-        </main>
+                  {instanceStatus === 'checking' && (
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Verificando
+                    </Badge>
+                  )}
+                  {instanceStatus === 'connected' && (
+                    <Badge className="bg-green-500 hover:bg-green-600 text-white">Conectado</Badge>
+                  )}
+                  {instanceStatus === 'disconnected' && (
+                    <Badge variant="destructive">Desconectado</Badge>
+                  )}
+                </div>
+
+                {instanceStatus === 'disconnected' && instanceError && (
+                  <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
+                    <strong>Erro:</strong> {instanceError}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="test-phone">Telefone (WhatsApp)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground select-none pointer-events-none text-sm">
+                      🇧🇷 +
+                    </span>
+                    <Input
+                      id="test-phone"
+                      placeholder="5511999999999"
+                      className="pl-[3.5rem]"
+                      value={testPhone}
+                      onChange={(e) => setTestPhone(e.target.value)}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    O DDD e o DDI (55) serão formatados automaticamente.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="test-message">Mensagem</Label>
+                  <Textarea
+                    id="test-message"
+                    placeholder="Digite sua mensagem de teste..."
+                    value={testMessage}
+                    onChange={(e) => setTestMessage(e.target.value)}
+                    className="resize-none h-24"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsTestDialogOpen(false)}
+                  disabled={isSendingTest}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleSendTest}
+                  disabled={isSendingTest || instanceStatus !== 'connected' || !testPhone}
+                >
+                  {isSendingTest ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...
+                    </>
+                  ) : (
+                    'Enviar Mensagem'
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-muted/20 relative">
+            {' '}
+            <header className="h-16 border-b flex items-center px-6 bg-background shrink-0 shadow-sm z-10">
+              <SidebarTrigger className="md:hidden mr-4" />
+              <div className="flex-1" />
+              <div className="flex items-center gap-4">
+                <div className="hidden md:flex items-center gap-3 mr-2">
+                  <CustomExternalLink
+                    href="https://revistamodaatual.com.br"
+                    className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    <BookOpen className="h-4 w-4 text-blue-500" />
+                    <span>Site Oficial</span>
+                    <ExternalLink className="ml-0.5 h-3 w-3 opacity-50" />
+                  </CustomExternalLink>
+                  <CustomExternalLink
+                    href="https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663"
+                    forceTopBreakout={true}
+                    className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    <Play className="h-4 w-4 text-emerald-500" />
+                    <span>Play Store</span>
+                    <ExternalLink className="ml-0.5 h-3 w-3 opacity-50" />
+                  </CustomExternalLink>
+                </div>
+                <ErrorBoundary>
+                  <WhatsappStatusWidget />
+                </ErrorBoundary>
+                <div className="text-sm font-medium text-muted-foreground hidden lg:block border-l pl-4 py-1">
+                  {new Date().toLocaleDateString('pt-BR', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </div>
+              </div>
+            </header>
+            <div className="flex-1 overflow-auto p-4 md:p-8 relative">
+              <ErrorBoundary>
+                <Suspense
+                  fallback={
+                    <div className="flex h-full items-center justify-center p-8">
+                      <div className="flex flex-col items-center space-y-4">
+                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                        <p className="text-muted-foreground">Sincronizando Dados do Serviço...</p>
+                      </div>
+                    </div>
+                  }
+                >
+                  <Outlet />
+                </Suspense>
+              </ErrorBoundary>
+            </div>
+          </main>
+        </div>
       </div>
     </SidebarProvider>
   )

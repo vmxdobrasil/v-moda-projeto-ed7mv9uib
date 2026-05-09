@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { useWhatsappStore } from '@/stores/useWhatsappStore'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,10 +27,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 export function WhatsappStatusWidget() {
-  const [status, setStatus] = useState<
-    'open' | 'close' | 'connecting' | 'disconnected' | 'offline' | 'auth_error'
-  >('disconnected')
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const { status, errorMessage, setStatus } = useWhatsappStore()
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [phone, setPhone] = useState('5562992156222')
@@ -42,14 +40,13 @@ export function WhatsappStatusWidget() {
 
   const fetchStatus = async (isManualRefresh = false) => {
     if (!isManualRefresh && failCount >= 3) {
-      setStatus('offline')
-      setErrorMessage('Serviço offline (Múltiplas falhas)')
+      setStatus('offline', 'Serviço offline (Múltiplas falhas)')
       setLoading(false)
       return
     }
 
     setLoading(true)
-    setErrorMessage(null)
+    setStatus('connecting', null)
 
     try {
       const user = pb.authStore.record
@@ -69,10 +66,10 @@ export function WhatsappStatusWidget() {
 
         const availableInstances = config?.instance_id
           ? config.instance_id.split(',').map((i: string) => i.trim())
-          : ['vmoda']
+          : ['vmodabrasil']
         setInstances(availableInstances)
 
-        const instanceToTest = selectedInstance || availableInstances[0] || 'vmoda'
+        const instanceToTest = selectedInstance || availableInstances[0] || 'vmodabrasil'
         if (!selectedInstance && availableInstances.length > 0) {
           setSelectedInstance(availableInstances[0])
         }
@@ -86,54 +83,47 @@ export function WhatsappStatusWidget() {
         setFailCount(0)
 
         if (res.state === 'auth_error') {
-          setStatus('auth_error')
-          setErrorMessage(res.error || 'Erro de Autenticação')
+          setStatus('auth_error', res.error || 'Erro de Autenticação')
           setIdentity({ name: instanceToTest })
         } else if (res.state === 'offline') {
-          setStatus('offline')
-          setErrorMessage(res.error || 'Serviço Offline')
+          setStatus('offline', res.error || 'Serviço Offline')
           setIdentity({ name: instanceToTest })
         } else if (res.state === 'disconnected') {
-          setStatus('disconnected')
-          setErrorMessage(res.error || 'Desconectado')
+          setStatus('disconnected', res.error || 'Desconectado')
           setIdentity({ name: instanceToTest })
         } else if (res.instance?.state) {
-          setStatus(res.instance.state)
+          setStatus(res.instance.state, null)
           setIdentity({
             name: res.instance.profileName || res.instance.instanceName,
             number: res.instance.ownerJid?.split('@')[0] || res.instance.profileNumber,
           })
-          setErrorMessage(null)
         } else if (res.state) {
-          setStatus(res.state)
+          setStatus(res.state, null)
           setIdentity({
             name: res.profileName || res.instanceName,
             number: res.ownerJid?.split('@')[0] || res.profileNumber,
           })
-          setErrorMessage(null)
         } else {
-          setStatus('disconnected')
-          setErrorMessage('Status desconhecido')
+          setStatus('disconnected', 'Status desconhecido')
         }
       } catch (e: any) {
         clearTimeout(timeoutId)
         if (!isManualRefresh) {
           setFailCount((prev) => prev + 1)
         }
-        setStatus('offline')
-        setErrorMessage(
+        setStatus(
+          'offline',
           e.name === 'AbortError' || e.isAbort
             ? 'Timeout: Serviço Indisponível'
             : 'Falha de conexão com a API',
         )
-        setIdentity({ name: selectedInstance || 'vmoda' })
+        setIdentity({ name: selectedInstance || 'vmodabrasil' })
       }
     } catch (e) {
       if (!isManualRefresh) {
         setFailCount((prev) => prev + 1)
       }
-      setStatus('offline')
-      setErrorMessage('Falha interna ao processar o status')
+      setStatus('offline', 'Falha interna ao processar o status')
     } finally {
       setLoading(false)
     }
@@ -174,7 +164,7 @@ export function WhatsappStatusWidget() {
 
         await pb.send('/backend/v1/evolution_api/send', {
           method: 'POST',
-          body: JSON.stringify({ phone, message, instance_id: selectedInstance || 'vmoda' }),
+          body: JSON.stringify({ phone, message, instance_id: selectedInstance || 'vmodabrasil' }),
           signal: controller.signal,
         })
 
@@ -239,24 +229,6 @@ export function WhatsappStatusWidget() {
 
   return (
     <div className="flex items-center gap-2">
-      {!loading && status !== 'open' && status !== 'connecting' && errorMessage && (
-        <div
-          className="hidden lg:flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 px-2 py-1 rounded-md border border-destructive/20 animate-fade-in max-w-[350px]"
-          title={errorMessage || 'Serviço offline'}
-        >
-          <AlertCircle className="h-3 w-3 shrink-0" />
-          <span className="font-medium truncate">{errorMessage || 'Serviço offline'}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-5 px-1.5 text-[10px] uppercase font-bold hover:bg-destructive/20 ml-1"
-            onClick={() => fetchStatus(true)}
-            disabled={loading}
-          >
-            Tentar Novamente
-          </Button>
-        </div>
-      )}
       {identity.number && status === 'open' && (
         <div className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md border border-border/50 animate-fade-in">
           <Phone className="h-3 w-3" />

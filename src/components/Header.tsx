@@ -242,7 +242,7 @@ export function Header() {
           >
             <BrandLogo
               type="brand_logo"
-              fallbackText="V MODA Brasil"
+              fallbackText="V MODA BRASIL"
               className="h-14 sm:h-16 md:h-[84px] lg:h-[92px] w-auto object-contain transition-all duration-300"
               fallbackClassName="font-serif text-2xl font-bold tracking-widest uppercase text-primary"
             />

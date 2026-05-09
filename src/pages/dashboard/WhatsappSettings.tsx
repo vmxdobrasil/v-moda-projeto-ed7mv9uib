@@ -49,7 +49,10 @@ import { Badge } from '@/components/ui/badge'
 const schema = z.object({
   api_url: z
     .string()
-    .url('A URL deve ser válida (ex: https://evolution-evolution.6xxwvj.easypanel.host)'),
+    .url('A URL deve ser válida (ex: https://evolution-evolution.6xxwvj.easypanel.host)')
+    .refine((val) => !val.endsWith('/'), {
+      message: "A URL da API não deve terminar com '/'.",
+    }),
   token: z.string().optional(),
   instance_id: z.string().min(1, 'O ID da Instância é obrigatório'),
 })
@@ -160,11 +163,11 @@ export default function WhatsappSettings() {
       }
     } catch (e: any) {
       setStatuses((prev) => ({ ...prev, [config.id!]: 'error' }))
-      toast.error(
-        e.message === 'Timeout'
-          ? `Timeout de 3s: Instância ${config.instance_id} offline.`
-          : `Falha ao conectar com a instância ${config.instance_id}.`,
-      )
+      if (e.message === 'Timeout') {
+        toast.error('Erro de Conexão: O servidor demorou muito para responder (Timeout).')
+      } else {
+        toast.error(`Falha ao conectar com a instância ${config.instance_id}.`)
+      }
     } finally {
       setTestingId(null)
     }
@@ -260,7 +263,7 @@ export default function WhatsappSettings() {
                         ) : (
                           <Activity className="w-4 h-4 mr-2" />
                         )}
-                        Testar
+                        Testar Conexão
                       </Button>
                       <Button
                         variant="ghost"
@@ -301,7 +304,7 @@ export default function WhatsappSettings() {
                             <FormItem>
                               <FormLabel>Nome/ID da Instância</FormLabel>
                               <FormControl>
-                                <Input placeholder="ex: vmoda_vendas_1" {...field} />
+                                <Input placeholder="ex: vmodabrasil_vendas_1" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>

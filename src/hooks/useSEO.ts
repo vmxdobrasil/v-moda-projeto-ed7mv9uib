@@ -7,7 +7,7 @@ interface SEOProps {
 
 export function useSEO({ title, description }: SEOProps) {
   useEffect(() => {
-    document.title = `${title} | V Moda`
+    document.title = `${title} | V Moda Brasil`
 
     if (description) {
       let metaDescription = document.querySelector('meta[name="description"]')
@@ -33,6 +33,6 @@ export function useSEO({ title, description }: SEOProps) {
       ogTitle.setAttribute('property', 'og:title')
       document.head.appendChild(ogTitle)
     }
-    ogTitle.setAttribute('content', `${title} | V Moda`)
+    ogTitle.setAttribute('content', `${title} | V Moda Brasil`)
   }, [title, description])
 }

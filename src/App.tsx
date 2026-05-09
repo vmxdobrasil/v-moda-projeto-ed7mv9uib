@@ -29,6 +29,7 @@ import DashboardProjects from '@/pages/dashboard/Projects'
 import Resources from '@/pages/dashboard/Resources'
 import Magazine from '@/pages/dashboard/Magazine'
 import VideoNegotiation from '@/pages/VideoNegotiation'
+import WhatsappSettings from '@/pages/dashboard/WhatsappSettings'
 import Login from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
 
@@ -130,7 +131,7 @@ export default function App() {
                 </Route>
                 <Route path="analytics" element={<PlaceholderPage title="Analytics" />} />
                 <Route path="media-kit" element={<PlaceholderPage title="Media Kit" />} />
-                <Route path="settings" element={<PlaceholderPage title="Configurações" />} />
+                <Route path="settings" element={<WhatsappSettings />} />
               </Route>
             </Route>
 

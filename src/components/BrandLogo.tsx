@@ -11,6 +11,8 @@ interface BrandLogoProps {
 }
 
 export function BrandLogo({ type, fallbackText, className, fallbackClassName }: BrandLogoProps) {
+  const actualFallbackText =
+    fallbackText === 'V MODA Brasil' || fallbackText === 'V Moda' ? 'V MODA BRASIL' : fallbackText
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -44,8 +46,16 @@ export function BrandLogo({ type, fallbackText, className, fallbackClassName }: 
   }
 
   if (logoUrl) {
-    return <img src={logoUrl} alt={fallbackText} className={cn('object-contain', className)} />
+    return (
+      <img src={logoUrl} alt={actualFallbackText} className={cn('object-contain', className)} />
+    )
   }
 
-  return <img src={defaultLogoUrl} alt={fallbackText} className={cn('object-contain', className)} />
+  return (
+    <img
+      src={defaultLogoUrl}
+      alt={actualFallbackText}
+      className={cn('object-contain', className)}
+    />
+  )
 }

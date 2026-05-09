@@ -23,7 +23,7 @@ export function Footer() {
         {/* Col 1: Sobre */}
         <div className="flex flex-col gap-6 items-start">
           <Link to="/" className="bg-white/10 p-2 rounded-md hover:bg-white/20 transition-colors">
-            <img src={logoUrl} alt="V Moda Brasil" className="h-10 w-auto object-contain" />
+            <img src={logoUrl} alt="V MODA BRASIL" className="h-10 w-auto object-contain" />
           </Link>
           <p className="text-sm text-primary-foreground/70 text-balance leading-relaxed">
             Elevando o conceito de luxo e sofisticação. Peças exclusivas para quem busca
@@ -166,7 +166,7 @@ export function Footer() {
       </div>
 
       <div className="container flex flex-col items-center justify-center pt-8 border-t border-primary-foreground/10 text-xs text-primary-foreground/50 text-center">
-        <p>© 2024 V Moda. Todos os direitos reservados.</p>
+        <p>© 2024 V Moda Brasil. Todos os direitos reservados.</p>
       </div>
     </footer>
   )
