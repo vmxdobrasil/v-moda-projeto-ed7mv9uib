@@ -216,38 +216,36 @@ export function WhatsappStatusWidget() {
       case 'connecting':
         return 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30'
       case 'offline':
-        return 'bg-red-500/15 text-red-700 border-red-500/30'
       case 'auth_error':
-        return 'bg-orange-500/15 text-orange-700 border-orange-500/30'
+      case 'disconnected':
       default:
-        return 'bg-muted text-muted-foreground border-border'
+        return 'bg-red-500/15 text-red-700 border-red-500/30'
     }
   }
 
   const getStatusLabel = () => {
     switch (status) {
       case 'open':
-        return 'Conectado'
+        return 'Serviço Online'
       case 'connecting':
         return 'Conectando...'
       case 'offline':
-        return 'Serviço Offline'
       case 'auth_error':
-        return 'Erro de Autenticação'
+      case 'disconnected':
       default:
-        return 'Desconectado'
+        return 'Serviço offline'
     }
   }
 
   return (
     <div className="flex items-center gap-2">
-      {(status === 'offline' || status === 'auth_error') && (
+      {!loading && status !== 'open' && status !== 'connecting' && errorMessage && (
         <div
           className="hidden lg:flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 px-2 py-1 rounded-md border border-destructive/20 animate-fade-in max-w-[350px]"
-          title={errorMessage || 'Falha na API'}
+          title={errorMessage || 'Serviço offline'}
         >
           <AlertCircle className="h-3 w-3 shrink-0" />
-          <span className="font-medium truncate">{errorMessage || 'Falha na API'}</span>
+          <span className="font-medium truncate">{errorMessage || 'Serviço offline'}</span>
           <Button
             variant="ghost"
             size="sm"
@@ -286,9 +284,7 @@ export function WhatsappStatusWidget() {
                 ? 'bg-green-500'
                 : status === 'connecting'
                   ? 'bg-yellow-500 animate-pulse'
-                  : status === 'offline' || status === 'auth_error'
-                    ? 'bg-red-500'
-                    : 'bg-muted-foreground',
+                  : 'bg-red-500',
             )}
           />
         )}
@@ -317,10 +313,10 @@ export function WhatsappStatusWidget() {
             variant="outline"
             size="sm"
             className="h-8 gap-1.5 text-xs hidden sm:flex ml-1"
-            disabled={status === 'offline' || status === 'auth_error'}
+            disabled={status !== 'open' && status !== 'connecting'}
             title={
-              status === 'offline' || status === 'auth_error'
-                ? 'Serviço Offline. Não é possível enviar mensagem.'
+              status !== 'open' && status !== 'connecting'
+                ? 'Serviço offline. Não é possível enviar mensagem.'
                 : 'Testar Mensagem'
             }
           >
