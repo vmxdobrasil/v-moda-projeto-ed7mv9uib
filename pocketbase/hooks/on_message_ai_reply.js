@@ -9,12 +9,24 @@ onRecordAfterCreateSuccess((e) => {
     const settings = $app.findFirstRecordByData('brand_settings', 'key', 'ai_instructions')
     aiInstructions = settings.get('value_text')
   } catch (_) {
-    // skip
+    aiInstructions =
+      'Você é um especialista em moda atacado. Responda de forma educada e consultiva.'
   }
+
+  let catalogContext = ''
+  try {
+    const projects = $app.findRecordsByFilter('projects', 'price > 0', '-created', 10, 0)
+    if (projects.length > 0) {
+      catalogContext = 'Produtos em destaque no catálogo:\n'
+      projects.forEach((p) => {
+        catalogContext += `- ${p.getString('name')}: Preço R$ ${p.getFloat('price')} / Atacado R$ ${p.getFloat('wholesale_price')}\n`
+      })
+    }
+  } catch (_) {}
 
   let reply = ''
 
-  if ($secrets.has('OPENAI_API_KEY') && aiInstructions) {
+  if ($secrets.has('OPENAI_API_KEY')) {
     try {
       const res = $http.send({
         url: 'https://api.openai.com/v1/chat/completions',
@@ -28,11 +40,11 @@ onRecordAfterCreateSuccess((e) => {
           messages: [
             {
               role: 'system',
-              content: 'You are a helpful wholesale fashion assistant. ' + aiInstructions,
+              content: `You are a helpful wholesale fashion assistant. ${aiInstructions}\n\n${catalogContext}`,
             },
             { role: 'user', content: content },
           ],
-          max_tokens: 150,
+          max_tokens: 200,
         }),
         timeout: 15,
       })
@@ -40,7 +52,7 @@ onRecordAfterCreateSuccess((e) => {
         reply = res.json.choices[0].message.content
       }
     } catch (err) {
-      console.log('OpenAI API call failed', err)
+      $app.logger().error('OpenAI API call failed', err)
     }
   }
 
@@ -70,9 +82,6 @@ onRecordAfterCreateSuccess((e) => {
         'Sinto muito que tenha tido um problema. Por favor, nos envie uma foto do item para analisarmos o mais rápido possível.'
     } else {
       reply = 'Olá! Como posso ajudar você hoje?'
-      if (aiInstructions) {
-        reply += ' (Dica IA: ' + aiInstructions.substring(0, 50) + '...)'
-      }
     }
   }
 

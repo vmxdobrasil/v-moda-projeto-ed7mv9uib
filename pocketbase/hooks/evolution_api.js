@@ -84,16 +84,40 @@ routerAdd(
       $secrets.get('EVOLUTION_API_URL') || 'https://evolution-evolution.6xxwvj.easypanel.host'
     let token = $secrets.get('EVOLUTION_API_KEY') || '7i5UsFq1MM8pEbt8NqCVDPglfY8v9LTd'
     const body = e.requestInfo().body
-    let instanceId = body.instance_id || 'vmoda'
+    let instanceId = body.instance_id
 
     try {
-      const config = $app.findFirstRecordByData('whatsapp_configs', 'user', e.auth.id)
-      if (config.getString('api_url')) apiUrl = config.getString('api_url')
-      if (config.getString('token')) token = config.getString('token')
-      if (!body.instance_id && config.getString('instance_id')) {
-        instanceId = config.getString('instance_id').split(',')[0].trim()
+      const configs = $app.findRecordsByFilter(
+        'whatsapp_configs',
+        'user = {:userId}',
+        '-created',
+        100,
+        0,
+        { userId: e.auth.id },
+      )
+      if (configs.length > 0) {
+        const config = configs[0]
+        if (config.getString('api_url')) apiUrl = config.getString('api_url')
+        if (config.getString('token')) token = config.getString('token')
+
+        if (!instanceId) {
+          let allInstances = []
+          for (let i = 0; i < configs.length; i++) {
+            const ids = configs[i]
+              .getString('instance_id')
+              .split(',')
+              .map((s) => s.trim())
+              .filter((s) => s)
+            allInstances = allInstances.concat(ids)
+          }
+          if (allInstances.length > 0) {
+            instanceId = allInstances[Math.floor(Math.random() * allInstances.length)]
+          }
+        }
       }
     } catch (_) {}
+
+    if (!instanceId) instanceId = 'vmoda'
 
     if (!apiUrl || !token || !instanceId) {
       return e.badRequestError('Configuração do WhatsApp incompleta.')

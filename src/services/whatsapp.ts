@@ -55,11 +55,19 @@ export const saveWhatsappConfig = async (data: Partial<WhatsappConfig>) => {
   }
 }
 
-export const sendManualWhatsapp = async (customerId: string) => {
+export const sendManualWhatsapp = async (customerId: string, message: string = 'Olá!') => {
   if (!pb.authStore.isValid || !pb.authStore.token) {
     throw new Error('Sessão expirada. Por favor, faça login novamente para enviar mensagens.')
   }
-  return pb.send(`/backend/v1/whatsapp/notify/${customerId}`, { method: 'POST' })
+
+  const customer = await pb.collection('customers').getOne(customerId)
+  if (!customer.phone) throw new Error('Cliente sem telefone cadastrado.')
+
+  return pb.send('/backend/v1/evolution_api/send', {
+    method: 'POST',
+    body: JSON.stringify({ phone: customer.phone, message }),
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
 
 export const sendReactivationCampaign = async (customerIds: string[]) => {

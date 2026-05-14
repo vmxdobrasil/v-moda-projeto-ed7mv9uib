@@ -90,6 +90,11 @@ export function MessageFeed() {
                   <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed break-words">
                     {msg.content}
                   </p>
+                  {msg.ai_suggested_reply && (
+                    <div className="text-[10px] mt-1 text-primary/80 bg-primary/5 px-2 py-1 rounded-sm line-clamp-1 border border-primary/10">
+                      <strong>IA:</strong> {msg.ai_suggested_reply}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 pt-1">
                     <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">
                       {msg.direction === 'inbound' ? 'Recebida' : 'Enviada'}

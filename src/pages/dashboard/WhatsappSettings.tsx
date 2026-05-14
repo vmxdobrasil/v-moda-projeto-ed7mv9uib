@@ -176,7 +176,7 @@ export default function WhatsappSettings() {
   }
 
   const pbUrl = import.meta.env.VITE_POCKETBASE_URL || window.location.origin
-  const webhookUrl = `${pbUrl}/backend/v1/n8n-webhook`
+  const webhookUrl = `${pbUrl}/backend/v1/evolution_api/webhook`
 
   if (loading) {
     return (
@@ -193,10 +193,10 @@ export default function WhatsappSettings() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in-up">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Integração WhatsApp & n8n</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Integração WhatsApp Native Engine</h1>
         <p className="text-muted-foreground">
-          Configure a conexão com sua Evolution API e n8n para gerenciar automações e envio em massa
-          no WhatsApp.
+          Gerencie múltiplas instâncias da Evolution API (até 7+ números). Nosso motor de IA nativo
+          processa as mensagens, substituindo a necessidade de workflows externos como o n8n.
         </p>
       </div>
 
@@ -392,9 +392,10 @@ export default function WhatsappSettings() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Webhook n8n</CardTitle>
+                  <CardTitle>Webhook Global Evolution</CardTitle>
                   <CardDescription>
-                    Configure esta URL nos seus nós do n8n para enviar leads recebidos ao CRM.
+                    Configure esta URL como o Webhook global na Evolution API para as suas
+                    instâncias. (Eventos: messages.upsert)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -415,8 +416,8 @@ export default function WhatsappSettings() {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
-                    Payload esperado (POST json) contendo os campos: <br />
-                    <code>name</code>, <code>phone</code> e <code>instance_id</code>.
+                    Este endpoint recebe as mensagens recebidas, vincula ao cliente existente (ou
+                    cria um novo Lead) e aciona o motor de Inteligência Artificial nativo do V Moda.
                   </p>
                 </CardContent>
               </Card>

@@ -77,6 +77,16 @@ export default function Messages() {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground break-words">{msg.content}</p>
+
+                    {msg.ai_suggested_reply && (
+                      <div className="mt-2 p-3 bg-primary/5 rounded-md border border-primary/10">
+                        <p className="text-xs font-semibold text-primary mb-1">
+                          🤖 Sugestão da IA (Especialista em Moda):
+                        </p>
+                        <p className="text-xs text-muted-foreground">{msg.ai_suggested_reply}</p>
+                      </div>
+                    )}
+
                     <div className="flex gap-2 pt-2">
                       <Badge variant={msg.direction === 'inbound' ? 'secondary' : 'outline'}>
                         {msg.direction === 'inbound' ? 'Recebida' : 'Enviada'}
