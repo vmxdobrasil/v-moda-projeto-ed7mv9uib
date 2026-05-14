@@ -10,9 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, Search, Filter } from 'lucide-react'
+import { Loader2, Search, Filter, UploadCloud } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { format } from 'date-fns'
+import ImportLeadsDialog from '@/pages/dashboard/components/ImportLeadsDialog'
+import { Button } from '@/components/ui/button'
 
 export default function DashboardCustomers() {
   const [customers, setCustomers] = useState<any[]>([])
@@ -20,13 +22,36 @@ export default function DashboardCustomers() {
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState('all')
   const [brandFilter, setBrandFilter] = useState('')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+
+  const [isImportOpen, setIsImportOpen] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
 
   const loadData = async () => {
+    setLoading(true)
     try {
-      const records = await pb.collection('customers').getFullList({
+      const filters: string[] = []
+      if (search) {
+        filters.push(`(name ~ "${search}" || phone ~ "${search}")`)
+      }
+      if (sourceFilter !== 'all') {
+        filters.push(`source = "${sourceFilter}"`)
+      }
+      if (brandFilter) {
+        filters.push(`whatsapp_group_name ~ "${brandFilter}"`)
+      }
+
+      const filterStr = filters.join(' && ')
+
+      const result = await pb.collection('customers').getList(page, 50, {
+        filter: filterStr,
         sort: '-created',
       })
-      setCustomers(records)
+      setCustomers(result.items)
+      setTotalPages(result.totalPages)
+      setTotalItems(result.totalItems)
     } catch (e) {
       console.error(e)
     } finally {
@@ -36,29 +61,39 @@ export default function DashboardCustomers() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [page, search, sourceFilter, brandFilter])
 
-  useRealtime('customers', loadData)
+  useEffect(() => {
+    setPage(1)
+  }, [search, sourceFilter, brandFilter])
 
-  const filteredCustomers = customers.filter((c) => {
-    const matchesSearch =
-      (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
-      (c.phone || '').includes(search)
-    const matchesSource = sourceFilter === 'all' || c.source === sourceFilter
-    const matchesBrand =
-      !brandFilter ||
-      (c.whatsapp_group_name || '').toLowerCase().includes(brandFilter.toLowerCase())
-    return matchesSearch && matchesSource && matchesBrand
+  useRealtime('customers', () => {
+    if (!isImporting) loadData()
   })
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Leads / Clientes</h1>
-        <p className="text-muted-foreground">
-          Gestão de leads com informações detalhadas de origem e marca.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Leads / Clientes</h1>
+          <p className="text-muted-foreground">
+            Gestão de leads com informações detalhadas de origem e marca.
+          </p>
+        </div>
+        <Button onClick={() => setIsImportOpen(true)} className="gap-2">
+          <UploadCloud className="w-4 h-4" />
+          Importar Leads
+        </Button>
       </div>
+
+      <ImportLeadsDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        onImportStateChange={setIsImporting}
+        onImportComplete={loadData}
+        subscription={{ plan_tier: 'enterprise', import_limit: 100000 }}
+        customerCount={totalItems}
+      />
 
       <Card>
         <CardHeader>
@@ -114,21 +149,21 @@ export default function DashboardCustomers() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {loading ? (
+                {loading && customers.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                       <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3" />
                       Carregando leads...
                     </td>
                   </tr>
-                ) : filteredCustomers.length === 0 ? (
+                ) : customers.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                       Nenhum lead encontrado com os filtros atuais.
                     </td>
                   </tr>
                 ) : (
-                  filteredCustomers.map((c) => (
+                  customers.map((c) => (
                     <tr key={c.id} className="hover:bg-muted/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="font-semibold text-foreground">{c.name || 'Sem Nome'}</div>
@@ -167,6 +202,32 @@ export default function DashboardCustomers() {
               </tbody>
             </table>
           </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/20">
+              <div className="text-sm text-muted-foreground">
+                Mostrando página {page} de {totalPages} ({totalItems} leads)
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1 || loading}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages || loading}
+                >
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

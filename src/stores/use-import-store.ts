@@ -75,7 +75,7 @@ const useImportStore = create<ImportStore>((set, get) => ({
     }
 
     try {
-      const BATCH_SIZE = 500
+      const BATCH_SIZE = 100 // Smaller chunks to prevent browser crashes and timeouts
 
       for (let i = 0; i < rows.length; i += BATCH_SIZE) {
         const batch = rows.slice(i, i + BATCH_SIZE)
@@ -111,33 +111,46 @@ const useImportStore = create<ImportStore>((set, get) => ({
           return mapped
         })
 
-        try {
-          const res = await pb.send('/backend/v1/customers/bulk-import', {
-            method: 'POST',
-            body: JSON.stringify({ records: mappedRecords, defaultSource }),
-            headers: { 'Content-Type': 'application/json' },
-          })
+        let retries = 3
+        let successBatch = false
 
-          totalSuccess += res.success || 0
-          totalSkipped += res.skipped || 0
-          totalError += res.error || 0
+        while (retries > 0 && !successBatch) {
+          try {
+            const res = await pb.send('/backend/v1/customers/bulk-import', {
+              method: 'POST',
+              body: JSON.stringify({ records: mappedRecords, defaultSource }),
+              headers: { 'Content-Type': 'application/json' },
+            })
 
-          if (res.errorDetails && Array.isArray(res.errorDetails)) {
-            allErrors = [
-              ...allErrors,
-              ...res.errorDetails.map((e: any) => ({
-                row: i + e.index + 2,
-                reason: e.reason,
-              })),
-            ]
+            totalSuccess += res.success || 0
+            totalSkipped += res.skipped || 0
+            totalError += res.error || 0
+
+            if (res.errorDetails && Array.isArray(res.errorDetails)) {
+              allErrors = [
+                ...allErrors,
+                ...res.errorDetails.map((e: any) => ({
+                  row: i + e.index + 2,
+                  reason: e.reason,
+                })),
+              ]
+            }
+            successBatch = true
+          } catch (err: any) {
+            retries--
+            if (retries === 0) {
+              console.error('Batch error after retries', err)
+              totalError += batch.length
+              allErrors.push({
+                row: i + 2,
+                reason:
+                  err.message || 'Erro de comunicação no lote. Lote ignorado após tentativas.',
+              })
+            } else {
+              // Wait before retrying (exponential backoff)
+              await new Promise((r) => setTimeout(r, (3 - retries) * 1000))
+            }
           }
-        } catch (err: any) {
-          console.error('Batch error', err)
-          totalError += batch.length
-          allErrors.push({
-            row: i + 2,
-            reason: err.message || 'Erro de comunicação no lote',
-          })
         }
 
         const currentProcessed = totalSuccess + totalSkipped + totalError

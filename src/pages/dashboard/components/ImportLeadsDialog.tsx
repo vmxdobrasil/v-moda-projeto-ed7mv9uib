@@ -334,9 +334,13 @@ export default function ImportLeadsDialog({
 
         {step === 4 && stats && (
           <div className="space-y-6 py-4">
-            <div className="flex flex-col items-center justify-center mb-4">
+            <div className="flex flex-col items-center justify-center mb-4 text-center">
               <CheckCircle2 className="w-16 h-16 text-green-500 mb-2" />
               <h3 className="text-xl font-bold">Importação Concluída</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Total records: {totalCount} | Successfully imported: {stats.success} |
+                Skipped/Duplicates: {stats.skipped} | Errors: {stats.error}
+              </p>
             </div>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div className="bg-green-50 p-4 rounded-lg">
