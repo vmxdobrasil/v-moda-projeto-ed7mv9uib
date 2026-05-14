@@ -188,7 +188,10 @@ routerAdd(
             },
             body: JSON.stringify({
               number: phone,
-              options: { delay: 1200, presence: 'composing' },
+              options: {
+                delay: [1000, 2000, 3000][Math.floor(Math.random() * 3)],
+                presence: 'composing',
+              },
               textMessage: { text: message },
             }),
             timeout: 10,

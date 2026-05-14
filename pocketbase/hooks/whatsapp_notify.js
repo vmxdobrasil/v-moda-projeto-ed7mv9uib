@@ -91,7 +91,7 @@ routerAdd(
             textMessage: { text: msg },
             text: msg,
             options: {
-              delay: 1200,
+              delay: [1000, 2000, 3000][Math.floor(Math.random() * 3)],
               presence: 'composing',
             },
           }

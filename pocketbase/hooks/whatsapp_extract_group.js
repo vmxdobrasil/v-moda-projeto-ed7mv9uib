@@ -5,6 +5,7 @@ routerAdd(
     const body = e.requestInfo().body
     const instance = body.instance
     const groupId = body.groupId
+    const brandName = (body.brandName || '').trim()
 
     let config
     try {
@@ -97,7 +98,11 @@ routerAdd(
       record.set('name', 'Lead ' + phone)
       record.set('phone', phone)
       record.set('source', 'whatsapp_group')
-      record.set('whatsapp_group_name', groupName)
+      if (brandName) {
+        record.set('whatsapp_group_name', brandName)
+      } else {
+        record.set('whatsapp_group_name', groupName)
+      }
       record.set('status', 'new')
       record.set('manufacturer', e.auth.id)
 

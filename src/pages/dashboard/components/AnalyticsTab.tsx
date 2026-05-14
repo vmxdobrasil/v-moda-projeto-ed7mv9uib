@@ -27,7 +27,14 @@ export default function AnalyticsTab({ customers }: { customers: any[] }) {
   const leadsBySource = useMemo(() => {
     const counts = customers.reduce(
       (acc, c) => {
-        const s = c.source || 'manual'
+        let s = c.source || 'manual'
+        if (s === 'whatsapp_group' && c.whatsapp_group_name) {
+          s = `Grupo: ${c.whatsapp_group_name}`
+        } else if (s === 'whatsapp_group') {
+          s = 'Grupo WhatsApp'
+        } else {
+          s = s.replace('_', ' ')
+        }
         acc[s] = (acc[s] || 0) + 1
         return acc
       },
@@ -45,12 +52,16 @@ export default function AnalyticsTab({ customers }: { customers: any[] }) {
     leads: { label: 'Leads Capturados', color: 'hsl(var(--primary))' },
   }
 
-  const pieConfig = {
-    whatsapp: { label: 'WhatsApp (MEO Zap)', color: 'hsl(var(--chart-1))' },
-    instagram: { label: 'Instagram', color: 'hsl(var(--chart-2))' },
-    email: { label: 'Email', color: 'hsl(var(--chart-3))' },
-    manual: { label: 'Manual', color: 'hsl(var(--chart-4))' },
-  }
+  const pieConfig = useMemo(() => {
+    const config: any = {}
+    leadsBySource.forEach((item, index) => {
+      config[item.name] = {
+        label: item.name.charAt(0).toUpperCase() + item.name.slice(1),
+        color: item.fill,
+      }
+    })
+    return config
+  }, [leadsBySource])
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up">

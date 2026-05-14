@@ -190,12 +190,13 @@ export default function Customers() {
                 <TableHead>Telefone</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Origem</TableHead>
+                <TableHead>Marca/Loja</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading && customers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
                       <span>Carregando base de clientes...</span>
@@ -204,7 +205,7 @@ export default function Customers() {
                 </TableRow>
               ) : customers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                     Nenhum cliente encontrado.
                   </TableCell>
                 </TableRow>
@@ -221,6 +222,7 @@ export default function Customers() {
                     <TableCell className="capitalize">
                       {c.source?.replace('_', ' ') || 'Indefinido'}
                     </TableCell>
+                    <TableCell>{c.whatsapp_group_name || '-'}</TableCell>
                   </TableRow>
                 ))
               )}

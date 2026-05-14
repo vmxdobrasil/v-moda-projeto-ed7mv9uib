@@ -24,6 +24,7 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
   const [loadingGroups, setLoadingGroups] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState<string>('')
   const [extracting, setExtracting] = useState(false)
+  const [brandName, setBrandName] = useState('')
 
   const [testPhone, setTestPhone] = useState('')
   const [testMessage, setTestMessage] = useState('Olá! Este é um disparo de teste do sistema.')
@@ -89,6 +90,7 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
           body: JSON.stringify({
             instance: selectedInstance,
             groupId: selectedGroup,
+            brandName: brandName.trim(),
           }),
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
@@ -278,6 +280,18 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
                   value={selectedGroup}
                   onChange={(e) => setSelectedGroup(e.target.value)}
                 />
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <Label>Nome da Marca/Loja (Opcional)</Label>
+                <Input
+                  placeholder="ex: V Moda Oficial"
+                  value={brandName}
+                  onChange={(e) => setBrandName(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Será salvo como a origem dos leads extraídos para facilitar o filtro depois.
+                </p>
               </div>
             </div>
 
