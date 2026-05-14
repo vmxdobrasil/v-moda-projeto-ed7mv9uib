@@ -48,26 +48,8 @@ export default function DashboardHub() {
         }
       })
 
-      const instStatus = allInst.map((inst) => ({ id: inst, status: 'checking' }))
+      const instStatus = allInst.map((inst) => ({ id: inst, status: 'configured' }))
       setInstances(instStatus)
-
-      const checkStatus = async (inst: string) => {
-        try {
-          const res = await pb.send(`/backend/v1/evolution_api/status?instance=${inst}`, {
-            method: 'GET',
-          })
-          if (res?.instance?.state === 'open' || res?.state === 'open') {
-            return 'online'
-          }
-          return 'offline'
-        } catch {
-          return 'offline'
-        }
-      }
-
-      Promise.all(allInst.map((inst) => checkStatus(inst))).then((results) => {
-        setInstances(allInst.map((inst, idx) => ({ id: inst, status: results[idx] })))
-      })
     } catch (e) {
       console.error(e)
     } finally {
@@ -82,7 +64,6 @@ export default function DashboardHub() {
   useRealtime('customers', loadData)
   useRealtime('messages', loadData)
 
-  const poolOnline = instances.filter((i) => i.status === 'online').length
   const poolTotal = instances.length
 
   return (
@@ -120,13 +101,13 @@ export default function DashboardHub() {
 
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pool de Instâncias (Ativas)</CardTitle>
+            <CardTitle className="text-sm font-medium">Pool de Instâncias</CardTitle>
             <Server className="w-4 h-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-emerald-600">{poolOnline}</span>
-              <span className="text-lg text-muted-foreground">/ {poolTotal}</span>
+              <span className="text-3xl font-bold text-emerald-600">{poolTotal}</span>
+              <span className="text-lg text-muted-foreground ml-2">instâncias</span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">Capacidade de balanceamento</p>
           </CardContent>
@@ -176,9 +157,9 @@ export default function DashboardHub() {
 
         <Card className="shadow-sm overflow-hidden flex flex-col">
           <CardHeader>
-            <CardTitle>Saúde das Instâncias do Pool</CardTitle>
+            <CardTitle>Instâncias do Pool</CardTitle>
             <CardDescription>
-              Status em tempo real das instâncias configuradas na Evolution API
+              Instâncias configuradas na Evolution API para envio de mensagens
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto">
@@ -195,28 +176,16 @@ export default function DashboardHub() {
                 {instances.map((inst) => (
                   <div
                     key={inst.id}
-                    className="flex items-center justify-between p-3 border rounded-md"
+                    className="flex items-center justify-between p-3 border rounded-md bg-muted/20"
                   >
                     <div className="flex items-center gap-3">
-                      <Server className="w-4 h-4 text-muted-foreground" />
+                      <Server className="w-4 h-4 text-primary" />
                       <span className="font-medium">{inst.id}</span>
                     </div>
                     <div>
-                      {inst.status === 'checking' && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Loader2 className="w-3 h-3 animate-spin" /> Verificando
-                        </span>
-                      )}
-                      {inst.status === 'online' && (
-                        <span className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full font-medium">
-                          <CheckCircle2 className="w-3 h-3" /> Conectada
-                        </span>
-                      )}
-                      {inst.status === 'offline' && (
-                        <span className="flex items-center gap-1 text-xs text-destructive bg-destructive/10 px-2 py-1 rounded-full font-medium">
-                          <AlertCircle className="w-3 h-3" /> Offline
-                        </span>
-                      )}
+                      <span className="flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-1 rounded-full font-medium">
+                        <CheckCircle2 className="w-3 h-3" /> Configurada
+                      </span>
                     </div>
                   </div>
                 ))}

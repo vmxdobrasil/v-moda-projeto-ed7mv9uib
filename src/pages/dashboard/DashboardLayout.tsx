@@ -57,10 +57,8 @@ import { cn } from '@/lib/utils'
 import pb from '@/lib/pocketbase/client'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 import { ExternalLink as CustomExternalLink } from '@/components/ExternalLink'
-import { WhatsappStatusWidget } from '@/components/WhatsappStatusWidget'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { toast } from 'sonner'
-import { useWhatsappStore } from '@/stores/useWhatsappStore'
 import { AlertCircle } from 'lucide-react'
 
 const navItems = [
@@ -107,79 +105,7 @@ export default function DashboardLayout() {
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false)
   const [testPhone, setTestPhone] = useState('')
   const [testMessage, setTestMessage] = useState('Olá! Teste de conexão V MODA BRASIL.')
-  const [testInstance, setTestInstance] = useState('')
-  const [instanceStatus, setInstanceStatus] = useState<'checking' | 'connected' | 'disconnected'>(
-    'checking',
-  )
-  const [instanceError, setInstanceError] = useState('')
   const [isSendingTest, setIsSendingTest] = useState(false)
-
-  const checkInstanceHealth = async () => {
-    setInstanceStatus('checking')
-    setInstanceError('')
-    try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
-
-      let res
-      try {
-        const configs = await pb
-          .collection('whatsapp_configs')
-          .getFullList({ filter: `user = "${user?.id}"`, signal: controller.signal })
-          .catch(() => [])
-
-        if (!configs || configs.length === 0) {
-          clearTimeout(timeoutId)
-          setInstanceStatus('disconnected')
-          setInstanceError('Nenhuma configuração de WhatsApp encontrada.')
-          return
-        }
-        const config = configs[0]
-        const instanceStr = config.instance_id || ''
-        const firstInstance = instanceStr.split(',')[0].trim()
-
-        if (!firstInstance) {
-          clearTimeout(timeoutId)
-          setInstanceStatus('disconnected')
-          setInstanceError('Nenhuma instância configurada.')
-          return
-        }
-        setTestInstance(firstInstance)
-
-        res = await pb.send(`/backend/v1/evolution_api/status?instance=${firstInstance}`, {
-          method: 'GET',
-          signal: controller.signal,
-        })
-        clearTimeout(timeoutId)
-      } catch (e: any) {
-        clearTimeout(timeoutId)
-        setInstanceStatus('disconnected')
-        if (e.name === 'AbortError' || e.isAbort) {
-          setInstanceError('Timeout: Serviço Indisponível após 3s')
-        } else {
-          setInstanceError(e.response?.message || e.message || 'Falha de conexão com a API')
-        }
-        return
-      }
-
-      if (res?.instance?.state === 'open' || res?.state === 'open') {
-        setInstanceStatus('connected')
-        setInstanceError('')
-      } else {
-        setInstanceStatus('disconnected')
-        setInstanceError(res?.error || res?.instance?.state || res?.state || 'Desconectado')
-      }
-    } catch (err: any) {
-      setInstanceStatus('disconnected')
-      setInstanceError('Erro interno ao verificar status da instância.')
-    }
-  }
-
-  useEffect(() => {
-    if (isTestDialogOpen && user) {
-      checkInstanceHealth()
-    }
-  }, [isTestDialogOpen, user])
 
   const normalizePhone = (phoneStr: string) => {
     const digits = phoneStr.replace(/\D/g, '')
@@ -199,11 +125,6 @@ export default function DashboardLayout() {
       return
     }
 
-    if (instanceStatus !== 'connected') {
-      toast.error('A instância não está conectada. Verifique as configurações.')
-      return
-    }
-
     const normalizedPhone = normalizePhone(testPhone)
     if (!normalizedPhone || normalizedPhone.length < 12) {
       toast.error('Número de telefone inválido. O formato esperado é 55 + DDD + 9 dígitos.')
@@ -215,9 +136,15 @@ export default function DashboardLayout() {
       const toastId = toast.loading('Enviando mensagem de teste...')
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
 
       try {
+        const configs = await pb
+          .collection('whatsapp_configs')
+          .getFullList({ filter: `user = "${user?.id}"` })
+          .catch(() => [])
+        const testInstance = configs[0]?.instance_id?.split(',')[0].trim() || 'vmodabrasil'
+
         await pb.send('/backend/v1/whatsapp/test-message', {
           method: 'POST',
           body: JSON.stringify({
@@ -232,7 +159,7 @@ export default function DashboardLayout() {
       } catch (e: any) {
         clearTimeout(timeoutId)
         if (e.name === 'AbortError' || e.isAbort)
-          throw new Error('Timeout de 3s atingido. Serviço Offline.')
+          throw new Error('Timeout de 10s atingido. Serviço Offline.')
         throw e
       }
 
@@ -413,32 +340,6 @@ export default function DashboardLayout() {
               </DialogHeader>
 
               <div className="space-y-4 py-4">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md border">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">Status da Instância</span>
-                    <span className="text-xs text-muted-foreground">
-                      {testInstance || 'Verificando...'}
-                    </span>
-                  </div>
-                  {instanceStatus === 'checking' && (
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Verificando
-                    </Badge>
-                  )}
-                  {instanceStatus === 'connected' && (
-                    <Badge className="bg-green-500 hover:bg-green-600 text-white">Conectado</Badge>
-                  )}
-                  {instanceStatus === 'disconnected' && (
-                    <Badge variant="destructive">Desconectado</Badge>
-                  )}
-                </div>
-
-                {instanceStatus === 'disconnected' && instanceError && (
-                  <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
-                    <strong>Erro:</strong> {instanceError}
-                  </div>
-                )}
-
                 <div className="space-y-2">
                   <Label htmlFor="test-phone">Telefone (WhatsApp)</Label>
                   <div className="relative">
@@ -478,10 +379,7 @@ export default function DashboardLayout() {
                 >
                   Cancelar
                 </Button>
-                <Button
-                  onClick={handleSendTest}
-                  disabled={isSendingTest || instanceStatus !== 'connected' || !testPhone}
-                >
+                <Button onClick={handleSendTest} disabled={isSendingTest || !testPhone}>
                   {isSendingTest ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...
@@ -519,13 +417,6 @@ export default function DashboardLayout() {
                     <ExternalLink className="ml-0.5 h-3 w-3 opacity-50" />
                   </CustomExternalLink>
                 </div>
-                <ErrorBoundary>
-                  <Suspense
-                    fallback={<div className="h-8 w-24 bg-muted animate-pulse rounded-md"></div>}
-                  >
-                    <WhatsappStatusWidget />
-                  </Suspense>
-                </ErrorBoundary>
                 <div className="text-sm font-medium text-muted-foreground hidden lg:block border-l pl-4 py-1">
                   {new Date().toLocaleDateString('pt-BR', {
                     weekday: 'long',
