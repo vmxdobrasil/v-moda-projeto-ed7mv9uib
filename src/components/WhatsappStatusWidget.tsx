@@ -29,7 +29,7 @@ import { Link } from 'react-router-dom'
 
 export function WhatsappStatusWidget() {
   const { status, errorMessage, setStatus } = useWhatsappStore()
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [phone, setPhone] = useState('5562992156222')
   const [message, setMessage] = useState('Teste de conexão - Evolution API')
@@ -131,11 +131,9 @@ export function WhatsappStatusWidget() {
     }
   }
 
-  useEffect(() => {
-    fetchStatus()
-    const interval = setInterval(() => fetchStatus(), 30000)
-    return () => clearInterval(interval)
-  }, [selectedInstance])
+  // Polling intervals and on-mount background connection checks removed.
+  // External service pings must only happen manually (e.g., via refresh button)
+  // to prevent dashboard blocking and infinite loading loops.
 
   const handleSendTest = async () => {
     if (!phone || !message) {
