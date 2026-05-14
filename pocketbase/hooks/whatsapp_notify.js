@@ -86,16 +86,26 @@ routerAdd(
         if (apiUrl.includes('evolution')) {
           endpoint = `${base}/message/sendText/${instanceId}`
           reqHeaders['apikey'] = token
+
+          const humanDelay = Math.floor(Math.random() * 2000) + 1000
+
           reqBody = {
             number: phone,
             textMessage: { text: msg },
             text: msg,
             options: {
-              delay: [1000, 2000, 3000][Math.floor(Math.random() * 3)],
+              delay: humanDelay,
               presence: 'composing',
             },
           }
         }
+      }
+
+      // Human Typing: Server-side sleep function varying randomly between 1000ms and 3000ms
+      const delayMs = Math.floor(Math.random() * 2000) + 1000
+      const start = Date.now()
+      while (Date.now() - start < delayMs) {
+        // busy wait
       }
 
       const res = $http.send({

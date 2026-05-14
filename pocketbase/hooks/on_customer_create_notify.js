@@ -113,6 +113,13 @@ onRecordAfterCreateSuccess((e) => {
             let success = false
             let lastError = null
 
+            // Human Typing: Server-side sleep function varying randomly between 1000ms and 3000ms
+            const delayMs = Math.floor(Math.random() * 2000) + 1000
+            const start = Date.now()
+            while (Date.now() - start < delayMs) {
+              // busy wait for sleep
+            }
+
             for (const inst of instancesToTry) {
               try {
                 const res = $http.send({
@@ -124,7 +131,7 @@ onRecordAfterCreateSuccess((e) => {
                   },
                   body: JSON.stringify({
                     number: phone,
-                    options: { delay: 1200, presence: 'composing' },
+                    options: { delay: delayMs, presence: 'composing' },
                     textMessage: { text: msg },
                   }),
                   timeout: 10,

@@ -23,6 +23,8 @@ import AdminPartners from '@/pages/admin/Partners'
 import ZoopProposal from '@/pages/admin/ZoopProposal'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
 import DashboardLogistics from '@/pages/dashboard/Logistics'
+import DashboardCustomers from '@/pages/dashboard/Customers'
+import DashboardAnalytics from '@/pages/dashboard/Analytics'
 import ManufacturersHub from '@/pages/dashboard/Manufacturers'
 import AffiliateDashboard from '@/pages/dashboard/AffiliateDashboard'
 import DashboardProjects from '@/pages/dashboard/Projects'
@@ -114,7 +116,7 @@ export default function App() {
                 <Route path="dashboard" element={<Navigate to="/" replace />} />
 
                 {/* Placeholder Routes for missing pages */}
-                <Route path="customers" element={<PlaceholderPage title="Leads / Clientes" />} />
+                <Route path="customers" element={<DashboardCustomers />} />
                 <Route
                   path="customers/:id"
                   element={<PlaceholderPage title="Detalhes do Cliente" />}
@@ -129,7 +131,7 @@ export default function App() {
                 <Route element={<ManufacturerGuard />}>
                   <Route path="logistics" element={<DashboardLogistics />} />
                 </Route>
-                <Route path="analytics" element={<PlaceholderPage title="Analytics" />} />
+                <Route path="analytics" element={<DashboardAnalytics />} />
                 <Route path="media-kit" element={<PlaceholderPage title="Media Kit" />} />
                 <Route element={<ManufacturerGuard />}>
                   <Route path="settings" element={<WhatsappSettings />} />

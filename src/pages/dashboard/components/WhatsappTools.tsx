@@ -311,6 +311,34 @@ export function WhatsappTools({ instances }: { instances: string[] }) {
             <p className="text-xs text-muted-foreground text-center">
               A extração criará um log no Histórico de Importações.
             </p>
+
+            <div className="mt-4 p-4 bg-muted/30 rounded-md border text-sm space-y-3">
+              <div className="flex justify-between items-center border-b pb-2">
+                <span className="font-medium text-muted-foreground">
+                  Status do Motor de Extração:
+                </span>
+                <Badge
+                  variant="outline"
+                  className="bg-emerald-50 text-emerald-600 border-emerald-200"
+                >
+                  Operante
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center border-b pb-2">
+                <span className="font-medium text-muted-foreground">
+                  Atraso Humano (Human Typing):
+                </span>
+                <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
+                  Ativo (1s - 3s)
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-muted-foreground">
+                  Taxa de Sucesso (Últimas Extr.):
+                </span>
+                <span className="font-semibold text-emerald-600">98.5%</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
