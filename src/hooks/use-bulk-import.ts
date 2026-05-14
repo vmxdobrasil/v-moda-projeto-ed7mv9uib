@@ -45,7 +45,7 @@ export function useBulkImport() {
     }
 
     try {
-      const BATCH_SIZE = 1000
+      const BATCH_SIZE = 500
 
       for (let i = 0; i < rows.length; i += BATCH_SIZE) {
         const batch = rows.slice(i, i + BATCH_SIZE)
@@ -115,7 +115,7 @@ export function useBulkImport() {
         }
 
         setProgress(Math.min(100, Math.round(((i + BATCH_SIZE) / rows.length) * 100)))
-        await new Promise((r) => setTimeout(r, 50)) // yield to UI thread
+        await new Promise((r) => setTimeout(r, 100)) // yield to UI thread
       }
     } catch (err) {
       console.error('Bulk import error', err)

@@ -90,6 +90,8 @@ export default function ImportLeadsDialog({
           autoMap.phone = h
         if (n.includes('grupo') || n.includes('caravana') || n.includes('group'))
           autoMap.caravan_name = h
+        if (n.includes('origem') || n.includes('loja') || n.includes('store'))
+          autoMap.origin_store_name = h
         if (n.includes('email') || n === 'e-mail') autoMap.email = h
         if (n.includes('cidade') || n === 'city') autoMap.city = h
         if (n === 'uf' || n === 'estado' || n === 'state') autoMap.state = h
@@ -112,6 +114,7 @@ export default function ImportLeadsDialog({
 
     const isAdmin =
       pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
+      pb.authStore.record?.role === 'admin' ||
       pb.authStore.record?.role === 'manufacturer'
     const limit = isAdmin
       ? Infinity
@@ -120,7 +123,7 @@ export default function ImportLeadsDialog({
 
     if (customerCount + rows.length > limit && limit !== Infinity) {
       toast.error(
-        `Você atingiu o limite de ${limit} leads para o plano ${subscription?.plan_tier || 'Free'}. Faça upgrade para importar mais.`,
+        `Limite Excedido: Você atingiu o limite de ${limit} leads para o plano ${subscription?.plan_tier || 'Free'}. Faça upgrade para importar mais.`,
       )
       return
     }
@@ -262,6 +265,7 @@ export default function ImportLeadsDialog({
             <div className="max-h-[250px] overflow-y-auto space-y-2 pr-2 mt-4">
               {renderMappingRow('phone', 'WhatsApp / Telefone', true)}
               {renderMappingRow('name', 'Nome do Lead')}
+              {renderMappingRow('origin_store_name', 'Loja de Origem (Extração)')}
               {renderMappingRow('caravan_name', 'Nome do Grupo / Caravana')}
               {renderMappingRow('email', 'E-mail')}
               {renderMappingRow('city', 'Cidade')}

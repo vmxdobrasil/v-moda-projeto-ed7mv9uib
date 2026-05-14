@@ -286,21 +286,6 @@ export default function DashboardLayout() {
   return (
     <SidebarProvider>
       <div className="flex flex-col h-screen overflow-hidden w-full bg-background">
-        {status !== 'open' && status !== 'connecting' && (
-          <div className="bg-destructive text-destructive-foreground px-4 py-2.5 flex items-center justify-center gap-3 text-sm font-medium shadow-md z-[100] shrink-0 w-full animate-fade-in-down">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <span className="text-center font-semibold">
-              Serviço Offline: A conexão com a Evolution API falhou (
-              {errorMessage || 'Desconectado'}).
-              <Link
-                to="/settings"
-                className="ml-2 underline underline-offset-2 hover:text-white/80"
-              >
-                Acesse as Configurações para testar a conexão.
-              </Link>
-            </span>
-          </div>
-        )}
         <div className="flex flex-1 min-h-0 w-full overflow-hidden relative">
           <Sidebar>
             <SidebarHeader className="h-auto min-h-[6rem] flex items-center justify-center border-b px-6 py-6 shrink-0">
