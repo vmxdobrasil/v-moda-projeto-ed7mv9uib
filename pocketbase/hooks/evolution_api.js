@@ -143,37 +143,83 @@ routerAdd(
     const url = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
 
     try {
-      const res = $http.send({
-        url: `${url}/message/sendText/${instanceId}`,
-        method: 'POST',
-        headers: {
-          apikey: token,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          number: phone,
-          options: { delay: 1200, presence: 'composing' },
-          textMessage: { text: message },
-        }),
-        timeout: 15,
-      })
+      // Load balancer logic: rotate across configured instances to distribute load and handle offline nodes
+      let allInstances = []
+      try {
+        const configs = $app.findRecordsByFilter(
+          'whatsapp_configs',
+          'user = {:userId}',
+          '-created',
+          100,
+          0,
+          { userId: e.auth.id },
+        )
+        for (let i = 0; i < configs.length; i++) {
+          const ids = configs[i]
+            .getString('instance_id')
+            .split(',')
+            .map((s) => s.trim())
+            .filter((s) => s)
+          allInstances = allInstances.concat(ids)
+        }
+      } catch (_) {}
 
-      if (res.statusCode >= 400) {
-        $app
-          .logger()
-          .error(
-            'Evolution API Send Error',
-            'statusCode',
-            res.statusCode,
-            'body',
-            String(res.body),
-            'phone',
-            phone,
-          )
-        return e.badRequestError(`Erro ao enviar: ${res.statusCode}`)
+      let instancesToTry = allInstances.length > 0 ? allInstances : [instanceId]
+      // Randomize array to distribute load evenly across connected e-SIMs
+      instancesToTry = instancesToTry.sort(() => Math.random() - 0.5)
+
+      // If a specific instance was requested via UI, prioritize it
+      if (body.instance_id && instancesToTry.includes(body.instance_id)) {
+        instancesToTry = [
+          body.instance_id,
+          ...instancesToTry.filter((id) => id !== body.instance_id),
+        ]
       }
 
-      return e.json(res.statusCode, res.json)
+      let lastError = null
+      for (const inst of instancesToTry) {
+        try {
+          const res = $http.send({
+            url: `${url}/message/sendText/${inst}`,
+            method: 'POST',
+            headers: {
+              apikey: token,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              number: phone,
+              options: { delay: 1200, presence: 'composing' },
+              textMessage: { text: message },
+            }),
+            timeout: 10,
+          })
+
+          if (res.statusCode === 200 || res.statusCode === 201) {
+            return e.json(res.statusCode, res.json)
+          } else {
+            lastError = `Status ${res.statusCode}`
+            $app
+              .logger()
+              .error('Evolution API Send Error on instance ' + inst, 'statusCode', res.statusCode)
+            // Retry on Next Instance if offline, auth issue, or missing instance
+            if (res.statusCode === 404 || res.statusCode === 428 || res.statusCode === 401) {
+              continue
+            } else {
+              break
+            }
+          }
+        } catch (err) {
+          lastError = String(err)
+          $app
+            .logger()
+            .error('Evolution API Send Transport Error on instance ' + inst, 'err', lastError)
+          continue
+        }
+      }
+
+      return e.badRequestError(
+        `Falha ao enviar mensagem após tentar múltiplas instâncias. Último erro: ${lastError}`,
+      )
     } catch (err) {
       $app.logger().error('Evolution API Send Transport Error', 'err', String(err))
       return e.internalServerError('Falha de transporte ao se conectar com a Evolution API.')

@@ -77,7 +77,15 @@ routerAdd(
         continue
       }
 
-      const phone = p.id.split('@')[0]
+      let phone = p.id.split('@')[0].replace(/\D/g, '')
+      if (phone.length === 10 || phone.length === 11) {
+        phone = '55' + phone
+      }
+      if (phone.startsWith('55') && phone.length === 12) {
+        const ddd = phone.substring(2, 4)
+        const num = phone.substring(4)
+        phone = '55' + ddd + '9' + num
+      }
 
       try {
         $app.findFirstRecordByData('customers', 'phone', phone)

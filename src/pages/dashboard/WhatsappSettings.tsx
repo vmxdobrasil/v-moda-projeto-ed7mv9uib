@@ -421,6 +421,50 @@ export default function WhatsappSettings() {
                   </p>
                 </CardContent>
               </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Webhook Social Leads (FB/IG)</CardTitle>
+                  <CardDescription>
+                    Configure esta URL nas suas automações (Meta Business, Zapier) para captação
+                    nativa de leads sociais.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="p-3 bg-muted rounded-md flex items-center justify-between gap-4 overflow-hidden">
+                    <code
+                      className="text-xs truncate text-muted-foreground"
+                      title={`${pbUrl}/backend/v1/social-leads/webhook`}
+                    >
+                      {`${pbUrl}/backend/v1/social-leads/webhook`}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0 h-8"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${pbUrl}/backend/v1/social-leads/webhook`)
+                        toast.success('URL copiada!')
+                      }}
+                    >
+                      Copiar
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
+                    Faça uma requisição POST contendo{' '}
+                    <code className="bg-background px-1 py-0.5 rounded border">name</code>,{' '}
+                    <code className="bg-background px-1 py-0.5 rounded border">phone</code>,{' '}
+                    <code className="bg-background px-1 py-0.5 rounded border">
+                      instagram_handle
+                    </code>{' '}
+                    e{' '}
+                    <code className="bg-background px-1 py-0.5 rounded border">
+                      manufacturer_id
+                    </code>
+                    . O sistema realiza deduplicação e cria logs de importação.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </TabsContent>

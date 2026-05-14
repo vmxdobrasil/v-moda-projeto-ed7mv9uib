@@ -13,6 +13,18 @@ onRecordAfterCreateSuccess((e) => {
       'Você é um especialista em moda atacado. Responda de forma educada e consultiva.'
   }
 
+  let templatesContext = ''
+  try {
+    const templates = $app.findRecordsByFilter('whatsapp_templates', 'is_active = true', '', 10, 0)
+    if (templates.length > 0) {
+      templatesContext =
+        'Você possui os seguintes templates/mensagens como referência de estilo e ofertas:\n'
+      templates.forEach((t) => {
+        templatesContext += `- ${t.getString('trigger_event')}: ${t.getString('content')}\n`
+      })
+    }
+  } catch (_) {}
+
   let catalogContext = ''
   try {
     const projects = $app.findRecordsByFilter('projects', 'price > 0', '-created', 10, 0)
@@ -40,7 +52,7 @@ onRecordAfterCreateSuccess((e) => {
           messages: [
             {
               role: 'system',
-              content: `You are a helpful wholesale fashion assistant. ${aiInstructions}\n\n${catalogContext}`,
+              content: `You are a helpful wholesale fashion assistant. ${aiInstructions}\n\n${templatesContext}\n\n${catalogContext}`,
             },
             { role: 'user', content: content },
           ],
