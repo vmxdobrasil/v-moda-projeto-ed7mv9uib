@@ -39,6 +39,7 @@ import {
   Trash2,
   Server,
   Activity,
+  MessageSquare,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { WhatsappTemplatesManager } from './components/WhatsappTemplatesManager'
@@ -64,8 +65,10 @@ export default function WhatsappSettings() {
   const [saving, setSaving] = useState(false)
   const [testingId, setTestingId] = useState<string | null>(null)
   const [statuses, setStatuses] = useState<Record<string, 'success' | 'error'>>({})
+  const [msgCounts, setMsgCounts] = useState<Record<string, number>>({})
   const [configs, setConfigs] = useState<WhatsappConfig[]>([])
   const [isAdding, setIsAdding] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -83,6 +86,27 @@ export default function WhatsappSettings() {
       const data = await getWhatsappConfigs(userId)
       setConfigs(data)
       if (data.length === 0) setIsAdding(true)
+
+      data.forEach(async (cfg) => {
+        if (!cfg.instance_id) return
+        const instNames = cfg.instance_id.split(',').map((s) => s.trim())
+        for (const name of instNames) {
+          if (!name) continue
+          try {
+            const channels = await pb
+              .collection('channels')
+              .getFullList({ filter: `name = "${name}"` })
+            if (channels.length > 0) {
+              const msgs = await pb
+                .collection('messages')
+                .getList(1, 1, { filter: `channel = "${channels[0].id}"` })
+              setMsgCounts((prev) => ({ ...prev, [name]: msgs.totalItems }))
+            }
+          } catch {
+            /* intentionally ignored */
+          }
+        }
+      })
     } catch (e) {
       console.error(e)
     } finally {
@@ -115,9 +139,15 @@ export default function WhatsappSettings() {
       if (data.token) {
         payload.token = data.token
       }
+      if (editingId) {
+        payload.id = editingId
+      }
       await saveWhatsappConfig(payload)
-      toast.success('Instância adicionada com sucesso!')
+      toast.success(
+        editingId ? 'Instância atualizada com sucesso!' : 'Instância adicionada com sucesso!',
+      )
       setIsAdding(false)
+      setEditingId(null)
       form.reset()
       loadData()
     } catch (e) {
@@ -220,8 +250,15 @@ export default function WhatsappSettings() {
                     mensagens.
                   </CardDescription>
                 </div>
-                {!isAdding && (
-                  <Button onClick={() => setIsAdding(true)} size="sm">
+                {!isAdding && !editingId && (
+                  <Button
+                    onClick={() => {
+                      setIsAdding(true)
+                      setEditingId(null)
+                      form.reset({ api_url: '', token: '', instance_id: '' })
+                    }}
+                    size="sm"
+                  >
                     <Plus className="w-4 h-4 mr-2" /> Nova Instância
                   </Button>
                 )}
@@ -251,9 +288,43 @@ export default function WhatsappSettings() {
                           <Badge variant="destructive">Desconectada</Badge>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground break-all">{config.api_url}</p>
+                      <p className="text-xs text-muted-foreground break-all mb-2">
+                        {config.api_url}
+                      </p>
+
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {config.instance_id?.split(',').map((name) => {
+                          const n = name.trim()
+                          if (!n) return null
+                          return (
+                            <Badge
+                              key={n}
+                              variant="outline"
+                              className="text-xs flex items-center gap-1"
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                              {n}: {msgCounts[n] || 0} msgs
+                            </Badge>
+                          )
+                        })}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingId(config.id!)
+                          form.reset({
+                            api_url: config.api_url,
+                            instance_id: config.instance_id || '',
+                            token: config.token || '',
+                          })
+                          setIsAdding(true)
+                        }}
+                      >
+                        Editar
+                      </Button>
                       <Button
                         variant="secondary"
                         size="sm"
@@ -282,7 +353,8 @@ export default function WhatsappSettings() {
                 {isAdding && (
                   <div className="mt-6 p-4 border rounded-md bg-muted/30">
                     <h3 className="font-semibold mb-4 text-sm flex items-center gap-2">
-                      <Plus className="w-4 h-4" /> Adicionar Nova Instância
+                      <Plus className="w-4 h-4" />{' '}
+                      {editingId ? 'Editar Instância' : 'Adicionar Nova Instância'}
                     </h3>
                     <Form {...form}>
                       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -338,7 +410,10 @@ export default function WhatsappSettings() {
                             <Button
                               type="button"
                               variant="outline"
-                              onClick={() => setIsAdding(false)}
+                              onClick={() => {
+                                setIsAdding(false)
+                                setEditingId(null)
+                              }}
                             >
                               Cancelar
                             </Button>

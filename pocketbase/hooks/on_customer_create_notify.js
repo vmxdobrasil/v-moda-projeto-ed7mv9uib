@@ -56,7 +56,113 @@ onRecordAfterCreateSuccess((e) => {
       `Um novo lead (${record.getString('name') || 'Sem Nome'}) foi adicionado à sua base de clientes.`,
     )
     notif.set('read', false)
-    $app.save(notif)
+    $app.saveNoValidate(notif)
+  }
+
+  // --- Automated Welcome Sequence with Load Balancer ---
+  const welcomeSent = record.getBool('whatsapp_welcome_sent')
+  const phone = record.getString('phone')
+
+  if (!welcomeSent && phone && userId) {
+    try {
+      const configs = $app.findRecordsByFilter(
+        'whatsapp_configs',
+        'user = {:userId}',
+        '-created',
+        100,
+        0,
+        { userId },
+      )
+
+      if (configs.length > 0) {
+        const config = configs[0]
+        const apiUrl = config.getString('api_url').replace(/\/$/, '')
+        const token = config.getString('token')
+
+        let allInstances = []
+        for (let i = 0; i < configs.length; i++) {
+          const ids = configs[i]
+            .getString('instance_id')
+            .split(',')
+            .map((s) => s.trim())
+            .filter((s) => s)
+          allInstances = allInstances.concat(ids)
+        }
+
+        if (allInstances.length > 0) {
+          let templateContent = null
+          try {
+            const templates = $app.findRecordsByFilter(
+              'whatsapp_templates',
+              'user = {:userId} && trigger_event = "welcome_message" && is_active = true',
+              '-created',
+              1,
+              0,
+              { userId },
+            )
+            if (templates.length > 0) {
+              templateContent = templates[0].getString('content')
+            }
+          } catch (_) {}
+
+          if (templateContent) {
+            const name = record.getString('name') || 'Cliente'
+            const msg = templateContent.replace(/\{\{name\}\}/g, name)
+
+            let instancesToTry = allInstances.sort(() => Math.random() - 0.5)
+            let success = false
+            let lastError = null
+
+            for (const inst of instancesToTry) {
+              try {
+                const res = $http.send({
+                  url: `${apiUrl}/message/sendText/${inst}`,
+                  method: 'POST',
+                  headers: {
+                    apikey: token,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    number: phone,
+                    options: { delay: 1200, presence: 'composing' },
+                    textMessage: { text: msg },
+                  }),
+                  timeout: 10,
+                })
+
+                if (res.statusCode === 200 || res.statusCode === 201) {
+                  success = true
+                  break
+                } else if (
+                  res.statusCode === 404 ||
+                  res.statusCode === 428 ||
+                  res.statusCode === 401
+                ) {
+                  lastError = res.statusCode
+                } else {
+                  lastError = res.statusCode
+                  break
+                }
+              } catch (err) {
+                lastError = String(err)
+              }
+            }
+
+            if (success) {
+              const customerRecord = $app.findRecordById('customers', record.id)
+              customerRecord.set('whatsapp_welcome_sent', true)
+              $app.saveNoValidate(customerRecord)
+            } else {
+              $app
+                .logger()
+                .error('Failed to send welcome message after trying instances', 'error', lastError)
+            }
+          }
+        }
+      }
+    } catch (err) {
+      $app.logger().error('Welcome Sequence Error', 'err', String(err))
+    }
   }
 
   e.next()

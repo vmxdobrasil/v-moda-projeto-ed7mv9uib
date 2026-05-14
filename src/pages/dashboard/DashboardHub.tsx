@@ -1,500 +1,227 @@
-import { useEffect, useState } from 'react'
-import { useAuth } from '@/hooks/use-auth'
-import pb from '@/lib/pocketbase/client'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription as DialogDesc,
-} from '@/components/ui/dialog'
-import {
-  Users,
-  Package,
-  MessageSquare,
-  Bell,
-  TrendingUp,
-  UserCheck,
-  Clock,
-  ChevronRight,
-  Globe,
-  Play,
-  Apple,
-  GraduationCap,
-} from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
-import { MonthlySales } from '@/components/dashboard/MonthlySales'
-import { MessageAnalytics } from '@/components/dashboard/MessageAnalytics'
-import { MessageFeed } from '@/components/dashboard/MessageFeed'
-import { ImportAuditWidget } from '@/components/dashboard/ImportAuditWidget'
+import pb from '@/lib/pocketbase/client'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { Users, MessageSquare, Server, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { useRealtime } from '@/hooks/use-realtime'
+
+const COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+]
 
 export default function DashboardHub() {
-  const { user } = useAuth()
+  const [leadsCount, setLeadsCount] = useState(0)
+  const [messagesCount, setMessagesCount] = useState(0)
+  const [sourceData, setSourceData] = useState<any[]>([])
+  const [instances, setInstances] = useState<{ id: string; status: string }[]>([])
   const [loading, setLoading] = useState(true)
-  const [showWelcome, setShowWelcome] = useState(false)
-  const [stats, setStats] = useState({
-    customers: 0,
-    converted: 0,
-    negotiating: 0,
-    projects: 0,
-    pendingMessages: 0,
-  })
-  const [notifications, setNotifications] = useState<any[]>([])
+
+  const loadData = async () => {
+    try {
+      const customers = await pb.collection('customers').getFullList({ fields: 'id,source' })
+      setLeadsCount(customers.length)
+
+      const sources = customers.reduce((acc, c) => {
+        const s = c.source || 'manual'
+        acc[s] = (acc[s] || 0) + 1
+        return acc
+      }, {} as any)
+
+      const chartData = Object.keys(sources).map((k) => ({
+        name: k.replace('_', ' ').toUpperCase(),
+        value: sources[k],
+      }))
+      setSourceData(chartData)
+
+      const msgs = await pb.collection('messages').getList(1, 1)
+      setMessagesCount(msgs.totalItems)
+
+      const configs = await pb.collection('whatsapp_configs').getFullList()
+      let allInst: string[] = []
+      configs.forEach((c) => {
+        if (c.instance_id) {
+          allInst = allInst.concat(c.instance_id.split(',').map((i) => i.trim()))
+        }
+      })
+
+      const instStatus = allInst.map((inst) => ({ id: inst, status: 'checking' }))
+      setInstances(instStatus)
+
+      const checkStatus = async (inst: string) => {
+        try {
+          const res = await pb.send(`/backend/v1/evolution_api/status?instance=${inst}`, {
+            method: 'GET',
+          })
+          if (res?.instance?.state === 'open' || res?.state === 'open') {
+            return 'online'
+          }
+          return 'offline'
+        } catch {
+          return 'offline'
+        }
+      }
+
+      Promise.all(allInst.map((inst) => checkStatus(inst))).then((results) => {
+        setInstances(allInst.map((inst, idx) => ({ id: inst, status: results[idx] })))
+      })
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    if (!user) return
+    loadData()
+  }, [])
 
-    const fetchDashboardData = async () => {
-      try {
-        const isAdmin = user.role === 'admin' || user.email === 'valterpmendonca@gmail.com'
-        const customerFilter = isAdmin
-          ? ''
-          : `manufacturer = "${user.id}" || affiliate_referrer = "${user.id}"`
-        const projectFilter = isAdmin ? '' : `manufacturer = "${user.id}"`
+  useRealtime('customers', loadData)
+  useRealtime('messages', loadData)
 
-        const [
-          customersRes,
-          convertedRes,
-          negotiatingRes,
-          projectsRes,
-          messagesRes,
-          notificationsRes,
-        ] = await Promise.all([
-          pb.collection('customers').getList(1, 1, { filter: customerFilter }),
-          pb.collection('customers').getList(1, 1, {
-            filter: customerFilter
-              ? `(${customerFilter}) && status = 'converted'`
-              : `status = 'converted'`,
-          }),
-          pb.collection('customers').getList(1, 1, {
-            filter: customerFilter
-              ? `(${customerFilter}) && status = 'negotiating'`
-              : `status = 'negotiating'`,
-          }),
-          pb.collection('projects').getList(1, 1, { filter: projectFilter }),
-          pb.collection('messages').getList(1, 1, { filter: `status = 'pending'` }),
-          pb.collection('notifications').getList(1, 5, {
-            filter: `user = "${user.id}" || customer_email = "${user.email}"`,
-            sort: '-created',
-          }),
-        ])
-
-        setStats({
-          customers: customersRes.totalItems,
-          converted: convertedRes.totalItems,
-          negotiating: negotiatingRes.totalItems,
-          projects: projectsRes.totalItems,
-          pendingMessages: messagesRes.totalItems,
-        })
-        setNotifications(notificationsRes.items)
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchDashboardData()
-
-    const seen = localStorage.getItem('vmoda_brasil_magazine_launch_seen')
-    if (!seen) {
-      const timer = setTimeout(() => setShowWelcome(true), 500)
-      return () => clearTimeout(timer)
-    }
-  }, [user])
-
-  const handleCloseWelcome = () => {
-    setShowWelcome(false)
-    localStorage.setItem('vmoda_brasil_magazine_launch_seen', 'true')
-  }
-
-  const handleTrackClick = (destination: string) => {
-    if (user) {
-      pb.collection('referrals')
-        .create({
-          affiliate: user.id,
-          type: 'click',
-          source_channel: 'social_profile',
-          metadata: { destination },
-        })
-        .catch(console.error)
-    }
-  }
-
-  const statCards = [
-    {
-      title: 'Total de Clientes',
-      value: stats.customers,
-      icon: Users,
-      description: 'Leads e clientes cadastrados',
-      color: 'text-primary',
-      bg: 'bg-primary/10',
-    },
-    {
-      title: 'Em Negociação',
-      value: stats.negotiating,
-      icon: Clock,
-      description: 'Clientes em atendimento',
-      color: 'text-orange-500',
-      bg: 'bg-orange-500/10',
-    },
-    {
-      title: 'Convertidos',
-      value: stats.converted,
-      icon: UserCheck,
-      description: 'Vendas realizadas',
-      color: 'text-green-500',
-      bg: 'bg-green-500/10',
-    },
-    {
-      title: 'Projetos Ativos',
-      value: stats.projects,
-      icon: Package,
-      description: 'Produtos no catálogo',
-      color: 'text-blue-500',
-      bg: 'bg-blue-500/10',
-    },
-    {
-      title: 'Mensagens Pendentes',
-      value: stats.pendingMessages,
-      icon: MessageSquare,
-      description: 'Aguardando resposta',
-      color: 'text-red-500',
-      bg: 'bg-red-500/10',
-    },
-  ]
+  const poolOnline = instances.filter((i) => i.status === 'online').length
+  const poolTotal = instances.length
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 animate-fade-in-up pb-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Olá, {user?.name?.split(' ')[0] || 'Usuário'}! 👋
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Aqui está o resumo das suas atividades e métricas de hoje.
+        <h1 className="text-3xl font-bold tracking-tight">Hub do Ecossistema Autônomo</h1>
+        <p className="text-muted-foreground">
+          Monitore o volume de extração de leads, disparos de mensagens e a saúde do pool de
+          instâncias do WhatsApp.
         </p>
       </div>
 
-      <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 sm:p-8 border border-primary/20 shadow-sm flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
-        <div className="space-y-2">
-          <h2 className="text-2xl font-serif font-bold tracking-tight flex items-center gap-2">
-            Revista Moda Atual
-          </h2>
-          <p className="text-muted-foreground max-w-2xl text-sm sm:text-base">
-            Acesse o portal oficial para notícias e tendências em tempo real, ou baixe o aplicativo
-            para ter o melhor da moda sempre com você.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3 w-full lg:w-auto">
-          <Button
-            asChild
-            className="flex-1 sm:flex-none bg-amber-500 hover:bg-amber-600 text-white shadow-md border-0"
-          >
-            <a
-              href="https://revistamodaatual.com.br"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Visitar site da Revista Moda Atual"
-              onClick={() => handleTrackClick('official_site')}
-            >
-              <Globe className="w-4 h-4 mr-2" />
-              Site Oficial
-            </a>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/60 transition-colors"
-          >
-            <a
-              href="https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Baixar aplicativo da Revista Moda Atual no Google Play"
-              onClick={() => handleTrackClick('google_play')}
-            >
-              <Play className="w-4 h-4 mr-2 text-amber-600" />
-              Google Play
-            </a>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            className="flex-1 sm:flex-none bg-background/50 backdrop-blur-sm border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/60 transition-colors"
-          >
-            <a
-              href="https://www.apple.com/app-store/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Baixar aplicativo da Revista Moda Atual na App Store"
-              onClick={() => handleTrackClick('app_store')}
-            >
-              <Apple className="w-4 h-4 mr-2 text-amber-600" />
-              App Store
-            </a>
-          </Button>
-        </div>
-      </div>
-
-      <Dialog
-        open={showWelcome}
-        onOpenChange={(open) => {
-          if (!open) handleCloseWelcome()
-        }}
-      >
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-serif text-center text-amber-600">
-              Lançamento: Revista Moda Atual
-            </DialogTitle>
-            <DialogDesc className="text-center text-base pt-3 pb-2 text-muted-foreground">
-              Apresentamos a nova plataforma de conteúdo e tendências. Fique por dentro de tudo que
-              acontece no mundo da moda, baixe nosso aplicativo exclusivo ou acesse o portal agora
-              mesmo.
-            </DialogDesc>
-          </DialogHeader>
-          <div className="flex flex-col gap-3 py-2">
-            <Button
-              asChild
-              className="w-full bg-amber-500 hover:bg-amber-600 text-white border-0"
-              size="lg"
-            >
-              <a
-                href="https://revistamodaatual.com.br"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => handleTrackClick('official_site')}
-              >
-                <Globe className="mr-2 h-5 w-5" />
-                Acessar Site Oficial
-              </a>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="w-full border-amber-200 hover:bg-amber-50"
-              size="lg"
-            >
-              <a
-                href="https://play.google.com/store/apps/details?id=com.revista-moda-atual/id6475497663"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => handleTrackClick('google_play')}
-              >
-                <Play className="mr-2 h-5 w-5 text-amber-600" />
-                Download Google Play
-              </a>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="w-full border-amber-200 hover:bg-amber-50"
-              size="lg"
-            >
-              <a
-                href="https://www.apple.com/app-store/"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => handleTrackClick('app_store')}
-              >
-                <Apple className="mr-2 h-5 w-5 text-amber-600" />
-                Download App Store
-              </a>
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <MonthlySales />
-
-      {loading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <Skeleton className="h-4 w-[100px]" />
-                <Skeleton className="h-8 w-8 rounded-full" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-[60px] mb-2" />
-                <Skeleton className="h-3 w-[120px]" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          {statCards.map((stat, index) => (
-            <Card key={index} className="transition-all hover:shadow-md border-border/50">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <div className={cn('p-2 rounded-full', stat.bg)}>
-                  <stat.icon className={cn('h-4 w-4', stat.color)} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
-        <div className="col-span-full lg:col-span-2 h-full flex flex-col gap-6">
-          <MessageAnalytics />
-          <ImportAuditWidget />
-        </div>
-        <div className="col-span-full lg:col-span-1 h-full">
-          <MessageFeed />
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="col-span-full lg:col-span-2 border-border/50 shadow-sm flex flex-col">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Acesso Rápido
-            </CardTitle>
-            <CardDescription>Links para as principais áreas do sistema</CardDescription>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total de Leads (Capturados)</CardTitle>
+            <Users className="w-4 h-4 text-primary" />
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 flex-1">
-            <Button
-              asChild
-              variant="outline"
-              className="h-auto p-4 justify-start hover:border-primary/50 hover:bg-primary/5 group"
-            >
-              <Link to="/customers" className="flex flex-col items-start gap-2">
-                <div className="flex items-center gap-2 w-full">
-                  <Users className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
-                  <span className="font-semibold text-base">Gerenciar Clientes</span>
-                </div>
-                <span className="text-xs text-muted-foreground whitespace-normal text-left">
-                  Visualize e atualize o status dos seus leads.
-                </span>
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-auto p-4 justify-start hover:border-primary/50 hover:bg-primary/5 group"
-            >
-              <Link to="/products" className="flex flex-col items-start gap-2">
-                <div className="flex items-center gap-2 w-full">
-                  <Package className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
-                  <span className="font-semibold text-base">Meus Projetos</span>
-                </div>
-                <span className="text-xs text-muted-foreground whitespace-normal text-left">
-                  Cadastre novos produtos e acompanhe o estoque.
-                </span>
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-auto p-4 justify-start hover:border-primary/50 hover:bg-primary/5 group"
-            >
-              <Link to="/messages" className="flex flex-col items-start gap-2">
-                <div className="flex items-center gap-2 w-full">
-                  <MessageSquare className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
-                  <span className="font-semibold text-base">Mensagens</span>
-                </div>
-                <span className="text-xs text-muted-foreground whitespace-normal text-left">
-                  Responda clientes e interaja via WhatsApp.
-                </span>
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-auto p-4 justify-start hover:border-primary/50 hover:bg-primary/5 group"
-            >
-              <Link to="/resources" className="flex flex-col items-start gap-2">
-                <div className="flex items-center gap-2 w-full">
-                  <GraduationCap className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
-                  <span className="font-semibold text-base">Academy</span>
-                </div>
-                <span className="text-xs text-muted-foreground whitespace-normal text-left">
-                  Acesse cursos, revistas e vídeos exclusivos.
-                </span>
-              </Link>
-            </Button>
+          <CardContent>
+            <div className="text-3xl font-bold">{leadsCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Base consolidada</p>
           </CardContent>
         </Card>
 
-        <Card className="col-span-full lg:col-span-1 border-border/50 shadow-sm flex flex-col">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
-              Notificações Recentes
-            </CardTitle>
-            <CardDescription>Suas últimas atualizações</CardDescription>
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Mensagens Trafegadas</CardTitle>
+            <MessageSquare className="w-4 h-4 text-blue-500" />
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col">
+          <CardContent>
+            <div className="text-3xl font-bold">{messagesCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Enviadas e recebidas</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Pool de Instâncias (Ativas)</CardTitle>
+            <Server className="w-4 h-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-emerald-600">{poolOnline}</span>
+              <span className="text-lg text-muted-foreground">/ {poolTotal}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Capacidade de balanceamento</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Distribuição de Leads por Origem</CardTitle>
+            <CardDescription>
+              Volume de captação de acordo com a fonte (Grupos, Instagram, Manual)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-[300px]">
             {loading ? (
-              <div className="space-y-4 flex-1">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <Skeleton className="h-2 w-2 mt-2 rounded-full shrink-0" />
-                    <div className="space-y-2 flex-1">
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-3 w-2/3" />
-                    </div>
-                  </div>
-                ))}
+              <div className="flex h-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : notifications.length > 0 ? (
-              <div className="space-y-4 flex-1">
-                {notifications.map((notification) => (
-                  <div key={notification.id} className="flex items-start gap-3 group">
-                    <div className="mt-1.5 h-2 w-2 rounded-full bg-primary ring-4 ring-primary/10 shrink-0" />
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <p className="text-sm font-medium leading-tight truncate">
-                        {notification.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {notification.message}
-                      </p>
-                      <p className="text-[10px] font-medium text-muted-foreground/70">
-                        {format(new Date(notification.created), "dd 'de' MMMM, HH:mm", {
-                          locale: ptBR,
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            ) : sourceData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={sourceData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {sourceData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center flex-1">
-                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                  <Bell className="h-6 w-6 text-muted-foreground/50" />
-                </div>
-                <p className="text-sm font-medium">Nenhuma notificação</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Você está em dia com seus avisos.
-                </p>
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                Nenhum dado de origem disponível.
               </div>
             )}
-            <div className="mt-auto pt-4 border-t shrink-0">
-              <Button
-                variant="ghost"
-                className="w-full text-xs text-primary hover:text-primary/80"
-                asChild
-              >
-                <Link to="/settings">
-                  Ver todas as notificações
-                  <ChevronRight className="ml-1 h-3 w-3" />
-                </Link>
-              </Button>
-            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm overflow-hidden flex flex-col">
+          <CardHeader>
+            <CardTitle>Saúde das Instâncias do Pool</CardTitle>
+            <CardDescription>
+              Status em tempo real das instâncias configuradas na Evolution API
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : instances.length === 0 ? (
+              <div className="text-center p-8 text-muted-foreground border rounded-md border-dashed">
+                Nenhuma instância configurada no Load Balancer.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {instances.map((inst) => (
+                  <div
+                    key={inst.id}
+                    className="flex items-center justify-between p-3 border rounded-md"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Server className="w-4 h-4 text-muted-foreground" />
+                      <span className="font-medium">{inst.id}</span>
+                    </div>
+                    <div>
+                      {inst.status === 'checking' && (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Verificando
+                        </span>
+                      )}
+                      {inst.status === 'online' && (
+                        <span className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full font-medium">
+                          <CheckCircle2 className="w-3 h-3" /> Conectada
+                        </span>
+                      )}
+                      {inst.status === 'offline' && (
+                        <span className="flex items-center gap-1 text-xs text-destructive bg-destructive/10 px-2 py-1 rounded-full font-medium">
+                          <AlertCircle className="w-3 h-3" /> Offline
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -131,7 +131,9 @@ export default function App() {
                 </Route>
                 <Route path="analytics" element={<PlaceholderPage title="Analytics" />} />
                 <Route path="media-kit" element={<PlaceholderPage title="Media Kit" />} />
-                <Route path="settings" element={<WhatsappSettings />} />
+                <Route element={<ManufacturerGuard />}>
+                  <Route path="settings" element={<WhatsappSettings />} />
+                </Route>
               </Route>
             </Route>
 
