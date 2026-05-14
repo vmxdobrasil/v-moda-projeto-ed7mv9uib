@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/table'
 import { toast } from 'sonner'
 import { parseCSV } from '@/lib/csv-parser'
-import { useBulkImport } from '@/hooks/use-bulk-import'
+import useImportStore from '@/stores/use-import-store'
 import { UploadCloud, CheckCircle2, FileSpreadsheet, DownloadCloud } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 
@@ -46,18 +46,33 @@ export default function ImportLeadsDialog({
   const [defaultSource, setDefaultSource] = useState<string>('whatsapp_group')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { progress, processedCount, totalCount, isImporting, stats, startImport } = useBulkImport()
+  const {
+    progress,
+    processedCount,
+    totalCount,
+    isImporting,
+    stats,
+    startImport,
+    reset: resetStore,
+  } = useImportStore()
 
   useEffect(() => {
     onImportStateChange(isImporting)
-  }, [isImporting, onImportStateChange])
+    if (isImporting && open) setStep(3)
+    if (stats && open) setStep(4)
+  }, [isImporting, stats, open, onImportStateChange])
 
   const reset = () => {
-    setStep(1)
-    setHeaders([])
-    setRows([])
-    setMapping({})
-    if (stats) onImportComplete()
+    if (!isImporting) {
+      setStep(1)
+      setHeaders([])
+      setRows([])
+      setMapping({})
+    }
+    if (stats) {
+      onImportComplete()
+      resetStore()
+    }
     onOpenChange(false)
   }
 
@@ -97,6 +112,8 @@ export default function ImportLeadsDialog({
         if (n === 'uf' || n === 'estado' || n === 'state') autoMap.state = h
         if (n.includes('categoria') || n.includes('ranking')) autoMap.ranking_category = h
         if (n.includes('zona') || n.includes('exclusividade')) autoMap.exclusivity_zone = h
+        if (n.includes('origem') && !n.includes('loja')) autoMap.source = h
+        if (n.includes('obs') || n.includes('nota') || n.includes('note')) autoMap.notes = h
       })
       setMapping(autoMap)
       setStep(2)
@@ -177,7 +194,10 @@ export default function ImportLeadsDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !isImporting && (v ? setStep(1) : reset())}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => (v ? setStep(isImporting ? 3 : stats ? 4 : 1) : reset())}
+    >
       <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
           <DialogTitle>Importar Leads em Massa</DialogTitle>
@@ -272,10 +292,17 @@ export default function ImportLeadsDialog({
               {renderMappingRow('state', 'Estado (UF)')}
               {renderMappingRow('ranking_category', 'Categoria de Ranking')}
               {renderMappingRow('exclusivity_zone', 'Zona de Exclusividade')}
+              {renderMappingRow('source', 'Origem')}
+              {renderMappingRow('notes', 'Observações / Notas')}
             </div>
-            <Button className="w-full mt-4" onClick={handleStart}>
-              Iniciar Importação
-            </Button>
+            <div className="flex gap-2 mt-4">
+              <Button variant="outline" className="w-full" onClick={() => setStep(1)}>
+                Voltar
+              </Button>
+              <Button className="w-full" onClick={handleStart}>
+                Iniciar Importação
+              </Button>
+            </div>
           </div>
         )}
 
@@ -286,9 +313,13 @@ export default function ImportLeadsDialog({
             <p className="text-sm font-medium text-primary">
               {processedCount} / {totalCount} registros processados
             </p>
-            <p className="text-sm text-muted-foreground">
-              Por favor, não feche esta janela. Grandes importações podem levar alguns minutos.
+            <p className="text-sm text-muted-foreground text-center">
+              Você pode fechar esta janela e continuar usando o sistema. <br /> A importação
+              continuará em segundo plano.
             </p>
+            <Button variant="outline" className="mt-2" onClick={() => onOpenChange(false)}>
+              Minimizar para o fundo
+            </Button>
             <div className="bg-primary/10 text-primary p-3 rounded-md text-sm text-center flex flex-col items-center gap-2 max-w-sm mt-4">
               <CheckCircle2 className="w-5 h-5" />
               <span>

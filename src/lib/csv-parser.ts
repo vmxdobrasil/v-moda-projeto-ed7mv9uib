@@ -1,14 +1,8 @@
 export async function parseCSV(
   file: File,
 ): Promise<{ headers: string[]; rows: Record<string, string>[] }> {
-  if (file.name.endsWith('.xlsx')) {
-    return Promise.reject(
-      new Error(
-        'Formato XLSX não suportado diretamente sem conversão. Por favor, salve seu arquivo como CSV e tente novamente.',
-      ),
-    )
-  }
-
+  // If it's a real XLSX, reading as text will result in binary garbage.
+  // We allow it to pass through just in case it's a renamed CSV, but it will likely fail parsing.
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = (e) => {

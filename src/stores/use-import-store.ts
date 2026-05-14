@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { create } from 'zustand'
 import pb from '@/lib/pocketbase/client'
 
 export type ImportStats = {
@@ -8,24 +8,50 @@ export type ImportStats = {
   errorDetails?: Array<{ row: number; reason: string }>
 }
 
-export function useBulkImport() {
-  const [progress, setProgress] = useState(0)
-  const [processedCount, setProcessedCount] = useState(0)
-  const [totalCount, setTotalCount] = useState(0)
-  const [isImporting, setIsImporting] = useState(false)
-  const [stats, setStats] = useState<ImportStats | null>(null)
-
-  const startImport = async (
+interface ImportStore {
+  progress: number
+  processedCount: number
+  totalCount: number
+  isImporting: boolean
+  stats: ImportStats | null
+  startImport: (
     rows: any[],
     mapping: Record<string, string>,
-    defaultSource: string = 'whatsapp_group',
-    filename: string = 'importacao_leads.csv',
+    defaultSource?: string,
+    filename?: string,
+  ) => Promise<void>
+  reset: () => void
+}
+
+const useImportStore = create<ImportStore>((set, get) => ({
+  progress: 0,
+  processedCount: 0,
+  totalCount: 0,
+  isImporting: false,
+  stats: null,
+  reset: () =>
+    set({
+      progress: 0,
+      processedCount: 0,
+      totalCount: 0,
+      isImporting: false,
+      stats: null,
+    }),
+  startImport: async (
+    rows,
+    mapping,
+    defaultSource = 'whatsapp_group',
+    filename = 'importacao_leads.csv',
   ) => {
-    setIsImporting(true)
-    setProgress(0)
-    setProcessedCount(0)
-    setTotalCount(rows.length)
-    setStats(null)
+    if (get().isImporting) return
+
+    set({
+      isImporting: true,
+      progress: 0,
+      processedCount: 0,
+      totalCount: rows.length,
+      stats: null,
+    })
 
     let totalSuccess = 0
     let totalSkipped = 0
@@ -77,7 +103,7 @@ export function useBulkImport() {
               mapped[key] = val
             }
           }
-          if (user?.role === 'affiliate') {
+          if (user?.role === 'affiliate' || user?.role === 'agent') {
             mapped.affiliate_referrer = user.id
           } else if (user?.id) {
             mapped.manufacturer = user.id
@@ -99,13 +125,19 @@ export function useBulkImport() {
           if (res.errorDetails && Array.isArray(res.errorDetails)) {
             allErrors = [
               ...allErrors,
-              ...res.errorDetails.map((e: any) => ({ row: i + e.index + 2, reason: e.reason })),
+              ...res.errorDetails.map((e: any) => ({
+                row: i + e.index + 2,
+                reason: e.reason,
+              })),
             ]
           }
         } catch (err: any) {
           console.error('Batch error', err)
           totalError += batch.length
-          allErrors.push({ row: i + 2, reason: err.message || 'Erro de comunicação no lote' })
+          allErrors.push({
+            row: i + 2,
+            reason: err.message || 'Erro de comunicação no lote',
+          })
         }
 
         const currentProcessed = totalSuccess + totalSkipped + totalError
@@ -120,13 +152,26 @@ export function useBulkImport() {
           }
         }
 
-        setProcessedCount(Math.min(currentProcessed, rows.length))
-        setProgress(Math.min(100, Math.round(((i + BATCH_SIZE) / rows.length) * 100)))
+        const newProcessedCount = Math.min(currentProcessed, rows.length)
+        const newProgress = Math.min(100, Math.round(((i + BATCH_SIZE) / rows.length) * 100))
+
+        set({
+          processedCount: newProcessedCount,
+          progress: newProgress,
+        })
+
         await new Promise((r) => setTimeout(r, 100)) // yield to UI thread
       }
     } catch (err) {
       console.error('Bulk import error', err)
     } finally {
+      try {
+        // Trigger the normalize logic at the end of import just in case
+        await pb.send('/backend/v1/customers/normalize', { method: 'POST' })
+      } catch (e) {
+        console.error('Failed to trigger normalize after import', e)
+      }
+
       if (logId) {
         let finalStatus = 'success'
         if (totalError > 0 && totalSuccess > 0) finalStatus = 'partial_success'
@@ -144,17 +189,19 @@ export function useBulkImport() {
         }
       }
 
-      setProcessedCount(rows.length)
-      setProgress(100)
-      setIsImporting(false)
-      setStats({
-        success: totalSuccess,
-        skipped: totalSkipped,
-        error: totalError,
-        errorDetails: allErrors,
+      set({
+        processedCount: rows.length,
+        progress: 100,
+        isImporting: false,
+        stats: {
+          success: totalSuccess,
+          skipped: totalSkipped,
+          error: totalError,
+          errorDetails: allErrors,
+        },
       })
     }
-  }
+  },
+}))
 
-  return { progress, processedCount, totalCount, isImporting, stats, startImport }
-}
+export default useImportStore
