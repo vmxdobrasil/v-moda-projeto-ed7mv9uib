@@ -92,7 +92,6 @@ const navItems = [
 export default function DashboardLayout() {
   const { signOut, user } = useAuth()
   const location = useLocation()
-  const { status, errorMessage } = useWhatsappStore()
 
   const isAdmin = user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
 
@@ -521,7 +520,11 @@ export default function DashboardLayout() {
                   </CustomExternalLink>
                 </div>
                 <ErrorBoundary>
-                  <WhatsappStatusWidget />
+                  <Suspense
+                    fallback={<div className="h-8 w-24 bg-muted animate-pulse rounded-md"></div>}
+                  >
+                    <WhatsappStatusWidget />
+                  </Suspense>
                 </ErrorBoundary>
                 <div className="text-sm font-medium text-muted-foreground hidden lg:block border-l pl-4 py-1">
                   {new Date().toLocaleDateString('pt-BR', {

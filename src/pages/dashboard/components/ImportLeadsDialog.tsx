@@ -46,7 +46,7 @@ export default function ImportLeadsDialog({
   const [defaultSource, setDefaultSource] = useState<string>('whatsapp_group')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { progress, isImporting, stats, startImport } = useBulkImport()
+  const { progress, processedCount, totalCount, isImporting, stats, startImport } = useBulkImport()
 
   useEffect(() => {
     onImportStateChange(isImporting)
@@ -283,7 +283,12 @@ export default function ImportLeadsDialog({
           <div className="flex flex-col items-center justify-center py-10 space-y-6">
             <p className="text-base font-medium">Processando importação... ({progress}%)</p>
             <Progress value={progress} className="w-full h-3" />
-            <p className="text-sm text-muted-foreground">Por favor, não feche esta janela.</p>
+            <p className="text-sm font-medium text-primary">
+              {processedCount} / {totalCount} registros processados
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Por favor, não feche esta janela. Grandes importações podem levar alguns minutos.
+            </p>
             <div className="bg-primary/10 text-primary p-3 rounded-md text-sm text-center flex flex-col items-center gap-2 max-w-sm mt-4">
               <CheckCircle2 className="w-5 h-5" />
               <span>

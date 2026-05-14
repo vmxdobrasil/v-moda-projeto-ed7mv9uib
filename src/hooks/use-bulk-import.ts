@@ -10,6 +10,8 @@ export type ImportStats = {
 
 export function useBulkImport() {
   const [progress, setProgress] = useState(0)
+  const [processedCount, setProcessedCount] = useState(0)
+  const [totalCount, setTotalCount] = useState(0)
   const [isImporting, setIsImporting] = useState(false)
   const [stats, setStats] = useState<ImportStats | null>(null)
 
@@ -21,6 +23,8 @@ export function useBulkImport() {
   ) => {
     setIsImporting(true)
     setProgress(0)
+    setProcessedCount(0)
+    setTotalCount(rows.length)
     setStats(null)
 
     let totalSuccess = 0
@@ -104,16 +108,19 @@ export function useBulkImport() {
           allErrors.push({ row: i + 2, reason: err.message || 'Erro de comunicação no lote' })
         }
 
+        const currentProcessed = totalSuccess + totalSkipped + totalError
+
         if (logId) {
           try {
             await pb.collection('import_logs').update(logId, {
-              processed_records: totalSuccess + totalSkipped + totalError,
+              processed_records: currentProcessed,
             })
           } catch (e) {
             console.error('Failed to update import log progress', e)
           }
         }
 
+        setProcessedCount(Math.min(currentProcessed, rows.length))
         setProgress(Math.min(100, Math.round(((i + BATCH_SIZE) / rows.length) * 100)))
         await new Promise((r) => setTimeout(r, 100)) // yield to UI thread
       }
@@ -137,6 +144,7 @@ export function useBulkImport() {
         }
       }
 
+      setProcessedCount(rows.length)
       setProgress(100)
       setIsImporting(false)
       setStats({
@@ -148,5 +156,5 @@ export function useBulkImport() {
     }
   }
 
-  return { progress, isImporting, stats, startImport }
+  return { progress, processedCount, totalCount, isImporting, stats, startImport }
 }
