@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-15T12:24:22.766Z",
+  "generatedAt": "2026-05-15T12:36:01.260Z",
   "collections": [
     {
       "name": "users",
@@ -525,6 +525,12 @@
         {
           "name": "origin_store_name",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tags",
+          "type": "json",
           "required": false,
           "system": false
         }

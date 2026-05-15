@@ -32,6 +32,7 @@ export interface Customer {
   active_route?: string
   notes?: string
   instagram_handle?: string
+  tags?: string[]
   freight_payer?: 'manufacturer' | 'retailer'
   logistics_notes?: string
   logistics_status?:
@@ -138,4 +139,19 @@ export const updateCustomer = async (id: string, data: Partial<Customer> | FormD
 
 export const deleteCustomer = async (id: string) => {
   return pb.collection('customers').delete(id)
+}
+
+export const bulkTagCustomers = async (data: {
+  ids?: string[]
+  excludedIds?: string[]
+  filter?: string
+  selectAll?: boolean
+  tags: string[]
+  operation?: 'add' | 'remove'
+}) => {
+  return pb.send('/backend/v1/customers/bulk-tag', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
