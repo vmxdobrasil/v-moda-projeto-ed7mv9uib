@@ -13,8 +13,20 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getCustomersPaginated, Customer } from '@/services/customers'
-import { Users, Search, ChevronLeft, ChevronRight, Loader2, CheckCircle2 } from 'lucide-react'
+import {
+  Users,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  CheckCircle2,
+  ShieldCheck,
+  ShieldAlert,
+  CheckCheck,
+  Clock,
+} from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -212,8 +224,45 @@ export default function Customers() {
               ) : (
                 customers.map((c: any) => (
                   <TableRow key={c.id}>
-                    <TableCell className="pl-6 font-medium">{c.name}</TableCell>
-                    <TableCell>{c.phone || '-'}</TableCell>
+                    <TableCell className="pl-6 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        {c.name &&
+                        String(c.name).toUpperCase() !== 'FALSE' &&
+                        String(c.name).toUpperCase() !== 'TRUE'
+                          ? c.name
+                          : 'Sem Nome'}
+                        {c.is_verified ? (
+                          <ShieldCheck className="w-3.5 h-3.5 text-green-500" title="Verificado" />
+                        ) : (
+                          <ShieldAlert
+                            className="w-3.5 h-3.5 text-muted-foreground/50"
+                            title="Não verificado"
+                          />
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <span>{c.phone || '-'}</span>
+                        {c.phone && (
+                          <span
+                            className={cn(
+                              'flex items-center gap-1 text-[10px]',
+                              c.whatsapp_welcome_sent ? 'text-green-600' : 'text-amber-600',
+                            )}
+                            title={
+                              c.whatsapp_welcome_sent ? 'Boas-vindas enviada' : 'Mensagem pendente'
+                            }
+                          >
+                            {c.whatsapp_welcome_sent ? (
+                              <CheckCheck className="w-3 h-3" />
+                            ) : (
+                              <Clock className="w-3 h-3" />
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={getStatusColor(c.status)}>
                         {getStatusLabel(c.status)}

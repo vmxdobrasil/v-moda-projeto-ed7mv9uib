@@ -22,8 +22,21 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { Calendar, Phone, Mail, MapPin, Truck, Save, FileText } from 'lucide-react'
+import {
+  Calendar,
+  Phone,
+  Mail,
+  MapPin,
+  Truck,
+  Save,
+  FileText,
+  ShieldCheck,
+  ShieldAlert,
+  CheckCheck,
+  Clock,
+} from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
+import { cn } from '@/lib/utils'
 
 const STATUSES = [
   { id: 'new', label: 'Novo', color: 'border-blue-200 bg-blue-50' },
@@ -181,9 +194,46 @@ export default function ManufacturerCRM() {
                       onClick={() => openLeadDetails(lead)}
                     >
                       <CardContent className="p-3 space-y-2">
-                        <div className="font-medium text-sm line-clamp-1">{lead.name}</div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Phone className="w-3 h-3" /> {lead.phone || '-'}
+                        <div className="font-medium text-sm line-clamp-1 flex items-center gap-1.5">
+                          {lead.name &&
+                          String(lead.name).toUpperCase() !== 'FALSE' &&
+                          String(lead.name).toUpperCase() !== 'TRUE'
+                            ? lead.name
+                            : 'Sem Nome'}
+                          {lead.is_verified ? (
+                            <ShieldCheck
+                              className="w-3.5 h-3.5 text-green-500 flex-shrink-0"
+                              title="Verificado"
+                            />
+                          ) : (
+                            <ShieldAlert
+                              className="w-3.5 h-3.5 text-muted-foreground/50 flex-shrink-0"
+                              title="Não verificado"
+                            />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Phone className="w-3 h-3" />
+                          <span>{lead.phone || '-'}</span>
+                          {lead.phone && (
+                            <span
+                              className={cn(
+                                'flex items-center gap-1 text-[10px]',
+                                lead.whatsapp_welcome_sent ? 'text-green-600' : 'text-amber-600',
+                              )}
+                              title={
+                                lead.whatsapp_welcome_sent
+                                  ? 'Boas-vindas enviada'
+                                  : 'Mensagem pendente'
+                              }
+                            >
+                              {lead.whatsapp_welcome_sent ? (
+                                <CheckCheck className="w-3 h-3" />
+                              ) : (
+                                <Clock className="w-3 h-3" />
+                              )}
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground line-clamp-1">
                           {lead.notes || 'Sem observações.'}

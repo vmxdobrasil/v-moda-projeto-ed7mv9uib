@@ -10,8 +10,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, Search, Filter, UploadCloud } from 'lucide-react'
+import {
+  Loader2,
+  Search,
+  Filter,
+  UploadCloud,
+  CheckCheck,
+  Clock,
+  ShieldCheck,
+  ShieldAlert,
+} from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
+import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import ImportLeadsDialog from '@/pages/dashboard/components/ImportLeadsDialog'
 import { Button } from '@/components/ui/button'
@@ -230,11 +240,45 @@ export default function DashboardCustomers() {
                       style={{ height: `${rowHeight}px` }}
                     >
                       <div className="flex-[2] min-w-[200px]">
-                        <div className="font-semibold text-foreground truncate">
-                          {c.name || 'Sem Nome'}
+                        <div className="font-semibold text-foreground truncate flex items-center gap-1.5">
+                          {c.name &&
+                          String(c.name).toUpperCase() !== 'FALSE' &&
+                          String(c.name).toUpperCase() !== 'TRUE'
+                            ? c.name
+                            : 'Sem Nome'}
+                          {c.is_verified ? (
+                            <ShieldCheck
+                              className="w-3.5 h-3.5 text-green-500"
+                              title="Verificado"
+                            />
+                          ) : (
+                            <ShieldAlert
+                              className="w-3.5 h-3.5 text-muted-foreground/50"
+                              title="Não verificado"
+                            />
+                          )}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                          {c.phone || 'Sem telefone'}
+                        <div className="text-xs text-muted-foreground mt-0.5 truncate flex items-center gap-1.5">
+                          <span>{c.phone || 'Sem telefone'}</span>
+                          {c.phone && (
+                            <span
+                              className={cn(
+                                'flex items-center gap-1 text-[10px]',
+                                c.whatsapp_welcome_sent ? 'text-green-600' : 'text-amber-600',
+                              )}
+                              title={
+                                c.whatsapp_welcome_sent
+                                  ? 'Boas-vindas enviada'
+                                  : 'Mensagem pendente'
+                              }
+                            >
+                              {c.whatsapp_welcome_sent ? (
+                                <CheckCheck className="w-3 h-3" />
+                              ) : (
+                                <Clock className="w-3 h-3" />
+                              )}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex-[1] min-w-[150px]">

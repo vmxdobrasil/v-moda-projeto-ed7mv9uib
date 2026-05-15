@@ -56,11 +56,11 @@ export default function Login() {
     if (from) {
       navigate(from, { replace: true })
     } else if (user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin') {
-      navigate('/admin')
+      navigate('/admin/clientes')
     } else if (user?.role === 'manufacturer') {
-      navigate('/manufacturer')
+      navigate('/manufacturer/leads')
     } else {
-      navigate('/')
+      navigate('/customers')
     }
   }
 

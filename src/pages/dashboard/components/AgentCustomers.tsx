@@ -19,8 +19,18 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Plus, UploadCloud, Search, Phone } from 'lucide-react'
+import {
+  Plus,
+  UploadCloud,
+  Search,
+  Phone,
+  ShieldCheck,
+  ShieldAlert,
+  CheckCheck,
+  Clock,
+} from 'lucide-react'
 import { getReferredCustomers, createCustomer, type Customer } from '@/services/customers'
+import { cn } from '@/lib/utils'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
 import ImportLeadsDialog from './ImportLeadsDialog'
@@ -168,11 +178,51 @@ export function AgentCustomers() {
                 ) : filteredCustomers.length > 0 ? (
                   filteredCustomers.map((customer) => (
                     <TableRow key={customer.id}>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-1.5">
+                          {customer.name &&
+                          String(customer.name).toUpperCase() !== 'FALSE' &&
+                          String(customer.name).toUpperCase() !== 'TRUE'
+                            ? customer.name
+                            : 'Sem Nome'}
+                          {(customer as any).is_verified ? (
+                            <ShieldCheck
+                              className="w-3.5 h-3.5 text-green-500"
+                              title="Verificado"
+                            />
+                          ) : (
+                            <ShieldAlert
+                              className="w-3.5 h-3.5 text-muted-foreground/50"
+                              title="Não verificado"
+                            />
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                           <Phone className="w-3 h-3" />
-                          {customer.phone || '-'}
+                          <span>{customer.phone || '-'}</span>
+                          {customer.phone && (
+                            <span
+                              className={cn(
+                                'flex items-center gap-1 text-[10px]',
+                                (customer as any).whatsapp_welcome_sent
+                                  ? 'text-green-600'
+                                  : 'text-amber-600',
+                              )}
+                              title={
+                                (customer as any).whatsapp_welcome_sent
+                                  ? 'Boas-vindas enviada'
+                                  : 'Mensagem pendente'
+                              }
+                            >
+                              {(customer as any).whatsapp_welcome_sent ? (
+                                <CheckCheck className="w-3 h-3" />
+                              ) : (
+                                <Clock className="w-3 h-3" />
+                              )}
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>{customer.city || '-'}</TableCell>
