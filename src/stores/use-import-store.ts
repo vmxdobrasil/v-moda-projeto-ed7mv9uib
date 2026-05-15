@@ -75,7 +75,7 @@ const useImportStore = create<ImportStore>((set, get) => ({
     }
 
     try {
-      const BATCH_SIZE = 100 // Smaller chunks to prevent browser crashes and timeouts
+      const BATCH_SIZE = 50 // Smaller chunks to prevent browser crashes and 922 request errors
 
       for (let i = 0; i < rows.length; i += BATCH_SIZE) {
         const batch = rows.slice(i, i + BATCH_SIZE)
@@ -111,7 +111,7 @@ const useImportStore = create<ImportStore>((set, get) => ({
           return mapped
         })
 
-        let retries = 3
+        let retries = 5
         let successBatch = false
 
         while (retries > 0 && !successBatch) {
@@ -120,6 +120,7 @@ const useImportStore = create<ImportStore>((set, get) => ({
               method: 'POST',
               body: JSON.stringify({ records: mappedRecords, defaultSource }),
               headers: { 'Content-Type': 'application/json' },
+              requestKey: null, // prevent auto-cancellation for long running loops
             })
 
             totalSuccess += res.success || 0
@@ -129,10 +130,13 @@ const useImportStore = create<ImportStore>((set, get) => ({
             if (res.errorDetails && Array.isArray(res.errorDetails)) {
               allErrors = [
                 ...allErrors,
-                ...res.errorDetails.map((e: any) => ({
-                  row: i + e.index + 2,
-                  reason: e.reason,
-                })),
+                ...res.errorDetails.map((e: any) => {
+                  const failedRecord = mappedRecords[e.index]
+                  return {
+                    row: i + e.index + 2,
+                    reason: `${e.reason} (Telefone: ${failedRecord?.phone || 'Desconhecido'})`,
+                  }
+                }),
               ]
             }
             successBatch = true
@@ -143,15 +147,17 @@ const useImportStore = create<ImportStore>((set, get) => ({
               totalError += batch.length
               allErrors.push({
                 row: i + 2,
-                reason:
-                  err.message || 'Erro de comunicação no lote. Lote ignorado após tentativas.',
+                reason: err.message || 'Erro de comunicação no lote (Timeout/922).',
               })
             } else {
-              // Wait before retrying (exponential backoff)
-              await new Promise((r) => setTimeout(r, (3 - retries) * 1000))
+              // Exponential backoff
+              await new Promise((r) => setTimeout(r, (6 - retries) * 1000))
             }
           }
         }
+
+        // Small delay between successful batches to avoid overwhelming the server
+        await new Promise((r) => setTimeout(r, 200))
 
         const currentProcessed = totalSuccess + totalSkipped + totalError
 

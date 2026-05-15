@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -23,13 +23,18 @@ export default function DashboardCustomers() {
   const [sourceFilter, setSourceFilter] = useState('all')
   const [brandFilter, setBrandFilter] = useState('')
   const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   const [totalItems, setTotalItems] = useState(0)
 
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
 
-  const loadData = async () => {
+  const [scrollTop, setScrollTop] = useState(0)
+  const rowHeight = 72 // Adjusted for padding and content
+  const containerHeight = 600
+
+  const loadData = async (reset = false) => {
+    if (loading && !reset) return
     setLoading(true)
     try {
       const filters: string[] = []
@@ -44,14 +49,18 @@ export default function DashboardCustomers() {
       }
 
       const filterStr = filters.join(' && ')
+      const currentPage = reset ? 1 : page
 
-      const result = await pb.collection('customers').getList(page, 50, {
+      const result = await pb.collection('customers').getList(currentPage, 250, {
         filter: filterStr,
         sort: '-created',
       })
-      setCustomers(result.items)
-      setTotalPages(result.totalPages)
+
+      setCustomers((prev) => (reset ? result.items : [...prev, ...result.items]))
+      setHasMore(result.page < result.totalPages)
       setTotalItems(result.totalItems)
+      if (reset) setPage(2)
+      else setPage((p) => p + 1)
     } catch (e) {
       console.error(e)
     } finally {
@@ -60,16 +69,60 @@ export default function DashboardCustomers() {
   }
 
   useEffect(() => {
-    loadData()
-  }, [page, search, sourceFilter, brandFilter])
-
-  useEffect(() => {
-    setPage(1)
+    const delayDebounceFn = setTimeout(() => {
+      loadData(true)
+    }, 300)
+    return () => clearTimeout(delayDebounceFn)
   }, [search, sourceFilter, brandFilter])
 
-  useRealtime('customers', () => {
-    if (!isImporting) loadData()
+  const pendingCreates = useRef<any[]>([])
+  const updateTimeout = useRef<any>(null)
+
+  useRealtime('customers', (e) => {
+    if (e.action === 'create') {
+      pendingCreates.current.push(e.record)
+      if (!updateTimeout.current) {
+        updateTimeout.current = setTimeout(() => {
+          setCustomers((prev) => {
+            const added = pendingCreates.current
+            const newArray = [...added, ...prev]
+            return newArray.slice(0, 35000) // Handle up to 35k in virtualized list
+          })
+          setTotalItems((prev) => prev + pendingCreates.current.length)
+          pendingCreates.current = []
+          updateTimeout.current = null
+        }, 1000)
+      }
+    } else if (e.action === 'update') {
+      setCustomers((prev) => prev.map((c) => (c.id === e.record.id ? e.record : c)))
+    } else if (e.action === 'delete') {
+      setCustomers((prev) => prev.filter((c) => c.id !== e.record.id))
+      setTotalItems((prev) => Math.max(0, prev - 1))
+    }
   })
+
+  useEffect(() => {
+    return () => {
+      if (updateTimeout.current) clearTimeout(updateTimeout.current)
+    }
+  }, [])
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    setScrollTop(target.scrollTop)
+    if (target.scrollHeight - target.scrollTop - target.clientHeight < 400 && hasMore && !loading) {
+      loadData()
+    }
+  }
+
+  const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - 5)
+  const endIndex = Math.min(
+    customers.length,
+    Math.floor((scrollTop + containerHeight) / rowHeight) + 5,
+  )
+  const visibleItems = customers.slice(startIndex, endIndex)
+  const offsetY = startIndex * rowHeight
+  const totalHeight = customers.length * rowHeight
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -135,99 +188,94 @@ export default function DashboardCustomers() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left whitespace-nowrap">
-              <thead className="text-xs text-muted-foreground bg-muted/50 border-b uppercase">
-                <tr>
-                  <th className="px-6 py-4 font-medium">Nome / Telefone</th>
-                  <th className="px-6 py-4 font-medium">Origem</th>
-                  <th className="px-6 py-4 font-medium">Origem (Loja/Marca)</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Data Cadastro</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {loading && customers.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
-                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3" />
-                      Carregando leads...
-                    </td>
-                  </tr>
-                ) : customers.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
-                      Nenhum lead encontrado com os filtros atuais.
-                    </td>
-                  </tr>
-                ) : (
-                  customers.map((c) => (
-                    <tr key={c.id} className="hover:bg-muted/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-semibold text-foreground">{c.name || 'Sem Nome'}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
+      <Card className="overflow-hidden flex flex-col">
+        <div className="flex bg-muted/50 border-b text-xs font-medium uppercase text-muted-foreground px-6 py-4">
+          <div className="flex-[2] min-w-[200px]">Nome / Telefone</div>
+          <div className="flex-[1] min-w-[150px]">Origem</div>
+          <div className="flex-[1.5] min-w-[180px]">Origem (Loja/Marca)</div>
+          <div className="w-[100px]">Status</div>
+          <div className="w-[150px] text-right">Data Cadastro</div>
+        </div>
+
+        <CardContent className="p-0 flex-1 relative">
+          {loading && customers.length === 0 ? (
+            <div className="px-6 py-12 text-center text-muted-foreground">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3" />
+              Carregando leads...
+            </div>
+          ) : customers.length === 0 ? (
+            <div className="px-6 py-12 text-center text-muted-foreground">
+              Nenhum lead encontrado com os filtros atuais.
+            </div>
+          ) : (
+            <div
+              className="overflow-auto custom-scrollbar"
+              style={{ height: `${containerHeight}px` }}
+              onScroll={handleScroll}
+            >
+              <div style={{ height: `${totalHeight}px`, position: 'relative' }}>
+                <div
+                  style={{
+                    transform: `translateY(${offsetY}px)`,
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                  }}
+                >
+                  {visibleItems.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center px-6 border-b hover:bg-muted/50 transition-colors"
+                      style={{ height: `${rowHeight}px` }}
+                    >
+                      <div className="flex-[2] min-w-[200px]">
+                        <div className="font-semibold text-foreground truncate">
+                          {c.name || 'Sem Nome'}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5 truncate">
                           {c.phone || 'Sem telefone'}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
+                      </div>
+                      <div className="flex-[1] min-w-[150px]">
                         <Badge variant="outline" className="capitalize">
                           {(c.source || 'manual').replace('_', ' ')}
                         </Badge>
-                      </td>
-                      <td className="px-6 py-4 font-medium">
+                      </div>
+                      <div className="flex-[1.5] min-w-[180px] font-medium truncate pr-4">
                         {c.whatsapp_group_name ? (
                           <Badge
                             variant="secondary"
-                            className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20"
+                            className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 truncate max-w-full"
                           >
                             {c.whatsapp_group_name}
                           </Badge>
                         ) : (
                           <span className="text-muted-foreground text-xs">-</span>
                         )}
-                      </td>
-                      <td className="px-6 py-4">
+                      </div>
+                      <div className="w-[100px]">
                         <Badge variant={c.status === 'new' ? 'default' : 'secondary'}>
                           {c.status || 'new'}
                         </Badge>
-                      </td>
-                      <td className="px-6 py-4 text-muted-foreground">
+                      </div>
+                      <div className="w-[150px] text-muted-foreground text-sm text-right">
                         {c.created ? format(new Date(c.created), 'dd/MM/yyyy HH:mm') : '-'}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/20">
-              <div className="text-sm text-muted-foreground">
-                Mostrando página {page} de {totalPages} ({totalItems} leads)
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1 || loading}
-                >
-                  Anterior
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages || loading}
-                >
-                  Próxima
-                </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {loading && hasMore && (
+                    <div className="flex justify-center items-center py-4">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
+          <div className="px-6 py-3 border-t bg-muted/20 text-xs text-muted-foreground font-medium">
+            Total de registros processados na visualização: {totalItems}
+          </div>
         </CardContent>
       </Card>
     </div>

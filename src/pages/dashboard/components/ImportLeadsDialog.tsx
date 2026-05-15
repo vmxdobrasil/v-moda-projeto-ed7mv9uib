@@ -359,18 +359,20 @@ export default function ImportLeadsDialog({
 
             {stats.errorDetails && stats.errorDetails.length > 0 && (
               <div className="mt-4">
-                <h4 className="text-sm font-bold mb-2">Detalhes dos Erros (amostra):</h4>
-                <div className="max-h-[120px] overflow-y-auto text-xs bg-muted p-3 rounded border">
+                <h4 className="text-sm font-bold mb-2 text-red-600">
+                  Detalhes dos Erros (amostra com telefones):
+                </h4>
+                <div className="max-h-[180px] overflow-y-auto text-xs bg-red-50 p-3 rounded border border-red-100 custom-scrollbar">
                   <ul className="list-disc pl-4 space-y-1">
-                    {stats.errorDetails.slice(0, 50).map((err, idx) => (
-                      <li key={idx} className="text-red-600">
+                    {stats.errorDetails.slice(0, 100).map((err, idx) => (
+                      <li key={idx} className="text-red-700">
                         <span className="font-semibold text-foreground">Linha {err.row}:</span>{' '}
                         {err.reason}
                       </li>
                     ))}
-                    {stats.errorDetails.length > 50 && (
-                      <li className="text-muted-foreground mt-2">
-                        ...e mais {stats.errorDetails.length - 50} erros.
+                    {stats.errorDetails.length > 100 && (
+                      <li className="text-red-500 font-medium mt-2">
+                        ...e mais {stats.errorDetails.length - 100} erros documentados nos logs.
                       </li>
                     )}
                   </ul>
