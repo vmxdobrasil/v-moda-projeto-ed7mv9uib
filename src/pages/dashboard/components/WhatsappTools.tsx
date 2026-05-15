@@ -15,6 +15,7 @@ import pb from '@/lib/pocketbase/client'
 import { Loader2, Users, Send, RefreshCw, AlertCircle } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { Badge } from '@/components/ui/badge'
 
 export function WhatsappTools({ instances }: { instances: string[] }) {
   const isAuthenticated = pb.authStore.isValid
