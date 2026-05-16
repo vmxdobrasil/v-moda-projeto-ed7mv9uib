@@ -257,7 +257,7 @@ export function AICustomerServiceTab() {
                           {msg.ai_suggested_reply ? (
                             <div className="bg-blue-50/50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-900 text-sm w-[85%] animate-in slide-in-from-left-2">
                               <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium mb-2">
-                                <Bot size={14} /> Sugestão da IA
+                                <Bot size={14} /> Sugestão VALLEN IA
                               </div>
                               <p className="text-muted-foreground">{msg.ai_suggested_reply}</p>
                               <div className="flex gap-2 mt-3">
@@ -287,7 +287,7 @@ export function AICustomerServiceTab() {
                               disabled={isGeneratingAi}
                             >
                               <Bot className="w-4 h-4" />{' '}
-                              {isGeneratingAi ? 'Analisando...' : 'Gerar Resposta com IA'}
+                              {isGeneratingAi ? 'Analisando...' : 'Gerar Resposta VALLEN IA'}
                             </Button>
                           )}
                         </div>
@@ -322,7 +322,7 @@ export function AICustomerServiceTab() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
             <Bot className="w-12 h-12 mb-4 opacity-20" />
-            <p>Selecione uma conversa para iniciar o Atendimento IA</p>
+            <p>Selecione uma conversa para interagir com a VALLEN IA</p>
           </div>
         )}
       </TabsContent>
@@ -331,7 +331,7 @@ export function AICustomerServiceTab() {
         <div className="max-w-2xl">
           <h2 className="text-2xl font-bold mb-2">Canais de Comunicação</h2>
           <p className="text-muted-foreground mb-8">
-            Gerencie as integrações da sua marca para centralizar todas as mensagens no Atendimento
+            Gerencie as integrações da sua marca para centralizar todas as mensagens com a VALLEN
             IA.
           </p>
 

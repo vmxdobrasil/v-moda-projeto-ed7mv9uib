@@ -10,8 +10,36 @@ routerAdd(
       const settings = $app.findFirstRecordByData('brand_settings', 'key', 'ai_system_instructions')
       aiInstructions = settings.get('value_text')
     } catch (_) {
-      aiInstructions = 'Você é o Agente de IA oficial do V MODA Brasil.'
+      aiInstructions = 'Você é a VALLEN IA, inteligência comercial nativa do V MODA BRASIL.'
     }
+
+    let userContext = ''
+    if (e.auth) {
+      const role = e.auth.get('role') || 'desconhecido'
+      userContext += `\n\n[CONTEXTO ATUAL]\nPerfil do Usuário: ${role}`
+
+      try {
+        if (role === 'manufacturer') {
+          const customer = $app.findFirstRecordByData('customers', 'manufacturer', e.auth.id)
+          const rank = customer.get('ranking_position')
+          if (rank) {
+            userContext += `\nRanking da Marca: Posição ${rank} (Top Marcas)`
+          }
+        }
+      } catch (_) {}
+    }
+
+    let commissionLogs = ''
+    try {
+      const logs = $app.findRecordsByFilter('commission_audit_logs', '', '-created', 3, 0)
+      if (logs.length > 0) {
+        commissionLogs =
+          '\nÚltimos logs de auditoria de comissões na plataforma: ' +
+          logs.map((l) => `${l.get('new_rate')}%`).join(', ')
+      }
+    } catch (_) {}
+
+    const systemContent = aiInstructions + userContext + commissionLogs
 
     // Attempt OpenAI if available
     if ($secrets.has('OPENAI_API_KEY')) {
@@ -28,11 +56,11 @@ routerAdd(
             messages: [
               {
                 role: 'system',
-                content: aiInstructions,
+                content: systemContent,
               },
-              { role: 'user', content: msg },
+              { role: 'user', content: body.message || '' },
             ],
-            max_tokens: 200,
+            max_tokens: 350,
           }),
           timeout: 15,
         })
@@ -44,31 +72,25 @@ routerAdd(
       }
     }
 
-    // Simulated AI logic fallback for the platform's knowledge base
-    let reply = 'Olá! Sou o consultor V MODA Brasil. Como posso ajudar nas suas vendas no atacado?'
+    // Simulated AI logic fallback for VALLEN IA
+    let reply =
+      'Olá! Sou a **VALLEN IA**, a inteligência comercial oficial do V MODA Brasil. Como posso otimizar suas vendas hoje?'
 
-    if (msg.includes('comissão') || msg.includes('taxa') || msg.includes('porcentagem')) {
+    if (msg.includes('comissão') || msg.includes('taxa')) {
       reply =
-        'Nossa comissão total é de 13,89%. Isso inclui: 2,99% a 3,89% do Asaas (gateway), 1% para influenciadores, 2% para guias de compras e o saldo (~7% a 8,9%) para a administração do V MODA Brasil.'
-    } else if (msg.includes('stories') || msg.includes('vídeo') || msg.includes('visual')) {
+        'A nossa estrutura de comissionamento total é de **13,89%**. Ela é dividida em:\n- **2,99% a 3,89%** para o Asaas (gateway de pagamento)\n- **1%** para Influenciadores (se gerarem o lead)\n- **2%** para Guias de Compras/Agentes\n- O saldo para a administração da plataforma.'
+    } else if (msg.includes('top') || msg.includes('ranking') || msg.includes('guia vip')) {
       reply =
-        'Para a produção de conteúdo, nossos Stories devem ser sequências de 15 verticais com fundo laranja e a logo do V MODA BRASIL. Vídeos institucionais duram de 15 a 18 minutos com tom formal e foco em SEO.'
-    } else if (msg.includes('exclusividade') || msg.includes('top 60') || msg.includes('top 100')) {
+        'Priorizamos sempre as **TOP 70 Marcas** (Top 15 Feminino, Top 10 Jeans, Top 5 Praia/Fitness, etc.). O Guia VIP dá acesso privilegiado a elas. É um status de alto padrão no atacado!'
+    } else if (msg.includes('estoque') || msg.includes('urgência') || msg.includes('escassez')) {
       reply =
-        'Temos programas de exclusividade: as Top 60 Marcas recebem visibilidade prioritária na plataforma, e as Top 100 recebem suporte exclusivo e mentoria.'
-    } else if (
-      msg.includes('reunião') ||
-      msg.includes('presidente') ||
-      msg.includes('estratégia')
-    ) {
+        'Atenção: as grades das peças mais vendidas costumam esgotar rápido. Além disso, fique atento aos prazos de envio das excursões para não perder o despacho desta semana!'
+    } else if (msg.includes('conteúdo') || msg.includes('stories')) {
       reply =
-        'Recomendamos agendar uma reunião estratégica de 60 minutos com nosso presidente para validar suas ideias e definir a divisão de receitas (revenue share).'
-    } else if (msg.includes('serviços') || msg.includes('mentoria') || msg.includes('software')) {
+        'Para converter mais, grave sequências de 15 Stories verticais usando fundo laranja e a logo do V MODA BRASIL. Mostre o caimento da peça para gerar prova social e aumentar o giro!'
+    } else if (msg.includes('vídeo') || msg.includes('chamada') || msg.includes('negociar')) {
       reply =
-        'O V MODA Brasil oferece mentoria especializada, software de gestão voltado para atacado e serviços de marketing digital para alavancar suas vendas.'
-    } else if (msg.includes('contato') || msg.includes('suporte')) {
-      reply =
-        'Para negociações diretas e suporte prioritário, recomendamos que utilize nosso canal oficial no WhatsApp.'
+        'Sempre utilize nossa ferramenta interna de negociação por vídeo. Tudo fica registrado no ecossistema V MODA BRASIL, garantindo segurança e transparência na negociação de lotes.'
     }
 
     return e.json(200, { suggested_reply: reply })

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MessageCircle, X, Send } from 'lucide-react'
+import { MessageCircle, X, Send, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -23,7 +23,9 @@ export function LiveChat() {
       {isOpen ? (
         <div className="bg-background border border-border shadow-2xl w-[320px] rounded-lg overflow-hidden animate-in slide-in-from-bottom-5">
           <div className="bg-primary text-primary-foreground p-4 flex justify-between items-center">
-            <h3 className="font-medium">Suporte V Moda</h3>
+            <h3 className="font-medium flex items-center gap-2">
+              <Bot className="w-5 h-5" /> VALLEN IA
+            </h3>
             <button
               onClick={() => setIsOpen(false)}
               className="hover:opacity-70 transition-opacity"
@@ -55,7 +57,7 @@ export function LiveChat() {
                   <Textarea
                     id="chat-message"
                     required
-                    placeholder="Como podemos ajudar?"
+                    placeholder="Como posso otimizar suas vendas hoje?"
                     className="resize-none min-h-[80px]"
                   />
                 </div>

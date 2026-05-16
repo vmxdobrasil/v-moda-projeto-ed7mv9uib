@@ -9,21 +9,14 @@ onRecordAfterCreateSuccess((e) => {
     const settings = $app.findFirstRecordByData('brand_settings', 'key', 'ai_system_instructions')
     aiInstructions = settings.get('value_text')
   } catch (_) {
-    try {
-      const settings = $app.findFirstRecordByData('brand_settings', 'key', 'ai_instructions')
-      aiInstructions = settings.get('value_text')
-    } catch (__) {
-      aiInstructions =
-        'Você é um especialista em moda atacado do V MODA Brasil. Responda de forma educada e consultiva.'
-    }
+    aiInstructions = 'Você é a VALLEN IA, inteligência comercial oficial do V MODA Brasil.'
   }
 
   let templatesContext = ''
   try {
     const templates = $app.findRecordsByFilter('whatsapp_templates', 'is_active = true', '', 10, 0)
     if (templates.length > 0) {
-      templatesContext =
-        'Você possui os seguintes templates/mensagens como referência de estilo e ofertas:\n'
+      templatesContext = '\n[TEMPLATES REFERÊNCIA]\n'
       templates.forEach((t) => {
         templatesContext += `- ${t.getString('trigger_event')}: ${t.getString('content')}\n`
       })
@@ -32,13 +25,21 @@ onRecordAfterCreateSuccess((e) => {
 
   let catalogContext = ''
   try {
-    const projects = $app.findRecordsByFilter('projects', 'price > 0', '-created', 10, 0)
+    const projects = $app.findRecordsByFilter('projects', 'price > 0', '-created', 5, 0)
     if (projects.length > 0) {
-      catalogContext = 'Produtos em destaque no catálogo:\n'
+      catalogContext = '\n[DESTAQUES CATÁLOGO - Escassez]\n'
       projects.forEach((p) => {
-        catalogContext += `- ${p.getString('name')}: Preço R$ ${p.getFloat('price')} / Atacado R$ ${p.getFloat('wholesale_price')}\n`
+        catalogContext += `- ${p.getString('name')}: Varejo R$ ${p.getFloat('price')} / Atacado R$ ${p.getFloat('wholesale_price')}\n`
       })
     }
+  } catch (_) {}
+
+  let userContext = ''
+  try {
+    const senderId = record.getString('sender_id')
+    const user = $app.findRecordById('users', senderId)
+    const role = user.get('role') || 'desconhecido'
+    userContext = `\n[CONTEXTO DO USUÁRIO]\nPapel: ${role}`
   } catch (_) {}
 
   let reply = ''
@@ -57,11 +58,11 @@ onRecordAfterCreateSuccess((e) => {
           messages: [
             {
               role: 'system',
-              content: `You are a helpful wholesale fashion assistant. ${aiInstructions}\n\n${templatesContext}\n\n${catalogContext}`,
+              content: `${aiInstructions}${templatesContext}${catalogContext}${userContext}`,
             },
-            { role: 'user', content: content },
+            { role: 'user', content: record.get('content') },
           ],
-          max_tokens: 200,
+          max_tokens: 300,
         }),
         timeout: 15,
       })
@@ -74,46 +75,22 @@ onRecordAfterCreateSuccess((e) => {
   }
 
   if (!reply) {
-    if (
-      content.includes('comissão') ||
-      content.includes('taxa') ||
-      content.includes('porcentagem')
-    ) {
+    if (content.includes('comissão') || content.includes('taxa')) {
       reply =
-        'Nossa comissão total é de 13,89%. Isso inclui: 2,99% a 3,89% do Asaas (gateway), 1% para influenciadores, 2% para guias de compras e o saldo (~7% a 8,9%) para a administração do V MODA Brasil.'
+        'Nossa comissão total é de **13,89%**, que inclui o gateway Asaas (2,99% a 3,89%), 1% para influenciadores e 2% para guias. É um modelo sustentável para alavancar seu atacado!'
     } else if (
-      content.includes('stories') ||
-      content.includes('vídeo') ||
-      content.includes('visual')
+      content.includes('urgente') ||
+      content.includes('estoque') ||
+      content.includes('grade')
     ) {
       reply =
-        'Para a produção de conteúdo, nossos Stories devem ser sequências de 15 verticais com fundo laranja e a logo do V MODA BRASIL. Vídeos institucionais duram de 15 a 18 minutos com tom formal e foco em SEO.'
-    } else if (
-      content.includes('exclusividade') ||
-      content.includes('top 60') ||
-      content.includes('top 100')
-    ) {
+        'Cuidado com a ruptura de estoque! As excursões têm prazos rígidos. Recomendo fechar seu lote agora para garantir disponibilidade nas melhores peças.'
+    } else if (content.includes('top') || content.includes('marcas') || content.includes('vip')) {
       reply =
-        'Temos programas de exclusividade: as Top 60 Marcas recebem visibilidade prioritária na plataforma, e as Top 100 recebem suporte exclusivo e mentoria.'
-    } else if (
-      content.includes('reunião') ||
-      content.includes('presidente') ||
-      content.includes('estratégia')
-    ) {
-      reply =
-        'Recomendamos agendar uma reunião estratégica de 60 minutos com nosso presidente para validar suas ideias e definir a divisão de receitas (revenue share).'
-    } else if (
-      content.includes('serviços') ||
-      content.includes('mentoria') ||
-      content.includes('software')
-    ) {
-      reply =
-        'O V MODA Brasil oferece mentoria especializada, software de gestão voltado para atacado e serviços de marketing digital para alavancar suas vendas.'
-    } else if (content.includes('contato') || content.includes('suporte')) {
-      reply =
-        'Para negociações diretas e suporte prioritário, recomendamos que utilize nosso canal oficial no WhatsApp.'
+        'Com o Guia VIP você acessa o ranking das **TOP 70 Marcas** de Goiás, garantindo peças com alto giro e ótimo markup direto dos fabricantes premium.'
     } else {
-      reply = 'Olá! Sou o consultor V MODA Brasil. Como posso ajudar nas suas vendas no atacado?'
+      reply =
+        'Olá! Sou a **VALLEN IA**, inteligência comercial do V MODA Brasil. Estou aqui para otimizar suas negociações no atacado. Como posso ajudar?'
     }
   }
 
