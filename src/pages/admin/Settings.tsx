@@ -34,6 +34,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useMagazineStore } from '@/stores/useMagazineStore'
 import { useManufacturerStore } from '@/stores/useManufacturerStore'
 import { BrandAssetsManager } from '@/components/media/BrandAssetsManager'
+import { getBrandSettings, updateBrandSetting, BrandSetting } from '@/services/brandSettings'
 import {
   getWhatsappConfig,
   saveWhatsappConfig,
@@ -75,6 +76,9 @@ export default function Settings() {
   const [editingTemplate, setEditingTemplate] = useState<Partial<WhatsappTemplate> | null>(null)
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
 
+  const [aiInstructions, setAiInstructions] = useState<BrandSetting | null>(null)
+  const [aiInstructionsInput, setAiInstructionsInput] = useState('')
+
   useEffect(() => {
     const userId = pb.authStore.record?.id
     if (userId) {
@@ -85,6 +89,18 @@ export default function Settings() {
         setTemplates(tpls)
       })
     }
+
+    getBrandSettings()
+      .then((settings) => {
+        const instr =
+          settings.find((s) => s.key === 'ai_system_instructions') ||
+          settings.find((s) => s.key === 'ai_instructions')
+        if (instr) {
+          setAiInstructions(instr)
+          setAiInstructionsInput(instr.value_text || '')
+        }
+      })
+      .catch(console.error)
   }, [])
 
   const handleSaveTemplate = async () => {
@@ -142,6 +158,27 @@ export default function Settings() {
   const handleSaveUrl = () => {
     setExternalUrl(urlInput)
     toast({ description: 'URL da Revista Digital atualizada com sucesso!' })
+  }
+
+  const handleSaveAiInstructions = async () => {
+    try {
+      if (aiInstructions) {
+        const formData = new FormData()
+        formData.append('value_text', aiInstructionsInput)
+        await updateBrandSetting(aiInstructions.id, formData)
+        toast({ description: 'Instruções da IA atualizadas com sucesso!' })
+      } else {
+        const formData = new FormData()
+        formData.append('name', 'AI System Instructions')
+        formData.append('key', 'ai_system_instructions')
+        formData.append('value_text', aiInstructionsInput)
+        const record = await pb.collection('brand_settings').create(formData)
+        setAiInstructions(record as BrandSetting)
+        toast({ description: 'Instruções da IA criadas com sucesso!' })
+      }
+    } catch (e) {
+      toast({ description: 'Erro ao salvar instruções da IA.', variant: 'destructive' })
+    }
   }
 
   const handleAddUser = () => {
@@ -220,6 +257,28 @@ export default function Settings() {
               Sou Gerente
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <MessageCircle className="w-4 h-4 text-primary" />
+            Comportamento do Agente de IA (Instruções)
+          </CardTitle>
+          <CardDescription>
+            Configure as regras de negócio, persona e instruções de sistema para o Agente de IA do V
+            MODA Brasil.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Textarea
+            value={aiInstructionsInput}
+            onChange={(e) => setAiInstructionsInput(e.target.value)}
+            placeholder="Instruções para a IA..."
+            className="min-h-[250px]"
+          />
+          <Button onClick={handleSaveAiInstructions}>Salvar Instruções da IA</Button>
         </CardContent>
       </Card>
 

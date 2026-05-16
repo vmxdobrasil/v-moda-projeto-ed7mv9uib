@@ -6,11 +6,16 @@ onRecordAfterCreateSuccess((e) => {
 
   let aiInstructions = ''
   try {
-    const settings = $app.findFirstRecordByData('brand_settings', 'key', 'ai_instructions')
+    const settings = $app.findFirstRecordByData('brand_settings', 'key', 'ai_system_instructions')
     aiInstructions = settings.get('value_text')
   } catch (_) {
-    aiInstructions =
-      'Você é um especialista em moda atacado. Responda de forma educada e consultiva.'
+    try {
+      const settings = $app.findFirstRecordByData('brand_settings', 'key', 'ai_instructions')
+      aiInstructions = settings.get('value_text')
+    } catch (__) {
+      aiInstructions =
+        'Você é um especialista em moda atacado do V MODA Brasil. Responda de forma educada e consultiva.'
+    }
   }
 
   let templatesContext = ''
@@ -70,30 +75,45 @@ onRecordAfterCreateSuccess((e) => {
 
   if (!reply) {
     if (
-      content.includes('coleção') ||
-      content.includes('disponível') ||
-      content.includes('novidade')
+      content.includes('comissão') ||
+      content.includes('taxa') ||
+      content.includes('porcentagem')
     ) {
       reply =
-        'Olá! Sim, nossa nova coleção já está disponível. Posso te enviar o link para você conferir as novidades!'
+        'Nossa comissão total é de 13,89%. Isso inclui: 2,99% a 3,89% do Asaas (gateway), 1% para influenciadores, 2% para guias de compras e o saldo (~7% a 8,9%) para a administração do V MODA Brasil.'
     } else if (
-      content.includes('mínimo') ||
-      content.includes('atacado') ||
-      content.includes('pedido')
+      content.includes('stories') ||
+      content.includes('vídeo') ||
+      content.includes('visual')
     ) {
-      reply = 'Olá! Nosso pedido mínimo no atacado é de 12 peças. Deseja fazer um orçamento?'
+      reply =
+        'Para a produção de conteúdo, nossos Stories devem ser sequências de 15 verticais com fundo laranja e a logo do V MODA BRASIL. Vídeos institucionais duram de 15 a 18 minutos com tom formal e foco em SEO.'
     } else if (
-      content.includes('prazo') ||
-      content.includes('entrega') ||
-      content.includes('frete')
+      content.includes('exclusividade') ||
+      content.includes('top 60') ||
+      content.includes('top 100')
     ) {
       reply =
-        'O prazo de entrega varia de acordo com o seu CEP. Me informe seu CEP para calcularmos com precisão.'
-    } else if (content.includes('problema') || content.includes('defeito')) {
+        'Temos programas de exclusividade: as Top 60 Marcas recebem visibilidade prioritária na plataforma, e as Top 100 recebem suporte exclusivo e mentoria.'
+    } else if (
+      content.includes('reunião') ||
+      content.includes('presidente') ||
+      content.includes('estratégia')
+    ) {
       reply =
-        'Sinto muito que tenha tido um problema. Por favor, nos envie uma foto do item para analisarmos o mais rápido possível.'
+        'Recomendamos agendar uma reunião estratégica de 60 minutos com nosso presidente para validar suas ideias e definir a divisão de receitas (revenue share).'
+    } else if (
+      content.includes('serviços') ||
+      content.includes('mentoria') ||
+      content.includes('software')
+    ) {
+      reply =
+        'O V MODA Brasil oferece mentoria especializada, software de gestão voltado para atacado e serviços de marketing digital para alavancar suas vendas.'
+    } else if (content.includes('contato') || content.includes('suporte')) {
+      reply =
+        'Para negociações diretas e suporte prioritário, recomendamos que utilize nosso canal oficial no WhatsApp.'
     } else {
-      reply = 'Olá! Como posso ajudar você hoje?'
+      reply = 'Olá! Sou o consultor V MODA Brasil. Como posso ajudar nas suas vendas no atacado?'
     }
   }
 
