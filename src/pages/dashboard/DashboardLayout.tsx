@@ -48,6 +48,7 @@ import {
   X,
   Play,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react'
 import { Suspense } from 'react'
 import { useAuth } from '@/hooks/use-auth'
@@ -63,6 +64,7 @@ import { AlertCircle } from 'lucide-react'
 
 const navItems = [
   { icon: Home, label: 'Dashboard', path: '/' },
+  { icon: Sparkles, label: 'VALLEN IA', path: '/vallen-ia' },
   { icon: Users, label: 'Leads / Clientes', path: '/customers' },
   { icon: GraduationCap, label: 'Academy', path: '/resources' },
   { icon: Package, label: 'Projetos', path: '/products' },

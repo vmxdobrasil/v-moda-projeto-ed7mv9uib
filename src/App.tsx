@@ -34,6 +34,7 @@ import VideoNegotiation from '@/pages/VideoNegotiation'
 import WhatsappSettings from '@/pages/dashboard/WhatsappSettings'
 import Login from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
+import VallenIA from '@/pages/dashboard/VallenIA'
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -114,6 +115,8 @@ export default function App() {
               <Route path="/" element={<DashboardLayout />}>
                 <Route index element={<DashboardHub />} />
                 <Route path="dashboard" element={<Navigate to="/" replace />} />
+
+                <Route path="vallen-ia" element={<VallenIA />} />
 
                 {/* Placeholder Routes for missing pages */}
                 <Route path="customers" element={<DashboardCustomers />} />
