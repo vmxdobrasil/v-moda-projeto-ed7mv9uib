@@ -1,28 +1,76 @@
-import { useState } from 'react'
-import { MessageCircle, X, Send, Bot } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { MessageCircle, X, Send, Bot, User as UserIcon, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
+import pb from '@/lib/pocketbase/client'
+import { cn } from '@/lib/utils'
 
 export function LiveChat() {
   const [isOpen, setIsOpen] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [message, setMessage] = useState('')
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
+    {
+      role: 'assistant',
+      content:
+        'Olá! Sou a VALLEN IA, sua consultora de negócios da V MODA BRASIL. Como posso ajudar a otimizar suas vendas hoje?',
+    },
+  ])
+  const [isLoading, setIsLoading] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (isOpen) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages, isOpen])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSubmitted(true)
-    setTimeout(() => {
-      setIsOpen(false)
-      setTimeout(() => setIsSubmitted(false), 300)
-    }, 3000)
+    if (!message.trim() || isLoading) return
+
+    const userMsg = message.trim()
+    setMessage('')
+    setMessages((prev) => [...prev, { role: 'user', content: userMsg }])
+    setIsLoading(true)
+
+    try {
+      const apiMessages = messages
+        .map((m) => ({ role: m.role, content: m.content }))
+        .concat({
+          role: 'user',
+          content: userMsg,
+        })
+
+      const res = await pb.send('/backend/v1/vallen-chat', {
+        method: 'POST',
+        body: JSON.stringify({ messages: apiMessages }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (res && res.reply) {
+        setMessages((prev) => [...prev, { role: 'assistant', content: res.reply }])
+      }
+    } catch (error) {
+      console.error(error)
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content:
+            'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente mais tarde.',
+        },
+      ])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
       {isOpen ? (
-        <div className="bg-background border border-border shadow-2xl w-[320px] rounded-lg overflow-hidden animate-in slide-in-from-bottom-5">
-          <div className="bg-primary text-primary-foreground p-4 flex justify-between items-center">
+        <div className="bg-background border border-border shadow-2xl w-[350px] sm:w-[400px] rounded-lg overflow-hidden flex flex-col h-[500px] animate-in slide-in-from-bottom-5">
+          {/* Header */}
+          <div className="bg-primary text-primary-foreground p-4 flex justify-between items-center shrink-0">
             <h3 className="font-medium flex items-center gap-2">
               <Bot className="w-5 h-5" /> VALLEN IA
             </h3>
@@ -33,39 +81,73 @@ export function LiveChat() {
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="p-5">
-            {isSubmitted ? (
-              <div className="text-center py-8">
-                <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Send className="w-6 h-6" />
+
+          {/* Chat Area */}
+          <div className="flex-1 p-4 bg-muted/20 overflow-y-auto">
+            <div className="space-y-4">
+              {messages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={cn(
+                    'flex items-start gap-2 max-w-[85%]',
+                    msg.role === 'user' ? 'ml-auto flex-row-reverse' : '',
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+                      msg.role === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-secondary-foreground',
+                    )}
+                  >
+                    {msg.role === 'user' ? (
+                      <UserIcon className="w-4 h-4" />
+                    ) : (
+                      <Bot className="w-4 h-4" />
+                    )}
+                  </div>
+                  <div
+                    className={cn(
+                      'p-3 rounded-lg text-sm whitespace-pre-wrap',
+                      msg.role === 'user'
+                        ? 'bg-primary text-primary-foreground rounded-tr-none'
+                        : 'bg-secondary text-secondary-foreground rounded-tl-none',
+                    )}
+                  >
+                    {msg.content}
+                  </div>
                 </div>
-                <p className="font-medium text-green-600">Sua mensagem foi enviada com sucesso!</p>
-                <p className="text-sm text-muted-foreground mt-2">Retornaremos em breve.</p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="chat-name">Nome</Label>
-                  <Input id="chat-name" required placeholder="Seu nome" />
+              ))}
+              {isLoading && (
+                <div className="flex items-start gap-2 max-w-[85%]">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-secondary text-secondary-foreground">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div className="p-3 rounded-lg text-sm bg-secondary text-secondary-foreground rounded-tl-none flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Digitando...</span>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="chat-email">E-mail</Label>
-                  <Input id="chat-email" type="email" required placeholder="seu@email.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="chat-message">Mensagem</Label>
-                  <Textarea
-                    id="chat-message"
-                    required
-                    placeholder="Como posso otimizar suas vendas hoje?"
-                    className="resize-none min-h-[80px]"
-                  />
-                </div>
-                <Button type="submit" className="w-full">
-                  Enviar
-                </Button>
-              </form>
-            )}
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* Input Area */}
+          <div className="p-4 border-t bg-background shrink-0">
+            <form onSubmit={handleSubmit} className="flex items-center gap-2">
+              <Input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Escreva sua mensagem..."
+                className="flex-1"
+                disabled={isLoading}
+              />
+              <Button type="submit" size="icon" disabled={!message.trim() || isLoading}>
+                <Send className="w-4 h-4" />
+              </Button>
+            </form>
           </div>
         </div>
       ) : (

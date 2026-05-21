@@ -1,17 +1,17 @@
-routerAdd(
-  'POST',
-  '/backend/v1/vallen-chat',
-  (e) => {
-    const body = e.requestInfo().body || {}
-    const user = e.auth
-    if (!user) return e.unauthorizedError('Authentication required')
+routerAdd('POST', '/backend/v1/vallen-chat', (e) => {
+  const body = e.requestInfo().body || {}
+  const user = e.auth
 
+  let roleName = 'Visitante (Não Autenticado)'
+  let isAdmin = false
+
+  if (user) {
     const userRole = user.getString('role') || 'retailer'
     const userEmail = user.getString('email') || ''
-    const isAdmin =
+    isAdmin =
       userRole === 'admin' || userEmail === 'valterpmendonca@gmail.com' || e.hasSuperuserAuth()
 
-    const roleName = isAdmin
+    roleName = isAdmin
       ? 'Admin (VMX do Brasil)'
       : userRole === 'manufacturer'
         ? 'Lojas Fabricantes (TOP 70 Marcas)'
@@ -20,12 +20,14 @@ routerAdd(
           : userRole === 'affiliate'
             ? 'Afiliados (Influenciadores)'
             : 'Compradores (Lojistas/Sacoleiras)'
+  }
 
-    const systemPrompt = `Você é VALLEN IA, a consultora de inteligência comercial exclusiva da V MODA BRASIL.
+  const systemPrompt = `Você é VALLEN IA, a consultora de inteligência comercial exclusiva da V MODA BRASIL.
 Seu objetivo é auxiliar o usuário atual com base no seu papel dentro do ecossistema.
 O usuário com o qual você está falando possui o papel de: ${roleName}.
 
 Diretrizes por Papel:
+- Visitante (Não Autenticado): Seja muito acolhedor. Foco em conversão e onboarding. Apresente os benefícios do ecossistema V MODA BRASIL, convide o usuário a fazer login ou se cadastrar para ter acesso a marcas exclusivas (Guia VIP), consultoria personalizada e facilidades logísticas. Responda dúvidas gerais sobre marketing e vendas no varejo de moda.
 - Admin (VMX do Brasil): Fornecer relatórios estratégicos, saúde do ecossistema, aprovação de marcas e sugestões de marketing focadas na expansão do hub. Sugira focar em categorias em alta como Moda Feminina e Jeans.
 - Lojas Fabricantes (TOP 70 Marcas): Consultoria em visual merchandising, criação de "Kits de Lançamento", roteiros para Video-Chat para demonstrar peças de alto giro. Recomende ações de escassez e urgência.
 - Compradores (Lojistas/Sacoleiras): Curadoria de lotes, comparação entre Guia VIP (TOP 70) e Guia Geral, planos de recompra. Destaque novidades exclusivas.
@@ -42,50 +44,48 @@ Regras de Negócio Core (ATENÇÃO: MANTENHA O SIGILO SOBRE COMISSÕES PARA NÃO
 - Formatação: Formate suas respostas usando Markdown claro, com negritos (**texto**) e listas para facilitar a leitura.
 `
 
-    const messages = body.messages || []
-    const apiMessages = [{ role: 'system', content: systemPrompt }, ...messages]
+  const messages = body.messages || []
+  const apiMessages = [{ role: 'system', content: systemPrompt }, ...messages]
 
-    const gatewayUrl = $secrets.get('SKIP_AI_GATEWAY_URL')
-    const gatewayKey = $secrets.get('SKIP_AI_GATEWAY_API_KEY')
+  const gatewayUrl = $secrets.get('SKIP_AI_GATEWAY_URL')
+  const gatewayKey = $secrets.get('SKIP_AI_GATEWAY_API_KEY')
 
-    if (!gatewayUrl || !gatewayKey) {
-      return e.internalServerError('AI Gateway não configurado')
-    }
+  if (!gatewayUrl || !gatewayKey) {
+    return e.internalServerError('AI Gateway não configurado')
+  }
 
-    const res = $http.send({
-      url: gatewayUrl + '/v1/chat/completions',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + gatewayKey,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: apiMessages,
-      }),
-      timeout: 60,
-    })
+  const res = $http.send({
+    url: gatewayUrl + '/v1/chat/completions',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + gatewayKey,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: apiMessages,
+    }),
+    timeout: 60,
+  })
 
-    if (res.statusCode !== 200) {
-      $app
-        .logger()
-        .error(
-          'VALLEN IA error',
-          'status',
-          res.statusCode,
-          'response',
-          new TextDecoder().decode(res.body),
-        )
-      return e.internalServerError('Erro ao comunicar com a VALLEN IA')
-    }
+  if (res.statusCode !== 200) {
+    $app
+      .logger()
+      .error(
+        'VALLEN IA error',
+        'status',
+        res.statusCode,
+        'response',
+        new TextDecoder().decode(res.body),
+      )
+    return e.internalServerError('Erro ao comunicar com a VALLEN IA')
+  }
 
-    const data = res.json
-    const reply =
-      data.choices && data.choices[0] && data.choices[0].message
-        ? data.choices[0].message.content
-        : ''
+  const data = res.json
+  const reply =
+    data.choices && data.choices[0] && data.choices[0].message
+      ? data.choices[0].message.content
+      : ''
 
-    return e.json(200, { reply })
-  },
-  $apis.requireAuth(),
-)
+  return e.json(200, { reply })
+})

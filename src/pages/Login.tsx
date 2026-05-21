@@ -15,6 +15,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
+import { LiveChat } from '@/components/LiveChat'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -112,6 +113,7 @@ export default function Login() {
           </CardFooter>
         </form>
       </Card>
+      <LiveChat />
     </div>
   )
 }
