@@ -1,99 +1,127 @@
-import { useState, useRef, useEffect } from 'react'
+import { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react'
 import { MessageCircle, X, Send, Bot, User as UserIcon, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import pb from '@/lib/pocketbase/client'
 import { cn } from '@/lib/utils'
 
-export function LiveChat() {
+export interface Message {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface AiAssistantContextType {
+  isOpen: boolean
+  setIsOpen: (open: boolean) => void
+  messages: Message[]
+  sendMessage: (msg: string) => Promise<void>
+  isLoading: boolean
+}
+
+const AiAssistantContext = createContext<AiAssistantContextType | undefined>(undefined)
+
+export function useAiAssistant() {
+  const context = useContext(AiAssistantContext)
+  if (!context) {
+    throw new Error('useAiAssistant must be used within an AiAssistantProvider')
+  }
+  return context
+}
+
+export function AiAssistantProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(() => {
+    if (typeof window === 'undefined') return false
     try {
       return sessionStorage.getItem('vallen_chat_open') === 'true'
     } catch {
       return false
     }
   })
-  const [message, setMessage] = useState('')
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>(
-    () => {
-      try {
-        const stored = sessionStorage.getItem('vallen_chat_history')
-        if (stored) {
-          const parsed = JSON.parse(stored)
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed
-          }
+
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (typeof window === 'undefined') return []
+    try {
+      const stored = sessionStorage.getItem('vallen_chat_history')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed
         }
-      } catch {
-        /* intentionally ignored */
       }
-      return [
-        {
-          role: 'assistant',
-          content:
-            'Olá! Sou a VALLEN IA, sua consultora de negócios da V MODA BRASIL. Como posso ajudar a otimizar suas vendas hoje?',
-        },
-      ]
-    },
-  )
+    } catch {
+      // Ignore parsing errors
+    }
+    return [
+      {
+        role: 'assistant',
+        content:
+          'Olá! Sou a VALLEN IA, sua consultora de negócios da V MODA BRASIL. Como posso ajudar a otimizar suas vendas hoje?',
+      },
+    ]
+  })
+
   const [isLoading, setIsLoading] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [hasInitialized, setHasInitialized] = useState(false)
 
   useEffect(() => {
+    setHasInitialized(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hasInitialized) return
     try {
       sessionStorage.setItem('vallen_chat_history', JSON.stringify(messages))
     } catch {
-      /* intentionally ignored */
+      // Ignore storage errors
     }
-  }, [messages])
+  }, [messages, hasInitialized])
 
   useEffect(() => {
+    if (!hasInitialized) return
     try {
       sessionStorage.setItem('vallen_chat_open', String(isOpen))
     } catch {
-      /* intentionally ignored */
+      // Ignore storage errors
     }
-  }, [isOpen])
+  }, [isOpen, hasInitialized])
 
-  useEffect(() => {
-    if (isOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [messages, isOpen])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!message.trim() || isLoading) return
-
-    const userMsg = message.trim()
-    setMessage('')
-    setMessages((prev) => [...prev, { role: 'user', content: userMsg }])
-    setIsLoading(true)
-
+  const sendWithRetry = async (apiMessages: Message[], retries = 2): Promise<string> => {
     try {
-      const apiMessages = messages
-        .map((m) => ({ role: m.role, content: m.content }))
-        .concat({
-          role: 'user',
-          content: userMsg,
-        })
+      const currentPath = window?.location?.pathname || '/'
+      const contextFlag = currentPath.includes('/login') ? 'login_page' : 'dashboard'
 
       const res = await pb.send('/backend/v1/vallen-chat', {
         method: 'POST',
-        body: { messages: apiMessages },
+        body: { messages: apiMessages, context: contextFlag },
       })
-
-      if (res && res.reply) {
-        setMessages((prev) => [...prev, { role: 'assistant', content: res.reply }])
-      }
+      if (res && res.reply) return res.reply
+      throw new Error('Invalid response structure')
     } catch (error) {
-      console.error(error)
+      if (retries > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        return sendWithRetry(apiMessages, retries - 1)
+      }
+      throw error
+    }
+  }
+
+  const sendMessage = async (userMsg: string) => {
+    if (!userMsg.trim() || isLoading) return
+
+    const newMessages: Message[] = [...messages, { role: 'user', content: userMsg.trim() }]
+    setMessages(newMessages)
+    setIsLoading(true)
+
+    try {
+      const reply = await sendWithRetry(newMessages)
+      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+    } catch (error) {
+      console.error('VALLEN IA Chat Error:', error)
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content:
-            'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente mais tarde.',
+          content: 'Desculpe, ocorreu uma instabilidade na conexão. Por favor, tente novamente.',
         },
       ])
     } finally {
@@ -101,11 +129,44 @@ export function LiveChat() {
     }
   }
 
+  if (!hasInitialized) {
+    return <>{children}</>
+  }
+
+  return (
+    <AiAssistantContext.Provider value={{ isOpen, setIsOpen, messages, sendMessage, isLoading }}>
+      {children}
+    </AiAssistantContext.Provider>
+  )
+}
+
+export function LiveChat() {
+  const context = useContext(AiAssistantContext)
+  const [inputValue, setInputValue] = useState('')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (context?.isOpen) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [context?.messages, context?.isOpen])
+
+  if (!context) return null
+
+  const { isOpen, setIsOpen, messages, sendMessage, isLoading } = context
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inputValue.trim() || isLoading) return
+    const msg = inputValue
+    setInputValue('')
+    await sendMessage(msg)
+  }
+
   return (
     <div className="fixed bottom-6 right-6 z-50">
       {isOpen ? (
         <div className="bg-background border border-border shadow-2xl w-[350px] sm:w-[400px] rounded-lg overflow-hidden flex flex-col h-[500px] animate-in slide-in-from-bottom-5">
-          {/* Header */}
           <div className="bg-primary text-primary-foreground p-4 flex justify-between items-center shrink-0">
             <h3 className="font-medium flex items-center gap-2">
               <Bot className="w-5 h-5" /> VALLEN IA
@@ -118,7 +179,6 @@ export function LiveChat() {
             </button>
           </div>
 
-          {/* Chat Area */}
           <div className="flex-1 p-4 bg-muted/20 overflow-y-auto">
             <div className="space-y-4">
               {messages.map((msg, idx) => (
@@ -170,17 +230,16 @@ export function LiveChat() {
             </div>
           </div>
 
-          {/* Input Area */}
           <div className="p-4 border-t bg-background shrink-0">
             <form onSubmit={handleSubmit} className="flex items-center gap-2">
               <Input
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Escreva sua mensagem..."
                 className="flex-1"
                 disabled={isLoading}
               />
-              <Button type="submit" size="icon" disabled={!message.trim() || isLoading}>
+              <Button type="submit" size="icon" disabled={!inputValue.trim() || isLoading}>
                 <Send className="w-4 h-4" />
               </Button>
             </form>

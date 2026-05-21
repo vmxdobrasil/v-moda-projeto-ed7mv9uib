@@ -1,11 +1,12 @@
 routerAdd('POST', '/backend/v1/vallen-chat', (e) => {
   const body = e.requestInfo().body || {}
   const user = e.auth
+  const contextFlag = body.context || 'dashboard'
 
-  let roleName = 'Visitante (Não Autenticado)'
+  let roleName = 'Lead/Visitor (Visitante/Potencial Cliente)'
   let isAdmin = false
 
-  if (user) {
+  if (user && contextFlag !== 'login_page') {
     const userRole = user.getString('role') || 'retailer'
     const userEmail = user.getString('email') || ''
     isAdmin =
@@ -19,7 +20,10 @@ routerAdd('POST', '/backend/v1/vallen-chat', (e) => {
           ? 'Agentes Credenciados (Guias)'
           : userRole === 'affiliate'
             ? 'Afiliados (Influenciadores)'
-            : 'Compradores (Lojistas/Sacoleiras)'
+            : 'User/Partner (Compradores/Lojistas/Sacoleiras)'
+  } else if (user && contextFlag === 'login_page') {
+    // Handling logged-in users visiting the login page context seamlessly
+    roleName = 'Lead/Visitor (Visitante na Página de Login)'
   }
 
   const systemPrompt = `Você é VALLEN IA, a consultora de inteligência comercial exclusiva da V MODA BRASIL.
@@ -27,10 +31,10 @@ Seu objetivo é auxiliar o usuário atual com base no seu papel dentro do ecossi
 O usuário com o qual você está falando possui o papel de: ${roleName}.
 
 Diretrizes por Papel:
-- Visitante (Não Autenticado): Seja muito acolhedor. Foco em conversão e onboarding. Apresente os benefícios do ecossistema V MODA BRASIL, convide o usuário a fazer login ou se cadastrar para ter acesso a marcas exclusivas (Guia VIP), consultoria personalizada e facilidades logísticas. Responda dúvidas gerais sobre marketing e vendas no varejo de moda.
+- Lead/Visitor (Visitante/Potencial Cliente): Seja muito acolhedor. Foco em conversão e onboarding. Apresente os benefícios do ecossistema V MODA BRASIL, convide o usuário a fazer login ou se cadastrar para ter acesso a marcas exclusivas (Guia VIP), consultoria personalizada e facilidades logísticas. Responda dúvidas gerais sobre marketing e vendas no varejo de moda.
 - Admin (VMX do Brasil): Fornecer relatórios estratégicos, saúde do ecossistema, aprovação de marcas e sugestões de marketing focadas na expansão do hub. Sugira focar em categorias em alta como Moda Feminina e Jeans.
 - Lojas Fabricantes (TOP 70 Marcas): Consultoria em visual merchandising, criação de "Kits de Lançamento", roteiros para Video-Chat para demonstrar peças de alto giro. Recomende ações de escassez e urgência.
-- Compradores (Lojistas/Sacoleiras): Curadoria de lotes, comparação entre Guia VIP (TOP 70) e Guia Geral, planos de recompra. Destaque novidades exclusivas.
+- User/Partner (Compradores/Lojistas/Sacoleiras): Curadoria de lotes, comparação entre Guia VIP (TOP 70) e Guia Geral, planos de recompra. Destaque novidades exclusivas.
 - Agentes Credenciados (Guias): Otimização de rotas, coordenação de caravanas, treinamento do catálogo digital.
 - Afiliados (Influenciadores): Roteiros de vendas para Stories, sugerir scripts de conteúdo usando vídeos da parceria "Revista Moda", relatórios de performance, estratégias de conversão.
 - Logística: Otimização de frete, estratégias de up-selling.

@@ -4,6 +4,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/hooks/use-auth'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthGuard, PublicRoute, ManufacturerGuard } from '@/components/AuthGuard'
+import { AiAssistantProvider, LiveChat } from '@/components/LiveChat'
 
 // Existing Pages
 import DashboardLayout from '@/pages/dashboard/DashboardLayout'
@@ -55,97 +56,107 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
+        <AiAssistantProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
 
-          <Routes>
-            {/* Public Routes */}
-            <Route element={<PublicRoute />}>
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/forgot-password"
-                element={<PlaceholderPage title="Recuperar Senha" />}
-              />
-              <Route path="/admin/login" element={<Navigate to="/login" replace />} />
-            </Route>
-
-            {/* Manufacturer Routes */}
-            <Route element={<ManufacturerGuard />}>
-              <Route path="/manufacturer" element={<ManufacturerLayout />}>
-                <Route index element={<ManufacturerDashboard />} />
-                <Route path="catalog" element={<ManufacturerCatalog />} />
-                <Route path="leads" element={<ManufacturerLeads />} />
-                <Route path="messages" element={<ManufacturerMessages />} />
-                <Route path="logistics" element={<ManufacturerLogistics />} />
-                <Route path="settings" element={<ManufacturerSettings />} />
-                <Route path="negotiation/:customerId" element={<ManufacturerNegotiationHub />} />
-              </Route>
-            </Route>
-
-            {/* Protected Routes */}
-            <Route element={<AuthGuard />}>
-              <Route path="/negotiation/video/:sessionId" element={<VideoNegotiation />} />
-
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path="comissoes" element={<AdminCommissions />} />
-                <Route path="agentes" element={<AdminPartners defaultTab="agent" />} />
-                <Route path="afiliados" element={<AdminPartners defaultTab="affiliate" />} />
-                <Route path="parceiros" element={<AdminPartners />} />
-                <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
-                <Route path="fabricantes" element={<PlaceholderPage title="Fabricantes" />} />
-                <Route path="produtos" element={<PlaceholderPage title="Produtos" />} />
-                <Route path="clientes" element={<Customers />} />
-                <Route path="logistica" element={<PlaceholderPage title="Logística" />} />
-                <Route path="marketing" element={<PlaceholderPage title="Marketing" />} />
-                <Route path="categorias" element={<PlaceholderPage title="Categorias" />} />
-                <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />
-                <Route path="midia" element={<PlaceholderPage title="Mídia" />} />
-                <Route path="assinaturas" element={<PlaceholderPage title="Gestão de Planos" />} />
+            <Routes>
+              {/* Public Routes */}
+              <Route element={<PublicRoute />}>
+                <Route path="/login" element={<Login />} />
                 <Route
-                  path="logs-importacao"
-                  element={<PlaceholderPage title="Logs de Importação" />}
+                  path="/forgot-password"
+                  element={<PlaceholderPage title="Recuperar Senha" />}
                 />
-                <Route path="relatorios" element={<PlaceholderPage title="Relatórios" />} />
-                <Route path="configuracoes" element={<PlaceholderPage title="Configurações" />} />
-                <Route path="partnerships/zoop" element={<ZoopProposal />} />
+                <Route path="/admin/login" element={<Navigate to="/login" replace />} />
               </Route>
 
-              <Route path="/" element={<DashboardLayout />}>
-                <Route index element={<DashboardHub />} />
-                <Route path="dashboard" element={<Navigate to="/" replace />} />
-
-                <Route path="vallen-ia" element={<VallenIA />} />
-
-                {/* Placeholder Routes for missing pages */}
-                <Route path="customers" element={<DashboardCustomers />} />
-                <Route
-                  path="customers/:id"
-                  element={<PlaceholderPage title="Detalhes do Cliente" />}
-                />
-                <Route path="products" element={<DashboardProjects />} />
-                <Route path="admin-products" element={<PlaceholderPage title="Admin Produtos" />} />
-                <Route path="messages" element={<PlaceholderPage title="Mensagens" />} />
-                <Route path="manufacturers" element={<ManufacturersHub />} />
-                <Route path="affiliates" element={<AffiliateDashboard />} />
-                <Route path="resources" element={<Resources />} />
-                <Route path="magazine" element={<Magazine />} />
-                <Route element={<ManufacturerGuard />}>
-                  <Route path="logistics" element={<DashboardLogistics />} />
-                </Route>
-                <Route path="analytics" element={<DashboardAnalytics />} />
-                <Route path="media-kit" element={<PlaceholderPage title="Media Kit" />} />
-                <Route element={<ManufacturerGuard />}>
-                  <Route path="settings" element={<WhatsappSettings />} />
+              {/* Manufacturer Routes */}
+              <Route element={<ManufacturerGuard />}>
+                <Route path="/manufacturer" element={<ManufacturerLayout />}>
+                  <Route index element={<ManufacturerDashboard />} />
+                  <Route path="catalog" element={<ManufacturerCatalog />} />
+                  <Route path="leads" element={<ManufacturerLeads />} />
+                  <Route path="messages" element={<ManufacturerMessages />} />
+                  <Route path="logistics" element={<ManufacturerLogistics />} />
+                  <Route path="settings" element={<ManufacturerSettings />} />
+                  <Route path="negotiation/:customerId" element={<ManufacturerNegotiationHub />} />
                 </Route>
               </Route>
-            </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </TooltipProvider>
+              {/* Protected Routes */}
+              <Route element={<AuthGuard />}>
+                <Route path="/negotiation/video/:sessionId" element={<VideoNegotiation />} />
+
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="comissoes" element={<AdminCommissions />} />
+                  <Route path="agentes" element={<AdminPartners defaultTab="agent" />} />
+                  <Route path="afiliados" element={<AdminPartners defaultTab="affiliate" />} />
+                  <Route path="parceiros" element={<AdminPartners />} />
+                  <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
+                  <Route path="fabricantes" element={<PlaceholderPage title="Fabricantes" />} />
+                  <Route path="produtos" element={<PlaceholderPage title="Produtos" />} />
+                  <Route path="clientes" element={<Customers />} />
+                  <Route path="logistica" element={<PlaceholderPage title="Logística" />} />
+                  <Route path="marketing" element={<PlaceholderPage title="Marketing" />} />
+                  <Route path="categorias" element={<PlaceholderPage title="Categorias" />} />
+                  <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />
+                  <Route path="midia" element={<PlaceholderPage title="Mídia" />} />
+                  <Route
+                    path="assinaturas"
+                    element={<PlaceholderPage title="Gestão de Planos" />}
+                  />
+                  <Route
+                    path="logs-importacao"
+                    element={<PlaceholderPage title="Logs de Importação" />}
+                  />
+                  <Route path="relatorios" element={<PlaceholderPage title="Relatórios" />} />
+                  <Route path="configuracoes" element={<PlaceholderPage title="Configurações" />} />
+                  <Route path="partnerships/zoop" element={<ZoopProposal />} />
+                </Route>
+
+                <Route path="/" element={<DashboardLayout />}>
+                  <Route index element={<DashboardHub />} />
+                  <Route path="dashboard" element={<Navigate to="/" replace />} />
+
+                  <Route path="vallen-ia" element={<VallenIA />} />
+
+                  {/* Placeholder Routes for missing pages */}
+                  <Route path="customers" element={<DashboardCustomers />} />
+                  <Route
+                    path="customers/:id"
+                    element={<PlaceholderPage title="Detalhes do Cliente" />}
+                  />
+                  <Route path="products" element={<DashboardProjects />} />
+                  <Route
+                    path="admin-products"
+                    element={<PlaceholderPage title="Admin Produtos" />}
+                  />
+                  <Route path="messages" element={<PlaceholderPage title="Mensagens" />} />
+                  <Route path="manufacturers" element={<ManufacturersHub />} />
+                  <Route path="affiliates" element={<AffiliateDashboard />} />
+                  <Route path="resources" element={<Resources />} />
+                  <Route path="magazine" element={<Magazine />} />
+                  <Route element={<ManufacturerGuard />}>
+                    <Route path="logistics" element={<DashboardLogistics />} />
+                  </Route>
+                  <Route path="analytics" element={<DashboardAnalytics />} />
+                  <Route path="media-kit" element={<PlaceholderPage title="Media Kit" />} />
+                  <Route element={<ManufacturerGuard />}>
+                    <Route path="settings" element={<WhatsappSettings />} />
+                  </Route>
+                </Route>
+              </Route>
+
+              {/* Fallback */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+
+            <LiveChat />
+          </TooltipProvider>
+        </AiAssistantProvider>
       </AuthProvider>
     </BrowserRouter>
   )
