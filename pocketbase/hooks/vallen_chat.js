@@ -1,95 +1,93 @@
 routerAdd('POST', '/backend/v1/vallen-chat', (e) => {
   const body = e.requestInfo().body || {}
-  const user = e.auth
-  const contextFlag = body.context || 'dashboard'
+  const messages = body.messages || []
+  const context = body.context || 'general'
 
-  let roleName = 'Lead/Visitor (Visitante/Potencial Cliente)'
-  let isAdmin = false
-
-  if (user && contextFlag !== 'login_page') {
-    const userRole = user.getString('role') || 'retailer'
-    const userEmail = user.getString('email') || ''
-    isAdmin =
-      userRole === 'admin' || userEmail === 'valterpmendonca@gmail.com' || e.hasSuperuserAuth()
-
-    roleName = isAdmin
-      ? 'Admin (VMX do Brasil)'
-      : userRole === 'manufacturer'
-        ? 'Lojas Fabricantes (TOP 70 Marcas)'
-        : userRole === 'agent'
-          ? 'Agentes Credenciados (Guias)'
-          : userRole === 'affiliate'
-            ? 'Afiliados (Influenciadores)'
-            : 'User/Partner (Compradores/Lojistas/Sacoleiras)'
-  } else if (user && contextFlag === 'login_page') {
-    // Handling logged-in users visiting the login page context seamlessly
-    roleName = 'Lead/Visitor (Visitante na Página de Login)'
+  if (!Array.isArray(messages)) {
+    return e.badRequestError('O campo messages deve ser um array.')
   }
 
-  const systemPrompt = `Você é VALLEN IA, a consultora de inteligência comercial exclusiva da V MODA BRASIL.
-Seu objetivo é auxiliar o usuário atual com base no seu papel dentro do ecossistema.
-O usuário com o qual você está falando possui o papel de: ${roleName}.
+  if (messages.length > 50) {
+    return e.badRequestError('Limite de mensagens excedido para esta sessão.')
+  }
 
-Diretrizes por Papel:
-- Lead/Visitor (Visitante/Potencial Cliente): Seja muito acolhedor. Foco em conversão e onboarding. Apresente os benefícios do ecossistema V MODA BRASIL, convide o usuário a fazer login ou se cadastrar para ter acesso a marcas exclusivas (Guia VIP), consultoria personalizada e facilidades logísticas. Responda dúvidas gerais sobre marketing e vendas no varejo de moda.
-- Admin (VMX do Brasil): Fornecer relatórios estratégicos, saúde do ecossistema, aprovação de marcas e sugestões de marketing focadas na expansão do hub. Sugira focar em categorias em alta como Moda Feminina e Jeans.
-- Lojas Fabricantes (TOP 70 Marcas): Consultoria em visual merchandising, criação de "Kits de Lançamento", roteiros para Video-Chat para demonstrar peças de alto giro. Recomende ações de escassez e urgência.
-- User/Partner (Compradores/Lojistas/Sacoleiras): Curadoria de lotes, comparação entre Guia VIP (TOP 70) e Guia Geral, planos de recompra. Destaque novidades exclusivas.
-- Agentes Credenciados (Guias): Otimização de rotas, coordenação de caravanas, treinamento do catálogo digital.
-- Afiliados (Influenciadores): Roteiros de vendas para Stories, sugerir scripts de conteúdo usando vídeos da parceria "Revista Moda", relatórios de performance, estratégias de conversão.
-- Logística: Otimização de frete, estratégias de up-selling.
+  let aiInstructions =
+    'Você é a VALLEN IA, assistente virtual da V MODA BRASIL. Responda em português de forma concisa e amigável.'
 
-Regras de Negócio Core (ATENÇÃO: MANTENHA O SIGILO SOBRE COMISSÕES PARA NÃO PARCEIROS):
-- Comissionamento: O total é de 13.89% (sendo Asaas: 2.99 a 3.89%, Influencers: 1%, Guias: 2%, Admin: o restante). Você SÓ PODE discutir essas taxas de comissão se o usuário for Admin, Agente ou Afiliado (Parceiros/Integrantes). Se for Lojista ou Fabricante, o foco é apenas no valor final e no lucro.
-- Sistema de Ranking: Suporte especializado para as TOP 70 Marcas (Guia VIP). O Guia VIP tem curadoria exclusiva, destaque e suporte premium, enquanto o Guia Geral abrange as demais marcas.
-- Tom de Voz e Gatilhos: Profissional, persuasivo e empático. Incorpore gatilhos mentais OBRIGATORIAMENTE ao dar sugestões de marketing (Ex: Escassez "Pronta Entrega", Urgência "Lotes limitados", Exclusividade, Prova Social regional).
-- Guardrails do Ecossistema: NUNCA sugira ferramentas externas (como Zoom, Skype, ou WhatsApp externo para fechamento de pagamentos). O ciclo de vendas deve ocorrer ESTRITAMENTE dentro do ecossistema V MODA BRASIL (Carrinho, Zoop, Video-Chat interno).
-- Estratégias de Marketing: Se o usuário pedir sugestões de marketing ("sugestões de marketing hoje", "ideias de campanha", etc.), forneça dicas estruturadas usando os dados da plataforma. Se não houver dados de tempo real, use este fallback lógico de alto impacto: "Terça-feira é um dia de alto tráfego para lojistas do Sul e Sudeste; otimize sua grade de Jeans e Moda Feminina agora para aproveitar o pico de buscas."
-- Formatação: Formate suas respostas usando Markdown claro, com negritos (**texto**) e listas para facilitar a leitura.
-`
+  try {
+    const brandSettings = $app.findRecordsByFilter(
+      'brand_settings',
+      "key = 'ai_instructions'",
+      '',
+      1,
+      0,
+    )
+    if (brandSettings.length > 0) {
+      const text = brandSettings[0].getString('value_text')
+      if (text) {
+        aiInstructions = text
+      }
+    }
+  } catch (err) {
+    // Fallback to default if not found
+  }
 
-  const messages = body.messages || []
-  const apiMessages = [{ role: 'system', content: systemPrompt }, ...messages]
+  if (context === 'guest_login_page' || context === 'guest') {
+    aiInstructions +=
+      ' O usuário atualmente é um visitante ou está na página de login e não está autenticado. Ajude-o com dúvidas gerais sobre a plataforma, benefícios, ou como criar uma conta e fazer login.'
+  }
 
   const gatewayUrl = $secrets.get('SKIP_AI_GATEWAY_URL')
   const gatewayKey = $secrets.get('SKIP_AI_GATEWAY_API_KEY')
 
   if (!gatewayUrl || !gatewayKey) {
-    return e.internalServerError('AI Gateway não configurado')
-  }
-
-  const res = $http.send({
-    url: gatewayUrl + '/v1/chat/completions',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + gatewayKey,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: apiMessages,
-    }),
-    timeout: 60,
-  })
-
-  if (res.statusCode !== 200) {
     $app
       .logger()
-      .error(
-        'VALLEN IA error',
-        'status',
-        res.statusCode,
-        'response',
-        new TextDecoder().decode(res.body),
-      )
-    return e.internalServerError('Erro ao comunicar com a VALLEN IA')
+      .warn('SKIP_AI_GATEWAY_URL or SKIP_AI_GATEWAY_API_KEY not set. Using fallback response.')
+    return e.json(200, {
+      reply:
+        'Olá! No momento os serviços de IA estão em manutenção, mas sinta-se à vontade para navegar ou fazer login na V MODA BRASIL.',
+    })
   }
 
-  const data = res.json
-  const reply =
-    data.choices && data.choices[0] && data.choices[0].message
-      ? data.choices[0].message.content
-      : ''
+  try {
+    const url = gatewayUrl.endsWith('/') ? gatewayUrl.slice(0, -1) : gatewayUrl
 
-  return e.json(200, { reply })
+    const payloadMessages = [{ role: 'system', content: aiInstructions }, ...messages]
+
+    const res = $http.send({
+      url: url + '/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + gatewayKey,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: payloadMessages,
+      }),
+      timeout: 30,
+    })
+
+    if (
+      res.statusCode >= 200 &&
+      res.statusCode < 300 &&
+      res.json &&
+      res.json.choices &&
+      res.json.choices.length > 0
+    ) {
+      return e.json(200, { reply: res.json.choices[0].message.content })
+    } else {
+      $app.logger().error('AI Gateway error', 'status', res.statusCode, 'body', res.json)
+      return e.json(500, {
+        reply: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente mais tarde.',
+      })
+    }
+  } catch (err) {
+    $app.logger().error('AI Gateway request failed', err)
+    return e.json(500, {
+      reply:
+        'Desculpe, a rede está instável no momento e não pude responder. Tente novamente em alguns instantes.',
+    })
+  }
 })

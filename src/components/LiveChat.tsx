@@ -16,6 +16,8 @@ export interface AiAssistantContextType {
   messages: Message[]
   sendMessage: (msg: string) => Promise<void>
   isLoading: boolean
+  connectionStatus: 'connecting' | 'connected' | 'error'
+  retryConnection: () => Promise<void>
 }
 
 const AiAssistantContext = createContext<AiAssistantContextType | undefined>(undefined)
@@ -62,9 +64,37 @@ export function AiAssistantProvider({ children }: { children: ReactNode }) {
 
   const [isLoading, setIsLoading] = useState(false)
   const [hasInitialized, setHasInitialized] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'error'>(
+    'connecting',
+  )
+
+  const initChatConnection = async () => {
+    try {
+      setConnectionStatus('connecting')
+      await pb.health.check()
+
+      try {
+        await pb.collection('brand_settings').getList(1, 1)
+        console.log(
+          '[VALLEN IA] Successfully connected to backend collections (AI instruction collections) without 401 or 404 errors.',
+        )
+      } catch (dbErr) {
+        console.log(
+          '[VALLEN IA] Connected to PocketBase, but collection access check failed:',
+          dbErr,
+        )
+      }
+
+      setConnectionStatus('connected')
+    } catch (error) {
+      console.error('[VALLEN IA] Connection failed:', error)
+      setConnectionStatus('error')
+    }
+  }
 
   useEffect(() => {
     setHasInitialized(true)
+    initChatConnection()
   }, [])
 
   useEffect(() => {
@@ -88,7 +118,12 @@ export function AiAssistantProvider({ children }: { children: ReactNode }) {
   const sendWithRetry = async (apiMessages: Message[], retries = 2): Promise<string> => {
     try {
       const currentPath = window?.location?.pathname || '/'
-      const contextFlag = currentPath.includes('/login') ? 'login_page' : 'dashboard'
+      const isGuest = !pb.authStore.isValid
+      const contextFlag = currentPath.includes('/login')
+        ? 'guest_login_page'
+        : isGuest
+          ? 'guest'
+          : 'dashboard'
 
       const res = await pb.send('/backend/v1/vallen-chat', {
         method: 'POST',
@@ -129,12 +164,26 @@ export function AiAssistantProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const retryConnection = async () => {
+    await initChatConnection()
+  }
+
   if (!hasInitialized) {
     return <>{children}</>
   }
 
   return (
-    <AiAssistantContext.Provider value={{ isOpen, setIsOpen, messages, sendMessage, isLoading }}>
+    <AiAssistantContext.Provider
+      value={{
+        isOpen,
+        setIsOpen,
+        messages,
+        sendMessage,
+        isLoading,
+        connectionStatus,
+        retryConnection,
+      }}
+    >
       {children}
     </AiAssistantContext.Provider>
   )
@@ -153,7 +202,8 @@ export function LiveChat() {
 
   if (!context) return null
 
-  const { isOpen, setIsOpen, messages, sendMessage, isLoading } = context
+  const { isOpen, setIsOpen, messages, sendMessage, isLoading, connectionStatus, retryConnection } =
+    context
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -178,6 +228,25 @@ export function LiveChat() {
               <X className="w-5 h-5" />
             </button>
           </div>
+
+          {connectionStatus === 'error' && (
+            <div className="bg-destructive/10 text-destructive p-2 text-xs flex items-center justify-between shrink-0">
+              <span>Sem conexão com o servidor.</span>
+              <Button
+                variant="link"
+                size="sm"
+                onClick={retryConnection}
+                className="h-auto p-0 text-destructive underline font-semibold"
+              >
+                Tentar novamente
+              </Button>
+            </div>
+          )}
+          {connectionStatus === 'connecting' && (
+            <div className="bg-muted text-muted-foreground p-2 text-xs flex items-center justify-center shrink-0 gap-2">
+              <Loader2 className="w-3 h-3 animate-spin" /> Conectando...
+            </div>
+          )}
 
           <div className="flex-1 p-4 bg-muted/20 overflow-y-auto">
             <div className="space-y-4">
