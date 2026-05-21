@@ -6,17 +6,54 @@ import pb from '@/lib/pocketbase/client'
 import { cn } from '@/lib/utils'
 
 export function LiveChat() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(() => {
+    try {
+      return sessionStorage.getItem('vallen_chat_open') === 'true'
+    } catch {
+      return false
+    }
+  })
   const [message, setMessage] = useState('')
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
-    {
-      role: 'assistant',
-      content:
-        'Olá! Sou a VALLEN IA, sua consultora de negócios da V MODA BRASIL. Como posso ajudar a otimizar suas vendas hoje?',
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>(
+    () => {
+      try {
+        const stored = sessionStorage.getItem('vallen_chat_history')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed
+          }
+        }
+      } catch {
+        /* intentionally ignored */
+      }
+      return [
+        {
+          role: 'assistant',
+          content:
+            'Olá! Sou a VALLEN IA, sua consultora de negócios da V MODA BRASIL. Como posso ajudar a otimizar suas vendas hoje?',
+        },
+      ]
     },
-  ])
+  )
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('vallen_chat_history', JSON.stringify(messages))
+    } catch {
+      /* intentionally ignored */
+    }
+  }, [messages])
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('vallen_chat_open', String(isOpen))
+    } catch {
+      /* intentionally ignored */
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (isOpen) {
@@ -43,8 +80,7 @@ export function LiveChat() {
 
       const res = await pb.send('/backend/v1/vallen-chat', {
         method: 'POST',
-        body: JSON.stringify({ messages: apiMessages }),
-        headers: { 'Content-Type': 'application/json' },
+        body: { messages: apiMessages },
       })
 
       if (res && res.reply) {

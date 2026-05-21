@@ -40,8 +40,7 @@ export const updateMessage = (id: string, data: Partial<Message>) =>
 export const getAiSuggestion = async (message: string) => {
   const res = await pb.send('/backend/v1/ai-assistant', {
     method: 'POST',
-    body: JSON.stringify({ message }),
-    headers: { 'Content-Type': 'application/json' },
+    body: { message },
   })
   return res as { suggested_reply: string }
 }
