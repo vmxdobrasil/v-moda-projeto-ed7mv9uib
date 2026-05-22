@@ -28,6 +28,9 @@ import DashboardCustomers from '@/pages/dashboard/Customers'
 import DashboardAnalytics from '@/pages/dashboard/Analytics'
 import ManufacturersHub from '@/pages/dashboard/Manufacturers'
 import AffiliateDashboard from '@/pages/dashboard/AffiliateDashboard'
+import AdminVClub from '@/pages/admin/AdminVClub'
+import ManufacturerVClub from '@/pages/manufacturer/ManufacturerVClub'
+import VClubWallet from '@/pages/dashboard/VClubWallet'
 import DashboardProjects from '@/pages/dashboard/Projects'
 import Resources from '@/pages/dashboard/Resources'
 import Magazine from '@/pages/dashboard/Magazine'
@@ -81,6 +84,7 @@ export default function App() {
                   <Route path="messages" element={<ManufacturerMessages />} />
                   <Route path="logistics" element={<ManufacturerLogistics />} />
                   <Route path="settings" element={<ManufacturerSettings />} />
+                  <Route path="v-club" element={<ManufacturerVClub />} />
                   <Route path="negotiation/:customerId" element={<ManufacturerNegotiationHub />} />
                 </Route>
               </Route>
@@ -92,6 +96,7 @@ export default function App() {
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<AdminDashboard />} />
                   <Route path="comissoes" element={<AdminCommissions />} />
+                  <Route path="v-club" element={<AdminVClub />} />
                   <Route path="agentes" element={<AdminPartners defaultTab="agent" />} />
                   <Route path="afiliados" element={<AdminPartners defaultTab="affiliate" />} />
                   <Route path="parceiros" element={<AdminPartners />} />
@@ -143,6 +148,7 @@ export default function App() {
                     <Route path="logistics" element={<DashboardLogistics />} />
                   </Route>
                   <Route path="analytics" element={<DashboardAnalytics />} />
+                  <Route path="v-club" element={<VClubWallet />} />
                   <Route path="media-kit" element={<PlaceholderPage title="Media Kit" />} />
                   <Route element={<ManufacturerGuard />}>
                     <Route path="settings" element={<WhatsappSettings />} />

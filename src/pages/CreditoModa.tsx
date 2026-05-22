@@ -1,6 +1,8 @@
 import { Building2, Store, Clock, CheckCircle2, Wallet } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CreditoModaForm } from '@/components/CreditoModaForm'
+import { Link } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
 
 export default function CreditoModa() {
   return (
@@ -122,6 +124,32 @@ export default function CreditoModa() {
                 Após aprovação, o valor é liberado diretamente para uso na plataforma ou em conta.
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* V Club Card CTA */}
+      <section className="container mb-24">
+        <div className="bg-primary text-primary-foreground p-8 rounded-2xl text-center shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -ml-20 -mt-20"></div>
+          <div className="absolute bottom-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mb-20"></div>
+          <div className="relative z-10">
+            <h2 className="text-3xl font-serif uppercase tracking-wide mb-4">
+              Acesse sua V Club Wallet
+            </h2>
+            <p className="max-w-2xl mx-auto mb-8 text-primary-foreground/90">
+              Já possui crédito pré-aprovado ou cartões V Club com nossas lojas parceiras? Acesse
+              sua carteira digital para consultar limites, gerar QR Codes de pagamento e acompanhar
+              seu saldo de Cashback.
+            </p>
+            <Button
+              asChild
+              variant="secondary"
+              size="lg"
+              className="rounded-none uppercase tracking-widest px-8"
+            >
+              <Link to="/v-club">Abrir V Club Wallet</Link>
+            </Button>
           </div>
         </div>
       </section>
