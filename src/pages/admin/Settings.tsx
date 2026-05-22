@@ -29,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Shield, Trash2, Plus, Globe, MessageCircle } from 'lucide-react'
+import { Shield, Trash2, Plus, Globe, MessageCircle, CreditCard } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useMagazineStore } from '@/stores/useMagazineStore'
 import { useManufacturerStore } from '@/stores/useManufacturerStore'
@@ -79,6 +79,10 @@ export default function Settings() {
   const [aiInstructions, setAiInstructions] = useState<BrandSetting | null>(null)
   const [aiInstructionsInput, setAiInstructionsInput] = useState('')
 
+  const [asaasEnv, setAsaasEnv] = useState('sandbox')
+  const [asaasKeySandbox, setAsaasKeySandbox] = useState('')
+  const [asaasKeyProd, setAsaasKeyProd] = useState('')
+
   useEffect(() => {
     const userId = pb.authStore.record?.id
     if (userId) {
@@ -99,6 +103,13 @@ export default function Settings() {
           setAiInstructions(instr)
           setAiInstructionsInput(instr.value_text || '')
         }
+
+        const env = settings.find((s) => s.key === 'asaas_env')
+        if (env) setAsaasEnv(env.value_text || 'sandbox')
+        const keySandbox = settings.find((s) => s.key === 'asaas_api_key_sandbox')
+        if (keySandbox) setAsaasKeySandbox(keySandbox.value_text || '')
+        const keyProd = settings.find((s) => s.key === 'asaas_api_key_prod')
+        if (keyProd) setAsaasKeyProd(keyProd.value_text || '')
       })
       .catch(console.error)
   }, [])
@@ -152,6 +163,35 @@ export default function Settings() {
       toast({ description: 'WhatsApp API configurada com sucesso!' })
     } catch (e) {
       toast({ description: 'Erro ao salvar configurações do WhatsApp.', variant: 'destructive' })
+    }
+  }
+
+  const handleSaveAsaasConfig = async () => {
+    try {
+      const updateOrCreate = async (key: string, value: string, name: string) => {
+        const existing = await pb
+          .collection('brand_settings')
+          .getFirstListItem(`key="${key}"`)
+          .catch(() => null)
+        const formData = new FormData()
+        formData.append('name', name)
+        formData.append('key', key)
+        formData.append('value_text', value)
+
+        if (existing) {
+          await pb.collection('brand_settings').update(existing.id, formData)
+        } else {
+          await pb.collection('brand_settings').create(formData)
+        }
+      }
+
+      await updateOrCreate('asaas_env', asaasEnv, 'Asaas Environment')
+      await updateOrCreate('asaas_api_key_sandbox', asaasKeySandbox, 'Asaas API Key (Sandbox)')
+      await updateOrCreate('asaas_api_key_prod', asaasKeyProd, 'Asaas API Key (Production)')
+
+      toast({ description: 'Configurações do Asaas salvas com sucesso!' })
+    } catch (e) {
+      toast({ description: 'Erro ao salvar configurações do Asaas.', variant: 'destructive' })
     }
   }
 
@@ -308,6 +348,52 @@ export default function Settings() {
               <Button onClick={handleSaveUrl}>Salvar URL</Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-primary" />
+            Integração Asaas (V Club)
+          </CardTitle>
+          <CardDescription>
+            Configure as chaves da API do Asaas e gerencie o ambiente de testes (Sandbox) ou
+            Produção.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 max-w-2xl">
+          <div className="space-y-2">
+            <Label>Ambiente</Label>
+            <Select value={asaasEnv} onValueChange={setAsaasEnv}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sandbox">Sandbox (Testes)</SelectItem>
+                <SelectItem value="production">Produção</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>API Key (Sandbox)</Label>
+            <Input
+              type="password"
+              value={asaasKeySandbox}
+              onChange={(e) => setAsaasKeySandbox(e.target.value)}
+              placeholder="$aact_..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>API Key (Produção)</Label>
+            <Input
+              type="password"
+              value={asaasKeyProd}
+              onChange={(e) => setAsaasKeyProd(e.target.value)}
+              placeholder="$aact_..."
+            />
+          </div>
+          <Button onClick={handleSaveAsaasConfig}>Salvar Integração</Button>
         </CardContent>
       </Card>
 

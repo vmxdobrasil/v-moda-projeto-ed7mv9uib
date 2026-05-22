@@ -16,6 +16,15 @@ import { CreditCard, Wallet, Users, Send, History } from 'lucide-react'
 import { formatPrice } from '@/lib/data'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useRealtime } from '@/hooks/use-realtime'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 
 export default function ManufacturerVClub() {
   const [settings, setSettings] = useState<any>(null)
@@ -25,6 +34,8 @@ export default function ManufacturerVClub() {
   const [cashbackRate, setCashbackRate] = useState('0')
   const { toast } = useToast()
   const [isInviting, setIsInviting] = useState<Record<string, boolean>>({})
+  const [refundTxId, setRefundTxId] = useState<string | null>(null)
+  const [isRefunding, setIsRefunding] = useState(false)
 
   const loadData = async () => {
     try {
@@ -40,13 +51,11 @@ export default function ManufacturerVClub() {
           .collection('v_club_cards')
           .getFullList({ filter: `store = "${storeId}"`, expand: 'customer' }),
         pb.collection('customers').getFullList({ filter: `manufacturer = "${storeId}"` }),
-        pb
-          .collection('v_club_transactions')
-          .getFullList({
-            filter: `store = "${storeId}"`,
-            expand: 'card.customer',
-            sort: '-created',
-          }),
+        pb.collection('v_club_transactions').getFullList({
+          filter: `store = "${storeId}"`,
+          expand: 'card.customer',
+          sort: '-created',
+        }),
       ])
 
       setSettings(sets)
@@ -62,6 +71,18 @@ export default function ManufacturerVClub() {
   useEffect(() => {
     loadData()
   }, [])
+
+  useRealtime('v_club_transactions', (e) => {
+    if (e.record.store === pb.authStore.record?.id) {
+      loadData()
+    }
+  })
+
+  useRealtime('v_club_cards', (e) => {
+    if (e.record.store === pb.authStore.record?.id) {
+      loadData()
+    }
+  })
 
   const handleUpdateCashback = async () => {
     if (!settings) return
@@ -124,6 +145,23 @@ export default function ManufacturerVClub() {
       toast({ description: e.message || 'Erro ao enviar convite VIP', variant: 'destructive' })
     } finally {
       setIsInviting((prev) => ({ ...prev, [customer.id]: false }))
+    }
+  }
+
+  const handleRequestRefund = async () => {
+    if (!refundTxId) return
+    try {
+      setIsRefunding(true)
+      await pb.send(`/backend/v1/v-club/transaction/${refundTxId}/refund`, {
+        method: 'POST',
+      })
+      toast({ description: 'Estorno solicitado e processado com sucesso!' })
+      setRefundTxId(null)
+      loadData()
+    } catch (e: any) {
+      toast({ description: e.message || 'Erro ao solicitar estorno', variant: 'destructive' })
+    } finally {
+      setIsRefunding(false)
     }
   }
 
@@ -312,6 +350,7 @@ export default function ManufacturerVClub() {
                     <TableHead>Taxas (Plat/Asaas)</TableHead>
                     <TableHead>Cashback / Guia</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -357,15 +396,33 @@ export default function ManufacturerVClub() {
                                     : 'secondary'
                               }
                               className={
-                                tx.status === 'approved' ? 'bg-green-100 text-green-800' : ''
+                                tx.status === 'approved' && split.is_settled
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : tx.status === 'approved'
+                                    ? 'bg-green-100 text-green-800'
+                                    : ''
                               }
                             >
                               {tx.status === 'approved'
-                                ? 'Aprovado'
+                                ? split.is_settled
+                                  ? 'Liquidado'
+                                  : 'Aprovado'
                                 : tx.status === 'refunded'
                                   ? 'Estornado'
                                   : 'Pendente'}
                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {tx.status === 'approved' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-destructive hover:bg-destructive/10"
+                                onClick={() => setRefundTxId(tx.id)}
+                              >
+                                Solicitar Estorno
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       )
@@ -377,6 +434,26 @@ export default function ManufacturerVClub() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!refundTxId} onOpenChange={(open) => !open && setRefundTxId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Solicitar Estorno</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja estornar esta transação? O limite do cartão será restaurado e o
+              cashback concedido ao cliente será revertido do saldo atual.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundTxId(null)} disabled={isRefunding}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleRequestRefund} disabled={isRefunding}>
+              {isRefunding ? 'Processando...' : 'Confirmar Estorno'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
