@@ -148,8 +148,17 @@ export default function ManufacturerVClub() {
     }
   }
 
+  const isOperator = pb.authStore.record?.unlocked_benefits?.store_role === 'operator'
+
   const handleRequestRefund = async () => {
     if (!refundTxId) return
+    if (isOperator) {
+      toast({
+        description: 'Operadores não têm permissão para solicitar estornos.',
+        variant: 'destructive',
+      })
+      return
+    }
     try {
       setIsRefunding(true)
       await pb.send(`/backend/v1/v-club/transaction/${refundTxId}/refund`, {
@@ -413,7 +422,7 @@ export default function ManufacturerVClub() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            {tx.status === 'approved' && (
+                            {tx.status === 'approved' && !isOperator && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -422,6 +431,9 @@ export default function ManufacturerVClub() {
                               >
                                 Solicitar Estorno
                               </Button>
+                            )}
+                            {tx.status === 'approved' && isOperator && (
+                              <span className="text-xs text-muted-foreground">Acesso Negado</span>
                             )}
                           </TableCell>
                         </TableRow>

@@ -67,18 +67,27 @@ export class ErrorBoundary extends Component<Props, State> {
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button variant="outline" className="w-full" onClick={this.handleGoHome}>
-                <Home className="mr-2 h-4 w-4" />
-                Página Inicial
-              </Button>
+            <CardFooter className="flex flex-col gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row gap-3 w-full">
+                <Button variant="outline" className="w-full" onClick={this.handleGoHome}>
+                  <Home className="mr-2 h-4 w-4" />
+                  Página Inicial
+                </Button>
+                <Button
+                  variant="default"
+                  className="w-full bg-zinc-900 text-white hover:bg-zinc-800"
+                  onClick={this.handleReset}
+                >
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  Tentar Novamente
+                </Button>
+              </div>
               <Button
-                variant="default"
-                className="w-full bg-zinc-900 text-white hover:bg-zinc-800"
-                onClick={this.handleReset}
+                variant="outline"
+                className="w-full border-dashed"
+                onClick={() => alert('Bug Scanner ativado! Analisando os logs de erro...')}
               >
-                <RefreshCcw className="mr-2 h-4 w-4" />
-                Tentar Novamente
+                Ativar Bug Scanner
               </Button>
             </CardFooter>
           </Card>

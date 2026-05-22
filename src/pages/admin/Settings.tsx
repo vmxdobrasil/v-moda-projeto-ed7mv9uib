@@ -72,6 +72,8 @@ export default function Settings() {
     instance_id: '',
   })
 
+  const [internalNotifs, setInternalNotifs] = useState(true)
+
   const [templates, setTemplates] = useState<WhatsappTemplate[]>([])
   const [editingTemplate, setEditingTemplate] = useState<Partial<WhatsappTemplate> | null>(null)
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
@@ -400,47 +402,70 @@ export default function Settings() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <MessageCircle className="w-4 h-4 text-green-500" />
-            Configuração de API do WhatsApp
+            <MessageCircle className="w-4 h-4 text-primary" />
+            Centro de Controle de Notificações
           </CardTitle>
           <CardDescription>
-            Integre seu provedor de WhatsApp para envio de notificações automáticas de ranking e
-            benefícios.
+            Gerencie como os alertas são entregues aos usuários e os custos associados.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 max-w-2xl">
-          <div className="space-y-2">
-            <Label htmlFor="waApiUrl">WhatsApp API Endpoint</Label>
-            <Input
-              id="waApiUrl"
-              type="url"
-              value={waConfig.api_url}
-              onChange={(e) => setWaConfig({ ...waConfig, api_url: e.target.value })}
-              placeholder="https://api.whatsapp-provider.com/v1/messages"
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="waToken">Access Token</Label>
-              <Input
-                id="waToken"
-                type="password"
-                value={waConfig.token}
-                onChange={(e) => setWaConfig({ ...waConfig, token: e.target.value })}
-                placeholder="Seu token de acesso"
-              />
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between p-4 border rounded-md bg-muted/20">
+            <div className="space-y-1">
+              <Label className="text-base">Notificações Internas da Plataforma (Skip)</Label>
+              <p className="text-sm text-muted-foreground">
+                Exibe alertas e toasts dentro do painel para as lojas e admins. Sem custos
+                adicionais.
+              </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="waInstance">Instance ID</Label>
-              <Input
-                id="waInstance"
-                value={waConfig.instance_id}
-                onChange={(e) => setWaConfig({ ...waConfig, instance_id: e.target.value })}
-                placeholder="ID da instância"
-              />
+            <Switch checked={internalNotifs} onCheckedChange={setInternalNotifs} />
+          </div>
+
+          <div className="border rounded-md p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-green-500" />
+              <h3 className="font-semibold">Notificações Externas (WhatsApp / Evolution API)</h3>
+            </div>
+            <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded border border-amber-200">
+              <strong>Aviso de Custo:</strong> Esta notificação utiliza infraestrutura externa
+              (VPS/Evolution API) e pode gerar custos operacionais.
+            </p>
+
+            <div className="space-y-4 max-w-2xl mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="waApiUrl">WhatsApp API Endpoint</Label>
+                <Input
+                  id="waApiUrl"
+                  type="url"
+                  value={waConfig.api_url}
+                  onChange={(e) => setWaConfig({ ...waConfig, api_url: e.target.value })}
+                  placeholder="https://api.whatsapp-provider.com/v1/messages"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="waToken">Access Token</Label>
+                  <Input
+                    id="waToken"
+                    type="password"
+                    value={waConfig.token}
+                    onChange={(e) => setWaConfig({ ...waConfig, token: e.target.value })}
+                    placeholder="Seu token de acesso"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="waInstance">Instance ID</Label>
+                  <Input
+                    id="waInstance"
+                    value={waConfig.instance_id}
+                    onChange={(e) => setWaConfig({ ...waConfig, instance_id: e.target.value })}
+                    placeholder="ID da instância"
+                  />
+                </div>
+              </div>
+              <Button onClick={handleSaveWaConfig}>Salvar Credenciais</Button>
             </div>
           </div>
-          <Button onClick={handleSaveWaConfig}>Salvar Credenciais</Button>
         </CardContent>
       </Card>
 
@@ -558,6 +583,10 @@ export default function Settings() {
                   <Label>Ativo</Label>
                 </div>
               </div>
+              <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200 mt-1 mb-2">
+                <strong>Aviso de Custo:</strong> Esta notificação utiliza infraestrutura externa
+                (VPS/Evolution API) e pode gerar custos operacionais.
+              </p>
               <Textarea
                 className="min-h-[150px]"
                 value={editingTemplate?.content || ''}

@@ -19,6 +19,7 @@ import { formatPrice } from '@/lib/data'
 export default function AdminVClub() {
   const [settings, setSettings] = useState<any[]>([])
   const [manufacturers, setManufacturers] = useState<any[]>([])
+  const [refunds, setRefunds] = useState<any[]>([])
   const [stats, setStats] = useState({
     totalCredit: 0,
     totalUsed: 0,
@@ -29,15 +30,23 @@ export default function AdminVClub() {
 
   const loadData = async () => {
     try {
-      const [sets, mfs, cards, cbs] = await Promise.all([
+      const [sets, mfs, cards, cbs, refTxs] = await Promise.all([
         pb.collection('v_club_settings').getFullList({ expand: 'store' }),
         pb.collection('users').getFullList({ filter: 'role = "manufacturer"' }),
         pb.collection('v_club_cards').getFullList(),
         pb.collection('v_club_cashback').getFullList(),
+        pb
+          .collection('v_club_transactions')
+          .getFullList({
+            filter: "status = 'refunded'",
+            expand: 'store,card.customer',
+            sort: '-updated',
+          }),
       ])
 
       setSettings(sets)
       setManufacturers(mfs)
+      setRefunds(refTxs)
 
       const totalCredit = cards.reduce((acc, c) => acc + c.credit_limit, 0)
       const totalAvailable = cards.reduce((acc, c) => acc + c.available_limit, 0)
@@ -175,6 +184,51 @@ export default function AdminVClub() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Auditoria de Estornos</CardTitle>
+          <CardDescription>
+            Acompanhe todos os estornos realizados pelas lojas na plataforma.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Transação (ID)</TableHead>
+                <TableHead>Loja</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Valor</TableHead>
+                <TableHead>Data do Estorno</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {refunds.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
+                    Nenhum estorno registrado.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                refunds.map((tx) => (
+                  <TableRow key={tx.id}>
+                    <TableCell className="font-mono text-xs">{tx.id}</TableCell>
+                    <TableCell>{tx.expand?.store?.name || 'Desconhecida'}</TableCell>
+                    <TableCell>
+                      {tx.expand?.card?.expand?.customer?.name || 'Desconhecido'}
+                    </TableCell>
+                    <TableCell className="font-medium text-destructive">
+                      {formatPrice(tx.amount)}
+                    </TableCell>
+                    <TableCell>{new Date(tx.updated).toLocaleString('pt-BR')}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
