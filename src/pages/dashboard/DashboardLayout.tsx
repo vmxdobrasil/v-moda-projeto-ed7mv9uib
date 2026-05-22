@@ -49,6 +49,7 @@ import {
   Play,
   ExternalLink,
   Sparkles,
+  CreditCard,
 } from 'lucide-react'
 import { Suspense } from 'react'
 import { useAuth } from '@/hooks/use-auth'
@@ -68,6 +69,7 @@ const navItems = [
   { icon: Users, label: 'Leads / Clientes', path: '/customers' },
   { icon: GraduationCap, label: 'Academy', path: '/resources' },
   { icon: Package, label: 'Projetos', path: '/products' },
+  { icon: CreditCard, label: 'V Club Wallet', path: '/v-club' },
   { icon: MessageSquare, label: 'Mensagens', path: '/messages' },
   { icon: Truck, label: 'Logística', path: '/logistics' },
   { icon: TrendingUp, label: 'Analytics', path: '/analytics' },

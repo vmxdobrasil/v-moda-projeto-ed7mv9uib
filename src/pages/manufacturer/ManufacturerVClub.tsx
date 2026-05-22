@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { CreditCard, Wallet, Users } from 'lucide-react'
+import { CreditCard, Wallet, Users, Send } from 'lucide-react'
 import { formatPrice } from '@/lib/data'
 
 export default function ManufacturerVClub() {
@@ -21,6 +21,7 @@ export default function ManufacturerVClub() {
   const [customers, setCustomers] = useState<any[]>([])
   const [cashbackRate, setCashbackRate] = useState('0')
   const { toast } = useToast()
+  const [isInviting, setIsInviting] = useState<Record<string, boolean>>({})
 
   const loadData = async () => {
     try {
@@ -81,6 +82,40 @@ export default function ManufacturerVClub() {
     }
   }
 
+  const handleInviteVIP = async (customer: any) => {
+    if (!settings || !customer.phone) {
+      toast({ description: 'Cliente não possui telefone cadastrado.', variant: 'destructive' })
+      return
+    }
+
+    setIsInviting((prev) => ({ ...prev, [customer.id]: true }))
+
+    try {
+      const inviteUrl = `https://vmodabrasil.goskip.app/v-club/invite/${settings.store_identifier}`
+      const message = `Olá ${customer.name}! Você foi selecionado(a) como cliente VIP da ${pb.authStore.record?.name}. Acesse o link para emitir seu *V Club Card* com limite exclusivo e cashback: ${inviteUrl}`
+
+      await pb.send('/backend/v1/evolution_api/send', {
+        method: 'POST',
+        body: JSON.stringify({
+          phone: customer.phone,
+          message: message,
+          instance_id: 'vmoda',
+        }),
+      })
+
+      if (customer.v_club_status === 'none' || !customer.v_club_status) {
+        await pb.collection('customers').update(customer.id, { v_club_status: 'pending' })
+        loadData()
+      }
+
+      toast({ description: 'Convite VIP enviado via WhatsApp com sucesso!' })
+    } catch (e: any) {
+      toast({ description: e.message || 'Erro ao enviar convite VIP', variant: 'destructive' })
+    } finally {
+      setIsInviting((prev) => ({ ...prev, [customer.id]: false }))
+    }
+  }
+
   if (!settings || !settings.is_active) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center text-center animate-fade-in-up">
@@ -99,7 +134,7 @@ export default function ManufacturerVClub() {
       <div>
         <h2 className="text-3xl font-bold tracking-tight">V Club Card CRM</h2>
         <p className="text-muted-foreground">
-          Gerencie cartões, limites e cashback da sua loja. (BIN {636943} - ID:{' '}
+          Gerencie cartões, limites e cashback da sua loja. (BIN 636943 - ID:{' '}
           {settings.store_identifier})
         </p>
       </div>
@@ -176,8 +211,20 @@ export default function ManufacturerVClub() {
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
                     <TableCell>
-                      <span className="uppercase text-xs font-bold tracking-wider px-2 py-1 bg-muted rounded">
-                        {c.v_club_status || 'Nenhum'}
+                      <span
+                        className={`uppercase text-xs font-bold tracking-wider px-2 py-1 rounded ${
+                          c.v_club_status === 'approved'
+                            ? 'bg-green-100 text-green-700'
+                            : c.v_club_status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {c.v_club_status === 'none' || !c.v_club_status
+                          ? 'Nenhum'
+                          : c.v_club_status === 'pending'
+                            ? 'Convidado'
+                            : c.v_club_status}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -197,9 +244,20 @@ export default function ManufacturerVClub() {
                     </TableCell>
                     <TableCell className="text-right">
                       {!card && (
-                        <Button size="sm" onClick={() => handleIssueCard(c.id)}>
-                          Analisar & Emitir
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleInviteVIP(c)}
+                            disabled={isInviting[c.id] || !c.phone}
+                          >
+                            <Send className="w-4 h-4 mr-1" />
+                            {isInviting[c.id] ? 'Enviando...' : 'Convidar'}
+                          </Button>
+                          <Button size="sm" onClick={() => handleIssueCard(c.id)}>
+                            Emitir
+                          </Button>
+                        </div>
                       )}
                       {card && (
                         <Button size="sm" variant="outline">

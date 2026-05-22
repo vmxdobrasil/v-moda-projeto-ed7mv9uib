@@ -13,21 +13,42 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
-import { CreditCard, CheckCircle } from 'lucide-react'
+import { CreditCard, CheckCircle, TrendingUp, AlertTriangle, ShieldAlert } from 'lucide-react'
+import { formatPrice } from '@/lib/data'
 
 export default function AdminVClub() {
   const [settings, setSettings] = useState<any[]>([])
   const [manufacturers, setManufacturers] = useState<any[]>([])
+  const [stats, setStats] = useState({
+    totalCredit: 0,
+    totalUsed: 0,
+    totalCashback: 0,
+    delinquencyScore: 1.2,
+  })
   const { toast } = useToast()
 
   const loadData = async () => {
     try {
-      const [sets, mfs] = await Promise.all([
+      const [sets, mfs, cards, cbs] = await Promise.all([
         pb.collection('v_club_settings').getFullList({ expand: 'store' }),
         pb.collection('users').getFullList({ filter: 'role = "manufacturer"' }),
+        pb.collection('v_club_cards').getFullList(),
+        pb.collection('v_club_cashback').getFullList(),
       ])
+
       setSettings(sets)
       setManufacturers(mfs)
+
+      const totalCredit = cards.reduce((acc, c) => acc + c.credit_limit, 0)
+      const totalAvailable = cards.reduce((acc, c) => acc + c.available_limit, 0)
+      const totalCashback = cbs.reduce((acc, c) => acc + c.balance, 0)
+
+      setStats({
+        totalCredit,
+        totalUsed: totalCredit - totalAvailable,
+        totalCashback,
+        delinquencyScore: 1.2, // Simulated Global Delinquency Score
+      })
     } catch (e) {
       console.error(e)
     }
@@ -46,7 +67,7 @@ export default function AdminVClub() {
     try {
       await pb.collection('v_club_settings').create({
         store: storeId,
-        is_active: false,
+        is_active: true,
         platform_commission_rate: 1.0,
         store_cashback_rate: 0,
         store_identifier: identifier,
@@ -110,11 +131,57 @@ export default function AdminVClub() {
         </p>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+              <TrendingUp className="w-4 h-4 text-primary" /> Total Crédito Concedido
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatPrice(stats.totalCredit)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+              <CreditCard className="w-4 h-4 text-amber-500" /> Crédito Utilizado
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600">{formatPrice(stats.totalUsed)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+              <CheckCircle className="w-4 h-4 text-green-500" /> Cashback Acumulado
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatPrice(stats.totalCashback)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+              <ShieldAlert className="w-4 h-4 text-red-500" /> Inadimplência Global
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{stats.delinquencyScore}%</div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>Lojas com V Club</CardTitle>
+          <CardTitle>Homologação de Lojas</CardTitle>
           <CardDescription>
-            Ative a funcionalidade para fabricantes e configure a taxa da plataforma.
+            Ative a funcionalidade para fabricantes e configure a taxa da plataforma retida via
+            Asaas.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -188,7 +255,7 @@ export default function AdminVClub() {
                           size="sm"
                           onClick={() => handleCreateSettings(mf.id)}
                         >
-                          Ativar V Club
+                          Aprovar V Club
                         </Button>
                       ) : (
                         <CheckCircle className="w-5 h-5 text-green-500 ml-auto" />

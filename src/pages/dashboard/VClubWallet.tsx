@@ -3,9 +3,9 @@ import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { CreditCard, Eye, EyeOff, QrCode, RefreshCcw, ArrowRight } from 'lucide-react'
+import { CreditCard, Eye, EyeOff, QrCode, RefreshCcw, ArrowRight, ShieldCheck } from 'lucide-react'
 import { formatPrice } from '@/lib/data'
-import useAuthStore from '@/stores/useAuthStore'
+import { useAuth } from '@/hooks/use-auth'
 import { Badge } from '@/components/ui/badge'
 
 export default function VClubWallet() {
@@ -13,8 +13,9 @@ export default function VClubWallet() {
   const [cashbacks, setCashbacks] = useState<any[]>([])
   const [showNumber, setShowNumber] = useState<Record<string, boolean>>({})
   const [qrCodeToken, setQrCodeToken] = useState<string | null>(null)
-  const { user } = useAuthStore()
+  const { user } = useAuth()
   const { toast } = useToast()
+  const [dynamicCvv, setDynamicCvv] = useState<string>('***')
 
   const loadData = async () => {
     if (!user) return
@@ -43,6 +44,15 @@ export default function VClubWallet() {
   useEffect(() => {
     loadData()
   }, [user])
+
+  useEffect(() => {
+    const generateCvv = () => {
+      setDynamicCvv(Math.floor(100 + Math.random() * 900).toString())
+    }
+    generateCvv()
+    const interval = setInterval(generateCvv, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   const toggleShow = (id: string) => {
     setShowNumber((prev) => ({ ...prev, [id]: !prev[id] }))
@@ -139,6 +149,17 @@ export default function VClubWallet() {
                       ? formatCardNumber(card.card_number)
                       : `**** **** **** ${card.card_number.slice(-4)}`}
                   </p>
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-1 opacity-80">
+                      <span className="text-xs uppercase tracking-widest">CVV:</span>
+                      <span className="font-mono bg-white/20 px-2 py-0.5 rounded text-sm tracking-widest font-bold">
+                        {showNumber[card.id] ? dynamicCvv : '***'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs opacity-80">
+                      <ShieldCheck className="w-3 h-3" /> CVV Dinâmico (5 min)
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex justify-between items-end">
@@ -181,7 +202,7 @@ export default function VClubWallet() {
                     <CreditCard className="w-6 h-6" />
                     {card.physical_status === 'none'
                       ? 'Solicitar Físico'
-                      : `Físico: ${card.physical_status}`}
+                      : `Físico: ${card.physical_status === 'requested' ? 'Solicitado' : card.physical_status === 'produced' ? 'Produzido' : card.physical_status === 'in_transit' ? 'Em Trânsito' : 'Entregue'}`}
                   </Button>
                 </div>
 
@@ -189,7 +210,7 @@ export default function VClubWallet() {
                   <div className="mt-4 p-6 bg-muted rounded-xl flex flex-col items-center justify-center animate-fade-in-up border border-border">
                     <div className="w-48 h-48 bg-white p-4 rounded-lg shadow-sm flex items-center justify-center border">
                       <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=VCLUB_PAY_${qrCodeToken}`}
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=VCLUB_PAY_${card.card_number}_${qrCodeToken}`}
                         alt="QR Code"
                         className="w-full h-full"
                       />

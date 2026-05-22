@@ -45,7 +45,11 @@ routerAdd(
         card.set('available_limit', availableLimit - amount)
         txApp.save(card)
 
+        // Asaas Split Hierarchy
+        const asaasFee = amount * 0.0199 // 1.99% Simulating Asaas Transaction Fee
+
         const splitDetails = {
+          asaas_fee: asaasFee,
           platform_fee: amount * (platformRate / 100),
           cashback_fee: amount * (cashbackRate / 100),
           influencer_fee: amount * (influencerRate / 100),
@@ -53,6 +57,7 @@ routerAdd(
         }
         splitDetails.net_to_store =
           amount -
+          splitDetails.asaas_fee -
           splitDetails.platform_fee -
           splitDetails.cashback_fee -
           splitDetails.influencer_fee -
