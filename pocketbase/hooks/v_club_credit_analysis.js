@@ -8,100 +8,85 @@ routerAdd(
     const requestedLimit = Number(body.requestedLimit) || 1000
 
     if (!customerId || !storeId) {
-      return e.badRequestError('Missing customerId or storeId')
+      return e.badRequestError('Missing customer or store')
     }
 
     try {
-      const settings = $app.findFirstRecordByData('v_club_settings', 'store', storeId)
-      if (!settings.getBool('is_active')) {
-        return e.badRequestError('V Club is not active for this store')
-      }
+      return $app.runInTransaction((txApp) => {
+        // Find or create card
+        try {
+          const existing = txApp.findFirstRecordByFilter(
+            'v_club_cards',
+            'customer = {:c} && store = {:s}',
+            { c: customerId, s: storeId },
+          )
+          return e.json(200, { success: true, cardId: existing.id })
+        } catch (_) {}
 
-      let existingCard
-      try {
-        existingCard = $app.findFirstRecordByFilter(
-          'v_club_cards',
-          'customer = {:c} && store = {:s}',
-          { c: customerId, s: storeId },
-        )
-      } catch (_) {}
-
-      if (existingCard) {
-        return e.badRequestError('Customer already has a card for this store')
-      }
-
-      let maxSeq = 0
-      try {
-        const records = $app.findRecordsByFilter(
-          'v_club_cards',
-          'store = {:s}',
-          '-sequential_id',
-          1,
-          0,
-          { s: storeId },
-        )
-        if (records && records.length > 0) {
-          maxSeq = records[0].getInt('sequential_id')
+        // Calculate Luhn digit to ensure valid BIN 636943 card number
+        const generateLuhnCard = (bin) => {
+          let cardNo = bin
+          for (let i = 0; i < 9; i++) {
+            cardNo += Math.floor(Math.random() * 10).toString()
+          }
+          // Compute check digit
+          let nSum = 0
+          let isSecond = true // since we will append 1 digit at the end
+          for (let i = cardNo.length - 1; i >= 0; i--) {
+            let d = parseInt(cardNo[i], 10)
+            if (isSecond) d = d * 2
+            nSum += parseInt(d / 10, 10)
+            nSum += d % 10
+            isSecond = !isSecond
+          }
+          const checkDigit = (10 - (nSum % 10)) % 10
+          return cardNo + checkDigit.toString()
         }
-      } catch (_) {}
-      const seqId = maxSeq + 1
 
-      const bin = '636943'
-      const storeIdentifier = settings.getString('store_identifier')
-      const seqStr = String(seqId).padStart(5, '0')
-      const base15 = bin + storeIdentifier + seqStr
+        const cardNumber = generateLuhnCard('636943')
 
-      let sum = 0
-      for (let i = 0; i < 15; i++) {
-        let digit = parseInt(base15.charAt(14 - i), 10)
-        if (i % 2 === 0) {
-          digit *= 2
-          if (digit > 9) digit -= 9
-        }
-        sum += digit
-      }
-      const checkDigit = (10 - (sum % 10)) % 10
-      const cardNumber = base15 + checkDigit
+        // Generate Expiration (3 years from now)
+        const expDate = new Date()
+        expDate.setFullYear(expDate.getFullYear() + 3)
 
-      const expDate = new Date()
-      expDate.setFullYear(expDate.getFullYear() + 5)
-      const expStr = expDate.toISOString().replace('T', ' ')
+        // Get max sequential ID
+        let seqId = 1
+        try {
+          const cards = txApp.findRecordsByFilter(
+            'v_club_cards',
+            'store = {:s}',
+            '-sequential_id',
+            1,
+            0,
+            { s: storeId },
+          )
+          if (cards.length > 0) {
+            seqId = cards[0].getInt('sequential_id') + 1
+          }
+        } catch (_) {}
 
-      const cardsCol = $app.findCollectionByNameOrId('v_club_cards')
-      const newCard = new Record(cardsCol)
-      newCard.set('customer', customerId)
-      newCard.set('store', storeId)
-      newCard.set('card_number', cardNumber)
-      newCard.set('expiration_date', expStr)
-      newCard.set('cvv_token', $security.randomString(16))
-      newCard.set('status', 'active')
-      newCard.set('physical_status', 'none')
-      newCard.set('credit_limit', requestedLimit)
-      newCard.set('available_limit', requestedLimit)
-      newCard.set('sequential_id', seqId)
-      $app.save(newCard)
+        const col = txApp.findCollectionByNameOrId('v_club_cards')
+        const record = new Record(col)
+        record.set('customer', customerId)
+        record.set('store', storeId)
+        record.set('card_number', cardNumber)
+        record.set('expiration_date', expDate.toISOString())
+        record.set('status', 'active')
+        record.set('physical_status', 'none')
+        record.set('credit_limit', requestedLimit)
+        record.set('available_limit', requestedLimit)
+        record.set('sequential_id', seqId)
 
-      const customer = $app.findRecordById('customers', customerId)
-      customer.set('v_club_status', 'approved')
-      $app.save(customer)
+        txApp.save(record)
 
-      try {
-        $app.findFirstRecordByFilter('v_club_cashback', 'customer = {:c} && store = {:s}', {
-          c: customerId,
-          s: storeId,
-        })
-      } catch (_) {
-        const cbCol = $app.findCollectionByNameOrId('v_club_cashback')
-        const newCb = new Record(cbCol)
-        newCb.set('customer', customerId)
-        newCb.set('store', storeId)
-        newCb.set('balance', 0)
-        $app.save(newCb)
-      }
+        // Update customer status
+        const customer = txApp.findRecordById('customers', customerId)
+        customer.set('v_club_status', 'approved')
+        txApp.save(customer)
 
-      return e.json(200, { success: true, cardId: newCard.id })
+        return e.json(200, { success: true, cardId: record.id })
+      })
     } catch (err) {
-      $app.logger().error('Credit analysis error', 'err', String(err))
       return e.badRequestError(String(err))
     }
   },

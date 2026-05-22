@@ -12,13 +12,16 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { CreditCard, Wallet, Users, Send } from 'lucide-react'
+import { CreditCard, Wallet, Users, Send, History } from 'lucide-react'
 import { formatPrice } from '@/lib/data'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function ManufacturerVClub() {
   const [settings, setSettings] = useState<any>(null)
   const [cards, setCards] = useState<any[]>([])
   const [customers, setCustomers] = useState<any[]>([])
+  const [transactions, setTransactions] = useState<any[]>([])
   const [cashbackRate, setCashbackRate] = useState('0')
   const { toast } = useToast()
   const [isInviting, setIsInviting] = useState<Record<string, boolean>>({})
@@ -28,7 +31,7 @@ export default function ManufacturerVClub() {
       const storeId = pb.authStore.record?.id
       if (!storeId) return
 
-      const [sets, crds, custs] = await Promise.all([
+      const [sets, crds, custs, txs] = await Promise.all([
         pb
           .collection('v_club_settings')
           .getFirstListItem(`store = "${storeId}"`)
@@ -37,9 +40,17 @@ export default function ManufacturerVClub() {
           .collection('v_club_cards')
           .getFullList({ filter: `store = "${storeId}"`, expand: 'customer' }),
         pb.collection('customers').getFullList({ filter: `manufacturer = "${storeId}"` }),
+        pb
+          .collection('v_club_transactions')
+          .getFullList({
+            filter: `store = "${storeId}"`,
+            expand: 'card.customer',
+            sort: '-created',
+          }),
       ])
 
       setSettings(sets)
+      setTransactions(txs)
       if (sets) setCashbackRate(sets.store_cashback_rate.toString())
       setCards(crds)
       setCustomers(custs)
@@ -185,93 +196,187 @@ export default function ManufacturerVClub() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Emissão e Gestão de Limites</CardTitle>
-          <CardDescription>
-            Convide clientes VIP e acompanhe os limites de crédito concedidos.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente VIP</TableHead>
-                <TableHead>Status V Club</TableHead>
-                <TableHead>Cartão Gerado</TableHead>
-                <TableHead className="text-right">Limite Total</TableHead>
-                <TableHead className="text-right">Limite Disponível</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {customers.map((c) => {
-                const card = cards.find((card) => card.customer === c.id)
-                return (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`uppercase text-xs font-bold tracking-wider px-2 py-1 rounded ${
-                          c.v_club_status === 'approved'
-                            ? 'bg-green-100 text-green-700'
-                            : c.v_club_status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-muted text-muted-foreground'
-                        }`}
-                      >
-                        {c.v_club_status === 'none' || !c.v_club_status
-                          ? 'Nenhum'
-                          : c.v_club_status === 'pending'
-                            ? 'Convidado'
-                            : c.v_club_status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {card ? (
-                        <span className="font-mono text-sm tracking-widest text-muted-foreground">
-                          **** **** **** {card.card_number.slice(-4)}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {card ? formatPrice(card.credit_limit) : '-'}
-                    </TableCell>
-                    <TableCell className="text-right font-medium text-green-600">
-                      {card ? formatPrice(card.available_limit) : '-'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {!card && (
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => handleInviteVIP(c)}
-                            disabled={isInviting[c.id] || !c.phone}
-                          >
-                            <Send className="w-4 h-4 mr-1" />
-                            {isInviting[c.id] ? 'Enviando...' : 'Convidar'}
-                          </Button>
-                          <Button size="sm" onClick={() => handleIssueCard(c.id)}>
-                            Emitir
-                          </Button>
-                        </div>
-                      )}
-                      {card && (
-                        <Button size="sm" variant="outline">
-                          Gerenciar
-                        </Button>
-                      )}
-                    </TableCell>
+      <Tabs defaultValue="cards" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="cards">Emissão e Cartões</TabsTrigger>
+          <TabsTrigger value="transactions">Histórico de Transações</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="cards" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Emissão e Gestão de Limites</CardTitle>
+              <CardDescription>
+                Convide clientes VIP e acompanhe os limites de crédito concedidos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente VIP</TableHead>
+                    <TableHead>Status V Club</TableHead>
+                    <TableHead>Cartão Gerado</TableHead>
+                    <TableHead className="text-right">Limite Total</TableHead>
+                    <TableHead className="text-right">Limite Disponível</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {customers.map((c) => {
+                    const card = cards.find((card) => card.customer === c.id)
+                    return (
+                      <TableRow key={c.id}>
+                        <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`uppercase text-xs font-bold tracking-wider px-2 py-1 rounded ${
+                              c.v_club_status === 'approved'
+                                ? 'bg-green-100 text-green-700'
+                                : c.v_club_status === 'pending'
+                                  ? 'bg-yellow-100 text-yellow-700'
+                                  : 'bg-muted text-muted-foreground'
+                            }`}
+                          >
+                            {c.v_club_status === 'none' || !c.v_club_status
+                              ? 'Nenhum'
+                              : c.v_club_status === 'pending'
+                                ? 'Convidado'
+                                : c.v_club_status}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {card ? (
+                            <span className="font-mono text-sm tracking-widest text-muted-foreground">
+                              **** **** **** {card.card_number.slice(-4)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {card ? formatPrice(card.credit_limit) : '-'}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-green-600">
+                          {card ? formatPrice(card.available_limit) : '-'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {!card && (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleInviteVIP(c)}
+                                disabled={isInviting[c.id] || !c.phone}
+                              >
+                                <Send className="w-4 h-4 mr-1" />
+                                {isInviting[c.id] ? 'Enviando...' : 'Convidar'}
+                              </Button>
+                              <Button size="sm" onClick={() => handleIssueCard(c.id)}>
+                                Emitir
+                              </Button>
+                            </div>
+                          )}
+                          {card && (
+                            <Button size="sm" variant="outline">
+                              Gerenciar
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="transactions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Transações e Splits (Asaas)</CardTitle>
+              <CardDescription>
+                Acompanhe os pagamentos realizados com o V Club Card e o detalhamento do split
+                financeiro de comissões e cashback.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Valor Total</TableHead>
+                    <TableHead>Líquido Loja</TableHead>
+                    <TableHead>Taxas (Plat/Asaas)</TableHead>
+                    <TableHead>Cashback / Guia</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        Nenhuma transação encontrada.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    transactions.map((tx) => {
+                      const split = tx.split_details || {}
+                      return (
+                        <TableRow key={tx.id}>
+                          <TableCell className="text-sm">
+                            {new Date(tx.created).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {tx.expand?.card?.expand?.customer?.name || '-'}
+                          </TableCell>
+                          <TableCell className="font-bold">{formatPrice(tx.amount)}</TableCell>
+                          <TableCell className="text-green-600 font-medium">
+                            {formatPrice(split.net_to_store || 0)}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            Asaas: {formatPrice(split.asaas_fee || 0)}
+                            <br />
+                            Plat: {formatPrice(split.platform_fee || 0)}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            CB: {formatPrice(split.cashback_fee || 0)}
+                            <br />
+                            Af/Guia:{' '}
+                            {formatPrice((split.guide_fee || 0) + (split.influencer_fee || 0))}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                tx.status === 'approved'
+                                  ? 'default'
+                                  : tx.status === 'refunded'
+                                    ? 'destructive'
+                                    : 'secondary'
+                              }
+                              className={
+                                tx.status === 'approved' ? 'bg-green-100 text-green-800' : ''
+                              }
+                            >
+                              {tx.status === 'approved'
+                                ? 'Aprovado'
+                                : tx.status === 'refunded'
+                                  ? 'Estornado'
+                                  : 'Pendente'}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

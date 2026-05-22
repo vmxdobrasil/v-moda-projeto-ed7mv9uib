@@ -13,6 +13,28 @@ routerAdd(
     try {
       return $app.runInTransaction((txApp) => {
         const card = txApp.findRecordById('v_club_cards', cardId)
+
+        const cardNumber = card.getString('card_number')
+
+        // Luhn validation inline
+        const checkLuhn = (cardNo) => {
+          let nDigits = cardNo.length
+          let nSum = 0
+          let isSecond = false
+          for (let i = nDigits - 1; i >= 0; i--) {
+            let d = parseInt(cardNo[i], 10)
+            if (isSecond == true) d = d * 2
+            nSum += parseInt(d / 10, 10)
+            nSum += d % 10
+            isSecond = !isSecond
+          }
+          return nSum % 10 == 0
+        }
+
+        if (!cardNumber.startsWith('636943') || !checkLuhn(cardNumber)) {
+          throw new Error('Invalid card number or BIN (Must be 636943 with valid Luhn digit)')
+        }
+
         if (card.getString('status') !== 'active') {
           throw new Error('Card is not active')
         }
@@ -26,7 +48,7 @@ routerAdd(
         const customerId = card.getString('customer')
 
         const settings = txApp.findFirstRecordByData('v_club_settings', 'store', storeId)
-        const platformRate = settings.getFloat('platform_commission_rate') || 0
+        const platformRate = settings.getFloat('platform_commission_rate') || 0.025
         const cashbackRate = settings.getFloat('store_cashback_rate') || 0
 
         let influencerRate = 0
@@ -42,9 +64,7 @@ routerAdd(
           }
         } catch (_) {}
 
-        card.set('available_limit', availableLimit - amount)
-        txApp.save(card)
-
+        // Mocking Asaas split calculation
         // Asaas Split Hierarchy
         const asaasFee = amount * 0.0199 // 1.99% Simulating Asaas Transaction Fee
 
@@ -55,6 +75,7 @@ routerAdd(
           influencer_fee: amount * (influencerRate / 100),
           guide_fee: amount * (guideRate / 100),
         }
+
         splitDetails.net_to_store =
           amount -
           splitDetails.asaas_fee -
@@ -68,19 +89,38 @@ routerAdd(
         newTx.set('card', cardId)
         newTx.set('store', storeId)
         newTx.set('amount', amount)
-        newTx.set('status', 'approved')
+        // Set to pending initially, waiting for gateway webhook to authorize and capture.
+        // For demonstration purposes, we will auto-approve it below to mimic immediate authorization.
+        newTx.set('status', 'pending')
         newTx.set('split_details', splitDetails)
         txApp.save(newTx)
 
+        // Mock Asaas Authorization Success (Immediate Capture)
+        newTx.set('status', 'approved')
+        txApp.save(newTx)
+
+        // Decrement Limit after approval
+        card.set('available_limit', availableLimit - amount)
+        txApp.save(card)
+
+        // Distribute Cashback
         if (cashbackRate > 0) {
-          const cashbackAmount = amount * (cashbackRate / 100)
-          const cbRecord = txApp.findFirstRecordByFilter(
-            'v_club_cashback',
-            'customer = {:c} && store = {:s}',
-            { c: customerId, s: storeId },
-          )
-          cbRecord.set('balance', cbRecord.getFloat('balance') + cashbackAmount)
-          txApp.save(cbRecord)
+          try {
+            const cbRecord = txApp.findFirstRecordByFilter(
+              'v_club_cashback',
+              'customer = {:c} && store = {:s}',
+              { c: customerId, s: storeId },
+            )
+            cbRecord.set('balance', cbRecord.getFloat('balance') + splitDetails.cashback_fee)
+            txApp.save(cbRecord)
+          } catch (_) {
+            const cbCol = txApp.findCollectionByNameOrId('v_club_cashback')
+            const newCb = new Record(cbCol)
+            newCb.set('customer', customerId)
+            newCb.set('store', storeId)
+            newCb.set('balance', splitDetails.cashback_fee)
+            txApp.save(newCb)
+          }
         }
 
         return e.json(200, { success: true, transactionId: newTx.id, splitDetails })
