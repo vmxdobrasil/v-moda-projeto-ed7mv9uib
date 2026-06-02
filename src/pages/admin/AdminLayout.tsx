@@ -1,300 +1,167 @@
-import { useState } from 'react'
-import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom'
-import { useAuth } from '@/hooks/use-auth'
+import { Outlet, Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
-  ShoppingCart,
-  Package,
-  LogOut,
   Users,
-  BarChart,
+  ShoppingBag,
+  FolderTree,
+  FileImage,
+  PieChart,
   Settings,
-  Megaphone,
-  Tags,
-  Image as ImageIcon,
-  Presentation,
-  Award,
-  FileJson,
-  Menu,
-  ChevronLeft,
-  ChevronRight,
+  Link2,
   DollarSign,
-  UserCheck,
-  Truck,
+  Bell,
+  Store,
+  Package,
+  BookOpen,
+  Menu,
+  LogOut,
+  User,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { BrandLogo } from '@/components/BrandLogo'
-import pb from '@/lib/pocketbase/client'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet'
+import { useAuth } from '@/hooks/use-auth'
+
+const adminNav = [
+  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { name: 'Clientes', href: '/admin/clientes', icon: Users },
+  { name: 'Fabricantes', href: '/admin/fabricantes', icon: Store },
+  { name: 'Produtos', href: '/admin/produtos', icon: Package },
+  { name: 'Catálogo', href: '/admin/catalogo', icon: BookOpen },
+  { name: 'Categorias', href: '/admin/categorias', icon: FolderTree },
+  { name: 'Coleções', href: '/admin/colecoes', icon: FileImage },
+  { name: 'Logística', href: '/admin/logistica', icon: ShoppingBag },
+  { name: 'Marketing', href: '/admin/marketing', icon: PieChart },
+  { name: 'Comissões', href: '/admin/comissoes', icon: DollarSign },
+  { name: 'Agentes', href: '/admin/agentes', icon: Users },
+  { name: 'Afiliados', href: '/admin/afiliados', icon: Users },
+  { name: 'Parceiros', href: '/admin/parceiros', icon: Link2 },
+  { name: 'Financeiro', href: '/admin/financeiro', icon: DollarSign },
+  { name: 'V-Club', href: '/admin/v-club', icon: ShoppingBag },
+  { name: 'Notificações', href: '/admin/notificacoes', icon: Bell },
+  { name: 'Configurações', href: '/admin/configuracoes', icon: Settings },
+]
 
 export default function AdminLayout() {
   const location = useLocation()
-  const navigate = useNavigate()
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const { user, loading } = useAuth()
+  const { signOut, user } = useAuth()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const isAdmin =
-    user?.email === 'valterpmendonca@gmail.com' ||
-    user?.role === 'admin' ||
-    user?.role === 'manufacturer'
+  const NavLinks = () => (
+    <nav className="grid gap-1 px-2">
+      {adminNav.map((item) => {
+        // Handle root admin route specifically to prevent it from always matching true
+        const isActive =
+          location.pathname === item.href ||
+          (location.pathname.startsWith(`${item.href}/`) && item.href !== '/admin')
 
-  // Rely exclusively on standard auth check to prevent loops and bypasses
-  const isAuthenticated = !!user && isAdmin
-
-  // Determine internal admin role securely from record
-  const role =
-    user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
-      ? 'administrador'
-      : 'gerente'
-
-  const navigation = [
-    {
-      name: 'Dashboard',
-      href: '/admin',
-      icon: LayoutDashboard,
-      roles: ['administrador', 'gerente'],
-    },
-    {
-      name: 'Proposta Zoop',
-      href: '/admin/partnerships/zoop',
-      icon: Presentation,
-      roles: ['administrador'],
-    },
-    {
-      name: 'Fabricantes',
-      href: '/admin/fabricantes',
-      icon: Package,
-      roles: ['administrador', 'gerente'],
-    },
-    {
-      name: 'Leads / Clientes',
-      href: '/admin/clientes',
-      icon: Users,
-      roles: ['administrador', 'gerente'],
-    },
-    {
-      name: 'Logística',
-      href: '/admin/logistica',
-      icon: Truck,
-      roles: ['administrador', 'gerente'],
-    },
-    {
-      name: 'Comissões',
-      href: '/admin/comissoes',
-      icon: DollarSign,
-      roles: ['administrador'],
-    },
-    {
-      name: 'Pedidos',
-      href: '/admin/pedidos',
-      icon: ShoppingCart,
-      roles: ['administrador', 'gerente'],
-    },
-    {
-      name: 'Agentes',
-      href: '/admin/agentes',
-      icon: UserCheck,
-      roles: ['administrador'],
-    },
-    { name: 'Relatórios', href: '/admin/relatorios', icon: BarChart, roles: ['administrador'] },
-    {
-      name: 'Configurações',
-      href: '/admin/configuracoes',
-      icon: Settings,
-      roles: ['administrador'],
-    },
-  ]
-
-  const filteredNavigation = navigation.filter((item) => item.roles.includes(role))
-
-  // Route guarding
-  if (
-    role === 'gerente' &&
-    ['/admin/relatorios', '/admin/configuracoes'].includes(location.pathname)
-  ) {
-    return <Navigate to="/admin" replace />
-  }
-
-  const handleLogout = (e: React.MouseEvent) => {
-    e.preventDefault()
-    pb.authStore.clear()
-    navigate('/login')
-  }
-
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />
-  }
+        return (
+          <Link
+            key={item.href}
+            to={item.href}
+            onClick={() => setMobileMenuOpen(false)}
+            className={cn(
+              'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+              isActive
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            )}
+          >
+            <item.icon className="h-4 w-4" />
+            {item.name}
+          </Link>
+        )
+      })}
+    </nav>
+  )
 
   return (
-    <div className="min-h-screen bg-muted/30 flex">
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          'bg-background border-r flex-col hidden md:flex print:hidden transition-all duration-300 relative',
-          isCollapsed ? 'w-20' : 'w-64',
-        )}
-      >
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-6 bg-background border rounded-full p-1 hover:bg-muted z-10"
-        >
-          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
-        <div
-          className={cn(
-            'min-h-[5rem] flex items-center border-b overflow-hidden py-4',
-            isCollapsed ? 'justify-center px-0 h-20' : 'px-6 h-auto',
-          )}
-        >
-          <Link to="/" className="flex items-center shrink-0 w-full justify-center">
-            {isCollapsed ? (
-              <span className="font-bold text-xl text-primary">VM</span>
-            ) : (
-              <div className="flex flex-col items-center gap-2 w-full">
-                <BrandLogo
-                  type="brand_logo"
-                  fallbackText="V MODA Brasil"
-                  className="w-full max-w-[240px] h-auto object-contain transition-all duration-300"
-                  fallbackClassName="text-2xl text-primary font-bold"
-                />
-                <span className="text-[10px] font-bold tracking-wider bg-primary text-primary-foreground px-2 py-0.5 rounded uppercase">
-                  ADMIN
-                </span>
-              </div>
-            )}
+    <div className="flex h-screen bg-muted/10 overflow-hidden w-full absolute inset-0 z-0">
+      {/* Desktop Sidebar */}
+      <aside className="w-64 border-r bg-background flex-shrink-0 hidden md:flex flex-col h-full z-10 shadow-sm relative">
+        <div className="p-4 border-b h-16 flex items-center shrink-0">
+          <Link
+            to="/admin"
+            className="text-lg font-bold tracking-tight text-primary flex items-center gap-2"
+          >
+            <span className="bg-primary text-primary-foreground w-8 h-8 rounded flex items-center justify-center">
+              V
+            </span>
+            MODA BRASIL
           </Link>
         </div>
-        <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto overflow-x-hidden no-scrollbar">
-          {filteredNavigation.map((item) => {
-            const isActive = location.pathname === item.href
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                title={isCollapsed ? item.name : undefined}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
-                  isActive
-                    ? 'bg-primary/10 text-primary border border-primary/20'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  isCollapsed && 'justify-center px-0',
-                )}
-              >
-                <item.icon
-                  className={cn('w-5 h-5 shrink-0', isActive && 'text-primary')}
-                  strokeWidth={isActive ? 2.5 : 2}
-                />
-                {!isCollapsed && (
-                  <span className={cn(isActive && 'font-semibold')}>{item.name}</span>
-                )}
-              </Link>
-            )
-          })}
-        </nav>
-        <div className={cn('p-4 border-t space-y-2', isCollapsed && 'px-2')}>
-          <Link
-            to="/"
-            title={isCollapsed ? 'Ir para a Loja' : undefined}
-            className={cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors whitespace-nowrap',
-              isCollapsed && 'justify-center px-0',
-            )}
+        <div className="flex-1 overflow-y-auto py-4 custom-scrollbar">
+          <NavLinks />
+        </div>
+        <div className="p-4 border-t bg-muted/30 shrink-0">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-primary/10 p-2 rounded-full shrink-0">
+              <User className="w-4 h-4 text-primary" />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm font-medium truncate">{user?.name || 'Admin'}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            onClick={signOut}
           >
-            <ShoppingCart className="w-5 h-5 shrink-0" />
-            {!isCollapsed && <span>Ir para a Loja</span>}
-          </Link>
-          <button
-            onClick={handleLogout}
-            title={isCollapsed ? 'Sair' : undefined}
-            className={cn(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors whitespace-nowrap',
-              isCollapsed && 'justify-center px-0',
-            )}
-          >
-            <LogOut className="w-5 h-5 shrink-0" />
-            {!isCollapsed && <span>Sair</span>}
-          </button>
+            <LogOut className="w-4 h-4 mr-2" />
+            Sair do Admin
+          </Button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-h-screen overflow-hidden print:overflow-visible w-full">
-        <header className="h-20 bg-background border-b flex items-center justify-between px-4 md:px-8 print:hidden shrink-0">
-          <div className="flex items-center gap-4 md:hidden py-2">
-            <Link to="/" className="flex items-center">
-              <BrandLogo
-                type="brand_logo"
-                fallbackText="V MODA Brasil"
-                className="h-12 w-auto max-w-[140px] object-contain"
-                fallbackClassName="text-xl text-primary font-bold"
-              />
-            </Link>
-          </div>
-          <div className="flex items-center gap-4 hidden md:flex">
-            <button className="md:hidden" onClick={() => setIsCollapsed(!isCollapsed)}>
-              <Menu className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl font-semibold">Painel Administrativo</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium capitalize hidden md:inline-block">
-              {role === 'gerente' ? 'Gerente' : 'Administrador'}
-            </span>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full overflow-hidden border bg-muted flex items-center justify-center shrink-0">
-                {user?.avatar ? (
-                  <img
-                    src={pb.files.getUrl(user, user.avatar, {
-                      thumb: '100x100',
-                    })}
-                    alt="Avatar"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-xs font-bold">
-                    {user?.name?.substring(0, 2).toUpperCase() || 'AD'}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+        {/* Mobile Header */}
+        <header className="h-16 border-b bg-background flex items-center px-4 md:hidden shrink-0 z-10 shadow-sm relative">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="-ml-2 mr-2">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[280px] p-0 flex flex-col">
+              <SheetHeader className="p-4 border-b text-left">
+                <SheetTitle className="flex items-center gap-2">
+                  <span className="bg-primary text-primary-foreground w-6 h-6 rounded flex items-center justify-center text-xs">
+                    V
                   </span>
-                )}
+                  Admin Dashboard
+                </SheetTitle>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto py-4 custom-scrollbar">
+                <NavLinks />
               </div>
-              <span className="text-sm font-medium hidden sm:inline-block">
-                {user?.name || user?.email}
-              </span>
-            </div>
-          </div>
+              <div className="p-4 border-t mt-auto">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-muted-foreground"
+                  onClick={() => {
+                    setMobileMenuOpen(false)
+                    signOut()
+                  }}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+          <span className="font-semibold tracking-tight">Painel Administrativo</span>
         </header>
-        <div className="flex-1 overflow-auto p-4 md:p-8 print:overflow-visible print:p-0">
-          <div className="mx-auto max-w-6xl">
+
+        {/* Page Content area via Outlet */}
+        <main className="flex-1 overflow-y-auto bg-background/50 relative">
+          <div className="container mx-auto p-4 md:p-8 pb-20 animate-fade-in-up">
             <Outlet />
           </div>
-        </div>
-
-        {/* Mobile Nav */}
-        <nav className="md:hidden flex items-center justify-start gap-4 overflow-x-auto bg-background border-t p-2 px-4 no-scrollbar print:hidden">
-          {filteredNavigation.map((item) => {
-            const isActive = location.pathname === item.href
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={cn(
-                  'flex flex-col items-center gap-1 p-2 rounded-md text-[10px] font-medium transition-colors min-w-[64px]',
-                  isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <item.icon className="w-5 h-5" />
-                {item.name}
-              </Link>
-            )
-          })}
-        </nav>
-      </main>
+        </main>
+      </div>
     </div>
   )
 }

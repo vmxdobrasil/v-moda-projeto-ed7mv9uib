@@ -127,7 +127,7 @@ export default function App() {
                     <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
                     <Route path="fabricantes" element={<PlaceholderPage title="Fabricantes" />} />
                     <Route path="produtos" element={<AdminProducts />} />
-                    <Route path="catalago" element={<AdminCatalog />} />
+                    <Route path="catalogo" element={<AdminCatalog />} />
                     <Route path="clientes" element={<Customers />} />
                     <Route path="logistica" element={<PlaceholderPage title="Logística" />} />
                     <Route path="marketing" element={<AdminMarketing />} />
