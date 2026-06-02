@@ -1,14 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -16,218 +10,174 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useAuth } from '@/hooks/use-auth'
+import { QRCodeDisplay } from '@/components/QRCodeDisplay'
+import { Plus, Edit, Trash, QrCode } from 'lucide-react'
+import { createProject, updateProject, deleteProject, Project } from '@/services/projects'
 import pb from '@/lib/pocketbase/client'
-import { Plus, Pencil, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { useToast } from '@/hooks/use-toast'
 
 export default function ManufacturerCatalog() {
-  const { user } = useAuth()
-  const [projects, setProjects] = useState<any[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [open, setOpen] = useState(false)
+  const { toast } = useToast()
 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    price: '',
     wholesale_price: '',
     retail_price: '',
     stock_quantity: '',
-    min_quantity_wholesale: '',
-    category: 'moda_geral',
   })
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [qrProject, setQrProject] = useState<Project | null>(null)
 
-  const loadData = async () => {
+  const fetchProjects = async () => {
     try {
+      const user = pb.authStore.record
       if (!user) return
-      const records = await pb
-        .collection('projects')
-        .getFullList({ filter: `manufacturer = "${user.id}"`, sort: '-created' })
-      setProjects(records)
-    } catch (error) {
-      toast.error('Erro ao carregar projetos')
+      const res = await pb.collection('projects').getFullList<Project>({
+        filter: `manufacturer = "${user.id}"`,
+        sort: '-created',
+      })
+      setProjects(res)
+    } catch (e) {
+      console.error(e)
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadData()
-  }, [user])
+    fetchProjects()
+  }, [])
 
-  const handleOpen = (project?: any) => {
-    if (project) {
-      setEditingId(project.id)
-      setFormData({
-        name: project.name,
-        description: project.description || '',
-        wholesale_price: project.wholesale_price?.toString() || '',
-        retail_price: project.retail_price?.toString() || '',
-        stock_quantity: project.stock_quantity?.toString() || '',
-        min_quantity_wholesale: project.min_quantity_wholesale?.toString() || '',
-        category: project.category || 'moda_geral',
-      })
-    } else {
-      setEditingId(null)
-      setFormData({
-        name: '',
-        description: '',
-        wholesale_price: '',
-        retail_price: '',
-        stock_quantity: '',
-        min_quantity_wholesale: '',
-        category: 'moda_geral',
-      })
-    }
-    setImageFile(null)
-    setOpen(true)
-  }
-
-  const handleSave = async () => {
-    if (!user) return
-    setIsSaving(true)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     try {
-      const data = new FormData()
-      data.append('name', formData.name)
-      data.append('description', formData.description)
-      data.append('wholesale_price', formData.wholesale_price || '0')
-      data.append('retail_price', formData.retail_price || '0')
-      data.append('stock_quantity', formData.stock_quantity || '0')
-      data.append('min_quantity_wholesale', formData.min_quantity_wholesale || '1')
-      data.append('category', formData.category)
-      data.append('manufacturer', user.id)
-
-      if (imageFile) {
-        data.append('image', imageFile)
-      }
+      const fd = new FormData()
+      fd.append('name', formData.name)
+      fd.append('description', formData.description)
+      fd.append('price', formData.price)
+      fd.append('wholesale_price', formData.wholesale_price)
+      fd.append('retail_price', formData.retail_price)
+      fd.append('stock_quantity', formData.stock_quantity)
+      if (imageFile) fd.append('image', imageFile)
 
       if (editingId) {
-        await pb.collection('projects').update(editingId, data)
-        toast.success('Produto atualizado com sucesso')
+        await updateProject(editingId, fd)
+        toast({ title: 'Produto atualizado!' })
       } else {
-        await pb.collection('projects').create(data)
-        toast.success('Produto criado com sucesso')
+        await createProject(fd)
+        toast({ title: 'Produto criado!' })
       }
-      setOpen(false)
-      loadData()
-    } catch (error: any) {
-      toast.error(error?.response?.data?.image?.message || 'Erro ao salvar produto')
-    } finally {
-      setIsSaving(false)
+      setIsOpen(false)
+      fetchProjects()
+      resetForm()
+    } catch (err: any) {
+      toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' })
     }
   }
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja excluir este produto?')) return
+    try {
+      await deleteProject(id)
+      toast({ title: 'Produto excluído!' })
+      fetchProjects()
+    } catch (err: any) {
+      toast({ title: 'Erro ao excluir', description: err.message, variant: 'destructive' })
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      wholesale_price: '',
+      retail_price: '',
+      stock_quantity: '',
+    })
+    setImageFile(null)
+    setEditingId(null)
+  }
+
+  const openEdit = (p: Project) => {
+    setFormData({
+      name: p.name,
+      description: p.description,
+      price: p.price?.toString() || '',
+      wholesale_price: p.wholesale_price?.toString() || '',
+      retail_price: p.retail_price?.toString() || '',
+      stock_quantity: p.stock_quantity?.toString() || '',
+    })
+    setEditingId(p.id)
+    setIsOpen(true)
+  }
+
+  const formatBRL = (val: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+
   return (
-    <div className="space-y-6 animate-fade-in-up pb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Catálogo e Estoque</h2>
-          <p className="text-muted-foreground">
-            Gerencie seus produtos, preços (Atacado/Varejo) e estoque.
-          </p>
+          <h1 className="text-3xl font-serif">Catálogo de Produtos</h1>
+          <p className="text-muted-foreground mt-1">Gerencie seus produtos, preços e estoques.</p>
         </div>
-        <Button onClick={() => handleOpen()}>
-          <Plus className="mr-2 h-4 w-4" /> Novo Produto
+        <Button
+          onClick={() => {
+            resetForm()
+            setIsOpen(true)
+          }}
+        >
+          <Plus className="w-4 h-4 mr-2" /> Novo Produto
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Produto</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Estoque</TableHead>
-                <TableHead>Atacado (Mín.)</TableHead>
-                <TableHead>Varejo</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    Carregando...
-                  </TableCell>
-                </TableRow>
-              ) : projects.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    Nenhum produto cadastrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                projects.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-3">
-                        {p.image ? (
-                          <img
-                            src={pb.files.getUrl(p, p.image, { thumb: '100x100' })}
-                            alt={p.name}
-                            className="w-10 h-10 rounded-md object-cover bg-secondary"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-md bg-secondary flex items-center justify-center text-xs text-muted-foreground">
-                            Sem img
-                          </div>
-                        )}
-                        <span>{p.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="capitalize">{p.category?.replace('_', ' ')}</TableCell>
-                    <TableCell>{p.stock_quantity || 0} un</TableCell>
-                    <TableCell>
-                      R$ {p.wholesale_price || 0} ({p.min_quantity_wholesale || 1} un)
-                    </TableCell>
-                    <TableCell>R$ {p.retail_price || p.price || 0}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => handleOpen(p)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-xl">
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label>Nome do Produto</Label>
               <Input
-                placeholder="Ex: Vestido de Verão"
+                required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
             <div className="space-y-2">
               <Label>Descrição</Label>
-              <Input
-                placeholder="Descrição do produto..."
+              <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Preço de Custo (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Estoque Disponível</Label>
+                <Input
+                  type="number"
+                  required
+                  value={formData.stock_quantity}
+                  onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -235,61 +185,21 @@ export default function ManufacturerCatalog() {
                 <Input
                   type="number"
                   step="0.01"
-                  placeholder="0.00"
+                  required
                   value={formData.wholesale_price}
                   onChange={(e) => setFormData({ ...formData, wholesale_price: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Qtd Mínima (Atacado)</Label>
-                <Input
-                  type="number"
-                  placeholder="1"
-                  value={formData.min_quantity_wholesale}
-                  onChange={(e) =>
-                    setFormData({ ...formData, min_quantity_wholesale: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
                 <Label>Preço Varejo (R$)</Label>
                 <Input
                   type="number"
                   step="0.01"
-                  placeholder="0.00"
+                  required
                   value={formData.retail_price}
                   onChange={(e) => setFormData({ ...formData, retail_price: e.target.value })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Estoque Disponível</Label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={formData.stock_quantity}
-                  onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Categoria</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(v) => setFormData({ ...formData, category: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="moda_geral">Moda Geral</SelectItem>
-                  <SelectItem value="moda_feminina">Moda Feminina</SelectItem>
-                  <SelectItem value="jeans">Jeans</SelectItem>
-                  <SelectItem value="moda_masculina">Moda Masculina</SelectItem>
-                  <SelectItem value="plus_size">Plus Size</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             <div className="space-y-2">
               <Label>Imagem do Produto</Label>
@@ -297,23 +207,112 @@ export default function ManufacturerCatalog() {
                 type="file"
                 accept="image/*"
                 onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                required={!editingId}
               />
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={isSaving || !formData.name || (!imageFile && !editingId)}
-            >
-              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="submit">Salvar Produto</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!qrProject} onOpenChange={(open) => !open && setQrProject(null)}>
+        <DialogContent className="sm:max-w-sm flex flex-col items-center justify-center p-8">
+          <DialogHeader>
+            <DialogTitle className="text-center mb-4 text-xl">QR Code Rastreado</DialogTitle>
+          </DialogHeader>
+          {qrProject && (
+            <div className="flex flex-col items-center space-y-4">
+              <QRCodeDisplay
+                data={`https://vmodabrasil.goskip.app/qrcode/prod_${qrProject.id}`}
+                size={250}
+              />
+              <p className="text-sm text-center text-muted-foreground mt-4">
+                Escaneie para acessar a página do produto diretamente.
+                <br />
+                Use na sua loja física ou vitrine.
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {loading ? (
+          <div className="col-span-full py-12 flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="col-span-full text-center py-12 text-muted-foreground bg-white rounded-xl border border-dashed">
+            Nenhum produto cadastrado no seu catálogo.
+          </div>
+        ) : (
+          projects.map((p) => (
+            <div key={p.id} className="bg-white rounded-xl overflow-hidden border shadow-sm group">
+              <div className="aspect-[3/4] relative bg-muted">
+                {p.image ? (
+                  <img
+                    src={pb.files.getUrl(p, p.image)}
+                    alt={p.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                    Sem imagem
+                  </div>
+                )}
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-8 w-8"
+                    onClick={() => setQrProject(p)}
+                  >
+                    <QrCode className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-8 w-8 text-blue-600"
+                    onClick={() => openEdit(p)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    className="h-8 w-8"
+                    onClick={() => handleDelete(p.id)}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="p-4 space-y-2">
+                <h3 className="font-medium line-clamp-1">{p.name}</h3>
+                <div className="flex justify-between items-baseline text-sm">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground">Atacado</span>
+                    <span className="font-semibold text-primary">
+                      {formatBRL(p.wholesale_price || 0)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-xs text-muted-foreground">Varejo</span>
+                    <span className="font-medium text-foreground">
+                      {formatBRL(p.retail_price || 0)}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground pt-2 border-t flex justify-between">
+                  <span>Estoque: {p.stock_quantity || 0} u.</span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   )
 }

@@ -27,3 +27,25 @@ export const getProjects = () =>
     expand: 'manufacturer',
     sort: '-created',
   })
+
+export const createProject = async (data: FormData | Partial<Project>) => {
+  const user = pb.authStore.record
+  if (data instanceof FormData) {
+    if (user && !data.has('manufacturer')) {
+      data.append('manufacturer', user.id)
+    }
+  } else {
+    if (user && !data.manufacturer) {
+      data.manufacturer = user.id
+    }
+  }
+  return pb.collection('projects').create<Project>(data)
+}
+
+export const updateProject = async (id: string, data: FormData | Partial<Project>) => {
+  return pb.collection('projects').update<Project>(id, data)
+}
+
+export const deleteProject = async (id: string) => {
+  return pb.collection('projects').delete(id)
+}

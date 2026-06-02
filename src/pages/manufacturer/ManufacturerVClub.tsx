@@ -1,210 +1,162 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
+import { useState, useEffect } from 'react'
+import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { QRCodeDisplay } from '@/components/QRCodeDisplay'
-import useAuthStore from '@/stores/useAuthStore'
-import { toast } from 'sonner'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { CreditCard, ShieldCheck } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
-import { RefreshCw, Smartphone } from 'lucide-react'
 
 export default function ManufacturerVClub() {
-  const { user } = useAuthStore()
-  const isManager =
-    user?.manufacturer_role === 'manager' ||
-    user?.role === 'admin' ||
-    user?.email === 'valterpmendonca@gmail.com'
+  const [settings, setSettings] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  const handleRefund = async (id: string) => {
-    if (!isManager) {
-      toast.error('Acesso negado: Apenas o Manager pode solicitar estorno.')
+  const [formData, setFormData] = useState({
+    store_identifier: '',
+    store_cashback_rate: '0.025',
+  })
+
+  useEffect(() => {
+    loadSettings()
+  }, [])
+
+  const loadSettings = async () => {
+    try {
+      const user = pb.authStore.record
+      if (!user) return
+      const res = await pb.collection('v_club_settings').getFirstListItem(`store="${user.id}"`)
+      setSettings(res)
+      setFormData({
+        store_identifier: res.store_identifier || '',
+        store_cashback_rate: res.store_cashback_rate?.toString() || '0.025',
+      })
+    } catch (e) {
+      // Not found, will show default form
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const rate = parseFloat(formData.store_cashback_rate)
+    if (isNaN(rate) || rate < 0.025 || rate > 1) {
+      toast({
+        title: 'Taxa inválida',
+        description: 'A comissão deve ser configurada entre 0.025% e 1%',
+        variant: 'destructive',
+      })
       return
     }
 
     try {
-      await pb.send('/backend/v1/v-club/refund', {
-        method: 'POST',
-        body: JSON.stringify({ transaction_id: id }),
-      })
-      toast.success('Estorno processado e cashback reconciliado.')
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao processar estorno. A transação já pode estar reembolsada.')
+      const data = {
+        store: pb.authStore.record?.id,
+        store_identifier: formData.store_identifier,
+        store_cashback_rate: rate,
+        is_active: true,
+      }
+      if (settings?.id) {
+        await pb.collection('v_club_settings').update(settings.id, data)
+        toast({ title: 'Configurações atualizadas' })
+      } else {
+        const res = await pb.collection('v_club_settings').create(data)
+        setSettings(res)
+        toast({ title: 'V CLUB CARD Private Label ativado!' })
+      }
+    } catch (err: any) {
+      toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' })
     }
   }
 
-  const transactions = [
-    { id: 'txn_123', client: 'Lojista Z', amount: 'R$ 4.500,00', status: 'approved' },
-    { id: 'txn_124', client: 'Lojista Y', amount: 'R$ 1.200,00', status: 'refunded' },
-  ]
-
-  const cards = [
-    { id: 'card_1', client: 'Lojista Z', type: 'Virtual', limit: 'R$ 10.000,00' },
-    { id: 'card_2', client: 'Lojista X', type: 'Físico', limit: 'R$ 5.000,00' },
-  ]
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-primary">Meu V CLUB</h1>
-        <p className="text-muted-foreground mt-2">
-          Gerencie limites, cartões Co-branded e QR Codes dinâmicos.
-        </p>
-        {!isManager && (
-          <Badge variant="destructive" className="mt-2">
-            Modo Operador: Ações sensíveis desativadas
-          </Badge>
-        )}
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div className="flex items-center gap-4 mb-8">
+        <div className="w-16 h-16 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
+          <CreditCard className="w-8 h-8" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-serif">V CLUB CARD Private Label</h1>
+          <p className="text-muted-foreground">
+            Configure os cartões de fidelidade personalizados para seus clientes.
+          </p>
+        </div>
       </div>
 
-      <Tabs defaultValue="transactions" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="transactions">Transações & Estornos</TabsTrigger>
-          <TabsTrigger value="cards">Cartões de Clientes</TabsTrigger>
-          <TabsTrigger value="qrcode">QR Codes Dinâmicos</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="transactions">
-          <Card>
-            <CardHeader>
-              <CardTitle>Histórico de Transações</CardTitle>
-              <CardDescription>Gerencie aprovações e reconciliações financeiras.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID Transação</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-mono text-xs">{t.id}</TableCell>
-                      <TableCell>{t.client}</TableCell>
-                      <TableCell>{t.amount}</TableCell>
-                      <TableCell>
-                        <Badge variant={t.status === 'approved' ? 'default' : 'secondary'}>
-                          {t.status === 'approved' ? 'Aprovado' : 'Estornado'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {t.status === 'approved' && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleRefund(t.id)}
-                            disabled={!isManager}
-                          >
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Solicitar Estorno
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="cards">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cartões Co-branded (Private Label)</CardTitle>
-              <CardDescription>
-                Acompanhe a emissão de cartões físicos e virtuais com a sua marca e a V MODA.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="relative h-48 w-80 rounded-2xl bg-gradient-to-br from-primary to-orange-400 p-6 text-white shadow-xl flex-shrink-0">
-                  <div className="flex justify-between items-start">
-                    <span className="font-bold tracking-widest">
-                      {user?.name?.toUpperCase() || 'SUA MARCA'}
-                    </span>
-                    <span className="text-sm font-semibold opacity-80">V MODA</span>
-                  </div>
-                  <Smartphone className="absolute bottom-6 right-6 h-8 w-8 opacity-50" />
-                  <div className="absolute bottom-6 left-6 space-y-1">
-                    <p className="font-mono text-lg tracking-widest">**** **** **** 1234</p>
-                    <p className="text-xs opacity-80">V CLUB PRIVATE LABEL</p>
-                  </div>
-                </div>
-
-                <div className="flex-1">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead>Formato</TableHead>
-                        <TableHead>Limite de Crédito</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {cards.map((c) => (
-                        <TableRow key={c.id}>
-                          <TableCell>{c.client}</TableCell>
-                          <TableCell>
-                            <Badge variant={c.type === 'Virtual' ? 'outline' : 'default'}>
-                              {c.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{c.limit}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="qrcode">
-          <Card>
-            <CardHeader>
-              <CardTitle>Vitrine Digital & Produtos</CardTitle>
-              <CardDescription>
-                Gere QRs que direcionam lojistas para o seu catálogo exclusivo na plataforma PWA.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center py-8">
-              <QRCodeDisplay
-                data={`${window.location.origin}/qrcode/store_${user?.id}`}
-                size={200}
+      <Card>
+        <CardHeader>
+          <CardTitle>Configurações do Programa</CardTitle>
+          <CardDescription>
+            Defina as regras de cashback e a identificação da sua marca no cartão.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSave} className="space-y-6">
+            <div className="space-y-2">
+              <Label>Identificador da Marca no Cartão</Label>
+              <Input
+                required
+                placeholder="Ex: NOME_DA_LOJA"
+                value={formData.store_identifier}
+                onChange={(e) =>
+                  setFormData({ ...formData, store_identifier: e.target.value.toUpperCase() })
+                }
               />
-              <p className="mt-4 text-sm font-mono bg-muted p-2 rounded">
-                /qrcode/store_{user?.id || 'demo'}
+              <p className="text-xs text-muted-foreground">
+                Este nome será impresso no cartão V CLUB do seu cliente, marcando a sua
+                exclusividade.
               </p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => {
-                  navigator.clipboard.writeText(
-                    `${window.location.origin}/qrcode/store_${user?.id}`,
-                  )
-                  toast.success('Link copiado!')
-                }}
-              >
-                Copiar Link do QR
+            </div>
+
+            <div className="space-y-2">
+              <Label>Taxa de Comissão / Cashback (%)</Label>
+              <Input
+                required
+                type="number"
+                step="0.001"
+                min="0.025"
+                max="1"
+                value={formData.store_cashback_rate}
+                onChange={(e) => setFormData({ ...formData, store_cashback_rate: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Defina a taxa de retorno para o cliente. (Permitido entre 0.025% e 1%).
+              </p>
+            </div>
+
+            <div className="pt-4 flex justify-end">
+              <Button type="submit" size="lg">
+                Salvar Configurações
               </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {settings?.is_active && (
+        <Card className="bg-primary/5 border-primary/20 animate-fade-in-up">
+          <CardContent className="p-6 flex items-start gap-4">
+            <ShieldCheck className="w-8 h-8 text-primary shrink-0" />
+            <div>
+              <h3 className="font-semibold text-lg">Programa V CLUB Ativo</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Seus clientes atacadistas já podem solicitar o V CLUB CARD na finalização de
+                compras, com o repasse automático da taxa definida de {settings.store_cashback_rate}
+                %.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

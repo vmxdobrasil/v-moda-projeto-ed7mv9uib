@@ -515,9 +515,33 @@ export default function Checkout() {
               <span>Frete</span>
               <span>{shippingCost > 0 ? formatPrice(shippingCost) : 'Grátis'}</span>
             </div>
-            <div className="flex justify-between font-serif text-2xl mb-8">
+            <div className="flex justify-between font-serif text-2xl mb-4">
               <span>Total</span>
               <span className="text-primary">{formatPrice(cartTotal + shippingCost)}</span>
+            </div>
+
+            <div className="mb-8 p-4 bg-muted/50 rounded-lg space-y-2 text-sm">
+              <div className="font-semibold text-xs uppercase tracking-widest text-muted-foreground mb-3">
+                Simulação Split Asaas (Sandbox)
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>V MODA BRASIL (13.89%)</span>
+                <span>{formatPrice(cartTotal * 0.1389)}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Comissão Agente (2%)</span>
+                <span>{formatPrice(cartTotal * 0.02)}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Comissão Afiliado (1%)</span>
+                <span>{formatPrice(cartTotal * 0.01)}</span>
+              </div>
+              <div className="flex justify-between font-medium pt-2 border-t border-border/50 mt-2">
+                <span>Repasse Líquido Fabricante</span>
+                <span className="text-green-600">
+                  {formatPrice(cartTotal * (1 - 0.1389 - 0.02 - 0.01))}
+                </span>
+              </div>
             </div>
 
             <Button

@@ -29,6 +29,7 @@ import DashboardCustomers from '@/pages/dashboard/Customers'
 import DashboardAnalytics from '@/pages/dashboard/Analytics'
 import ManufacturersHub from '@/pages/dashboard/Manufacturers'
 import AffiliateDashboard from '@/pages/dashboard/AffiliateDashboard'
+import AgentDashboard from '@/pages/agent/AgentDashboard'
 import AdminVClub from '@/pages/admin/AdminVClub'
 import ManufacturerVClub from '@/pages/manufacturer/ManufacturerVClub'
 import VClubWallet from '@/pages/dashboard/VClubWallet'
@@ -160,6 +161,7 @@ export default function App() {
                   <Route path="messages" element={<PlaceholderPage title="Mensagens" />} />
                   <Route path="manufacturers" element={<ManufacturersHub />} />
                   <Route path="affiliates" element={<AffiliateDashboard />} />
+                  <Route path="agente" element={<AgentDashboard />} />
                   <Route path="resources" element={<Resources />} />
                   <Route path="magazine" element={<Magazine />} />
                   <Route element={<ManufacturerGuard />}>
