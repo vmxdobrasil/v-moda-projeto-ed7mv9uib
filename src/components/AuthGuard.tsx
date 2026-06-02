@@ -28,6 +28,29 @@ export function ManufacturerGuard() {
   return <Outlet />
 }
 
+export function AdminGuard() {
+  const { user, loading } = useAuth()
+  const location = useLocation()
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
+  if (user.role !== 'admin' && user.email !== 'valterpmendonca@gmail.com') {
+    return <Navigate to="/" replace />
+  }
+
+  return <Outlet />
+}
+
 export function AuthGuard() {
   const { user, loading } = useAuth()
   const location = useLocation()

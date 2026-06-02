@@ -4,13 +4,17 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/hooks/use-auth'
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthGuard, PublicRoute, ManufacturerGuard } from '@/components/AuthGuard'
+import { AuthGuard, PublicRoute, ManufacturerGuard, AdminGuard } from '@/components/AuthGuard'
 import { AiAssistantProvider, LiveChat } from '@/components/LiveChat'
 
 // Existing Pages
 import DashboardLayout from '@/pages/dashboard/DashboardLayout'
 import ManufacturerLayout from '@/pages/manufacturer/Layout'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
+import AdminProducts from '@/pages/admin/AdminProducts'
+import AdminCategories from '@/pages/admin/AdminCategories'
+import AdminMarketing from '@/pages/admin/AdminMarketing'
+import AdminCatalog from '@/pages/admin/AdminCatalog'
 import Customers from '@/pages/admin/Customers'
 import ManufacturerDashboard from '@/pages/manufacturer/Dashboard'
 import ManufacturerCatalog from '@/pages/manufacturer/Catalog'
@@ -110,43 +114,48 @@ export default function App() {
               <Route element={<AuthGuard />}>
                 <Route path="/negotiation/video/:sessionId" element={<VideoNegotiation />} />
 
-                <Route path="/admin" element={<AdminLayout />}>
-                  <Route index element={<AdminDashboard />} />
-                  <Route path="comissoes" element={<AdminCommissions />} />
-                  <Route path="v-club" element={<AdminVClub />} />
-                  <Route path="agentes" element={<AdminPartners defaultTab="agent" />} />
-                  <Route path="afiliados" element={<AdminPartners defaultTab="affiliate" />} />
-                  <Route path="parceiros" element={<AdminPartners />} />
-                  <Route path="financeiro" element={<AdminFinance />} />
-                  <Route path="notificacoes" element={<AdminNotifications />} />
-                  <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
-                  <Route path="fabricantes" element={<PlaceholderPage title="Fabricantes" />} />
-                  <Route path="produtos" element={<PlaceholderPage title="Produtos" />} />
-                  <Route path="clientes" element={<Customers />} />
-                  <Route path="logistica" element={<PlaceholderPage title="Logística" />} />
-                  <Route path="marketing" element={<PlaceholderPage title="Marketing" />} />
-                  <Route path="categorias" element={<PlaceholderPage title="Categorias" />} />
-                  <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />
-                  <Route path="midia" element={<PlaceholderPage title="Mídia" />} />
-                  <Route
-                    path="assinaturas"
-                    element={<PlaceholderPage title="Gestão de Planos" />}
-                  />
-                  <Route
-                    path="logs-importacao"
-                    element={<PlaceholderPage title="Logs de Importação" />}
-                  />
-                  <Route path="relatorios" element={<PlaceholderPage title="Relatórios" />} />
-                  <Route path="configuracoes" element={<PlaceholderPage title="Configurações" />} />
-                  <Route path="partnerships/zoop" element={<ZoopProposal />} />
+                <Route element={<AdminGuard />}>
+                  <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="comissoes" element={<AdminCommissions />} />
+                    <Route path="v-club" element={<AdminVClub />} />
+                    <Route path="agentes" element={<AdminPartners defaultTab="agent" />} />
+                    <Route path="afiliados" element={<AdminPartners defaultTab="affiliate" />} />
+                    <Route path="parceiros" element={<AdminPartners />} />
+                    <Route path="financeiro" element={<AdminFinance />} />
+                    <Route path="notificacoes" element={<AdminNotifications />} />
+                    <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
+                    <Route path="fabricantes" element={<PlaceholderPage title="Fabricantes" />} />
+                    <Route path="produtos" element={<AdminProducts />} />
+                    <Route path="catalago" element={<AdminCatalog />} />
+                    <Route path="clientes" element={<Customers />} />
+                    <Route path="logistica" element={<PlaceholderPage title="Logística" />} />
+                    <Route path="marketing" element={<AdminMarketing />} />
+                    <Route path="categorias" element={<AdminCategories />} />
+                    <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />{' '}
+                    <Route path="midia" element={<PlaceholderPage title="Mídia" />} />
+                    <Route
+                      path="assinaturas"
+                      element={<PlaceholderPage title="Gestão de Planos" />}
+                    />
+                    <Route
+                      path="logs-importacao"
+                      element={<PlaceholderPage title="Logs de Importação" />}
+                    />
+                    <Route path="relatorios" element={<PlaceholderPage title="Relatórios" />} />
+                    <Route
+                      path="configuracoes"
+                      element={<PlaceholderPage title="Configurações" />}
+                    />
+                    <Route path="partnerships/zoop" element={<ZoopProposal />} />
+                  </Route>
                 </Route>
 
                 <Route path="/" element={<DashboardLayout />}>
+                  {' '}
                   <Route index element={<DashboardHub />} />
                   <Route path="dashboard" element={<Navigate to="/" replace />} />
-
                   <Route path="vallen-ia" element={<VallenIA />} />
-
                   {/* Placeholder Routes for missing pages */}
                   <Route path="customers" element={<DashboardCustomers />} />
                   <Route
