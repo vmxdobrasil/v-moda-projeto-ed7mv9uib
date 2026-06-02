@@ -2,6 +2,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/hooks/use-auth'
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthGuard, PublicRoute, ManufacturerGuard } from '@/components/AuthGuard'
 import { AiAssistantProvider, LiveChat } from '@/components/LiveChat'
@@ -39,6 +40,9 @@ import WhatsappSettings from '@/pages/dashboard/WhatsappSettings'
 import Login from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
 import VallenIA from '@/pages/dashboard/VallenIA'
+import AdminFinance from '@/pages/admin/AdminFinance'
+import AdminNotifications from '@/pages/admin/AdminNotifications'
+import QRCodeRedirect from '@/pages/QRCodeRedirect'
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -56,6 +60,16 @@ function PlaceholderPage({ title }: { title: string }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch((err) => {
+          console.error('SW registration failed: ', err)
+        })
+      })
+    }
+  }, [])
+
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -65,6 +79,8 @@ export default function App() {
             <Sonner />
 
             <Routes>
+              <Route path="/qrcode/:id" element={<QRCodeRedirect />} />
+
               {/* Public Routes */}
               <Route element={<PublicRoute />}>
                 <Route path="/login" element={<Login />} />
@@ -100,6 +116,8 @@ export default function App() {
                   <Route path="agentes" element={<AdminPartners defaultTab="agent" />} />
                   <Route path="afiliados" element={<AdminPartners defaultTab="affiliate" />} />
                   <Route path="parceiros" element={<AdminPartners />} />
+                  <Route path="financeiro" element={<AdminFinance />} />
+                  <Route path="notificacoes" element={<AdminNotifications />} />
                   <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
                   <Route path="fabricantes" element={<PlaceholderPage title="Fabricantes" />} />
                   <Route path="produtos" element={<PlaceholderPage title="Produtos" />} />

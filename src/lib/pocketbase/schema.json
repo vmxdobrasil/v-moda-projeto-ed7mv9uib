@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T14:14:33.178Z",
+  "generatedAt": "2026-06-02T21:05:19.359Z",
   "collections": [
     {
       "name": "users",
@@ -99,6 +99,13 @@
           "type": "number",
           "required": false,
           "system": false
+        },
+        {
+          "name": "manufacturer_role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["manager", "operator"]
         }
       ],
       "indexes": [

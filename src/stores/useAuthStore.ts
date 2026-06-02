@@ -8,6 +8,7 @@ export interface User {
   type?: 'Varejo' | 'Atacado' | 'Lojista Fabricante'
   manufacturerId?: string
   role?: 'manufacturer' | 'retailer' | 'affiliate' | 'agent' | 'admin'
+  manufacturer_role?: 'manager' | 'operator'
   affiliate_code?: string
   unlocked_benefits?: Record<string, boolean> | null
   avatar?: string
