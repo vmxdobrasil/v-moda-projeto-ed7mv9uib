@@ -5,26 +5,35 @@ routerAdd('GET', '/backend/v1/qrcode/{id}', (e) => {
   let brandId = null
   let affiliateId = null
 
-  // 1. Try Users (Partner: Affiliate / Agent)
+  // 1. Try Users (Partner: Affiliate / Agent / Manufacturer)
   try {
     const user = $app.findFirstRecordByFilter('users', 'id = {:id} || affiliate_code = {:id}', {
       id: id,
     })
-    if (user && (user.getString('role') === 'affiliate' || user.getString('role') === 'agent')) {
-      type = 'partner'
-      target = '/?ref=' + (user.getString('affiliate_code') || user.id)
-      affiliateId = user.id
+    if (user) {
+      const role = user.getString('role')
+      if (role === 'affiliate' || role === 'agent') {
+        type = 'partner'
+        target = '/?ref=' + (user.getString('affiliate_code') || user.id)
+        affiliateId = user.id
+      } else if (role === 'manufacturer') {
+        type = 'manufacturer'
+        target = '/manufacturers?id=' + user.id
+      } else {
+        type = 'user'
+        target = '/customers?id=' + user.id
+      }
     }
   } catch (_) {}
 
-  // 2. Try Projects
+  // 2. Try Projects (Products)
   if (!target) {
     try {
       const cleanId = id.startsWith('prod_') ? id.replace('prod_', '') : id
       const project = $app.findRecordById('projects', cleanId)
       if (project) {
         type = 'project'
-        target = '/products/' + project.id
+        target = '/products?id=' + project.id
       }
     } catch (_) {}
   }
@@ -36,8 +45,34 @@ routerAdd('GET', '/backend/v1/qrcode/{id}', (e) => {
       const customer = $app.findRecordById('customers', cleanId)
       if (customer) {
         type = 'brand'
-        target = '/manufacturers/' + customer.id
+        target = '/manufacturers?id=' + customer.id
         brandId = customer.id
+      }
+    } catch (_) {}
+  }
+
+  // 4. Try V-Club Card
+  if (!target) {
+    try {
+      const card = $app.findRecordById('v_club_cards', id)
+      if (card) {
+        type = 'v_club_card'
+        target = '/v-club?card=' + card.id
+      }
+    } catch (_) {}
+  }
+
+  // 5. Try V-Club Transaction
+  if (!target) {
+    try {
+      const tx = $app.findFirstRecordByFilter(
+        'v_club_transactions',
+        'id = {:id} || qr_code_token = {:id}',
+        { id: id },
+      )
+      if (tx) {
+        type = 'v_club_transaction'
+        target = '/v-club?transaction=' + tx.id
       }
     } catch (_) {}
   }

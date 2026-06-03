@@ -19,80 +19,45 @@ export default function QRCodeRedirect() {
       try {
         let target: string | null = null
 
-        // 1. Check if it's a Customer ID
         try {
-          const customer = await pb.collection('customers').getOne(id)
-          if (customer) target = `/admin/clientes?id=${id}`
+          const res = await fetch(
+            `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/qrcode/${id}`,
+            {
+              headers: pb.authStore.token ? { Authorization: pb.authStore.token } : undefined,
+            },
+          )
+          if (res.ok) {
+            const data = await res.json()
+            target = data.target
+          } else if (res.status === 404) {
+            // Let it fall through to setError(true)
+          } else {
+            console.error('Failed to resolve QR Code, status:', res.status)
+          }
         } catch (e) {
-          // ignore, continue searching
-        }
-
-        // 2. Check if it's a Project (Product) ID
-        if (!target) {
-          try {
-            const project = await pb.collection('projects').getOne(id)
-            if (project) target = `/admin/produtos?id=${id}`
-          } catch (e) {
-            // ignore
-          }
-        }
-
-        // 3. Check if it's a User (Agent/Affiliate) ID
-        if (!target) {
-          try {
-            const user = await pb.collection('users').getOne(id)
-            if (user) {
-              if (user.role === 'affiliate') target = `/admin/afiliados?id=${id}`
-              else if (user.role === 'agent') target = `/admin/agentes?id=${id}`
-              else if (user.role === 'manufacturer') target = `/admin/fabricantes?id=${id}`
-              else target = `/admin/clientes`
-            }
-          } catch (e) {
-            // ignore
-          }
-        }
-
-        // 4. Check if it's a V-Club Card ID
-        if (!target) {
-          try {
-            const card = await pb.collection('v_club_cards').getOne(id)
-            if (card) target = `/admin/v-club?card=${id}`
-          } catch (e) {
-            // ignore
-          }
-        }
-
-        // 5. Fallback to Backend Route
-        if (!target) {
-          try {
-            const res = await fetch(
-              `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/qrcode/${id}`,
-              {
-                headers: {
-                  Authorization: pb.authStore.token,
-                },
-              },
-            )
-            if (res.ok) {
-              const data = await res.json()
-              target = data.target
-            }
-          } catch (e) {
-            // Error with backend, target remains null
-          }
+          console.error('Error fetching QR Code resolution', e)
         }
 
         // Execute Redirection
         if (target) {
+          // Prevent infinite loops
+          const currentPath = window.location.pathname
+          const targetPath = target.split('?')[0] // extract path without query params
+          if (targetPath === currentPath || targetPath === `/qrcode/${id}`) {
+            setError(true)
+            return
+          }
+
           if (target.startsWith('http')) {
             window.location.href = target
           } else {
-            navigate(target, { replace: true })
+            navigate(target.startsWith('/') ? target : `/${target}`, { replace: true })
           }
         } else {
           setError(true)
         }
       } catch (err) {
+        console.error('Unexpected error resolving QR code', err)
         setError(true)
       }
     }
@@ -107,12 +72,12 @@ export default function QRCodeRedirect() {
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
             <AlertCircle className="h-8 w-8 text-destructive" />
           </div>
-          <h2 className="text-2xl font-semibold tracking-tight mb-2">QR Code Inválido</h2>
+          <h2 className="text-2xl font-semibold tracking-tight mb-2">Link Expirado ou Inválido</h2>
           <p className="text-muted-foreground mb-8">
-            Este QR Code pode ter expirado ou não foi encontrado em nosso sistema. Verifique o link
-            e tente novamente.
+            Este QR Code ou link pode ter expirado ou não foi encontrado em nosso sistema. Verifique
+            o endereço e tente novamente.
           </p>
-          <Button onClick={() => navigate('/admin')} className="w-full" size="lg">
+          <Button onClick={() => navigate('/')} className="w-full" size="lg">
             Voltar ao Início
           </Button>
         </div>
