@@ -14,14 +14,14 @@ routerAdd('GET', '/backend/v1/qrcode/{id}', (e) => {
       const role = user.getString('role')
       if (role === 'affiliate' || role === 'agent') {
         type = 'partner'
-        target = '/?ref=' + (user.getString('affiliate_code') || user.id)
+        target = '/#/?ref=' + (user.getString('affiliate_code') || user.id)
         affiliateId = user.id
       } else if (role === 'manufacturer') {
         type = 'manufacturer'
-        target = '/manufacturers?id=' + user.id
+        target = '/#/manufacturers?id=' + user.id
       } else {
         type = 'user'
-        target = '/customers?id=' + user.id
+        target = '/#/customers?id=' + user.id
       }
     }
   } catch (_) {}
@@ -33,7 +33,7 @@ routerAdd('GET', '/backend/v1/qrcode/{id}', (e) => {
       const project = $app.findRecordById('projects', cleanId)
       if (project) {
         type = 'project'
-        target = '/products?id=' + project.id
+        target = '/#/products?id=' + project.id
       }
     } catch (_) {}
   }
@@ -45,7 +45,7 @@ routerAdd('GET', '/backend/v1/qrcode/{id}', (e) => {
       const customer = $app.findRecordById('customers', cleanId)
       if (customer) {
         type = 'brand'
-        target = '/manufacturers?id=' + customer.id
+        target = '/#/manufacturers?id=' + customer.id
         brandId = customer.id
       }
     } catch (_) {}
@@ -57,7 +57,7 @@ routerAdd('GET', '/backend/v1/qrcode/{id}', (e) => {
       const card = $app.findRecordById('v_club_cards', id)
       if (card) {
         type = 'v_club_card'
-        target = '/v-club?card=' + card.id
+        target = '/#/v-club?card=' + card.id
       }
     } catch (_) {}
   }
@@ -72,7 +72,7 @@ routerAdd('GET', '/backend/v1/qrcode/{id}', (e) => {
       )
       if (tx) {
         type = 'v_club_transaction'
-        target = '/v-club?transaction=' + tx.id
+        target = '/#/v-club?transaction=' + tx.id
       }
     } catch (_) {}
   }

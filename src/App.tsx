@@ -3,7 +3,7 @@ import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/hooks/use-auth'
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthGuard, PublicRoute, ManufacturerGuard, AdminGuard } from '@/components/AuthGuard'
 import { AiAssistantProvider, LiveChat } from '@/components/LiveChat'
 
@@ -76,7 +76,7 @@ export default function App() {
   }, [])
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AuthProvider>
         <AiAssistantProvider>
           <TooltipProvider>
@@ -193,6 +193,6 @@ export default function App() {
           </TooltipProvider>
         </AiAssistantProvider>
       </AuthProvider>
-    </BrowserRouter>
+    </HashRouter>
   )
 }

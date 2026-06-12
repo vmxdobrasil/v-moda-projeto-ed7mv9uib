@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { AlertCircle } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
@@ -7,6 +7,7 @@ import pb from '@/lib/pocketbase/client'
 export default function QRCodeRedirect() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [error, setError] = useState(false)
 
   useEffect(() => {
@@ -41,8 +42,15 @@ export default function QRCodeRedirect() {
         // Execute Redirection
         if (target) {
           // Prevent infinite loops
-          const currentPath = window.location.pathname
-          const targetPath = target.split('?')[0] // extract path without query params
+          let cleanTarget = target
+          if (cleanTarget.startsWith('/#/')) {
+            cleanTarget = cleanTarget.substring(2)
+          } else if (cleanTarget.startsWith('#/')) {
+            cleanTarget = cleanTarget.substring(1)
+          }
+
+          const currentPath = location.pathname
+          const targetPath = cleanTarget.split('?')[0] // extract path without query params
           if (targetPath === currentPath || targetPath === `/qrcode/${id}`) {
             setError(true)
             return
@@ -51,7 +59,9 @@ export default function QRCodeRedirect() {
           if (target.startsWith('http')) {
             window.location.href = target
           } else {
-            navigate(target.startsWith('/') ? target : `/${target}`, { replace: true })
+            navigate(cleanTarget.startsWith('/') ? cleanTarget : `/${cleanTarget}`, {
+              replace: true,
+            })
           }
         } else {
           setError(true)
