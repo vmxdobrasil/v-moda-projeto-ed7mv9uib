@@ -6,22 +6,34 @@ export interface Notification {
   message: string
   read: boolean
   created: string
+  user: string
+  customer_email: string
 }
 
-export const getMyNotifications = async (): Promise<Notification[]> => {
-  if (!pb.authStore.isValid) return []
-
+export async function getMyNotifications(limit: number = 20): Promise<Notification[]> {
   try {
-    const records = await pb.collection('notifications').getList(1, 20, {
+    const authRecord = pb.authStore.record
+    if (!authRecord) return []
+
+    // Filter matching exactly what the collection's listRule specifies
+    const filter = `user = "${authRecord.id}" || customer_email = "${authRecord.email}"`
+
+    const records = await pb.collection('notifications').getList(1, limit, {
+      filter,
       sort: '-created',
     })
     return records.items as unknown as Notification[]
-  } catch (err) {
-    console.error('Error fetching notifications:', err)
+  } catch (error) {
+    console.error('Failed to fetch notifications:', error)
     return []
   }
 }
 
-export const markNotificationRead = async (id: string) => {
-  return pb.collection('notifications').update(id, { read: true })
+export async function markNotificationRead(id: string) {
+  try {
+    return await pb.collection('notifications').update(id, { read: true })
+  } catch (error) {
+    console.error('Failed to mark notification as read:', error)
+    throw error
+  }
 }

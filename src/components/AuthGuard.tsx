@@ -10,10 +10,7 @@ export function AuthGuard() {
   }
 
   if (!isAuthenticated) {
-    if (location.pathname === '/login' || location.pathname === '/admin/login') {
-      return <Outlet />
-    }
-    return <Navigate to="/login" state={{ from: location }} replace />
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
   return <Outlet />
@@ -28,10 +25,7 @@ export function AdminGuard() {
   }
 
   if (!isAuthenticated) {
-    if (location.pathname === '/admin/login' || location.pathname === '/login') {
-      return <Outlet />
-    }
-    return <Navigate to="/admin/login" state={{ from: location }} replace />
+    return <Navigate to="/admin/login" state={{ from: location.pathname }} replace />
   }
 
   const isAdmin = user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
@@ -52,10 +46,7 @@ export function ManufacturerGuard() {
   }
 
   if (!isAuthenticated) {
-    if (location.pathname === '/login' || location.pathname === '/admin/login') {
-      return <Outlet />
-    }
-    return <Navigate to="/login" state={{ from: location }} replace />
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
   const isManufacturer =
