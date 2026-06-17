@@ -1,162 +1,164 @@
-import { useState, useEffect } from 'react'
-import { useToast } from '@/hooks/use-toast'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CreditCard, ShieldCheck } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 
 export default function ManufacturerVClub() {
-  const [settings, setSettings] = useState<any>(null)
+  const { user } = useAuth()
+  const [cards, setCards] = useState<any[]>([])
+  const [transactions, setTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const { toast } = useToast()
-
-  const [formData, setFormData] = useState({
-    store_identifier: '',
-    store_cashback_rate: '0.025',
-  })
 
   useEffect(() => {
-    loadSettings()
-  }, [])
-
-  const loadSettings = async () => {
-    try {
-      const user = pb.authStore.record
-      if (!user) return
-      const res = await pb.collection('v_club_settings').getFirstListItem(`store="${user.id}"`)
-      setSettings(res)
-      setFormData({
-        store_identifier: res.store_identifier || '',
-        store_cashback_rate: res.store_cashback_rate?.toString() || '0.025',
-      })
-    } catch (e) {
-      // Not found, will show default form
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const rate = parseFloat(formData.store_cashback_rate)
-    if (isNaN(rate) || rate < 0.025 || rate > 1) {
-      toast({
-        title: 'Taxa inválida',
-        description: 'A comissão deve ser configurada entre 0.025% e 1%',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    try {
-      const data = {
-        store: pb.authStore.record?.id,
-        store_identifier: formData.store_identifier,
-        store_cashback_rate: rate,
-        is_active: true,
+    if (!user) return
+    const loadData = async () => {
+      try {
+        const [cardsRes, transactionsRes] = await Promise.all([
+          pb.collection('v_club_cards').getFullList({
+            filter: `store = "${user.id}"`,
+            expand: 'customer',
+          }),
+          pb.collection('v_club_transactions').getFullList({
+            filter: `store = "${user.id}"`,
+            expand: 'card,card.customer',
+            sort: '-created',
+            limit: 50,
+          }),
+        ])
+        setCards(cardsRes)
+        setTransactions(transactionsRes)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
       }
-      if (settings?.id) {
-        await pb.collection('v_club_settings').update(settings.id, data)
-        toast({ title: 'Configurações atualizadas' })
-      } else {
-        const res = await pb.collection('v_club_settings').create(data)
-        setSettings(res)
-        toast({ title: 'V CLUB CARD Private Label ativado!' })
-      }
-    } catch (err: any) {
-      toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' })
     }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
+    loadData()
+  }, [user])
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-16 h-16 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
-          <CreditCard className="w-8 h-8" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-serif">V CLUB CARD Private Label</h1>
-          <p className="text-muted-foreground">
-            Configure os cartões de fidelidade personalizados para seus clientes.
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">V Club Card</h2>
+        <p className="text-muted-foreground">Gestão de cartões e transações da sua loja.</p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cartões Emitidos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{cards.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Transações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{transactions.length}</div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Configurações do Programa</CardTitle>
-          <CardDescription>
-            Defina as regras de cashback e a identificação da sua marca no cartão.
-          </CardDescription>
+          <CardTitle>Cartões de Clientes</CardTitle>
+          <CardDescription>Status atual dos cartões emitidos.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSave} className="space-y-6">
-            <div className="space-y-2">
-              <Label>Identificador da Marca no Cartão</Label>
-              <Input
-                required
-                placeholder="Ex: NOME_DA_LOJA"
-                value={formData.store_identifier}
-                onChange={(e) =>
-                  setFormData({ ...formData, store_identifier: e.target.value.toUpperCase() })
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                Este nome será impresso no cartão V CLUB do seu cliente, marcando a sua
-                exclusividade.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Taxa de Comissão / Cashback (%)</Label>
-              <Input
-                required
-                type="number"
-                step="0.001"
-                min="0.025"
-                max="1"
-                value={formData.store_cashback_rate}
-                onChange={(e) => setFormData({ ...formData, store_cashback_rate: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground">
-                Defina a taxa de retorno para o cliente. (Permitido entre 0.025% e 1%).
-              </p>
-            </div>
-
-            <div className="pt-4 flex justify-end">
-              <Button type="submit" size="lg">
-                Salvar Configurações
-              </Button>
-            </div>
-          </form>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Número</TableHead>
+                <TableHead>Limite Total</TableHead>
+                <TableHead>Limite Disp.</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cards.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell className="font-medium">{c.expand?.customer?.name}</TableCell>
+                  <TableCell>**** {c.card_number?.slice(-4)}</TableCell>
+                  <TableCell>R$ {c.credit_limit?.toFixed(2)}</TableCell>
+                  <TableCell>R$ {c.available_limit?.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Badge variant={c.status === 'active' ? 'default' : 'destructive'}>
+                      {c.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {cards.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                    Nenhum cartão emitido.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
-      {settings?.is_active && (
-        <Card className="bg-primary/5 border-primary/20 animate-fade-in-up">
-          <CardContent className="p-6 flex items-start gap-4">
-            <ShieldCheck className="w-8 h-8 text-primary shrink-0" />
-            <div>
-              <h3 className="font-semibold text-lg">Programa V CLUB Ativo</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Seus clientes atacadistas já podem solicitar o V CLUB CARD na finalização de
-                compras, com o repasse automático da taxa definida de {settings.store_cashback_rate}
-                %.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Histórico de Transações</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Valor</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transactions.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell>{new Date(t.created).toLocaleString('pt-BR')}</TableCell>
+                  <TableCell>{t.expand?.card?.expand?.customer?.name}</TableCell>
+                  <TableCell>R$ {t.amount.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        t.status === 'approved'
+                          ? 'default'
+                          : t.status === 'denied'
+                            ? 'destructive'
+                            : 'secondary'
+                      }
+                    >
+                      {t.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {transactions.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                    Nenhuma transação encontrada.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }

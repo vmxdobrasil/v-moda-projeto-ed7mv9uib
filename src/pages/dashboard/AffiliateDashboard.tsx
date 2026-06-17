@@ -1,93 +1,143 @@
-import { useState, useEffect } from 'react'
-import { getReferrals, type Referral } from '@/services/referrals'
-import { getReferredCustomers, type Customer } from '@/services/customers'
-import { useRealtime } from '@/hooks/use-realtime'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
-import { useToast } from '@/hooks/use-toast'
-import { Navigate } from 'react-router-dom'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AgentOverview } from './components/AgentOverview'
-import { AgentCustomers } from './components/AgentCustomers'
+import pb from '@/lib/pocketbase/client'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 
 export default function AffiliateDashboard() {
   const { user } = useAuth()
-  const { toast } = useToast()
-  const [referrals, setReferrals] = useState<Referral[]>([])
-  const [customers, setCustomers] = useState<Customer[]>([])
+  const [referrals, setReferrals] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [copied, setCopied] = useState(false)
-
-  const isAdmin = user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
-
-  const loadData = async () => {
-    try {
-      const [refData, custData] = await Promise.all([getReferrals(), getReferredCustomers()])
-      setReferrals(refData)
-      setCustomers(custData)
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        const filter =
+          user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
+            ? ''
+            : user?.role === 'manufacturer'
+              ? `brand.manufacturer = "${user.id}"`
+              : `affiliate = "${user?.id}"`
+
+        const records = await pb.collection('referrals').getFullList({
+          filter,
+          expand: 'affiliate,brand',
+          sort: '-created',
+        })
+        setReferrals(records)
+      } catch (err) {
+        console.error('Failed to load referrals', err)
+      } finally {
+        setLoading(false)
+      }
+    }
     loadData()
-  }, [])
-
-  useRealtime('referrals', () => loadData())
-  useRealtime('customers', () => loadData())
-
-  if (user?.role !== 'affiliate' && user?.role !== 'agent' && !isAdmin) {
-    return <Navigate to="/" replace />
-  }
-
-  const affiliateLink = `${window.location.origin}/?ref=${user?.affiliate_code || ''}`
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(affiliateLink)
-    setCopied(true)
-    toast({ title: 'Link de agente copiado!' })
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  if (loading) {
-    return (
-      <div className="p-8 text-center text-muted-foreground animate-fade-in">
-        Carregando painel do agente...
-      </div>
-    )
-  }
+  }, [user])
 
   return (
-    <div className="space-y-6 animate-fade-in-up pb-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          {user?.role === 'agent' ? 'Painel do Agente Credenciado' : 'Painel do Influenciador'}
-        </h1>
-        <p className="text-muted-foreground">
-          Acompanhe seu desempenho, gerencie sua carteira de clientes e comissões.
-        </p>
+        <h2 className="text-3xl font-bold tracking-tight">Afiliados</h2>
+        <p className="text-muted-foreground">Monitoramento de links de indicação e comissões.</p>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="overview">Visão Geral & Comissões</TabsTrigger>
-          <TabsTrigger value="customers">Meus Clientes</TabsTrigger>
-        </TabsList>
-        <TabsContent value="overview" className="mt-0">
-          <AgentOverview
-            user={user}
-            referrals={referrals}
-            customers={customers}
-            onCopy={handleCopy}
-            copied={copied}
-          />
-        </TabsContent>
-        <TabsContent value="customers" className="mt-0">
-          <AgentCustomers />
-        </TabsContent>
-      </Tabs>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Indicações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{referrals.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Conversões</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {referrals.filter((r) => r.type === 'conversion').length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Histórico de Indicações</CardTitle>
+          <CardDescription>
+            Acompanhe cliques, leads e conversões geradas pelos afiliados.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="py-4 text-center text-muted-foreground">Carregando...</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Afiliado</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Taxa Com.</TableHead>
+                  <TableHead>Cliente/Marca</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {referrals.map((ref) => {
+                  const affiliate = ref.expand?.affiliate
+                  const brand = ref.expand?.brand
+
+                  return (
+                    <TableRow key={ref.id}>
+                      <TableCell>{new Date(ref.created).toLocaleDateString('pt-BR')}</TableCell>
+                      <TableCell className="font-medium">
+                        {affiliate?.name || 'Desconhecido'}
+                      </TableCell>
+                      <TableCell>{affiliate?.affiliate_code || '-'}</TableCell>
+                      <TableCell>
+                        {affiliate?.commission_rate ? `${affiliate.commission_rate}%` : '-'}
+                      </TableCell>
+                      <TableCell>{brand?.name || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Badge variant={ref.type === 'conversion' ? 'default' : 'secondary'}>
+                          {ref.type === 'click'
+                            ? 'Clique'
+                            : ref.type === 'lead'
+                              ? 'Lead'
+                              : 'Conversão'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={ref.is_paid ? 'outline' : 'secondary'}>
+                          {ref.is_paid ? 'Pago' : 'Pendente'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+                {referrals.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
+                      Nenhuma indicação encontrada.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
