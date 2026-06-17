@@ -4,6 +4,7 @@ import { useFavorites } from '@/contexts/FavoritesContext'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import pb from '@/lib/pocketbase/client'
+import { trackEvent } from '@/lib/tracking'
 
 interface FavoriteButtonProps {
   brandId: string
@@ -28,6 +29,9 @@ export function FavoriteButton({ brandId, className }: FavoriteButtonProps) {
     }
     try {
       await toggleFavorite(brandId)
+      if (!isFav) {
+        trackEvent('add_to_favorites', { brandId })
+      }
       toast({ title: isFav ? 'Removido dos favoritos' : 'Adicionado aos favoritos' })
     } catch (err) {
       toast({ title: 'Erro ao salvar', variant: 'destructive' })

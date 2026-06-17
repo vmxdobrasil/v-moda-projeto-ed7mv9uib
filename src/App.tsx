@@ -48,6 +48,8 @@ import VallenIA from '@/pages/dashboard/VallenIA'
 import AdminFinance from '@/pages/admin/AdminFinance'
 import AdminNotifications from '@/pages/admin/AdminNotifications'
 import QRCodeRedirect from '@/pages/QRCodeRedirect'
+import useCartStore from '@/stores/useCartStore'
+import { trackEvent } from '@/lib/tracking'
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -72,6 +74,27 @@ export default function App() {
         })
       })
     }
+
+    const handleBeforeUnload = () => {
+      const cartItems = useCartStore.getState().items
+      if (cartItems.length > 0 && !window.location.pathname.includes('/finalizar-compra')) {
+        const cartValue = cartItems.reduce((acc, item) => {
+          return acc + item.product.price * item.quantity
+        }, 0)
+
+        trackEvent(
+          'abandoned_cart',
+          {
+            itemsCount: cartItems.length,
+            cartValue,
+          },
+          true,
+        )
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [])
 
   return (

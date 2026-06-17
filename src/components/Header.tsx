@@ -31,6 +31,7 @@ import useWishlistStore from '@/stores/useWishlistStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { formatPrice } from '@/lib/data'
 import { BrandLogo } from '@/components/BrandLogo'
+import { trackEvent } from '@/lib/tracking'
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -105,6 +106,7 @@ export function Header() {
     const formData = new FormData(e.currentTarget)
     const q = formData.get('q')
     if (q) {
+      trackEvent('search_term', { term: q.toString() })
       setSearchOpen(false)
       navigate(`/colecoes?q=${encodeURIComponent(q as string)}`)
     }
@@ -528,12 +530,19 @@ export function Header() {
                       <Button
                         asChild
                         className="w-full rounded-none h-14 uppercase tracking-widest"
+                        onClick={() => {
+                          trackEvent('checkout_start', {
+                            totalItems: totalCartItems,
+                            cartTotal,
+                          })
+                        }}
                       >
                         <Link to="/finalizar-compra">Finalizar Compra</Link>
                       </Button>
                     </SheetClose>
                   )}
                   <p className="text-xs text-center text-muted-foreground mt-4 leading-relaxed">
+                    {' '}
                     Informações de Entrega e Método de Pagamento serão solicitados na próxima etapa.
                   </p>
                 </div>
