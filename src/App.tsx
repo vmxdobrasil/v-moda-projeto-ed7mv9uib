@@ -25,6 +25,7 @@ import ManufacturerSettings from '@/pages/manufacturer/Settings'
 import ManufacturerNegotiationHub from '@/pages/manufacturer/NegotiationHub'
 import AdminLayout from '@/pages/admin/AdminLayout'
 import AdminCommissions from '@/pages/admin/Commissions'
+import AdminInsights from '@/pages/admin/AdminInsights'
 import AdminPartners from '@/pages/admin/Partners'
 import ZoopProposal from '@/pages/admin/ZoopProposal'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
@@ -197,6 +198,7 @@ export default function App() {
                     <Route path="parceiros" element={<AdminPartners />} />
                     <Route path="financeiro" element={<AdminFinance />} />
                     <Route path="notificacoes" element={<AdminNotifications />} />
+                    <Route path="inteligencia" element={<AdminInsights />} />
                     <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
                     <Route path="fabricantes" element={<PlaceholderPage title="Fabricantes" />} />
                     <Route path="produtos" element={<AdminProducts />} />
