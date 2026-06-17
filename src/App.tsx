@@ -7,7 +7,31 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthGuard, PublicRoute, ManufacturerGuard, AdminGuard } from '@/components/AuthGuard'
 import { AiAssistantProvider, LiveChat } from '@/components/LiveChat'
 
+// Normalize backend API calls to use absolute URL and prevent returning HTML
+const originalFetch = window.fetch
+window.fetch = async (input, init) => {
+  let urlStr = ''
+  if (typeof input === 'string') {
+    urlStr = input
+  } else if (input instanceof URL) {
+    urlStr = input.toString()
+  } else if (input instanceof Request) {
+    urlStr = input.url
+  }
+
+  if (urlStr.startsWith('/api/') || urlStr.startsWith('/backend/')) {
+    const absoluteUrl = `${import.meta.env.VITE_POCKETBASE_URL}${urlStr}`
+    if (typeof input === 'string' || input instanceof URL) {
+      input = absoluteUrl
+    } else if (input instanceof Request) {
+      input = new Request(absoluteUrl, input)
+    }
+  }
+  return originalFetch(input, init)
+}
+
 // Existing Pages
+import Index from '@/pages/Index'
 import DashboardLayout from '@/pages/dashboard/DashboardLayout'
 import ManufacturerLayout from '@/pages/manufacturer/Layout'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
@@ -116,7 +140,7 @@ export default function App() {
                   path="/forgot-password"
                   element={<PlaceholderPage title="Recuperar Senha" />}
                 />
-                <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+                <Route path="/admin/login" element={<Login />} />
               </Route>
 
               {/* Manufacturer Routes */}
@@ -136,7 +160,7 @@ export default function App() {
               {/* Main Layout (contains Header and Footer) */}
               <Route path="/" element={<DashboardLayout />}>
                 {/* Public Pages within Layout */}
-                <Route index element={<DashboardHub />} />
+                <Route index element={<Index />} />
                 <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />
                 <Route path="guia-de-moda" element={<PlaceholderPage title="Guia de Moda" />} />
                 <Route path="conhecimento" element={<PlaceholderPage title="Conhecimento" />} />
@@ -191,6 +215,7 @@ export default function App() {
                 <Route element={<AdminGuard />}>
                   <Route path="/admin" element={<AdminLayout />}>
                     <Route index element={<AdminDashboard />} />
+                    <Route path="hub" element={<DashboardHub />} />
                     <Route path="comissoes" element={<AdminCommissions />} />
                     <Route path="v-club" element={<AdminVClub />} />
                     <Route path="agentes" element={<AdminPartners defaultTab="agent" />} />

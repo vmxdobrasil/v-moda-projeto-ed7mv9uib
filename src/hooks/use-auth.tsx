@@ -3,6 +3,7 @@ import pb from '@/lib/pocketbase/client'
 
 interface AuthContextType {
   user: any
+  isAuthenticated: boolean
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => void
@@ -19,42 +20,25 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(pb.authStore.isValid ? pb.authStore.record : null)
+  const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let mounted = true
-
-    const initAuth = async () => {
-      if (pb.authStore.isValid && pb.authStore.token) {
-        try {
-          const collection = pb.authStore.record?.collectionName || 'users'
-          if (
-            collection !== '_superusers' &&
-            pb.authStore.record?.email !== 'valterpmendonca@gmail.com'
-          ) {
-            await pb.collection(collection).authRefresh()
-          }
-          if (mounted) setUser(pb.authStore.record)
-        } catch (err) {
-          pb.authStore.clear()
-          if (mounted) setUser(null)
-        }
-      } else {
-        if (mounted) setUser(null)
-      }
-      if (mounted) setLoading(false)
-    }
-
-    initAuth()
-
     const unsubscribe = pb.authStore.onChange((_token, record) => {
-      if (mounted) {
-        setUser(pb.authStore.isValid ? record : null)
-      }
+      setUser(pb.authStore.isValid ? record : null)
+      setIsAuthenticated(pb.authStore.isValid)
     })
 
+    if (pb.authStore.isValid) {
+      pb.collection('users')
+        .authRefresh()
+        .catch(() => pb.authStore.clear())
+        .finally(() => setLoading(false))
+    } else {
+      if (pb.authStore.record) pb.authStore.clear()
+      setLoading(false)
+    }
     return () => {
-      mounted = false
       unsubscribe()
     }
   }, [])
@@ -83,7 +67,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, signUp, signIn, signOut, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated,
+        signUp,
+        signIn,
+        signOut,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

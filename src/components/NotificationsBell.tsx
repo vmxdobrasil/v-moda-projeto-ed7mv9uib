@@ -23,7 +23,7 @@ export function NotificationsBell() {
   const loadNotifications = async () => {
     if (!isAuthenticated || !user) return
     try {
-      const records = await pb.collection('notifications').getList(1, 10, {
+      const records = await pb.collection('notifications').getList(1, 20, {
         filter: `user = "${user.id}"`,
         sort: '-created',
       })
@@ -37,7 +37,7 @@ export function NotificationsBell() {
     loadNotifications()
   }, [isAuthenticated, user])
 
-  useRealtime('notifications', () => loadNotifications())
+  useRealtime('notifications', () => loadNotifications(), isAuthenticated)
 
   if (!isAuthenticated) return null
 

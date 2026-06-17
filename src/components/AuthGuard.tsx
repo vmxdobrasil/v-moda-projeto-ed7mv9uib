@@ -1,15 +1,19 @@
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 
 export function AuthGuard() {
   const { isAuthenticated, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    if (location.pathname === '/login' || location.pathname === '/admin/login') {
+      return <Outlet />
+    }
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   return <Outlet />
@@ -17,13 +21,17 @@ export function AuthGuard() {
 
 export function AdminGuard() {
   const { isAuthenticated, user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    if (location.pathname === '/admin/login' || location.pathname === '/login') {
+      return <Outlet />
+    }
+    return <Navigate to="/admin/login" state={{ from: location }} replace />
   }
 
   const isAdmin = user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
@@ -37,13 +45,17 @@ export function AdminGuard() {
 
 export function ManufacturerGuard() {
   const { isAuthenticated, user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    if (location.pathname === '/login' || location.pathname === '/admin/login') {
+      return <Outlet />
+    }
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   const isManufacturer =
@@ -60,12 +72,16 @@ export function ManufacturerGuard() {
 
 export function PublicRoute() {
   const { isAuthenticated, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
   }
 
   if (isAuthenticated) {
+    if (location.pathname === '/admin/login') {
+      return <Navigate to="/admin" replace />
+    }
     return <Navigate to="/dashboard" replace />
   }
 
