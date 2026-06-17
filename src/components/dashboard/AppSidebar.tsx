@@ -48,7 +48,7 @@ export function AppSidebar() {
     if (isAffiliate) {
       items.push({ title: 'Afiliados', url: '/affiliates', icon: Users })
     }
-    items.push({ title: 'V Club Wallet', url: '/v-club', icon: CreditCard })
+    items.push({ title: 'V Club Card', url: '/v-club', icon: CreditCard })
   }
 
   return (
