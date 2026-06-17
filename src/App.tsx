@@ -198,7 +198,11 @@ export default function App() {
                     <Route path="parceiros" element={<AdminPartners />} />
                     <Route path="financeiro" element={<AdminFinance />} />
                     <Route path="notificacoes" element={<AdminNotifications />} />
-                    <Route path="inteligencia" element={<AdminInsights />} />
+                    <Route
+                      path="inteligencia"
+                      element={<Navigate to="/admin/insights" replace />}
+                    />
+                    <Route path="insights" element={<AdminInsights />} />
                     <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
                     <Route path="fabricantes" element={<PlaceholderPage title="Fabricantes" />} />
                     <Route path="produtos" element={<AdminProducts />} />
