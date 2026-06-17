@@ -1,14 +1,14 @@
 import { Outlet } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
-import { LogOut, User, LayoutDashboard } from 'lucide-react'
+import { LogOut, User } from 'lucide-react'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 export function Layout() {
   const { signOut, user } = useAuth()
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-muted/30 flex flex-col">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
         <div className="container flex h-20 items-center justify-between mx-auto px-4 py-2">
           <div className="flex items-center gap-2 h-full">
@@ -35,7 +35,7 @@ export function Layout() {
           </div>
         </div>
       </header>
-      <main className="container mx-auto p-4 md:p-8 animate-in fade-in duration-500">
+      <main className="flex-1 container mx-auto p-4 md:p-8 animate-in fade-in duration-500">
         <Outlet />
       </main>
     </div>

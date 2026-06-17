@@ -1,88 +1,72 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 
-export function ManufacturerGuard() {
-  const { user, loading } = useAuth()
-  const location = useLocation()
+export function AuthGuard() {
+  const { isAuthenticated, loading } = useAuth()
 
   if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    )
+    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
   }
 
-  if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />
-  }
-
-  if (
-    user.role !== 'manufacturer' &&
-    user.role !== 'admin' &&
-    user.email !== 'valterpmendonca@gmail.com'
-  ) {
-    return <Navigate to="/" replace />
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
   }
 
   return <Outlet />
 }
 
 export function AdminGuard() {
-  const { user, loading } = useAuth()
-  const location = useLocation()
+  const { isAuthenticated, user, loading } = useAuth()
 
   if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    )
+    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
   }
 
-  if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
   }
 
-  if (user.role !== 'admin' && user.email !== 'valterpmendonca@gmail.com') {
+  const isAdmin = user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
+
+  if (!isAdmin) {
     return <Navigate to="/" replace />
   }
 
   return <Outlet />
 }
 
-export function AuthGuard() {
-  const { user, loading } = useAuth()
-  const location = useLocation()
+export function ManufacturerGuard() {
+  const { isAuthenticated, user, loading } = useAuth()
 
   if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    )
+    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
   }
 
-  if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  const isManufacturer =
+    user?.role === 'manufacturer' ||
+    user?.email === 'valterpmendonca@gmail.com' ||
+    user?.role === 'admin'
+
+  if (!isManufacturer) {
+    return <Navigate to="/" replace />
   }
 
   return <Outlet />
 }
 
 export function PublicRoute() {
-  const { user, loading } = useAuth()
+  const { isAuthenticated, loading } = useAuth()
 
   if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    )
+    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
   }
 
-  if (user) {
-    return <Navigate to="/" replace />
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
   }
 
   return <Outlet />
