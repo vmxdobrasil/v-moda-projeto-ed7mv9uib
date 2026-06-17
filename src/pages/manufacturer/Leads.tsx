@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
-import { Phone, Mail, Crown } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -12,106 +12,170 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { MessageCircle, Search, ExternalLink, Star } from 'lucide-react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { useNavigate } from 'react-router-dom'
 
 export default function ManufacturerLeads() {
   const { user } = useAuth()
-  const [customers, setCustomers] = useState<any[]>([])
+  const navigate = useNavigate()
+  const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     if (!user) return
-    pb.collection('customers')
-      .getFullList({
-        filter: `manufacturer = "${user.id}"`,
-        sort: '-created',
-      })
-      .then(setCustomers)
-      .finally(() => setLoading(false))
+    const fetchLeads = async () => {
+      try {
+        const records = await pb.collection('customers').getFullList({
+          filter: `manufacturer = "${user.id}"`,
+          sort: '-created',
+        })
+        setLeads(records)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchLeads()
   }, [user])
 
+  const filteredLeads = leads.filter(
+    (l) =>
+      l.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      l.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      l.phone?.includes(searchTerm),
+  )
+
+  const getStatusBadge = (status: string) => {
+    const map: Record<
+      string,
+      { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
+    > = {
+      new: { label: 'Novo', variant: 'default' },
+      interested: { label: 'Interessado', variant: 'secondary' },
+      negotiating: { label: 'Em Negociação', variant: 'outline' },
+      converted: { label: 'Convertido', variant: 'default' },
+      inactive: { label: 'Inativo', variant: 'destructive' },
+    }
+    const mapped = map[status] || { label: status, variant: 'outline' }
+    return <Badge variant={mapped.variant}>{mapped.label}</Badge>
+  }
+
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 animate-fade-in-up">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-serif mb-1">Meus Clientes</h1>
-          <p className="text-muted-foreground">Gerencie seus lojistas, atacadistas e status VIP.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Leads & VIPs</h1>
+          <p className="text-muted-foreground">Gerencie seus clientes e membros do V Club.</p>
         </div>
       </div>
 
-      <Card className="overflow-hidden border-primary/10 shadow-sm">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead>Lojista / Cliente</TableHead>
-                <TableHead>Contato</TableHead>
-                <TableHead>Status V Club</TableHead>
-                <TableHead>Localização</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {customers.map((c) => (
-                <TableRow key={c.id} className="hover:bg-muted/30">
-                  <TableCell className="font-medium">
-                    <div className="flex items-center">
-                      <span className="truncate max-w-[200px]">{c.name}</span>
-                      {c.v_club_status === 'approved' && (
-                        <Badge
-                          variant="secondary"
-                          className="ml-3 bg-yellow-100/80 text-yellow-800 hover:bg-yellow-200 shadow-sm border border-yellow-200"
-                        >
-                          <Crown className="w-3 h-3 mr-1" /> VIP
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col text-sm text-muted-foreground gap-1.5">
-                      {c.phone ? (
-                        <span className="flex items-center">
-                          <Phone className="w-3 h-3 mr-2 text-primary/60" /> {c.phone}
-                        </span>
-                      ) : null}
-                      {c.email ? (
-                        <span className="flex items-center">
-                          <Mail className="w-3 h-3 mr-2 text-primary/60" /> {c.email}
-                        </span>
-                      ) : null}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {c.v_club_status === 'approved' ? (
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-200 border border-green-200">
-                        Aprovado
-                      </Badge>
-                    ) : c.v_club_status === 'pending' ? (
-                      <Badge
-                        variant="outline"
-                        className="border-amber-200 text-amber-700 bg-amber-50"
-                      >
-                        Pendente
-                      </Badge>
-                    ) : (
-                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                        Sem cartão
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {c.city && c.state ? `${c.city}, ${c.state}` : '-'}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {customers.length === 0 && !loading && (
+      <Card>
+        <CardHeader>
+          <CardTitle>Todos os Clientes</CardTitle>
+          <div className="relative mt-2">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, email ou telefone..."
+              className="pl-9"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border overflow-hidden">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
-                    Nenhum cliente associado ainda.
-                  </TableCell>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Origem</TableHead>
+                  <TableHead>Último Contato</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8">
+                      Carregando...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredLeads.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      Nenhum lead encontrado.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredLeads.map((lead) => (
+                    <TableRow key={lead.id}>
+                      <TableCell>
+                        <div className="font-medium flex flex-wrap items-center gap-2">
+                          {lead.name}
+                          {lead.v_club_status === 'approved' && (
+                            <Badge
+                              variant="default"
+                              className="bg-amber-500 hover:bg-amber-600 text-[10px] px-1.5 py-0 text-white border-transparent"
+                            >
+                              <Star className="w-3 h-3 mr-1" />
+                              VIP Exclusivo
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {lead.phone || lead.email}
+                        </div>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(lead.status)}</TableCell>
+                      <TableCell className="capitalize text-sm">
+                        {lead.source?.replace('_', ' ') || 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {lead.last_contacted_at
+                          ? format(new Date(lead.last_contacted_at), "dd 'de' MMM, HH:mm", {
+                              locale: ptBR,
+                            })
+                          : 'Nunca'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => navigate(`/manufacturer/negotiation/${lead.id}`)}
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Hub
+                          </Button>
+                          {lead.phone && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                window.open(
+                                  `https://wa.me/${lead.phone.replace(/\D/g, '')}`,
+                                  '_blank',
+                                )
+                              }
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
       </Card>
     </div>
   )

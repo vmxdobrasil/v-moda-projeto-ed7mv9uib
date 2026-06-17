@@ -1,6 +1,6 @@
 routerAdd(
   'POST',
-  '/backend/v1/ask-fabricante-stream',
+  '/backend/v1/ask-vallen-fabricante-stream',
   (e) => {
     try {
       const body = e.requestInfo().body || {}
@@ -8,12 +8,14 @@ routerAdd(
       if (!userId) return e.unauthorizedError('auth required')
       if (!body.message?.trim()) return e.badRequestError('message is required')
 
-      const conv = $ai.agent('vallen-fabricante').getOrCreateConversation({
+      const agentSlug = 'vallen-fabricante'
+
+      const conv = $ai.agent(agentSlug).getOrCreateConversation({
         user_id: userId,
         id: body.conversation_id || null,
       })
 
-      const iter = $ai.agent('vallen-fabricante').chat({
+      const iter = $ai.agent(agentSlug).chat({
         user_id: userId,
         conversation_id: conv.id,
         message: body.message,
@@ -23,16 +25,15 @@ routerAdd(
       e.response.header().set('Content-Type', 'text/event-stream')
       e.response.header().set('Cache-Control', 'no-cache')
       e.response.header().set('X-Conversation-Id', conv.id)
-
-      return $response.stream(e, iter)
+      $response.stream(e, iter)
     } catch (err) {
       if (err.name === 'SkipAiConfigError')
         return e.json(503, { error: 'AI temporarily unavailable' })
-      if (err.name === 'SkipAiAgentsError' || err.status) {
+      if (err.name === 'SkipAiAgentsError') {
         const status = err.status || 500
         return e.json(status, { error: status >= 500 ? 'agent request failed' : err.message })
       }
-      if (err.name === 'SkipAiError' || err.status) {
+      if (err.name === 'SkipAiError') {
         const status = err.status || 502
         return e.json(status, { error: status >= 500 ? 'AI temporarily unavailable' : err.message })
       }

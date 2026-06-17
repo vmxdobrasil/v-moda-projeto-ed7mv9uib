@@ -1,106 +1,171 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import pb from '@/lib/pocketbase/client'
-import { toast } from '@/hooks/use-toast'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { CreditCard, Receipt, Loader2, AlertCircle } from 'lucide-react'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 export default function QRCodeRedirect() {
-  const { id } = useParams()
+  const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<any>(null)
 
   useEffect(() => {
-    async function resolve() {
-      if (!id) {
-        navigate('/', { replace: true })
-        return
-      }
+    if (!id) return
 
+    const resolveQR = async () => {
       try {
-        // 1. Try GET custom route from the qrcode_resolve hook
-        try {
-          const res = await pb.send(`/backend/v1/qrcode/${id}`, { method: 'GET' })
-          if (res?.url) {
-            navigate(res.url, { replace: true })
-            return
-          }
-          if (res?.type === 'v_club_card' || res?.collection === 'v_club_cards') {
-            navigate(`/v-club?card=${res.id || res.recordId}`, { replace: true })
-            return
-          }
-          if (res?.type === 'customer' || res?.collection === 'customers') {
-            navigate(`/customers/${res.id || res.recordId}`, { replace: true })
-            return
-          }
-        } catch (e) {
-          // ignore and proceed to POST alternative
+        const res = await fetch(`${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/qrcode/${id}`)
+        if (!res.ok) {
+          throw new Error('QR Code inválido ou expirado')
         }
+        const data = await res.json()
+        setResult(data)
 
-        // 2. Try POST custom route from the qrcode_resolve hook
-        try {
-          const res = await pb.send('/backend/v1/qrcode/resolve', {
-            method: 'POST',
-            body: JSON.stringify({ id, token: id, qrcode: id }),
-          })
-          if (res?.url) {
-            navigate(res.url, { replace: true })
-            return
-          }
-          if (res?.type === 'v_club_card' || res?.collection === 'v_club_cards') {
-            navigate(`/v-club?card=${res.id || res.recordId}`, { replace: true })
-            return
-          }
-          if (res?.type === 'customer' || res?.collection === 'customers') {
-            navigate(`/customers/${res.id || res.recordId}`, { replace: true })
-            return
-          }
-        } catch (e) {
-          // ignore and proceed to DB check
+        // If it's not a card or transaction, redirect immediately
+        if (data.type !== 'v_club_card' && data.type !== 'v_club_transaction') {
+          window.location.href = data.target
+        } else {
+          setLoading(false)
         }
-
-        // 3. Fallback: Direct DB check (will only succeed if the user is authenticated and has correct permissions)
-        if (pb.authStore.isValid) {
-          try {
-            const card = await pb
-              .collection('v_club_cards')
-              .getFirstListItem(`id="${id}" || card_number="${id}"`)
-            if (card) {
-              navigate(`/v-club?card=${card.id}`, { replace: true })
-              return
-            }
-          } catch (e) {
-            // ignore
-          }
-
-          try {
-            const customer = await pb.collection('customers').getFirstListItem(`id="${id}"`)
-            if (customer) {
-              navigate(`/customers/${customer.id}`, { replace: true })
-              return
-            }
-          } catch (e) {
-            // ignore
-          }
-        }
-
-        // If we reach here, nothing matched or we lack permissions
-        toast({
-          title: 'QR Code Inválido',
-          description: 'Não foi possível encontrar o registro associado a este QR Code.',
-          variant: 'destructive',
-        })
-        navigate('/', { replace: true })
-      } catch (error) {
-        console.error('QR Code resolution error:', error)
-        navigate('/', { replace: true })
+      } catch (err) {
+        setError(getErrorMessage(err))
+        setLoading(false)
       }
     }
 
-    resolve()
-  }, [id, navigate])
+    resolveQR()
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-muted/30">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Resolvendo QR Code...</p>
+      </div>
+    )
+  }
+
+  if (error || !result) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
+        <Card className="w-full max-w-md shadow-lg border-destructive/20">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+              <AlertCircle className="h-6 w-6 text-destructive" />
+            </div>
+            <CardTitle className="text-xl">QR Code Inválido</CardTitle>
+            <CardDescription>
+              {error || 'Não foi possível encontrar as informações deste código.'}
+            </CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button className="w-full" onClick={() => navigate('/')}>
+              Voltar ao Início
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
+  }
+
+  const { type, data, target } = result
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-background">
-      <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      <p className="text-muted-foreground animate-pulse font-medium">Resolvendo QR Code...</p>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
+      <Card className="w-full max-w-md shadow-xl animate-fade-in-up">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+            {type === 'v_club_card' ? (
+              <CreditCard className="h-8 w-8 text-primary" />
+            ) : (
+              <Receipt className="h-8 w-8 text-primary" />
+            )}
+          </div>
+          <CardTitle className="text-2xl">
+            {type === 'v_club_card' ? 'Cartão V Club' : 'Transação V Club'}
+          </CardTitle>
+          <CardDescription>Detalhes da sua interação</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-4">
+          {type === 'v_club_card' && data && (
+            <div className="space-y-4 bg-muted/50 p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Status do Cartão</span>
+                <Badge
+                  variant={data.status === 'active' ? 'default' : 'destructive'}
+                  className="uppercase"
+                >
+                  {data.status === 'active' ? 'Ativo' : data.status}
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Nível VIP</span>
+                <Badge
+                  variant={data.vip_level === 'approved' ? 'default' : 'secondary'}
+                  className="uppercase bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  {data.vip_level === 'approved' ? 'VIP Exclusivo' : 'Pendente'}
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Cliente</span>
+                <span className="font-medium">{data.customer_name}</span>
+              </div>
+            </div>
+          )}
+
+          {type === 'v_club_transaction' && data && (
+            <div className="space-y-4 bg-muted/50 p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Status do Pagamento</span>
+                <Badge
+                  variant={
+                    data.status === 'approved'
+                      ? 'default'
+                      : data.status === 'denied'
+                        ? 'destructive'
+                        : 'secondary'
+                  }
+                  className="uppercase"
+                >
+                  {data.status === 'approved'
+                    ? 'Aprovado'
+                    : data.status === 'pending'
+                      ? 'Pendente'
+                      : data.status}
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Valor</span>
+                <span className="font-bold text-lg">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                    data.amount,
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex-col gap-2">
+          <Button className="w-full" onClick={() => (window.location.href = target)}>
+            Ver no Sistema
+          </Button>
+          <Button variant="ghost" className="w-full" onClick={() => navigate('/')}>
+            Voltar ao Início
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

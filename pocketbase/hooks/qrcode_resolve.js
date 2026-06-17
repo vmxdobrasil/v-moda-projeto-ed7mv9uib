@@ -51,6 +51,8 @@ routerAdd('GET', '/backend/v1/qrcode/{id}', (e) => {
     } catch (_) {}
   }
 
+  let extraData = null
+
   // 4. Try V-Club Card
   if (!target) {
     try {
@@ -58,6 +60,24 @@ routerAdd('GET', '/backend/v1/qrcode/{id}', (e) => {
       if (card) {
         type = 'v_club_card'
         target = '/#/v-club?card=' + card.id
+
+        const customerId = card.getString('customer')
+        let customerName = 'Desconhecido'
+        let vipLevel = 'unknown'
+
+        if (customerId) {
+          try {
+            const customer = $app.findRecordById('customers', customerId)
+            customerName = customer.getString('name')
+            vipLevel = customer.getString('v_club_status')
+          } catch (_) {}
+        }
+
+        extraData = {
+          status: card.getString('status'),
+          vip_level: vipLevel,
+          customer_name: customerName,
+        }
       }
     } catch (_) {}
   }
@@ -73,6 +93,10 @@ routerAdd('GET', '/backend/v1/qrcode/{id}', (e) => {
       if (tx) {
         type = 'v_club_transaction'
         target = '/#/v-club?transaction=' + tx.id
+        extraData = {
+          status: tx.getString('status'),
+          amount: tx.getFloat('amount'),
+        }
       }
     } catch (_) {}
   }
@@ -95,7 +119,7 @@ routerAdd('GET', '/backend/v1/qrcode/{id}', (e) => {
       }
     }
 
-    return e.json(200, { target: target, type: type })
+    return e.json(200, { target: target, type: type, data: extraData })
   }
 
   return e.notFoundError('QR Code invalid or expired')
