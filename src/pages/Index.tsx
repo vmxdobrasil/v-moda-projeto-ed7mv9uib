@@ -1,77 +1,157 @@
+import { useState, useEffect } from 'react'
+import pb from '@/lib/pocketbase/client'
+import { Link } from 'react-router-dom'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
-const Index = () => {
+export default function Index() {
+  const [topBrands, setTopBrands] = useState<Record<string, any[]>>({})
+
+  useEffect(() => {
+    loadBrands()
+  }, [])
+
+  async function loadBrands() {
+    try {
+      const records = await pb.collection('customers').getFullList({
+        filter: 'ranking_position > 0',
+        sort: 'ranking_position',
+        expand: 'manufacturer',
+      })
+
+      const grouped: Record<string, any[]> = {}
+      records.forEach((r) => {
+        const cat = r.ranking_category || 'outros'
+        if (!grouped[cat]) grouped[cat] = []
+        grouped[cat].push(r)
+      })
+
+      setTopBrands(grouped)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const categoryLabels: Record<string, string> = {
+    moda_feminina: 'TOP 15 Moda Feminina',
+    jeans: 'TOP 10 Moda Jeans',
+    moda_praia: 'TOP 5 Moda Praia',
+    moda_masculina: 'TOP 5 Moda Masculina',
+    moda_evangelica: 'TOP 5 Moda Evangélica',
+    plus_size: 'TOP 5 Moda Plus Size',
+    moda_country: 'TOP 5 Moda Country',
+    moda_infantil: 'TOP 5 Moda Infantil',
+    moda_fitness: 'TOP 5 Moda Fitness',
+    bijouterias_semijoias: 'TOP 3 Bijouterias e Semijoias',
+    calcados: 'TOP 2 Calçados',
+  }
+
+  function getAvatarUrl(r: any) {
+    if (r.avatar)
+      return `${import.meta.env.VITE_POCKETBASE_URL}/api/files/${r.collectionId}/${r.id}/${r.avatar}`
+    return `https://img.usecurling.com/i?q=fashion&color=multicolor&shape=fill`
+  }
+
   return (
-    <div className="flex flex-col min-h-[calc(100vh-80px)]">
+    <div className="bg-background min-h-screen">
       {/* Hero Section */}
-      <section className="relative h-[80vh] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img
-            src="https://img.usecurling.com/p/1920/1080?q=fashion%20models&dpr=2"
-            alt="Moda Fashion"
-            className="w-full h-full object-cover brightness-50"
-          />
-        </div>
-        <div className="relative z-10 text-center text-white px-4 animate-fade-in-up">
-          <h1 className="text-5xl md:text-7xl font-serif font-bold mb-6 tracking-tight">
-            V MODA BRASIL
+      <section className="bg-black text-white py-20 px-4 text-center">
+        <div className="container mx-auto max-w-4xl space-y-6 animate-fade-in-up">
+          <Badge className="bg-primary/20 text-primary border-primary/30 mb-4 hover:bg-primary/30">
+            Hub de Compras V MODA
+          </Badge>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+            Encontre as Melhores <span className="text-primary">Marcas</span> do Atacado Brasileiro
           </h1>
-          <p className="text-xl md:text-2xl font-light mb-10 max-w-2xl mx-auto">
-            A essência da moda brasileira. Conectando fabricantes, revendedores e o melhor do
-            estilo.
+          <p className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto">
+            Descubra fabricantes validados, acesse catálogos digitais e compre no atacado com
+            condições exclusivas do V Club.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="rounded-none px-8 font-semibold tracking-widest uppercase">
-              Explorar Coleções
+          <div className="pt-6 flex flex-wrap gap-4 justify-center">
+            <Button
+              size="lg"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              asChild
+            >
+              <Link to="/login">Acesse como Lojista</Link>
             </Button>
             <Button
               size="lg"
               variant="outline"
-              className="rounded-none px-8 font-semibold tracking-widest uppercase text-white border-white hover:bg-white hover:text-black"
+              className="border-white/20 hover:bg-white/10"
+              asChild
             >
-              Seja um Parceiro
+              <Link to="/revenda">Quero Vender</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Collections Summary */}
-      <section className="py-20 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-serif font-bold mb-4">Coleções em Destaque</h2>
-            <p className="text-muted-foreground">
-              Descubra as tendências que estão definindo a estação
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { title: 'Moda Feminina', img: 'women%20fashion' },
-              { title: 'Moda Praia', img: 'beachwear%20fashion' },
-              { title: 'Moda Fitness', img: 'fitness%20clothing' },
-            ].map((cat, i) => (
-              <div
-                key={i}
-                className="group cursor-pointer relative aspect-[3/4] overflow-hidden bg-muted"
-              >
-                <img
-                  src={`https://img.usecurling.com/p/600/800?q=${cat.img}&dpr=2`}
-                  alt={cat.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-500" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <h3 className="text-white text-2xl font-serif font-bold tracking-wider uppercase">
-                    {cat.title}
-                  </h3>
+      {/* Categories Sections */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto space-y-16">
+          {Object.keys(categoryLabels).map((catKey) => {
+            const brands = topBrands[catKey]
+            if (!brands || brands.length === 0) return null
+
+            return (
+              <div key={catKey} className="space-y-6 animate-fade-in-up">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-2xl font-bold uppercase tracking-wide">
+                    {categoryLabels[catKey]}
+                  </h2>
+                  <div className="h-px bg-border flex-1"></div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                  {brands.map((brand) => (
+                    <Card
+                      key={brand.id}
+                      className="overflow-hidden hover:border-primary transition-colors group"
+                    >
+                      <CardContent className="p-0">
+                        <div className="aspect-square relative bg-muted overflow-hidden">
+                          <img
+                            src={getAvatarUrl(brand)}
+                            alt={brand.name}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                          <div className="absolute top-2 right-2 bg-black/80 text-primary text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 backdrop-blur-sm">
+                            #{brand.ranking_position}
+                          </div>
+                        </div>
+                        <div className="p-4 bg-card">
+                          <h3 className="font-bold truncate text-lg">{brand.name}</h3>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {brand.city || 'São Paulo'} - {brand.state || 'SP'}
+                          </p>
+                          <div className="mt-3 flex items-center justify-between">
+                            <Badge variant="outline" className="text-xs bg-muted/50">
+                              {brand.price_level || '$$'}
+                            </Badge>
+                            {brand.v_club_status === 'approved' && (
+                              <Badge className="bg-primary/10 text-primary border-none text-[10px] hover:bg-primary/20">
+                                V Club
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
+            )
+          })}
+
+          {Object.keys(topBrands).length === 0 && (
+            <div className="text-center py-20 text-muted-foreground">
+              Carregando as melhores marcas do atacado...
+            </div>
+          )}
         </div>
       </section>
     </div>
   )
 }
-
-export default Index
