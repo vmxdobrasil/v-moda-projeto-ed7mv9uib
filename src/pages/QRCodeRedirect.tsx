@@ -1,109 +1,106 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { AlertCircle } from 'lucide-react'
+import { useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import pb from '@/lib/pocketbase/client'
+import { toast } from '@/hooks/use-toast'
 
 export default function QRCodeRedirect() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const location = useLocation()
-  const [error, setError] = useState(false)
 
   useEffect(() => {
-    if (!id) {
-      setError(true)
-      return
-    }
+    async function resolve() {
+      if (!id) {
+        navigate('/', { replace: true })
+        return
+      }
 
-    const resolveQR = async () => {
       try {
-        let target: string | null = null
-
+        // 1. Try GET custom route from the qrcode_resolve hook
         try {
-          const res = await fetch(
-            `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/qrcode/${id}`,
-            {
-              headers: pb.authStore.token ? { Authorization: pb.authStore.token } : undefined,
-            },
-          )
-          if (res.ok) {
-            const data = await res.json()
-            target = data.target
-          } else if (res.status === 404) {
-            // Let it fall through to setError(true)
-          } else {
-            console.error('Failed to resolve QR Code, status:', res.status)
-          }
-        } catch (e) {
-          console.error('Error fetching QR Code resolution', e)
-        }
-
-        // Execute Redirection
-        if (target) {
-          // Prevent infinite loops
-          let cleanTarget = target
-          if (cleanTarget.startsWith('/#/')) {
-            cleanTarget = cleanTarget.substring(2)
-          } else if (cleanTarget.startsWith('#/')) {
-            cleanTarget = cleanTarget.substring(1)
-          }
-
-          const currentPath = location.pathname
-          const targetPath = cleanTarget.split('?')[0] // extract path without query params
-          if (targetPath === currentPath || targetPath === `/qrcode/${id}`) {
-            setError(true)
+          const res = await pb.send(`/backend/v1/qrcode/${id}`, { method: 'GET' })
+          if (res?.url) {
+            navigate(res.url, { replace: true })
             return
           }
-
-          if (target.startsWith('http')) {
-            window.location.href = target
-          } else {
-            navigate(cleanTarget.startsWith('/') ? cleanTarget : `/${cleanTarget}`, {
-              replace: true,
-            })
+          if (res?.type === 'v_club_card' || res?.collection === 'v_club_cards') {
+            navigate(`/v-club?card=${res.id || res.recordId}`, { replace: true })
+            return
           }
-        } else {
-          setError(true)
+          if (res?.type === 'customer' || res?.collection === 'customers') {
+            navigate(`/customers/${res.id || res.recordId}`, { replace: true })
+            return
+          }
+        } catch (e) {
+          // ignore and proceed to POST alternative
         }
-      } catch (err) {
-        console.error('Unexpected error resolving QR code', err)
-        setError(true)
+
+        // 2. Try POST custom route from the qrcode_resolve hook
+        try {
+          const res = await pb.send('/backend/v1/qrcode/resolve', {
+            method: 'POST',
+            body: JSON.stringify({ id, token: id, qrcode: id }),
+          })
+          if (res?.url) {
+            navigate(res.url, { replace: true })
+            return
+          }
+          if (res?.type === 'v_club_card' || res?.collection === 'v_club_cards') {
+            navigate(`/v-club?card=${res.id || res.recordId}`, { replace: true })
+            return
+          }
+          if (res?.type === 'customer' || res?.collection === 'customers') {
+            navigate(`/customers/${res.id || res.recordId}`, { replace: true })
+            return
+          }
+        } catch (e) {
+          // ignore and proceed to DB check
+        }
+
+        // 3. Fallback: Direct DB check (will only succeed if the user is authenticated and has correct permissions)
+        if (pb.authStore.isValid) {
+          try {
+            const card = await pb
+              .collection('v_club_cards')
+              .getFirstListItem(`id="${id}" || card_number="${id}"`)
+            if (card) {
+              navigate(`/v-club?card=${card.id}`, { replace: true })
+              return
+            }
+          } catch (e) {
+            // ignore
+          }
+
+          try {
+            const customer = await pb.collection('customers').getFirstListItem(`id="${id}"`)
+            if (customer) {
+              navigate(`/customers/${customer.id}`, { replace: true })
+              return
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+
+        // If we reach here, nothing matched or we lack permissions
+        toast({
+          title: 'QR Code Inválido',
+          description: 'Não foi possível encontrar o registro associado a este QR Code.',
+          variant: 'destructive',
+        })
+        navigate('/', { replace: true })
+      } catch (error) {
+        console.error('QR Code resolution error:', error)
+        navigate('/', { replace: true })
       }
     }
 
-    resolveQR()
+    resolve()
   }, [id, navigate])
 
-  if (error) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background p-4">
-        <div className="text-center animate-fade-in-up max-w-sm w-full">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-            <AlertCircle className="h-8 w-8 text-destructive" />
-          </div>
-          <h2 className="text-2xl font-semibold tracking-tight mb-2">Link Expirado ou Inválido</h2>
-          <p className="text-muted-foreground mb-8">
-            Este QR Code ou link pode ter expirado ou não foi encontrado em nosso sistema. Verifique
-            o endereço e tente novamente.
-          </p>
-          <Button onClick={() => navigate('/')} className="w-full" size="lg">
-            Voltar ao Início
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex h-screen items-center justify-center bg-background p-4">
-      <div className="text-center animate-fade-in-up max-w-sm w-full">
-        <div className="mx-auto mb-6 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <h2 className="text-2xl font-semibold tracking-tight mb-2">Redirecionando...</h2>
-        <p className="text-muted-foreground">
-          Localizando o destino e acessando de forma segura na V MODA BRASIL.
-        </p>
-      </div>
+    <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-background">
+      <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <p className="text-muted-foreground animate-pulse font-medium">Resolvendo QR Code...</p>
     </div>
   )
 }

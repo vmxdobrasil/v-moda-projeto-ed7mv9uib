@@ -57,8 +57,7 @@ function PlaceholderPage({ title }: { title: string }) {
       </div>
       <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
       <p className="text-muted-foreground mt-2 max-w-sm">
-        Esta seção do painel de administração está em desenvolvimento e será disponibilizada em
-        breve.
+        Esta seção do sistema está em desenvolvimento e será disponibilizada em breve.
       </p>
     </div>
   )
@@ -84,9 +83,9 @@ export default function App() {
             <Sonner />
 
             <Routes>
+              {/* Public Unbound Routes */}
               <Route path="/qrcode/:id" element={<QRCodeRedirect />} />
 
-              {/* Public Routes */}
               <Route element={<PublicRoute />}>
                 <Route path="/login" element={<Login />} />
                 <Route
@@ -110,7 +109,58 @@ export default function App() {
                 </Route>
               </Route>
 
-              {/* Protected Routes */}
+              {/* Main Layout (contains Header and Footer) */}
+              <Route path="/" element={<DashboardLayout />}>
+                {/* Public Pages within Layout */}
+                <Route index element={<DashboardHub />} />
+                <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />
+                <Route path="guia-de-moda" element={<PlaceholderPage title="Guia de Moda" />} />
+                <Route path="conhecimento" element={<PlaceholderPage title="Conhecimento" />} />
+                <Route path="revista" element={<Magazine />} />
+                <Route path="sobre-nos" element={<PlaceholderPage title="Sobre Nós" />} />
+                <Route path="contato" element={<PlaceholderPage title="Contato" />} />
+                <Route path="revenda" element={<PlaceholderPage title="Seja uma Revendedora" />} />
+                <Route path="faq" element={<PlaceholderPage title="FAQ" />} />
+                <Route path="favoritos" element={<PlaceholderPage title="Lista de Desejos" />} />
+                <Route
+                  path="finalizar-compra"
+                  element={<PlaceholderPage title="Finalizar Compra" />}
+                />
+
+                {/* Protected Dashboard/User Pages */}
+                <Route element={<AuthGuard />}>
+                  <Route path="dashboard" element={<Navigate to="/" replace />} />
+                  <Route path="perfil" element={<PlaceholderPage title="Meu Perfil" />} />
+                  <Route path="meus-pedidos" element={<PlaceholderPage title="Meus Pedidos" />} />
+                  <Route path="vallen-ia" element={<VallenIA />} />
+                  <Route path="customers" element={<DashboardCustomers />} />
+                  <Route
+                    path="customers/:id"
+                    element={<PlaceholderPage title="Detalhes do Cliente" />}
+                  />
+                  <Route path="products" element={<DashboardProjects />} />
+                  <Route
+                    path="admin-products"
+                    element={<PlaceholderPage title="Admin Produtos" />}
+                  />
+                  <Route path="messages" element={<PlaceholderPage title="Mensagens" />} />
+                  <Route path="manufacturers" element={<ManufacturersHub />} />
+                  <Route path="affiliates" element={<AffiliateDashboard />} />
+                  <Route path="agente" element={<AgentDashboard />} />
+                  <Route path="resources" element={<Resources />} />
+                  <Route path="analytics" element={<DashboardAnalytics />} />
+                  <Route path="v-club" element={<VClubWallet />} />
+                  <Route path="media-kit" element={<PlaceholderPage title="Media Kit" />} />
+
+                  {/* Protected Manufacturer specifics inside Layout */}
+                  <Route element={<ManufacturerGuard />}>
+                    <Route path="logistics" element={<DashboardLogistics />} />
+                    <Route path="settings" element={<WhatsappSettings />} />
+                  </Route>
+                </Route>
+              </Route>
+
+              {/* Protected Standalone & Admin Routes */}
               <Route element={<AuthGuard />}>
                 <Route path="/negotiation/video/:sessionId" element={<VideoNegotiation />} />
 
@@ -132,7 +182,7 @@ export default function App() {
                     <Route path="logistica" element={<PlaceholderPage title="Logística" />} />
                     <Route path="marketing" element={<AdminMarketing />} />
                     <Route path="categorias" element={<AdminCategories />} />
-                    <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />{' '}
+                    <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />
                     <Route path="midia" element={<PlaceholderPage title="Mídia" />} />
                     <Route
                       path="assinaturas"
@@ -148,39 +198,6 @@ export default function App() {
                       element={<PlaceholderPage title="Configurações" />}
                     />
                     <Route path="partnerships/zoop" element={<ZoopProposal />} />
-                  </Route>
-                </Route>
-
-                <Route path="/" element={<DashboardLayout />}>
-                  {' '}
-                  <Route index element={<DashboardHub />} />
-                  <Route path="dashboard" element={<Navigate to="/" replace />} />
-                  <Route path="vallen-ia" element={<VallenIA />} />
-                  {/* Placeholder Routes for missing pages */}
-                  <Route path="customers" element={<DashboardCustomers />} />
-                  <Route
-                    path="customers/:id"
-                    element={<PlaceholderPage title="Detalhes do Cliente" />}
-                  />
-                  <Route path="products" element={<DashboardProjects />} />
-                  <Route
-                    path="admin-products"
-                    element={<PlaceholderPage title="Admin Produtos" />}
-                  />
-                  <Route path="messages" element={<PlaceholderPage title="Mensagens" />} />
-                  <Route path="manufacturers" element={<ManufacturersHub />} />
-                  <Route path="affiliates" element={<AffiliateDashboard />} />
-                  <Route path="agente" element={<AgentDashboard />} />
-                  <Route path="resources" element={<Resources />} />
-                  <Route path="magazine" element={<Magazine />} />
-                  <Route element={<ManufacturerGuard />}>
-                    <Route path="logistics" element={<DashboardLogistics />} />
-                  </Route>
-                  <Route path="analytics" element={<DashboardAnalytics />} />
-                  <Route path="v-club" element={<VClubWallet />} />
-                  <Route path="media-kit" element={<PlaceholderPage title="Media Kit" />} />
-                  <Route element={<ManufacturerGuard />}>
-                    <Route path="settings" element={<WhatsappSettings />} />
                   </Route>
                 </Route>
               </Route>
