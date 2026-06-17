@@ -4,7 +4,7 @@ migrate(
     const projects = app.findCollectionByNameOrId('projects')
 
     if (!projects.fields.getByName('embedding')) {
-      projects.fields.add(new VectorField({ name: 'embedding', dimensions: 1536 }))
+      projects.fields.add(new JSONField({ name: 'embedding' }))
     }
     if (!projects.fields.getByName('colors')) {
       projects.fields.add(new TextField({ name: 'colors' }))

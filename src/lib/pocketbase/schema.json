@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-17T20:22:01.193Z",
+  "generatedAt": "2026-06-17T20:28:38.065Z",
   "collections": [
     {
       "name": "users",
@@ -901,6 +901,36 @@
         {
           "name": "min_quantity_wholesale",
           "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "embedding",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "colors",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sizes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_seasonal",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "gallery",
+          "type": "file",
           "required": false,
           "system": false
         }
