@@ -175,6 +175,7 @@ export function MiniCRM() {
                     <SelectContent>
                       <SelectItem value="new">Novo</SelectItem>
                       <SelectItem value="interested">Interessado</SelectItem>
+                      <SelectItem value="proposal">Proposta</SelectItem>
                       <SelectItem value="negotiating">Em Negociação</SelectItem>
                       <SelectItem value="converted">Convertido</SelectItem>
                       <SelectItem value="inactive">Inativo</SelectItem>
@@ -298,10 +299,16 @@ export function MiniCRM() {
                   <TableCell className="text-sm text-muted-foreground">{c.phone || '-'}</TableCell>
                   <TableCell>
                     <Badge
-                      variant={c.status === 'converted' ? 'default' : 'secondary'}
+                      variant={
+                        c.status === 'converted'
+                          ? 'default'
+                          : c.status === 'proposal'
+                            ? 'outline'
+                            : 'secondary'
+                      }
                       className="capitalize"
                     >
-                      {c.status}
+                      {c.status === 'proposal' ? 'Proposta' : c.status}
                     </Badge>
                   </TableCell>
                   <TableCell>

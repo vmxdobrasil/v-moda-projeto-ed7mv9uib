@@ -72,6 +72,7 @@ import WhatsappSettings from '@/pages/dashboard/WhatsappSettings'
 import Login from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
 import VallenIA from '@/pages/dashboard/VallenIA'
+import SalesMachine from '@/pages/dashboard/SalesMachine'
 import RevendaDashboard from '@/pages/dashboard/RevendaDashboard'
 import Academy from '@/pages/dashboard/Academy'
 import VallenConsultora from '@/pages/dashboard/VallenConsultora'
@@ -209,6 +210,7 @@ export default function App() {
                     <Route path="perfil" element={<PlaceholderPage title="Meu Perfil" />} />
                     <Route path="meus-pedidos" element={<PlaceholderPage title="Meus Pedidos" />} />
                     <Route path="vallen-ia" element={<VallenIA />} />
+                    <Route path="maquina-vendas" element={<SalesMachine />} />
                     <Route path="customers" element={<DashboardCustomers />} />
                     <Route
                       path="customers/:id"

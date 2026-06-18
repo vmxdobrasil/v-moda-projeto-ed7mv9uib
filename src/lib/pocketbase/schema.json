@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T19:11:38.810Z",
+  "generatedAt": "2026-06-18T19:46:08.144Z",
   "collections": [
     {
       "name": "users",
@@ -319,7 +319,8 @@
             "interested",
             "negotiating",
             "converted",
-            "inactive"
+            "inactive",
+            "proposal"
           ]
         },
         {
@@ -616,6 +617,12 @@
             "approved",
             "denied"
           ]
+        },
+        {
+          "name": "last_action_date",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
