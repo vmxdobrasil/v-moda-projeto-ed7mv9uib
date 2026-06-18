@@ -1,5 +1,15 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Users, CreditCard, UserCheck, LayoutDashboard, ShoppingBag, Store } from 'lucide-react'
+import {
+  Users,
+  CreditCard,
+  UserCheck,
+  LayoutDashboard,
+  ShoppingBag,
+  Store,
+  GraduationCap,
+  Bot,
+  MapPin,
+} from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -20,12 +30,14 @@ export function AppSidebar() {
   const isManufacturer = user?.role === 'manufacturer' || isAdmin
   const isAgent = user?.role === 'agent'
   const isAffiliate = user?.role === 'affiliate'
+  const isRetailer = user?.role === 'retailer'
 
   const items = []
 
   if (isAdmin) {
     items.push(
       { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
+      { title: 'Zonas de Revenda', url: '/admin/zonas', icon: MapPin },
       { title: 'Agentes Conveniados', url: '/admin/agentes', icon: UserCheck },
       { title: 'Afiliados', url: '/admin/afiliados', icon: Users },
       { title: 'V Club Card', url: '/admin/v-club', icon: CreditCard },
@@ -39,6 +51,14 @@ export function AppSidebar() {
       { title: 'Afiliados', url: '/affiliates', icon: Users },
       { title: 'V Club Card', url: '/manufacturer/v-club', icon: CreditCard },
       { title: 'Catálogo', url: '/manufacturer/catalog', icon: ShoppingBag },
+    )
+  } else if (isRetailer) {
+    items.push(
+      { title: 'Meu Painel', url: '/dashboard', icon: LayoutDashboard },
+      { title: 'Painel Revenda', url: '/revenda', icon: Store },
+      { title: 'Academy Fashion', url: '/academy', icon: GraduationCap },
+      { title: 'Vallen Consultora', url: '/vallen-consultora', icon: Bot },
+      { title: 'V Club Card', url: '/v-club', icon: CreditCard },
     )
   } else {
     items.push({ title: 'Meu Painel', url: '/dashboard', icon: LayoutDashboard })

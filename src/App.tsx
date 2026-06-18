@@ -71,6 +71,10 @@ import WhatsappSettings from '@/pages/dashboard/WhatsappSettings'
 import Login from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
 import VallenIA from '@/pages/dashboard/VallenIA'
+import RevendaDashboard from '@/pages/dashboard/RevendaDashboard'
+import Academy from '@/pages/dashboard/Academy'
+import VallenConsultora from '@/pages/dashboard/VallenConsultora'
+import AdminZones from '@/pages/admin/AdminZones'
 import AdminFinance from '@/pages/admin/AdminFinance'
 import AdminNotifications from '@/pages/admin/AdminNotifications'
 import QRCodeRedirect from '@/pages/QRCodeRedirect'
@@ -222,6 +226,9 @@ export default function App() {
                     <Route path="analytics" element={<DashboardAnalytics />} />
                     <Route path="v-club" element={<VClubWallet />} />
                     <Route path="media-kit" element={<PlaceholderPage title="Media Kit" />} />
+                    <Route path="revenda" element={<RevendaDashboard />} />
+                    <Route path="academy" element={<Academy />} />
+                    <Route path="vallen-consultora" element={<VallenConsultora />} />
 
                     {/* Protected Manufacturer specifics inside DashboardLayout */}
                     <Route element={<ManufacturerGuard />}>
@@ -247,6 +254,7 @@ export default function App() {
                         element={<Navigate to="/admin/insights" replace />}
                       />
                       <Route path="insights" element={<AdminInsights />} />
+                      <Route path="zonas" element={<AdminZones />} />
                       <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
                       <Route path="fabricantes" element={<PlaceholderPage title="Fabricantes" />} />
                       <Route path="produtos" element={<AdminProducts />} />
