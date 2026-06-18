@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Loader2, AlertCircle, Building2, MapPin, Store } from 'lucide-react'
-import pb from '@/lib/pocketbase/client'
 import {
   Card,
   CardContent,
@@ -11,155 +9,69 @@ import {
   CardFooter,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Separator } from '@/components/ui/separator'
-
-interface BrandData {
-  id: string
-  collectionId: string
-  collectionName: string
-  name: string
-  avatar?: string
-  role: string
-  operating_regions?: string
-  fashion_hubs?: string | string[]
-  operating_cities?: string
-}
+import { Badge } from '@/components/ui/badge'
+import { CreditCard, Receipt, Loader2, AlertCircle } from 'lucide-react'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 export default function QRCodeRedirect() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [brand, setBrand] = useState<BrandData | null>(null)
+  const [result, setResult] = useState<any>(null)
 
   useEffect(() => {
-    async function resolveQrCode() {
+    if (!id) return
+
+    const resolveQR = async () => {
       try {
-        if (!id) throw new Error('ID do QR Code não fornecido')
-
-        const res = await pb.send<{ target: string; type: string; data?: any }>(
-          `/backend/v1/qrcode/${id}`,
-          { method: 'GET' },
-        )
-
-        if (res.type === 'manufacturer' || res.type === 'brand') {
-          const urlParams = new URLSearchParams(res.target.split('?')[1] || '')
-          const brandId = urlParams.get('id')
-          if (brandId) {
-            const brandData = await pb.collection('users').getOne<BrandData>(brandId)
-            setBrand(brandData)
-            return
-          }
+        const res = await fetch(`${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/qrcode/${id}`)
+        if (!res.ok) {
+          throw new Error('QR Code inválido ou expirado')
         }
+        const data = await res.json()
+        setResult(data)
 
-        const targetUrl = res.target.replace('/#/', '/')
-        navigate(targetUrl, { replace: true })
-      } catch (err: any) {
-        setError(err.message || 'QR Code inválido ou expirado')
+        // If it's not a card or transaction, redirect immediately
+        if (data.type !== 'v_club_card' && data.type !== 'v_club_transaction') {
+          window.location.href = data.target
+        } else {
+          setLoading(false)
+        }
+      } catch (err) {
+        setError(getErrorMessage(err))
+        setLoading(false)
       }
     }
 
-    resolveQrCode()
-  }, [id, navigate])
+    resolveQR()
+  }, [id])
 
-  const formatFashionHubs = (hubs: string | string[] | null | undefined): string => {
-    if (!hubs || hubs.length === 0) return 'Não informado'
-
-    if (Array.isArray(hubs)) {
-      return hubs.map((hub) => hub.replace(/_/g, ' ')).join(', ')
-    }
-
-    if (typeof hubs === 'string') {
-      return hubs.replace(/_/g, ' ')
-    }
-
-    return 'Não informado'
-  }
-
-  if (error) {
+  if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4 bg-slate-50">
-        <Card className="w-full max-w-md shadow-sm border-red-100">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-              <AlertCircle className="h-6 w-6 text-red-600" />
-            </div>
-            <CardTitle className="text-xl">Erro ao ler QR Code</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-          <CardFooter className="pt-4">
-            <Button onClick={() => navigate('/')} className="w-full">
-              Voltar para o Início
-            </Button>
-          </CardFooter>
-        </Card>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-muted/30">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Resolvendo QR Code...</p>
       </div>
     )
   }
 
-  if (brand) {
-    const avatarUrl = brand.avatar ? pb.files.getURL(brand, brand.avatar) : ''
-    const fallbackInitials = brand.name ? brand.name.substring(0, 2).toUpperCase() : 'BR'
-
+  if (error || !result) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-slate-50">
-        <Card className="w-full max-w-md shadow-lg border-slate-200 animate-fade-in-up">
-          <CardHeader className="text-center pt-8 pb-4">
-            <Avatar className="h-24 w-24 mx-auto mb-4 border-4 border-primary/10 shadow-sm">
-              <AvatarImage src={avatarUrl} alt={brand.name} className="object-cover" />
-              <AvatarFallback className="text-2xl font-bold bg-primary/5 text-primary">
-                {fallbackInitials}
-              </AvatarFallback>
-            </Avatar>
-            <CardTitle className="text-2xl font-bold text-slate-900">{brand.name}</CardTitle>
-            <CardDescription className="capitalize text-sm font-medium">
-              {brand.role === 'manufacturer' ? 'Fabricante Oficial' : brand.role}
+      <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
+        <Card className="w-full max-w-md shadow-lg border-destructive/20">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+              <AlertCircle className="h-6 w-6 text-destructive" />
+            </div>
+            <CardTitle className="text-xl">QR Code Inválido</CardTitle>
+            <CardDescription>
+              {error || 'Não foi possível encontrar as informações deste código.'}
             </CardDescription>
           </CardHeader>
-
-          <CardContent className="space-y-4 px-6 pb-6">
-            <Separator />
-
-            <div className="space-y-4 pt-2">
-              <div className="flex flex-col space-y-1">
-                <div className="flex items-center text-sm font-medium text-slate-500 mb-1">
-                  <MapPin className="mr-2 h-4 w-4" />
-                  Regiões de Atuação
-                </div>
-                <p className="text-sm text-slate-900 pl-6">
-                  {brand.operating_regions || 'Não informado'}
-                </p>
-              </div>
-
-              <div className="flex flex-col space-y-1">
-                <div className="flex items-center text-sm font-medium text-slate-500 mb-1">
-                  <Store className="mr-2 h-4 w-4" />
-                  Polos de Moda
-                </div>
-                <p className="text-sm text-slate-900 pl-6 capitalize">
-                  {formatFashionHubs(brand.fashion_hubs)}
-                </p>
-              </div>
-
-              <div className="flex flex-col space-y-1">
-                <div className="flex items-center text-sm font-medium text-slate-500 mb-1">
-                  <Building2 className="mr-2 h-4 w-4" />
-                  Cidades
-                </div>
-                <p className="text-sm text-slate-900 pl-6">
-                  {brand.operating_cities || 'Não informado'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-
-          <CardFooter className="bg-slate-50 border-t px-6 py-4 rounded-b-xl">
-            <Button
-              onClick={() => navigate(`/manufacturers?id=${brand.id}`)}
-              className="w-full py-6 text-base font-semibold shadow-sm"
-              size="lg"
-            >
-              Acessar Perfil Completo
+          <CardFooter>
+            <Button className="w-full" onClick={() => navigate('/')}>
+              Voltar ao Início
             </Button>
           </CardFooter>
         </Card>
@@ -167,14 +79,93 @@ export default function QRCodeRedirect() {
     )
   }
 
+  const { type, data, target } = result
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50">
-      <div className="flex flex-col items-center space-y-4 animate-pulse">
-        <div className="rounded-full bg-primary/10 p-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-        <p className="text-base font-medium text-slate-600">Resolvendo QR Code...</p>
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
+      <Card className="w-full max-w-md shadow-xl animate-fade-in-up">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+            {type === 'v_club_card' ? (
+              <CreditCard className="h-8 w-8 text-primary" />
+            ) : (
+              <Receipt className="h-8 w-8 text-primary" />
+            )}
+          </div>
+          <CardTitle className="text-2xl">
+            {type === 'v_club_card' ? 'Cartão V Club' : 'Transação V Club'}
+          </CardTitle>
+          <CardDescription>Detalhes da sua interação</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-4">
+          {type === 'v_club_card' && data && (
+            <div className="space-y-4 bg-muted/50 p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Status do Cartão</span>
+                <Badge
+                  variant={data.status === 'active' ? 'default' : 'destructive'}
+                  className="uppercase"
+                >
+                  {data.status === 'active' ? 'Ativo' : data.status}
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Nível VIP</span>
+                <Badge
+                  variant={data.vip_level === 'approved' ? 'default' : 'secondary'}
+                  className="uppercase bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  {data.vip_level === 'approved' ? 'VIP Exclusivo' : 'Pendente'}
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Cliente</span>
+                <span className="font-medium">{data.customer_name}</span>
+              </div>
+            </div>
+          )}
+
+          {type === 'v_club_transaction' && data && (
+            <div className="space-y-4 bg-muted/50 p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Status do Pagamento</span>
+                <Badge
+                  variant={
+                    data.status === 'approved'
+                      ? 'default'
+                      : data.status === 'denied'
+                        ? 'destructive'
+                        : 'secondary'
+                  }
+                  className="uppercase"
+                >
+                  {data.status === 'approved'
+                    ? 'Aprovado'
+                    : data.status === 'pending'
+                      ? 'Pendente'
+                      : data.status}
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Valor</span>
+                <span className="font-bold text-lg">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                    data.amount,
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex-col gap-2">
+          <Button className="w-full" onClick={() => (window.location.href = target)}>
+            Ver no Sistema
+          </Button>
+          <Button variant="ghost" className="w-full" onClick={() => navigate('/')}>
+            Voltar ao Início
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   )
 }
