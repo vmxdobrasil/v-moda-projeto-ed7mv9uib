@@ -59,6 +59,7 @@ import DashboardCustomers from '@/pages/dashboard/Customers'
 import DashboardAnalytics from '@/pages/dashboard/Analytics'
 import ManufacturersHub from '@/pages/dashboard/Manufacturers'
 import AffiliateDashboard from '@/pages/dashboard/AffiliateDashboard'
+import GuiaDeModa from '@/pages/GuiaDeModa'
 import AgentDashboard from '@/pages/agent/AgentDashboard'
 import AdminVClub from '@/pages/admin/AdminVClub'
 import ManufacturerVClub from '@/pages/manufacturer/ManufacturerVClub'
@@ -164,7 +165,7 @@ export default function App() {
                 <Route element={<PublicLayout />}>
                   <Route index element={<Index />} />
                   <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />
-                  <Route path="guia-de-moda" element={<PlaceholderPage title="Guia de Moda" />} />
+                  <Route path="guia-de-moda" element={<GuiaDeModa />} />
                   <Route path="conhecimento" element={<PlaceholderPage title="Conhecimento" />} />
                   <Route path="revista" element={<Magazine />} />
                   <Route path="sobre-nos" element={<PlaceholderPage title="Sobre Nós" />} />
