@@ -9,6 +9,7 @@ import {
   GraduationCap,
   Bot,
   MapPin,
+  Award,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -42,7 +43,7 @@ export function AppSidebar() {
       { title: 'Afiliados', url: '/admin/afiliados', icon: Users },
       { title: 'V Club Card', url: '/admin/v-club', icon: CreditCard },
       { title: 'Produtos', url: '/admin/produtos', icon: ShoppingBag },
-      { title: 'Fabricantes', url: '/admin/fabricantes', icon: Store },
+      { title: 'TOP 60 MARCAS', url: '/admin/fabricantes', icon: Award },
     )
   } else if (isManufacturer) {
     items.push(
@@ -51,6 +52,7 @@ export function AppSidebar() {
       { title: 'Afiliados', url: '/affiliates', icon: Users },
       { title: 'V Club Card', url: '/manufacturer/v-club', icon: CreditCard },
       { title: 'Catálogo', url: '/manufacturer/catalog', icon: ShoppingBag },
+      { title: 'Equipe', url: '/manufacturer/team', icon: Users },
     )
   } else if (isRetailer) {
     items.push(

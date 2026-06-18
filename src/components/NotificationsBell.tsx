@@ -37,7 +37,25 @@ export function NotificationsBell() {
     loadNotifications()
   }, [isAuthenticated, user])
 
-  useRealtime('notifications', () => loadNotifications(), isAuthenticated)
+  useRealtime(
+    'notifications',
+    (e) => {
+      loadNotifications()
+      if (
+        e.action === 'create' &&
+        e.record &&
+        !e.record.read &&
+        'Notification' in window &&
+        Notification.permission === 'granted'
+      ) {
+        new Notification(e.record.title || 'V MODA BRASIL', {
+          body: e.record.message,
+          icon: 'https://img.usecurling.com/i?q=v+moda+logo&color=orange',
+        })
+      }
+    },
+    isAuthenticated,
+  )
 
   if (!isAuthenticated) return null
 

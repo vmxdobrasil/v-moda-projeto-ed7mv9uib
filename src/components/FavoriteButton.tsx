@@ -1,40 +1,80 @@
+import { useState, useEffect } from 'react'
 import { Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useFavorites } from '@/contexts/FavoritesContext'
-import { useToast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
-import { trackEvent } from '@/lib/tracking'
+import { toast } from '@/components/ui/use-toast'
+import { cn } from '@/lib/utils'
+import { queueRequest } from '@/lib/offline-sync'
 
-interface FavoriteButtonProps {
-  brandId: string
-  className?: string
-}
+export function FavoriteButton({ brandId, className }: { brandId: string; className?: string }) {
+  const { user } = useAuth()
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteId, setFavoriteId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
-export function FavoriteButton({ brandId, className }: FavoriteButtonProps) {
-  const { favorites, toggleFavorite } = useFavorites()
-  const { toast } = useToast()
-  const isFav = !!favorites[brandId]
+  useEffect(() => {
+    if (!user) return
+    const checkFavorite = async () => {
+      try {
+        const records = await pb.collection('favorites').getList(1, 1, {
+          filter: `user = "${user.id}" && brand = "${brandId}"`,
+        })
+        if (records.items.length > 0) {
+          setIsFavorite(true)
+          setFavoriteId(records.items[0].id)
+        }
+      } catch (e) {
+        // ignore offline errors for read
+      }
+    }
+    checkFavorite()
+  }, [brandId, user])
 
-  const handleToggle = async (e: React.MouseEvent) => {
+  const toggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!pb.authStore.isValid) {
-      toast({
-        title: 'Acesso restrito',
-        description: 'Faça login para salvar favoritos.',
-        variant: 'destructive',
-      })
+    if (!user) {
+      toast({ description: 'Faça login para adicionar aos favoritos.' })
       return
     }
-    try {
-      await toggleFavorite(brandId)
-      if (!isFav) {
-        trackEvent('add_to_favorites', { brandId })
+
+    setLoading(true)
+
+    if (!navigator.onLine) {
+      if (isFavorite && favoriteId) {
+        await queueRequest('favorites', 'DELETE', null, favoriteId)
+        setIsFavorite(false)
+        setFavoriteId(null)
+        toast({ description: 'Removido (offline). Será sincronizado.' })
+      } else if (!isFavorite) {
+        await queueRequest('favorites', 'POST', { user: user.id, brand: brandId })
+        setIsFavorite(true)
+        toast({ description: 'Salvo (offline). Será sincronizado.' })
       }
-      toast({ title: isFav ? 'Removido dos favoritos' : 'Adicionado aos favoritos' })
-    } catch (err) {
-      toast({ title: 'Erro ao salvar', variant: 'destructive' })
+      setLoading(false)
+      return
+    }
+
+    try {
+      if (isFavorite && favoriteId) {
+        await pb.collection('favorites').delete(favoriteId)
+        setIsFavorite(false)
+        setFavoriteId(null)
+        toast({ description: 'Removido dos favoritos.' })
+      } else {
+        const record = await pb.collection('favorites').create({
+          user: user.id,
+          brand: brandId,
+        })
+        setIsFavorite(true)
+        setFavoriteId(record.id)
+        toast({ description: 'Adicionado aos favoritos!' })
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', description: 'Erro ao atualizar favoritos.' })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -42,16 +82,14 @@ export function FavoriteButton({ brandId, className }: FavoriteButtonProps) {
     <Button
       variant="ghost"
       size="icon"
-      className={cn(
-        'rounded-full bg-background/50 hover:bg-background/80 backdrop-blur w-8 h-8 shadow-sm transition-all',
-        className,
-      )}
-      onClick={handleToggle}
+      className={cn('rounded-full bg-white/50 backdrop-blur-sm hover:bg-white', className)}
+      onClick={toggleFavorite}
+      disabled={loading}
     >
       <Heart
         className={cn(
-          'w-4 h-4 transition-colors',
-          isFav ? 'fill-red-500 text-red-500' : 'text-muted-foreground',
+          'h-5 w-5 transition-colors',
+          isFavorite ? 'fill-red-500 text-red-500' : 'text-muted-foreground',
         )}
       />
     </Button>

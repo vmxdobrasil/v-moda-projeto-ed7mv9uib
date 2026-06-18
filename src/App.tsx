@@ -47,7 +47,13 @@ import ManufacturerLeads from '@/pages/manufacturer/Leads'
 import ManufacturerMessages from '@/pages/manufacturer/Messages'
 import ManufacturerLogistics from '@/pages/manufacturer/Logistics'
 import ManufacturerSettings from '@/pages/manufacturer/Settings'
+import ManufacturerTeam from '@/pages/manufacturer/Team'
 import ManufacturerNegotiationHub from '@/pages/manufacturer/NegotiationHub'
+
+import Signup from '@/pages/Signup'
+import JoinGuide from '@/pages/join/Guide'
+import JoinInfluencer from '@/pages/join/Influencer'
+import JoinAgent from '@/pages/join/Agent'
 import AdminLayout from '@/pages/admin/AdminLayout'
 import AdminCommissions from '@/pages/admin/Commissions'
 import AdminInsights from '@/pages/admin/AdminInsights'
@@ -99,23 +105,17 @@ function PlaceholderPage({ title }: { title: string }) {
 
 function AppRoot() {
   return (
-    <>
+    <PwaProvider>
       <Outlet />
       <LiveChat />
-    </>
+      <PwaUpdateBanner />
+      <PwaOnboarding />
+    </PwaProvider>
   )
 }
 
 export default function App() {
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch((err) => {
-          console.error('SW registration failed: ', err)
-        })
-      })
-    }
-
     const handleBeforeUnload = () => {
       const cartItems = useCartStore.getState().items
       if (cartItems.length > 0 && !window.location.pathname.includes('/finalizar-compra')) {
@@ -155,6 +155,10 @@ export default function App() {
                 {/* Public Auth Routes */}
                 <Route element={<PublicRoute />}>
                   <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/join/guide" element={<JoinGuide />} />
+                  <Route path="/join/influencer" element={<JoinInfluencer />} />
+                  <Route path="/join/agent" element={<JoinAgent />} />
                   <Route
                     path="/forgot-password"
                     element={<PlaceholderPage title="Recuperar Senha" />}
@@ -192,6 +196,7 @@ export default function App() {
                     <Route path="messages" element={<ManufacturerMessages />} />
                     <Route path="logistics" element={<ManufacturerLogistics />} />
                     <Route path="settings" element={<ManufacturerSettings />} />
+                    <Route path="team" element={<ManufacturerTeam />} />
                     <Route path="v-club" element={<ManufacturerVClub />} />
                     <Route
                       path="negotiation/:customerId"
@@ -259,7 +264,10 @@ export default function App() {
                       <Route path="insights" element={<AdminInsights />} />
                       <Route path="zonas" element={<AdminZones />} />
                       <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
-                      <Route path="fabricantes" element={<PlaceholderPage title="Fabricantes" />} />
+                      <Route
+                        path="fabricantes"
+                        element={<PlaceholderPage title="TOP 60 MARCAS" />}
+                      />
                       <Route path="produtos" element={<AdminProducts />} />
                       <Route path="catalogo" element={<AdminCatalog />} />
                       <Route path="clientes" element={<Customers />} />
