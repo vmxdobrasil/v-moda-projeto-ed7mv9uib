@@ -1,76 +1,89 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from '@/components/ui/card'
+import { MapPin, Store, AlertTriangle, Loader2 } from 'lucide-react'
+import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { CreditCard, Receipt, Loader2, AlertCircle } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { BrandLogo } from '@/components/BrandLogo'
 
 export default function QRCodeRedirect() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<any>(null)
+  const [error, setError] = useState('')
+  const [brand, setBrand] = useState<any>(null)
 
   useEffect(() => {
-    if (!id) return
-
-    const resolveQR = async () => {
+    async function loadData() {
+      if (!id) return
       try {
-        const res = await fetch(`${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/qrcode/${id}`)
-        if (!res.ok) {
-          throw new Error('QR Code inválido ou expirado')
-        }
-        const data = await res.json()
-        setResult(data)
+        setLoading(true)
 
-        // If it's not a card or transaction, redirect immediately
-        if (data.type !== 'v_club_card' && data.type !== 'v_club_transaction') {
-          window.location.href = data.target
-        } else {
-          setLoading(false)
+        // Attempt to fetch user (brand) by ID first
+        try {
+          const brandData = await pb.collection('users').getOne(id)
+          setBrand(brandData)
+          return
+        } catch (e) {
+          // Fallback to resolve endpoint if it's a token rather than a user ID
+          try {
+            const resolved = await pb.send(`/backend/v1/qrcode/resolve`, {
+              method: 'POST',
+              body: JSON.stringify({ token: id }),
+              headers: { 'Content-Type': 'application/json' },
+            })
+            if (resolved && resolved.brand) {
+              setBrand(resolved.brand)
+              return
+            }
+          } catch (e2) {
+            console.error('Failed to resolve QR Code via endpoint:', e2)
+          }
         }
-      } catch (err) {
-        setError(getErrorMessage(err))
+
+        throw new Error('QR Code não encontrado ou inválido.')
+      } catch (err: any) {
+        console.error('Error loading QR code:', err)
+        setError(getErrorMessage(err) || 'Não foi possível carregar as informações deste QR Code.')
+      } finally {
         setLoading(false)
       }
     }
-
-    resolveQR()
+    loadData()
   }, [id])
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-muted/30">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">Resolvendo QR Code...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50/50">
+        <BrandLogo className="mb-8 opacity-50 w-32" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground animate-pulse font-medium">Analisando QR Code...</p>
+        </div>
       </div>
     )
   }
 
-  if (error || !result) {
+  if (error || !brand) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
-        <Card className="w-full max-w-md shadow-lg border-destructive/20">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
-              <AlertCircle className="h-6 w-6 text-destructive" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50/50 p-4">
+        <BrandLogo className="mb-8 w-32" />
+        <Card className="w-full max-w-md shadow-xl border-t-4 border-t-red-500 animate-fade-in-up">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto bg-red-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mb-4">
+              <AlertTriangle className="h-10 w-10 text-red-600" />
             </div>
-            <CardTitle className="text-xl">QR Code Inválido</CardTitle>
-            <CardDescription>
-              {error || 'Não foi possível encontrar as informações deste código.'}
-            </CardDescription>
+            <CardTitle className="text-2xl text-red-700 font-serif">QR Code Inválido</CardTitle>
           </CardHeader>
-          <CardFooter>
-            <Button className="w-full" onClick={() => navigate('/')}>
+          <CardContent className="text-center text-muted-foreground pt-2">
+            <p className="text-base">
+              {error || 'Este QR Code não corresponde a uma marca válida ou expirou.'}
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-center pb-8 pt-4">
+            <Button onClick={() => navigate('/')} className="w-full h-12 text-base">
               Voltar ao Início
             </Button>
           </CardFooter>
@@ -79,92 +92,93 @@ export default function QRCodeRedirect() {
     )
   }
 
-  const { type, data, target } = result
+  // Robust formatting logic for fashion_hubs regardless of data type
+  const formatFashionHubs = (hubs: any): string => {
+    if (!hubs) return ''
+    if (typeof hubs === 'string') {
+      return hubs.replace(/_/g, ' ')
+    }
+    if (Array.isArray(hubs)) {
+      return hubs
+        .map((hub) => (typeof hub === 'string' ? hub.replace(/_/g, ' ') : ''))
+        .filter(Boolean)
+        .join(', ')
+    }
+    return ''
+  }
+
+  const formattedHubs = formatFashionHubs(brand.fashion_hubs)
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
-      <Card className="w-full max-w-md shadow-xl animate-fade-in-up">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            {type === 'v_club_card' ? (
-              <CreditCard className="h-8 w-8 text-primary" />
-            ) : (
-              <Receipt className="h-8 w-8 text-primary" />
-            )}
-          </div>
-          <CardTitle className="text-2xl">
-            {type === 'v_club_card' ? 'Cartão V Club' : 'Transação V Club'}
-          </CardTitle>
-          <CardDescription>Detalhes da sua interação</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6 pt-4">
-          {type === 'v_club_card' && data && (
-            <div className="space-y-4 bg-muted/50 p-4 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Status do Cartão</span>
-                <Badge
-                  variant={data.status === 'active' ? 'default' : 'destructive'}
-                  className="uppercase"
-                >
-                  {data.status === 'active' ? 'Ativo' : data.status}
-                </Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Nível VIP</span>
-                <Badge
-                  variant={data.vip_level === 'approved' ? 'default' : 'secondary'}
-                  className="uppercase bg-amber-500 hover:bg-amber-600 text-white"
-                >
-                  {data.vip_level === 'approved' ? 'VIP Exclusivo' : 'Pendente'}
-                </Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Cliente</span>
-                <span className="font-medium">{data.customer_name}</span>
-              </div>
-            </div>
-          )}
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50/50 p-4">
+      <BrandLogo className="mb-8 w-32" />
+      <Card className="w-full max-w-md overflow-hidden shadow-2xl border-t-4 border-t-primary animate-fade-in-up">
+        <div className="bg-primary/5 pt-10 pb-6 flex flex-col items-center relative">
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
 
-          {type === 'v_club_transaction' && data && (
-            <div className="space-y-4 bg-muted/50 p-4 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Status do Pagamento</span>
-                <Badge
-                  variant={
-                    data.status === 'approved'
-                      ? 'default'
-                      : data.status === 'denied'
-                        ? 'destructive'
-                        : 'secondary'
-                  }
-                  className="uppercase"
-                >
-                  {data.status === 'approved'
-                    ? 'Aprovado'
-                    : data.status === 'pending'
-                      ? 'Pendente'
-                      : data.status}
-                </Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Valor</span>
-                <span className="font-bold text-lg">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                    data.amount,
-                  )}
-                </span>
-              </div>
+          <Avatar className="h-32 w-32 border-4 border-background shadow-lg mb-5 relative z-10">
+            <AvatarImage
+              src={
+                brand.avatar
+                  ? pb.files.getUrl(brand, brand.avatar, { thumb: '200x200' })
+                  : `https://img.usecurling.com/ppl/medium?seed=${brand.id}&gender=female`
+              }
+              alt={brand.name || 'Marca'}
+              className="object-cover bg-white"
+            />
+            <AvatarFallback className="text-4xl font-bold bg-primary/10 text-primary">
+              {brand.name?.substring(0, 2).toUpperCase() || 'BR'}
+            </AvatarFallback>
+          </Avatar>
+
+          <h2 className="text-3xl font-serif font-bold text-center px-4 tracking-tight text-foreground relative z-10">
+            {brand.name || 'Marca Parceira V Moda'}
+          </h2>
+
+          {(brand.operating_cities || formattedHubs) && (
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5 px-6 relative z-10">
+              {formattedHubs && (
+                <div className="flex items-center gap-1.5 text-muted-foreground bg-background px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-sm border border-border capitalize">
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
+                  {formattedHubs}
+                </div>
+              )}
+              {brand.operating_cities && (
+                <div className="flex items-center gap-1.5 text-muted-foreground bg-background px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-sm border border-border capitalize">
+                  <Store className="h-3.5 w-3.5 text-primary" />
+                  {brand.operating_cities}
+                </div>
+              )}
             </div>
           )}
+        </div>
+
+        <CardContent className="p-8 space-y-6 bg-background relative z-10">
+          <div className="text-center space-y-2">
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Você escaneou o QR Code desta marca com sucesso. Explore o perfil completo para
+              conhecer coleções, condições e entrar em contato.
+            </p>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <Button
+              className="w-full h-12 text-base font-medium shadow-md transition-all hover:scale-[1.02]"
+              onClick={() => navigate(brand.role === 'manufacturer' ? `/marcas/${brand.id}` : '/')}
+            >
+              <Store className="mr-2 h-5 w-5" />
+              Acessar Perfil da Marca
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full h-12 text-base font-medium"
+              onClick={() => navigate('/')}
+            >
+              Voltar ao Início
+            </Button>
+          </div>
         </CardContent>
-        <CardFooter className="flex-col gap-2">
-          <Button className="w-full" onClick={() => (window.location.href = target)}>
-            Ver no Sistema
-          </Button>
-          <Button variant="ghost" className="w-full" onClick={() => navigate('/')}>
-            Voltar ao Início
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   )
