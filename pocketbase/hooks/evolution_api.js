@@ -172,61 +172,6 @@ routerAdd(
 )
 
 routerAdd(
-  'GET',
-  '/backend/v1/evolution_api/connect',
-  (e) => {
-    const instanceQuery = e.request.url.query().get('instance')
-
-    let apiUrl =
-      $secrets.get('EVOLUTION_API_URL') || 'https://evolution-evolution.6xxwvj.easypanel.host'
-    let token = $secrets.get('EVOLUTION_API_KEY') || '7i5UsFq1MM8pEbt8NqCVDPglfY8v9LTd'
-    let targetInstance = instanceQuery || 'vmoda'
-
-    try {
-      const configs = $app.findRecordsByFilter(
-        'whatsapp_configs',
-        'user = {:userId}',
-        '-created',
-        100,
-        0,
-        { userId: e.auth.id },
-      )
-      if (configs && configs.length > 0) {
-        const config = configs[0]
-        if (config.getString('api_url')) apiUrl = config.getString('api_url')
-        if (config.getString('token')) token = config.getString('token')
-        if (!instanceQuery && config.getString('instance_id')) {
-          targetInstance = config.getString('instance_id').split(',')[0].trim()
-        }
-      }
-    } catch (_) {}
-
-    if (!apiUrl || !token || !targetInstance) {
-      return e.badRequestError('Configuração incompleta')
-    }
-
-    try {
-      const url = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
-      const res = $http.send({
-        url: `${url}/instance/connect/${targetInstance}`,
-        method: 'GET',
-        headers: { apikey: token },
-        timeout: 15,
-      })
-
-      if (res.statusCode === 200) {
-        return e.json(200, res.json)
-      } else {
-        return e.json(res.statusCode, res.json || { error: 'Falha ao obter QR Code' })
-      }
-    } catch (err) {
-      return e.internalServerError('Falha de rede ao conectar com Evolution API')
-    }
-  },
-  $apis.requireAuth(),
-)
-
-routerAdd(
   'POST',
   '/backend/v1/evolution_api/send',
   (e) => {
