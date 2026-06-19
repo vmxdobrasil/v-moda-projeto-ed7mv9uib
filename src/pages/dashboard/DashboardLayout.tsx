@@ -1,23 +1,61 @@
-import { Outlet } from 'react-router-dom'
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { useEffect, useState } from 'react'
+import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { AppSidebar } from '@/components/dashboard/AppSidebar'
-import { Header } from '@/components/Header'
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
+import pb from '@/lib/pocketbase/client'
+import { Loader2 } from 'lucide-react'
 
 export default function DashboardLayout() {
+  const [stats, setStats] = useState({ totalLeads: 0 })
+  const [loading, setLoading] = useState(true)
+  const location = useLocation()
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        // High-performance limit:1 query correctly avoids the
+        // DashboardLayout getFullList OOM bug on 31,000+ leads
+        const res = await pb.collection('customers').getList(1, 1, {
+          fields: 'id',
+        })
+        setStats({ totalLeads: res.totalItems })
+      } catch (err) {
+        console.error('Failed to load stats', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadStats()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  // Handle empty index route by redirecting to customers CRM view
+  if (location.pathname === '/' || location.pathname === '/dashboard') {
+    return <Navigate to="/customers" replace />
+  }
+
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full flex-col bg-muted/30">
-        <Header />
-        <div className="flex flex-1 pt-20">
-          <AppSidebar />
-          <main className="flex-1 overflow-y-auto p-4 md:p-8">
-            <div className="mb-4 md:hidden">
-              <SidebarTrigger />
-            </div>
-            <Outlet />
-          </main>
-        </div>
-      </div>
+      <AppSidebar />
+      <SidebarInset className="flex flex-col min-h-screen">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:h-16 sm:px-6">
+          <SidebarTrigger />
+          <div className="flex-1" />
+          <div className="text-sm font-medium text-muted-foreground mr-4">
+            Total Leads (Sistema): <span className="text-foreground">{stats.totalLeads}</span>
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8 bg-muted/10 relative">
+          <Outlet />
+        </main>
+      </SidebarInset>
     </SidebarProvider>
   )
 }

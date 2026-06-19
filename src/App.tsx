@@ -7,6 +7,9 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { AuthGuard, PublicRoute, ManufacturerGuard, AdminGuard } from '@/components/AuthGuard'
 import { AiAssistantProvider, LiveChat } from '@/components/LiveChat'
 import { PublicLayout } from '@/components/PublicLayout'
+import { PwaProvider } from '@/components/pwa/PwaProvider'
+import { PwaUpdateBanner } from '@/components/pwa/PwaUpdateBanner'
+import { PwaOnboarding } from '@/components/pwa/PwaOnboarding'
 
 // Normalize backend API calls to use absolute URL and prevent returning HTML
 const originalFetch = window.fetch
@@ -64,6 +67,7 @@ import DashboardLogistics from '@/pages/dashboard/Logistics'
 import DashboardCustomers from '@/pages/dashboard/Customers'
 import DashboardAnalytics from '@/pages/dashboard/Analytics'
 import ManufacturersHub from '@/pages/dashboard/Manufacturers'
+import CustomerDetails from '@/pages/dashboard/CustomerDetails'
 import AffiliateDashboard from '@/pages/dashboard/AffiliateDashboard'
 import GuiaDeModa from '@/pages/GuiaDeModa'
 import AgentDashboard from '@/pages/agent/AgentDashboard'
@@ -159,10 +163,7 @@ export default function App() {
                   <Route path="/join/guide" element={<JoinGuide />} />
                   <Route path="/join/influencer" element={<JoinInfluencer />} />
                   <Route path="/join/agent" element={<JoinAgent />} />
-                  <Route
-                    path="/forgot-password"
-                    element={<PlaceholderPage title="Recuperar Senha" />}
-                  />
+                  <Route path="customers/:id" element={<CustomerDetails />} />{' '}
                   <Route path="/admin/login" element={<Login />} />
                 </Route>
 
@@ -217,10 +218,7 @@ export default function App() {
                     <Route path="vallen-ia" element={<VallenIA />} />
                     <Route path="maquina-vendas" element={<SalesMachine />} />
                     <Route path="customers" element={<DashboardCustomers />} />
-                    <Route
-                      path="customers/:id"
-                      element={<PlaceholderPage title="Detalhes do Cliente" />}
-                    />
+                    <Route path="customers/:id" element={<CustomerDetails />} />
                     <Route path="products" element={<DashboardProjects />} />
                     <Route
                       path="admin-products"

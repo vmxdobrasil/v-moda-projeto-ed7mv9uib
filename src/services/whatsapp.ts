@@ -1,82 +1,46 @@
 import pb from '@/lib/pocketbase/client'
 
-export interface WhatsappConfig {
-  id?: string
-  user: string
-  api_url: string
-  token?: string
-  instance_id?: string
-}
+export const getWhatsappConfigs = () =>
+  pb.collection('whatsapp_configs').getFullList({ sort: '-created' })
 
-export interface WhatsappTemplate {
-  id?: string
-  user: string
-  name: string
-  trigger_event: 'welcome_message' | 'ranking_promotion' | 'benefit_alert' | 'reactivation_campaign'
-  content: string
-  is_active: boolean
-}
-
-export const getWhatsappTemplates = async (userId: string) => {
-  return pb.collection('whatsapp_templates').getFullList<WhatsappTemplate>({
-    filter: `user = "${userId}"`,
-    sort: '-created',
-  })
-}
-
-export const saveWhatsappTemplate = async (data: Partial<WhatsappTemplate>) => {
-  if (data.id) {
-    return pb.collection('whatsapp_templates').update(data.id, data)
+export const saveWhatsappConfig = async (data: any) => {
+  const configs = await getWhatsappConfigs()
+  if (configs.length > 0) {
+    return pb.collection('whatsapp_configs').update(configs[0].id, data)
   } else {
-    return pb.collection('whatsapp_templates').create(data)
+    return pb.collection('whatsapp_configs').create({ ...data, user: pb.authStore.record?.id })
   }
 }
 
-export const deleteWhatsappTemplate = async (id: string) => {
-  return pb.collection('whatsapp_templates').delete(id)
+export const getEvolutionStatus = async (instance?: string) => {
+  const url = instance
+    ? `/backend/v1/evolution_api/status?instance=${instance}`
+    : `/backend/v1/evolution_api/status`
+  return pb.send(url, { method: 'GET' })
 }
 
-export const getWhatsappConfigs = async (userId: string) => {
-  return pb.collection('whatsapp_configs').getFullList<WhatsappConfig>({
-    filter: `user = "${userId}"`,
-    sort: '-created',
-  })
+export const getEvolutionConnect = async (instance?: string) => {
+  const url = instance
+    ? `/backend/v1/evolution_api/connect?instance=${instance}`
+    : `/backend/v1/evolution_api/connect`
+  return pb.send(url, { method: 'GET' })
 }
 
-export const deleteWhatsappConfig = async (id: string) => {
-  return pb.collection('whatsapp_configs').delete(id)
-}
-
-export const saveWhatsappConfig = async (data: Partial<WhatsappConfig>) => {
-  if (data.id) {
-    return pb.collection('whatsapp_configs').update(data.id, data)
-  } else {
-    return pb.collection('whatsapp_configs').create(data)
-  }
-}
-
-export const sendManualWhatsapp = async (customerId: string, message: string = 'Olá!') => {
-  if (!pb.authStore.isValid || !pb.authStore.token) {
-    throw new Error('Sessão expirada. Por favor, faça login novamente para enviar mensagens.')
-  }
-
-  const customer = await pb.collection('customers').getOne(customerId)
-  if (!customer.phone) throw new Error('Cliente sem telefone cadastrado.')
-
+export const sendWhatsappMessage = async (phone: string, message: string, instance_id?: string) => {
   return pb.send('/backend/v1/evolution_api/send', {
     method: 'POST',
-    body: JSON.stringify({ phone: customer.phone, message }),
+    body: JSON.stringify({ phone, message, instance_id }),
     headers: { 'Content-Type': 'application/json' },
   })
 }
 
-export const sendReactivationCampaign = async (customerIds: string[]) => {
-  if (!pb.authStore.isValid || !pb.authStore.token) {
-    throw new Error('Sessão expirada. Por favor, faça login novamente para enviar mensagens.')
-  }
-  return pb.send('/backend/v1/whatsapp/reactivate', {
-    method: 'POST',
-    body: JSON.stringify({ customerIds }),
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
+export const getTemplates = () =>
+  pb.collection('whatsapp_templates').getFullList({ sort: '-created' })
+
+export const createTemplate = (data: any) =>
+  pb.collection('whatsapp_templates').create({ ...data, user: pb.authStore.record?.id })
+
+export const updateTemplate = (id: string, data: any) =>
+  pb.collection('whatsapp_templates').update(id, data)
+
+export const deleteTemplate = (id: string) => pb.collection('whatsapp_templates').delete(id)

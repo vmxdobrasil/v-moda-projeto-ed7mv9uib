@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T21:23:19.701Z",
+  "generatedAt": "2026-06-19T22:37:57.557Z",
   "collections": [
     {
       "name": "users",
@@ -310,7 +310,19 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["new", "interested", "negotiating", "converted", "inactive", "proposal"]
+          "selectValues": [
+            "new",
+            "interested",
+            "negotiating",
+            "converted",
+            "inactive",
+            "proposal",
+            "lead",
+            "contact",
+            "qualified",
+            "negotiation",
+            "closed"
+          ]
         },
         {
           "name": "manufacturer",
@@ -591,15 +603,23 @@
           "type": "date",
           "required": false,
           "system": false
+        },
+        {
+          "name": "estimated_value",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_customers_manufacturer ON customers (manufacturer)",
-        "CREATE INDEX idx_customers_status ON customers (status)",
-        "CREATE INDEX `idx_customers_phone` ON `customers` (phone)",
         "CREATE INDEX `idx_customers_city` ON `customers` (city)",
         "CREATE INDEX `idx_customers_state` ON `customers` (state)",
-        "CREATE INDEX `idx_customers_manufacturer_phone` ON `customers` (manufacturer, phone)"
+        "CREATE INDEX `idx_customers_manufacturer_phone` ON `customers` (manufacturer, phone)",
+        "CREATE INDEX `idx_customers_name` ON `customers` (name)",
+        "CREATE INDEX `idx_customers_status` ON `customers` (status)",
+        "CREATE INDEX `idx_customers_phone` ON `customers` (phone)",
+        "CREATE INDEX `idx_customers_shipping_method` ON `customers` (shipping_method)"
       ]
     },
     {
