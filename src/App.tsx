@@ -65,8 +65,10 @@ import ZoopProposal from '@/pages/admin/ZoopProposal'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
 import DashboardLogistics from '@/pages/dashboard/Logistics'
 import DashboardCustomers from '@/pages/dashboard/Customers'
+import CustomerDetails from '@/pages/dashboard/CustomerDetails'
 import DashboardAnalytics from '@/pages/dashboard/Analytics'
 import ManufacturersHub from '@/pages/dashboard/Manufacturers'
+import CustomerDetails from '@/pages/dashboard/CustomerDetails'
 import AffiliateDashboard from '@/pages/dashboard/AffiliateDashboard'
 import GuiaDeModa from '@/pages/GuiaDeModa'
 import AgentDashboard from '@/pages/agent/AgentDashboard'
@@ -162,10 +164,7 @@ export default function App() {
                   <Route path="/join/guide" element={<JoinGuide />} />
                   <Route path="/join/influencer" element={<JoinInfluencer />} />
                   <Route path="/join/agent" element={<JoinAgent />} />
-                  <Route
-                    path="/forgot-password"
-                    element={<PlaceholderPage title="Recuperar Senha" />}
-                  />
+                  <Route path="customers/:id" element={<CustomerDetails />} />{' '}
                   <Route path="/admin/login" element={<Login />} />
                 </Route>
 
@@ -220,10 +219,7 @@ export default function App() {
                     <Route path="vallen-ia" element={<VallenIA />} />
                     <Route path="maquina-vendas" element={<SalesMachine />} />
                     <Route path="customers" element={<DashboardCustomers />} />
-                    <Route
-                      path="customers/:id"
-                      element={<PlaceholderPage title="Detalhes do Cliente" />}
-                    />
+                    <Route path="customers/:id" element={<CustomerDetails />} />
                     <Route path="products" element={<DashboardProjects />} />
                     <Route
                       path="admin-products"

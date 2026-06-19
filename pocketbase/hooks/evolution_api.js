@@ -77,6 +77,156 @@ routerAdd(
 )
 
 routerAdd(
+  'GET',
+  '/backend/v1/evolution_api/connect',
+  (e) => {
+    let apiUrl =
+      $secrets.get('EVOLUTION_API_URL') || 'https://evolution-evolution.6xxwvj.easypanel.host'
+    let token = $secrets.get('EVOLUTION_API_KEY') || '7i5UsFq1MM8pEbt8NqCVDPglfY8v9LTd'
+    const instanceQuery = e.request.url.query().get('instance')
+    let targetInstance = instanceQuery || 'vmoda'
+
+    try {
+      const configs = $app.findRecordsByFilter(
+        'whatsapp_configs',
+        'user = {:userId}',
+        '-created',
+        1,
+        0,
+        { userId: e.auth.id },
+      )
+      if (configs && configs.length > 0) {
+        const config = configs[0]
+        if (config.getString('api_url')) apiUrl = config.getString('api_url')
+        if (config.getString('token')) token = config.getString('token')
+        if (!instanceQuery && config.getString('instance_id')) {
+          targetInstance = config.getString('instance_id').split(',')[0].trim()
+        }
+      }
+    } catch (_) {}
+
+    try {
+      const url = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
+      const res = $http.send({
+        url: `${url}/instance/connect/${targetInstance}`,
+        method: 'GET',
+        headers: { apikey: token },
+        timeout: 15,
+      })
+
+      if (res.statusCode === 200) {
+        return e.json(200, res.json)
+      } else {
+        return e.json(res.statusCode, { error: 'Failed to get QR code', details: res.json })
+      }
+    } catch (err) {
+      return e.internalServerError('Failed to connect to Evolution API: ' + String(err))
+    }
+  },
+  $apis.requireAuth(),
+)
+
+routerAdd(
+  'POST',
+  '/backend/v1/evolution_api/logout',
+  (e) => {
+    let apiUrl =
+      $secrets.get('EVOLUTION_API_URL') || 'https://evolution-evolution.6xxwvj.easypanel.host'
+    let token = $secrets.get('EVOLUTION_API_KEY') || '7i5UsFq1MM8pEbt8NqCVDPglfY8v9LTd'
+    const body = e.requestInfo().body || {}
+    let targetInstance = body.instance || 'vmoda'
+
+    try {
+      const configs = $app.findRecordsByFilter(
+        'whatsapp_configs',
+        'user = {:userId}',
+        '-created',
+        1,
+        0,
+        { userId: e.auth.id },
+      )
+      if (configs && configs.length > 0) {
+        const config = configs[0]
+        if (config.getString('api_url')) apiUrl = config.getString('api_url')
+        if (config.getString('token')) token = config.getString('token')
+        if (!body.instance && config.getString('instance_id')) {
+          targetInstance = config.getString('instance_id').split(',')[0].trim()
+        }
+      }
+    } catch (_) {}
+
+    try {
+      const url = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
+      const res = $http.send({
+        url: `${url}/instance/logout/${targetInstance}`,
+        method: 'DELETE',
+        headers: { apikey: token },
+        timeout: 15,
+      })
+      return e.json(200, { success: true })
+    } catch (err) {
+      return e.internalServerError('Failed to disconnect from Evolution API: ' + String(err))
+    }
+  },
+  $apis.requireAuth(),
+)
+
+routerAdd(
+  'GET',
+  '/backend/v1/evolution_api/connect',
+  (e) => {
+    const instanceQuery = e.request.url.query().get('instance')
+
+    let apiUrl =
+      $secrets.get('EVOLUTION_API_URL') || 'https://evolution-evolution.6xxwvj.easypanel.host'
+    let token = $secrets.get('EVOLUTION_API_KEY') || '7i5UsFq1MM8pEbt8NqCVDPglfY8v9LTd'
+    let targetInstance = instanceQuery || 'vmoda'
+
+    try {
+      const configs = $app.findRecordsByFilter(
+        'whatsapp_configs',
+        'user = {:userId}',
+        '-created',
+        100,
+        0,
+        { userId: e.auth.id },
+      )
+      if (configs && configs.length > 0) {
+        const config = configs[0]
+        if (config.getString('api_url')) apiUrl = config.getString('api_url')
+        if (config.getString('token')) token = config.getString('token')
+        if (!instanceQuery && config.getString('instance_id')) {
+          targetInstance = config.getString('instance_id').split(',')[0].trim()
+        }
+      }
+    } catch (_) {}
+
+    if (!apiUrl || !token || !targetInstance) {
+      return e.badRequestError('Configuração incompleta')
+    }
+
+    try {
+      const url = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
+      const res = $http.send({
+        url: `${url}/instance/connect/${targetInstance}`,
+        method: 'GET',
+        headers: { apikey: token },
+        timeout: 15,
+      })
+
+      if (res.statusCode === 200) {
+        return e.json(200, res.json)
+      } else {
+        return e.json(res.statusCode, res.json || { error: 'Falha ao obter QR Code' })
+      }
+    } catch (err) {
+      return e.internalServerError('Falha de rede ao conectar com Evolution API')
+    }
+  },
+  $apis.requireAuth(),
+)
+
+routerAdd(
   'POST',
   '/backend/v1/evolution_api/send',
   (e) => {
@@ -143,7 +293,6 @@ routerAdd(
     const url = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
 
     try {
-      // Load balancer logic: rotate across configured instances to distribute load and handle offline nodes
       let allInstances = []
       try {
         const configs = $app.findRecordsByFilter(
@@ -165,10 +314,8 @@ routerAdd(
       } catch (_) {}
 
       let instancesToTry = allInstances.length > 0 ? allInstances : [instanceId]
-      // Randomize array to distribute load evenly across connected e-SIMs
       instancesToTry = instancesToTry.sort(() => Math.random() - 0.5)
 
-      // If a specific instance was requested via UI, prioritize it
       if (body.instance_id && instancesToTry.includes(body.instance_id)) {
         instancesToTry = [
           body.instance_id,
@@ -198,13 +345,45 @@ routerAdd(
           })
 
           if (res.statusCode === 200 || res.statusCode === 201) {
+            try {
+              let channelId = null
+              const channels = $app.findRecordsByFilter(
+                'channels',
+                "type='whatsapp'",
+                '-created',
+                1,
+                0,
+              )
+              if (channels.length > 0) {
+                channelId = channels[0].id
+              } else {
+                const col = $app.findCollectionByNameOrId('channels')
+                const rec = new Record(col)
+                rec.set('name', 'WhatsApp')
+                rec.set('type', 'whatsapp')
+                rec.set('status', true)
+                $app.save(rec)
+                channelId = rec.id
+              }
+
+              const msgCol = $app.findCollectionByNameOrId('messages')
+              const msgRec = new Record(msgCol)
+              msgRec.set('channel', channelId)
+              msgRec.set('sender_id', e.auth.id)
+              msgRec.set('sender_name', e.auth.getString('name') || e.auth.getString('email'))
+              msgRec.set('content', message)
+              msgRec.set('direction', 'outbound')
+              msgRec.set('status', 'replied')
+              $app.save(msgRec)
+            } catch (err) {
+              $app.logger().error('Failed to log message to DB', 'err', String(err))
+            }
             return e.json(res.statusCode, res.json)
           } else {
             lastError = `Status ${res.statusCode}`
             $app
               .logger()
               .error('Evolution API Send Error on instance ' + inst, 'statusCode', res.statusCode)
-            // Retry on Next Instance if offline, auth issue, or missing instance
             if (res.statusCode === 404 || res.statusCode === 428 || res.statusCode === 401) {
               continue
             } else {
