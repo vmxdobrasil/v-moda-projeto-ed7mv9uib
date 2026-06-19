@@ -7,6 +7,9 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { AuthGuard, PublicRoute, ManufacturerGuard, AdminGuard } from '@/components/AuthGuard'
 import { AiAssistantProvider, LiveChat } from '@/components/LiveChat'
 import { PublicLayout } from '@/components/PublicLayout'
+import { PwaProvider } from '@/components/pwa/PwaProvider'
+import { PwaUpdateBanner } from '@/components/pwa/PwaUpdateBanner'
+import { PwaOnboarding } from '@/components/pwa/PwaOnboarding'
 
 // Normalize backend API calls to use absolute URL and prevent returning HTML
 const originalFetch = window.fetch

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T21:23:19.701Z",
+  "generatedAt": "2026-06-19T22:05:05.460Z",
   "collections": [
     {
       "name": "users",
@@ -310,7 +310,19 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["new", "interested", "negotiating", "converted", "inactive", "proposal"]
+          "selectValues": [
+            "new",
+            "interested",
+            "negotiating",
+            "converted",
+            "inactive",
+            "proposal",
+            "lead",
+            "contact",
+            "qualified",
+            "negotiation",
+            "closed"
+          ]
         },
         {
           "name": "manufacturer",
@@ -589,6 +601,12 @@
         {
           "name": "last_action_date",
           "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estimated_value",
+          "type": "number",
           "required": false,
           "system": false
         }
