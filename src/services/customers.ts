@@ -1,52 +1,38 @@
 import pb from '@/lib/pocketbase/client'
 
-export interface Customer {
-  id: string
-  name: string
-  email: string
-  phone: string
-  status: string
-  source: string
-  manufacturer?: string
-  whatsapp_group_name?: string
-  whatsapp_welcome_sent?: boolean
-  is_verified?: boolean
-  created: string
-  updated: string
-  [key: string]: any
+export const getCustomers = async (page = 1, perPage = 50, options = {}) => {
+  return pb.collection('customers').getList(page, perPage, options)
 }
 
-export const getCustomersPaginated = async (page: number, perPage: number, search?: string) => {
-  const filter = search ? `(name ~ "${search}" || phone ~ "${search}" || email ~ "${search}")` : ''
-  const result = await pb.collection('customers').getList<Customer>(page, perPage, {
-    sort: '-updated',
-    filter,
-  })
-  return {
-    items: result.items,
-    totalPages: result.totalPages,
-    totalItems: result.totalItems,
-  }
+export const getCustomer = async (id: string, options = {}) => {
+  return pb.collection('customers').getOne(id, options)
 }
 
-export const bulkTagCustomers = async (data: {
+export const createCustomer = async (data: any) => {
+  return pb.collection('customers').create(data)
+}
+
+export const updateCustomer = async (id: string, data: any) => {
+  return pb.collection('customers').update(id, data)
+}
+
+export const deleteCustomer = async (id: string) => {
+  return pb.collection('customers').delete(id)
+}
+
+export interface BulkTagData {
   tags: string[]
+  operation: 'add' | 'remove'
+  ids?: string[]
   selectAll?: boolean
   filter?: string
   excludedIds?: string[]
-  ids?: string[]
-}) => {
-  return pb.send<{ updatedCount: number }>('/backend/v1/customers/bulk-tag', {
-    method: 'POST',
-    body: data,
-  })
 }
 
-export const getCustomers = () =>
-  pb.collection('customers').getFullList<Customer>({ sort: '-created' })
-export const getCustomer = (id: string) => pb.collection('customers').getOne<Customer>(id)
-export const createCustomer = (data: Partial<Customer>) =>
-  pb.collection('customers').create<Customer>(data)
-export const updateCustomer = (id: string, data: Partial<Customer>) =>
-  pb.collection('customers').update<Customer>(id, data)
-export const deleteCustomer = (id: string) => pb.collection('customers').delete(id)
+export const bulkTagCustomers = async (data: BulkTagData) => {
+  const res = await pb.send<{ updatedCount: number }>('/backend/v1/customers/bulk-tag', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+  return res
+}
