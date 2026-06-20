@@ -64,6 +64,7 @@ import JoinGuide from '@/pages/join/Guide'
 import JoinInfluencer from '@/pages/join/Influencer'
 import JoinAgent from '@/pages/join/Agent'
 import AdminLayout from '@/pages/admin/AdminLayout'
+import AdminCRMGlobal from '@/pages/admin/AdminCRMGlobal'
 import AdminCommissions from '@/pages/admin/Commissions'
 import AdminInsights from '@/pages/admin/AdminInsights'
 import AdminPartners from '@/pages/admin/Partners'
@@ -254,6 +255,7 @@ export default function App() {
                     <Route path="/admin" element={<AdminLayout />}>
                       <Route index element={<AdminDashboard />} />
                       <Route path="hub" element={<DashboardHub />} />
+                      <Route path="crm-global" element={<AdminCRMGlobal />} />
                       <Route path="comissoes" element={<AdminCommissions />} />
                       <Route path="v-club" element={<AdminVClub />} />
                       <Route path="agentes" element={<AdminPartners defaultTab="agent" />} />

@@ -89,6 +89,14 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/admin/crm-global')}>
+                    <Link to="/admin/crm-global">
+                      <Activity />
+                      <span>CRM Global</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={getIsActive('/admin/assinaturas')}>
                     <Link to="/admin/assinaturas">
                       <Wallet />
