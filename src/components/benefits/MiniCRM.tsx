@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
-import { getCustomers, updateCustomer, createCustomer, type Customer } from '@/services/customers'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -28,8 +26,48 @@ import {
 } from '@/components/ui/table'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, MessageCircle, QrCode } from 'lucide-react'
+import {
+  Plus,
+  Pencil,
+  ArrowRight,
+  TrendingUp,
+  Users,
+  PhoneCall,
+  Handshake,
+  CheckCircle,
+} from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
+import pb from '@/lib/pocketbase/client'
+import { format } from 'date-fns'
+
+type FunnelStatus = 'new' | 'contact' | 'negotiation' | 'closed'
+
+interface Customer {
+  id: string
+  name: string
+  origin_store_name: string
+  phone: string
+  source: string
+  status: FunnelStatus | string
+  last_action_date: string
+  updated: string
+  created: string
+}
+
+const statusMap: Record<string, { label: string; color: string; next?: FunnelStatus }> = {
+  new: { label: 'Novo', color: 'bg-blue-500 text-white', next: 'contact' },
+  contact: { label: 'Em contato', color: 'bg-yellow-500 text-yellow-950', next: 'negotiation' },
+  negotiation: { label: 'Venda iniciada', color: 'bg-orange-500 text-white', next: 'closed' },
+  closed: { label: 'Fechada', color: 'bg-green-500 text-white' },
+}
+
+const sourceMap: Record<string, string> = {
+  whatsapp: 'WhatsApp',
+  instagram: 'Instagram',
+  email: 'E-mail',
+  site: 'Site',
+  manual: 'Manual',
+}
 
 export function MiniCRM() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -39,20 +77,21 @@ export function MiniCRM() {
   const [formData, setFormData] = useState<Partial<Customer>>({
     name: '',
     phone: '',
+    origin_store_name: '',
     status: 'new',
-    logistics_status: 'Aguardando Ônibus',
-    notes: '',
-    seat_number: undefined,
-    active_route: '',
-    freight_value: undefined,
+    source: 'manual',
   })
 
   const loadData = async () => {
     try {
-      const data = await getCustomers()
-      setCustomers(data)
+      const records = await pb.collection('customers').getFullList<Customer>({
+        filter:
+          "source = 'whatsapp' || source = 'instagram' || source = 'email' || source = 'site' || source = 'manual'",
+        sort: '-created',
+      })
+      setCustomers(records)
     } catch (err) {
-      toast.error('Erro ao carregar clientes')
+      toast.error('Erro ao carregar leads')
     } finally {
       setLoading(false)
     }
@@ -66,31 +105,72 @@ export function MiniCRM() {
     loadData()
   })
 
+  const validStatusCustomers = customers.filter((c) =>
+    ['new', 'contact', 'negotiation', 'closed'].includes(c.status),
+  )
+  const totalLeads = validStatusCustomers.length
+
+  const counts = {
+    new: validStatusCustomers.filter((c) => c.status === 'new').length,
+    contact: validStatusCustomers.filter((c) => c.status === 'contact').length,
+    negotiation: validStatusCustomers.filter((c) => c.status === 'negotiation').length,
+    closed: validStatusCustomers.filter((c) => c.status === 'closed').length,
+  }
+
+  const currentMonth = new Date().getMonth()
+  const currentYear = new Date().getFullYear()
+  const closedThisMonth = validStatusCustomers.filter((c) => {
+    if (c.status !== 'closed') return false
+    const dateStr = c.last_action_date || c.updated
+    if (!dateStr) return false
+    const date = new Date(dateStr)
+    return date.getMonth() === currentMonth && date.getFullYear() === currentYear
+  }).length
+
   const handleSave = async () => {
-    if (!formData.name) return toast.error('Nome é obrigatório')
+    if (!formData.name) return toast.error('Nome do contato é obrigatório')
     try {
+      const dataToSave = {
+        ...formData,
+        last_action_date: new Date().toISOString(),
+        manufacturer: pb.authStore.record?.id,
+      }
+
       if (editingCustomer) {
-        await updateCustomer(editingCustomer.id, formData)
-        toast.success('Cliente atualizado')
+        await pb.collection('customers').update(editingCustomer.id, dataToSave)
+        toast.success('Lead atualizado')
       } else {
-        await createCustomer(formData)
-        toast.success('Cliente adicionado')
+        await pb.collection('customers').create(dataToSave)
+        toast.success('Lead adicionado')
       }
       setIsNewOpen(false)
       setEditingCustomer(null)
       setFormData({
         name: '',
         phone: '',
+        origin_store_name: '',
         status: 'new',
-        logistics_status: 'Aguardando Ônibus',
-        notes: '',
-        seat_number: undefined,
-        active_route: '',
-        freight_value: undefined,
+        source: 'manual',
       })
       loadData()
     } catch (err) {
-      toast.error('Erro ao salvar')
+      toast.error('Erro ao salvar lead')
+    }
+  }
+
+  const handleAdvanceStatus = async (customer: Customer) => {
+    const current = statusMap[customer.status]
+    if (!current || !current.next) return
+
+    try {
+      await pb.collection('customers').update(customer.id, {
+        status: current.next,
+        last_action_date: new Date().toISOString(),
+      })
+      toast.success('Status avançado com sucesso')
+      loadData()
+    } catch (err) {
+      toast.error('Erro ao atualizar status')
     }
   }
 
@@ -99,282 +179,225 @@ export function MiniCRM() {
     setFormData({
       name: c.name,
       phone: c.phone,
+      origin_store_name: c.origin_store_name,
       status: c.status,
-      logistics_status: c.logistics_status,
-      notes: c.notes,
-      seat_number: c.seat_number,
-      active_route: c.active_route,
-      freight_value: c.freight_value,
+      source: c.source,
     })
+    setIsNewOpen(true)
+  }
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-'
+    try {
+      return format(new Date(dateStr), 'dd/MM/yyyy HH:mm')
+    } catch {
+      return '-'
+    }
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold">Meus Clientes</h2>
-          <p className="text-sm text-muted-foreground">
-            Acompanhe suas vendas, interessados e detalhes de logística.
+          <h2 className="text-2xl font-bold text-foreground">CRM de Leads</h2>
+          <p className="text-muted-foreground text-sm">
+            Acompanhe suas vendas e conversões pelo funil.
           </p>
         </div>
         <Dialog
-          open={isNewOpen || !!editingCustomer}
+          open={isNewOpen}
           onOpenChange={(open) => {
             if (!open) {
-              setIsNewOpen(false)
               setEditingCustomer(null)
               setFormData({
                 name: '',
                 phone: '',
+                origin_store_name: '',
                 status: 'new',
-                logistics_status: 'Aguardando Ônibus',
-                notes: '',
-                seat_number: undefined,
-                active_route: '',
-                freight_value: undefined,
+                source: 'manual',
               })
-            } else setIsNewOpen(true)
+            }
+            setIsNewOpen(open)
           }}
         >
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" /> Novo Cliente
+            <Button className="bg-orange-600 hover:bg-orange-700 text-white">
+              <Plus className="w-4 h-4 mr-2" /> Novo Lead
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>{editingCustomer ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
+              <DialogTitle>{editingCustomer ? 'Editar Lead' : 'Novo Lead'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nome</Label>
-                  <Input
-                    value={formData.name || ''}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Telefone</Label>
-                  <Input
-                    value={formData.phone || ''}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label>Marca (Nome da Loja)</Label>
+                <Input
+                  value={formData.origin_store_name || ''}
+                  onChange={(e) => setFormData({ ...formData, origin_store_name: e.target.value })}
+                  placeholder="Ex: Boutique da Moda"
+                />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nome do Contato</Label>
+                <Input
+                  value={formData.name || ''}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Ex: Maria Silva"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefone</Label>
+                <Input
+                  value={formData.phone || ''}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="Ex: 11999999999"
+                />
+              </div>
+              {!editingCustomer && (
                 <div className="space-y-2">
-                  <Label>Status da Venda</Label>
+                  <Label>Origem</Label>
                   <Select
-                    value={formData.status}
-                    onValueChange={(v) => setFormData({ ...formData, status: v as any })}
+                    value={formData.source}
+                    onValueChange={(v) => setFormData({ ...formData, source: v })}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="new">Novo</SelectItem>
-                      <SelectItem value="interested">Interessado</SelectItem>
-                      <SelectItem value="proposal">Proposta</SelectItem>
-                      <SelectItem value="negotiating">Em Negociação</SelectItem>
-                      <SelectItem value="converted">Convertido</SelectItem>
-                      <SelectItem value="inactive">Inativo</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                      <SelectItem value="instagram">Instagram</SelectItem>
+                      <SelectItem value="email">E-mail</SelectItem>
+                      <SelectItem value="site">Site/Landing Page</SelectItem>
+                      <SelectItem value="manual">Manual</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Status de Logística</Label>
-                  <Select
-                    value={formData.logistics_status || ''}
-                    onValueChange={(v) => setFormData({ ...formData, logistics_status: v as any })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Opcional" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Aguardando Ônibus">Aguardando Ônibus</SelectItem>
-                      <SelectItem value="Em Trânsito no Ônibus">Em Trânsito no Ônibus</SelectItem>
-                      <SelectItem value="Entregue">Entregue</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Poltrona</Label>
-                  <Input
-                    type="number"
-                    value={formData.seat_number || ''}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        seat_number: parseInt(e.target.value) || undefined,
-                      })
-                    }
-                    placeholder="Ex: 12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Rota</Label>
-                  <Input
-                    value={formData.active_route || ''}
-                    onChange={(e) => setFormData({ ...formData, active_route: e.target.value })}
-                    placeholder="Ex: SP-GO"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Valor Frete (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.freight_value || ''}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        freight_value: parseFloat(e.target.value) || undefined,
-                      })
-                    }
-                    placeholder="Ex: 50.00"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Anotações Gerais (Preferências, medidas, etc.)</Label>
-                <Textarea
-                  placeholder="Medidas, preferências de peça, etc."
-                  value={formData.notes || ''}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="min-h-[100px]"
-                />
-              </div>
-              {editingCustomer && editingCustomer.seat_number && (
-                <div className="flex flex-col items-center justify-center p-4 bg-muted/30 rounded-lg border mt-4">
-                  <p className="text-sm font-medium mb-2">QR Code de Embarque</p>
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(JSON.stringify({ id: editingCustomer.id, seat: editingCustomer.seat_number, route: editingCustomer.active_route }))}`}
-                    alt="QR Code"
-                    className="w-32 h-32 rounded-lg bg-white p-2 border shadow-sm"
-                  />
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Apresente no embarque para check-in rápido.
-                  </p>
                 </div>
               )}
-              <Button className="w-full mt-4" onClick={handleSave}>
-                Salvar Alterações
+              <Button
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white mt-2"
+                onClick={handleSave}
+              >
+                Salvar Lead
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="p-4 bg-card border border-border rounded-xl flex flex-col items-center justify-center text-center">
+          <Users className="h-5 w-5 text-orange-500 mb-2" />
+          <span className="text-2xl font-bold">{totalLeads}</span>
+          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            Total Leads
+          </span>
+        </div>
+        <div className="p-4 bg-card border border-border rounded-xl flex flex-col items-center justify-center text-center">
+          <div className="h-4 w-4 rounded-full bg-blue-500 mb-2" />
+          <span className="text-2xl font-bold">{counts.new}</span>
+          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            Novos
+          </span>
+        </div>
+        <div className="p-4 bg-card border border-border rounded-xl flex flex-col items-center justify-center text-center">
+          <PhoneCall className="h-5 w-5 text-yellow-500 mb-2" />
+          <span className="text-2xl font-bold">{counts.contact}</span>
+          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            Em Contato
+          </span>
+        </div>
+        <div className="p-4 bg-card border border-border rounded-xl flex flex-col items-center justify-center text-center">
+          <Handshake className="h-5 w-5 text-orange-500 mb-2" />
+          <span className="text-2xl font-bold">{counts.negotiation}</span>
+          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            Venda Iniciada
+          </span>
+        </div>
+        <div className="p-4 bg-card border border-border rounded-xl flex flex-col items-center justify-center text-center">
+          <CheckCircle className="h-5 w-5 text-green-500 mb-2" />
+          <span className="text-2xl font-bold">{counts.closed}</span>
+          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            Fechadas
+          </span>
+        </div>
+        <div className="p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900 rounded-xl flex flex-col items-center justify-center text-center">
+          <TrendingUp className="h-5 w-5 text-orange-600 mb-2" />
+          <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+            {closedThisMonth}
+          </span>
+          <span className="text-xs text-orange-600/80 dark:text-orange-400/80 font-medium uppercase tracking-wider mt-1">
+            Fechadas no Mês
+          </span>
+        </div>
+      </div>
+
       <div className="border rounded-lg bg-card overflow-x-auto">
-        <Table className="min-w-[900px]">
+        <Table className="min-w-[800px]">
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
+              <TableHead>Marca</TableHead>
               <TableHead>Contato</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Logística & Rota</TableHead>
-              <TableHead>Notas</TableHead>
+              <TableHead>Telefone</TableHead>
+              <TableHead>Origem</TableHead>
+              <TableHead>Status do Funil</TableHead>
+              <TableHead>Última Ação</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Carregando...
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  Carregando leads...
                 </TableCell>
               </TableRow>
-            ) : customers.length === 0 ? (
+            ) : validStatusCustomers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Nenhum cliente cadastrado.
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  Nenhum lead encontrado neste funil.
                 </TableCell>
               </TableRow>
             ) : (
-              customers.map((c) => (
+              validStatusCustomers.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
+                  <TableCell className="font-medium">
+                    {c.origin_store_name || c.name || '-'}
+                  </TableCell>
+                  <TableCell>{c.name}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{c.phone || '-'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {sourceMap[c.source] || c.source || '-'}
+                  </TableCell>
                   <TableCell>
                     <Badge
-                      variant={
-                        c.status === 'converted'
-                          ? 'default'
-                          : c.status === 'proposal'
-                            ? 'outline'
-                            : 'secondary'
-                      }
-                      className="capitalize"
+                      className={`${statusMap[c.status]?.color || 'bg-gray-500'} border-transparent hover:opacity-90 transition-opacity`}
                     >
-                      {c.status === 'proposal' ? 'Proposta' : c.status}
+                      {statusMap[c.status]?.label || c.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{c.logistics_status || '-'}</div>
-                    {(c.active_route || c.seat_number || c.freight_value) && (
-                      <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-2">
-                        {c.active_route && (
-                          <span className="bg-muted px-1.5 rounded">{c.active_route}</span>
-                        )}
-                        {c.seat_number && (
-                          <span className="bg-muted px-1.5 rounded">Poltrona {c.seat_number}</span>
-                        )}
-                        {c.freight_value && (
-                          <span className="bg-muted px-1.5 rounded">R$ {c.freight_value}</span>
-                        )}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell
-                    className="text-sm text-muted-foreground max-w-[200px] truncate"
-                    title={c.notes}
-                  >
-                    {c.notes || '-'}
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDate(c.last_action_date || c.updated)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={async () => {
-                          try {
-                            await pb.send(`/backend/v1/whatsapp/notify/${c.id}`, { method: 'POST' })
-                            toast.success('Notificação enviada com sucesso!')
-                          } catch (e) {
-                            toast.error('Erro ao enviar notificação')
-                          }
-                        }}
-                        title="Notificar via WhatsApp"
-                      >
-                        <MessageCircle className="w-4 h-4 text-green-500" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
-                        <Pencil className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => (window.location.href = `/manufacturer/negotiation/${c.id}`)}
-                        title="Open Negotiation Hub"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-blue-500"
+                    <div className="flex justify-end gap-2 items-center">
+                      {statusMap[c.status]?.next && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-orange-600 border-orange-200 hover:bg-orange-50 hover:text-orange-700 dark:hover:bg-orange-950 h-8"
+                          onClick={() => handleAdvanceStatus(c)}
                         >
-                          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                          <polyline points="14 2 14 8 20 8" />
-                          <path d="m9 15 2 2 4-4" />
-                        </svg>
+                          Avançar <ArrowRight className="w-3 h-3 ml-1" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openEdit(c)}
+                      >
+                        <Pencil className="w-4 h-4 text-muted-foreground" />
                       </Button>
                     </div>
                   </TableCell>
