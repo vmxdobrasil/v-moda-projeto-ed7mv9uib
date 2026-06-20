@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { toast } from '@/components/ui/use-toast'
 import { cn } from '@/lib/utils'
-import { queueRequest } from '@/lib/offline-sync'
+import { addToQueue } from '@/lib/offline-sync'
 
 export function FavoriteButton({ brandId, className }: { brandId: string; className?: string }) {
   const { user } = useAuth()
@@ -43,12 +43,16 @@ export function FavoriteButton({ brandId, className }: { brandId: string; classN
 
     if (!navigator.onLine) {
       if (isFavorite && favoriteId) {
-        await queueRequest('favorites', 'DELETE', null, favoriteId)
+        await addToQueue({ collection: 'favorites', method: 'DELETE', recordId: favoriteId })
         setIsFavorite(false)
         setFavoriteId(null)
         toast({ description: 'Removido (offline). Será sincronizado.' })
       } else if (!isFavorite) {
-        await queueRequest('favorites', 'POST', { user: user.id, brand: brandId })
+        await addToQueue({
+          collection: 'favorites',
+          method: 'POST',
+          data: { user: user.id, brand: brandId },
+        })
         setIsFavorite(true)
         toast({ description: 'Salvo (offline). Será sincronizado.' })
       }
