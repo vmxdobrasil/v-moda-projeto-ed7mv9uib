@@ -1,252 +1,528 @@
-import { useState, useEffect } from 'react'
-import { Award, MapPin, ShieldCheck, Star, Target, TrendingUp, CheckCircle2 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
+import { useState, useEffect, useMemo } from 'react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import {
+  Heart,
+  ShoppingBag,
+  Truck,
+  MapPin,
+  Search,
+  Star,
+  ShieldCheck,
+  Tag,
+  Package,
+} from 'lucide-react'
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
-import { Input } from '@/components/ui/input'
-import { useToast } from '@/hooks/use-toast'
-import { Label } from '@/components/ui/label'
+import { BrandCard } from '@/components/BrandCard'
+
+// Mock Data
+const MOCK_ORDERS = [
+  {
+    id: 'TRX-98231',
+    created: new Date().toISOString(),
+    amount: 2350.0,
+    status: 'approved',
+    logistics_status: 'Em Trânsito no Ônibus',
+    shipping_method: 'caravana_onibus',
+    tracking_code: 'ONIBUS-GO-SP-44',
+    store_name: 'Glamour Moda Feminina',
+    items: [
+      {
+        name: 'Vestido Longo Estampado',
+        price: 120,
+        quantity: 10,
+        image: 'https://img.usecurling.com/p/200/200?q=floral%20dress',
+      },
+      {
+        name: 'Conjunto Alfaiataria',
+        price: 230,
+        quantity: 5,
+        image: 'https://img.usecurling.com/p/200/200?q=womens%20suit',
+      },
+    ],
+  },
+  {
+    id: 'TRX-98230',
+    created: new Date(Date.now() - 5 * 86400000).toISOString(),
+    amount: 890.0,
+    status: 'approved',
+    logistics_status: 'Entregue',
+    shipping_method: 'transportadora',
+    tracking_code: 'BR987654321BR',
+    store_name: 'Denim Premium',
+    items: [
+      {
+        name: 'Calça Jeans Wide Leg',
+        price: 89,
+        quantity: 10,
+        image: 'https://img.usecurling.com/p/200/200?q=jeans',
+      },
+    ],
+  },
+]
+
+const MOCK_BRANDS = [
+  {
+    id: 'mock-1',
+    name: 'Arezzo',
+    ranking_category: 'moda_feminina',
+    is_exclusive: false,
+    city: 'Goiânia',
+    state: 'GO',
+    is_verified: true,
+    price_level: '$$',
+  },
+  {
+    id: 'mock-2',
+    name: 'Colcci',
+    ranking_category: 'jeans',
+    is_exclusive: true,
+    city: 'São Paulo',
+    state: 'SP',
+    is_verified: true,
+    price_level: '$$$',
+  },
+  {
+    id: 'mock-3',
+    name: 'Morena Rosa',
+    ranking_category: 'moda_feminina',
+    is_exclusive: false,
+    city: 'Maringá',
+    state: 'PR',
+    is_verified: true,
+    price_level: '$$',
+  },
+]
 
 export default function RevendaDashboard() {
   const { user } = useAuth()
-  const { toast } = useToast()
 
-  const careerLevel = user?.unlocked_benefits?.career_level || 'Consultora Fashion'
-  const isExclusive = user?.unlocked_benefits?.fashion_exclusive || false
-  const [zones, setZones] = useState<any[]>([])
-  const [newZone, setNewZone] = useState('')
+  const [favoritesCount, setFavoritesCount] = useState(0)
+  const [orders, setOrders] = useState<any[]>([])
+  const [myCustomers, setMyCustomers] = useState<any[]>([])
+  const [brands, setBrands] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const levels = [
-    { name: 'Consultora Fashion', required: 0 },
-    { name: 'Consultora Fashion Exclusive', required: 100 },
-    { name: 'Consultora Master/Mentora', required: 500 },
-  ]
-
-  const currentLevelIndex = levels.findIndex((l) => l.name === careerLevel)
-  const progress = currentLevelIndex >= 0 ? (currentLevelIndex / (levels.length - 1)) * 100 : 0
+  const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
 
   useEffect(() => {
-    loadZones()
-  }, [])
-
-  const loadZones = async () => {
     if (!user) return
-    try {
-      const records = await pb.collection('zone_requests').getFullList({
-        filter: `requester = "${user.id}"`,
-        sort: '-created',
-      })
-      setZones(records)
-    } catch (e) {
-      console.error(e)
-    }
-  }
 
-  const requestZone = async () => {
-    if (!newZone.trim()) return
-    try {
-      await pb.collection('zone_requests').create({
-        requester: user?.id,
-        zone_name: newZone,
-        status: 'pending',
-      })
-      setNewZone('')
-      loadZones()
-      toast({ title: 'Sucesso', description: 'Solicitação de zona enviada com sucesso!' })
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao solicitar zona.' })
-    }
+    Promise.all([
+      // Favorites Count
+      pb
+        .collection('favorites')
+        .getList(1, 1, { filter: `user = "${user.id}"` })
+        .then((res) => setFavoritesCount(res.totalItems))
+        .catch(() => {}),
+
+      // CRM Records for the Retailer (where email or phone matches)
+      (async () => {
+        const phoneFilter = user.phone ? `|| phone = "${user.phone}"` : ''
+        try {
+          const customers = await pb.collection('customers').getFullList({
+            filter: `email = "${user.email}" ${phoneFilter}`,
+            expand: 'manufacturer',
+          })
+          setMyCustomers(customers)
+        } catch {
+          /* intentionally ignored */
+        }
+      })(),
+
+      // Fetch Brands Catalog
+      pb
+        .collection('customers')
+        .getList(1, 50, {
+          filter: 'ranking_position > 0 || is_verified = true',
+          sort: 'ranking_position',
+          expand: 'category_id',
+        })
+        .then((res) => {
+          setBrands(res.items.length > 0 ? res.items : MOCK_BRANDS)
+        })
+        .catch(() => setBrands(MOCK_BRANDS)),
+
+      // Fetch Transactions/Orders
+      (async () => {
+        try {
+          const cards = await pb
+            .collection('v_club_cards')
+            .getFullList({ filter: `customer.email = "${user.email}"` })
+          if (cards.length > 0) {
+            const filterString = cards.map((c) => `card = "${c.id}"`).join(' || ')
+            const trans = await pb.collection('v_club_transactions').getFullList({
+              filter: filterString,
+              expand: 'store,card',
+            })
+            if (trans.length > 0) {
+              setOrders(trans)
+              return
+            }
+          }
+          setOrders(MOCK_ORDERS)
+        } catch (e) {
+          setOrders(MOCK_ORDERS)
+        }
+      })(),
+    ]).finally(() => setLoading(false))
+  }, [user])
+
+  const filteredBrands = useMemo(() => {
+    return brands.filter((b) => {
+      const matchSearch = b.name?.toLowerCase().includes(search.toLowerCase())
+      const matchCategory = categoryFilter === 'all' || b.ranking_category === categoryFilter
+      return matchSearch && matchCategory
+    })
+  }, [brands, search, categoryFilter])
+
+  const exclusiveBrands = useMemo(() => {
+    const fromCRM = myCustomers.filter((c) => c.is_exclusive)
+    if (fromCRM.length > 0) return fromCRM
+    return [
+      {
+        id: 'exc-1',
+        expand: { manufacturer: { name: 'Premium Denim' } },
+        exclusivity_zone: 'Goiânia - GO',
+        is_exclusive: true,
+      },
+    ]
+  }, [myCustomers])
+
+  const totalSpent = useMemo(() => orders.reduce((acc, o) => acc + (o.amount || 0), 0), [orders])
+  const deliveriesCount = useMemo(
+    () => orders.filter((o) => o.logistics_status && o.logistics_status !== 'Entregue').length,
+    [orders],
+  )
+
+  if (loading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Painel Revenda</h2>
-          <p className="text-muted-foreground">
-            Evolua sua carreira e gerencie suas zonas de atuação.
-          </p>
-        </div>
-        {isExclusive && (
-          <Badge
-            variant="default"
-            className="bg-amber-500 hover:bg-amber-600 text-white gap-1 px-3 py-1"
-          >
-            <ShieldCheck className="h-4 w-4" />
-            Fashion Exclusive
-          </Badge>
-        )}
+    <div className="flex-1 space-y-6 p-8 pt-6 animate-fade-in-up">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight font-serif text-primary">
+          Portal do Lojista
+        </h2>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Sua Jornada de Consultora
-            </CardTitle>
-            <CardDescription>
-              Acompanhe seu progresso e desbloqueie benefícios exclusivos.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium">Nível Atual: {careerLevel}</span>
-                <span className="text-sm text-muted-foreground">Progresso</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-              <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-                {levels.map((lvl, i) => (
-                  <span
-                    key={i}
-                    className={i <= currentLevelIndex ? 'text-foreground font-medium' : ''}
-                  >
-                    {lvl.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div
-                className={`p-4 rounded-lg border ${currentLevelIndex >= 0 ? 'bg-primary/5 border-primary/20' : 'bg-muted/50'}`}
-              >
-                <Star className="h-6 w-6 mb-2 text-primary" />
-                <h4 className="font-semibold mb-1">Consultora Fashion</h4>
-                <p className="text-xs text-muted-foreground">
-                  Acesso ao catálogo e materiais básicos de venda.
-                </p>
-              </div>
-              <div
-                className={`p-4 rounded-lg border ${currentLevelIndex >= 1 ? 'bg-primary/5 border-primary/20' : 'bg-muted/50 opacity-60'}`}
-              >
-                <ShieldCheck className="h-6 w-6 mb-2 text-amber-500" />
-                <h4 className="font-semibold mb-1">Fashion Exclusive</h4>
-                <p className="text-xs text-muted-foreground">
-                  Zonas de exclusividade e acesso antecipado às coleções.
-                </p>
-              </div>
-              <div
-                className={`p-4 rounded-lg border ${currentLevelIndex >= 2 ? 'bg-primary/5 border-primary/20' : 'bg-muted/50 opacity-60'}`}
-              >
-                <Award className="h-6 w-6 mb-2 text-purple-500" />
-                <h4 className="font-semibold mb-1">Master / Mentora</h4>
-                <p className="text-xs text-muted-foreground">
-                  Comissões extras, mentoria e destaque nacional.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-primary" />
-              Proteção de Território
-            </CardTitle>
-            <CardDescription>
-              Solicite zonas de atuação exclusiva (Disponível para Fashion Exclusive).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!isExclusive ? (
-              <div className="text-center p-6 border rounded-lg bg-amber-50/50 border-amber-200">
-                <ShieldCheck className="h-10 w-10 text-amber-500 mx-auto mb-3" />
-                <h3 className="font-semibold text-amber-900 mb-1">Certificação Necessária</h3>
-                <p className="text-sm text-amber-800">
-                  Conclua os módulos na Academy Fashion para solicitar zonas exclusivas.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1 space-y-1">
-                    <Label>Nova Zona (Cidade/Bairro)</Label>
-                    <Input
-                      placeholder="Ex: Zona Sul, São Paulo - SP"
-                      value={newZone}
-                      onChange={(e) => setNewZone(e.target.value)}
-                    />
-                  </div>
-                  <Button onClick={requestZone}>Solicitar</Button>
-                </div>
-
-                <div className="mt-6 space-y-3">
-                  <h4 className="text-sm font-semibold">Suas Solicitações</h4>
-                  {zones.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhuma solicitação encontrada.</p>
-                  ) : (
-                    zones.map((z) => (
-                      <div
-                        key={z.id}
-                        className="flex justify-between items-center p-3 border rounded-lg"
-                      >
-                        <span className="font-medium text-sm">{z.zone_name}</span>
-                        <Badge
-                          variant={
-                            z.status === 'approved'
-                              ? 'default'
-                              : z.status === 'denied'
-                                ? 'destructive'
-                                : 'secondary'
-                          }
-                        >
-                          {z.status === 'approved'
-                            ? 'Aprovado'
-                            : z.status === 'denied'
-                              ? 'Negado'
-                              : 'Pendente'}
-                        </Badge>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-primary" />
-              Metas e Benefícios
-            </CardTitle>
-            <CardDescription>Próximos passos para evolução.</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Marcas Favoritas</CardTitle>
+            <Heart className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <ul className="space-y-4">
-              <li className="flex gap-3 items-start">
-                <CheckCircle2
-                  className={`h-5 w-5 ${currentLevelIndex >= 1 ? 'text-green-500' : 'text-muted-foreground'}`}
-                />
-                <div>
-                  <p className="font-medium text-sm">Certificação Academy Fashion</p>
-                  <p className="text-xs text-muted-foreground">
-                    Conclua os cursos para virar Exclusive.
-                  </p>
-                </div>
-              </li>
-              <li className="flex gap-3 items-start">
-                <CheckCircle2
-                  className={`h-5 w-5 ${currentLevelIndex >= 2 ? 'text-green-500' : 'text-muted-foreground'}`}
-                />
-                <div>
-                  <p className="font-medium text-sm">Atingir R$ 10.000 em vendas</p>
-                  <p className="text-xs text-muted-foreground">
-                    Meta para o nível Master / Mentora.
-                  </p>
-                </div>
-              </li>
-            </ul>
+            <div className="text-2xl font-bold">{favoritesCount}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pedidos no Mês</CardTitle>
+            <ShoppingBag className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{orders.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valor Total Comprado</CardTitle>
+            <Star className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                totalSpent,
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Entregas em Andamento</CardTitle>
+            <Truck className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{deliveriesCount}</div>
           </CardContent>
         </Card>
       </div>
+
+      <Tabs defaultValue="catalog" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="catalog">Catálogo de Marcas</TabsTrigger>
+          <TabsTrigger value="orders">Meus Pedidos</TabsTrigger>
+          <TabsTrigger value="exclusivity">Minhas Exclusividades</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="catalog" className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-4 bg-background p-4 rounded-lg border shadow-sm">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar marcas..."
+                className="pl-8 bg-muted/50"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full md:w-[200px] bg-muted/50">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Categorias</SelectItem>
+                <SelectItem value="moda_feminina">Moda Feminina</SelectItem>
+                <SelectItem value="jeans">Jeans</SelectItem>
+                <SelectItem value="moda_praia">Moda Praia</SelectItem>
+                <SelectItem value="moda_masculina">Moda Masculina</SelectItem>
+                <SelectItem value="plus_size">Plus Size</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filteredBrands.map((brand) => (
+              <BrandCard key={brand.id} brand={brand} />
+            ))}
+            {filteredBrands.length === 0 && (
+              <div className="col-span-full py-12 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+                Nenhuma marca encontrada com os filtros atuais.
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="orders">
+          <Card>
+            <CardHeader>
+              <CardTitle>Histórico de Pedidos</CardTitle>
+              <CardDescription>Acompanhe o status e detalhes das suas compras.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Fornecedor</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Logística</TableHead>
+                    <TableHead className="text-right">Valor Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orders.map((order, idx) => (
+                    <TableRow
+                      key={idx}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedOrder(order)}
+                    >
+                      <TableCell className="font-medium">
+                        {order.id.slice(0, 8).toUpperCase()}
+                      </TableCell>
+                      <TableCell>
+                        {order.created ? format(new Date(order.created), 'dd/MM/yyyy') : '-'}
+                      </TableCell>
+                      <TableCell>{order.store_name || order.expand?.store?.name || '-'}</TableCell>
+                      <TableCell>
+                        <Badge variant={order.status === 'approved' ? 'default' : 'secondary'}>
+                          {order.status || 'Processando'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {order.logistics_status || 'Aguardando'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        }).format(order.amount || 0)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {orders.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                        Nenhum pedido encontrado.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="exclusivity">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {exclusiveBrands.map((exc, i) => (
+              <Card
+                key={i}
+                className="overflow-hidden relative border-primary/20 bg-gradient-to-br from-background to-primary/5"
+              >
+                <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-[10px] font-bold rounded-bl-lg flex items-center gap-1 z-10 shadow-sm uppercase tracking-wider">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Direito Exclusivo
+                </div>
+                <CardContent className="p-6 pt-8">
+                  <h3 className="font-serif text-xl font-bold mb-2 text-primary">
+                    {exc.expand?.manufacturer?.name || exc.manufacturer_name || 'Marca Premium'}
+                  </h3>
+                  <div className="flex items-center text-sm text-muted-foreground mb-4 bg-background px-3 py-1.5 rounded border">
+                    <MapPin className="w-4 h-4 mr-2 text-primary" />
+                    Região:{' '}
+                    <span className="font-medium text-foreground ml-1">
+                      {exc.exclusivity_zone || 'Região não definida'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Você possui direitos exclusivos de venda desta marca na sua região delimitada.
+                    Quaisquer novos leads desta região serão direcionados para o seu contato.
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              Detalhes do Pedido{' '}
+              <span className="text-muted-foreground font-mono text-sm ml-2">
+                #{selectedOrder?.id?.slice(0, 8).toUpperCase()}
+              </span>
+            </DialogTitle>
+            <DialogDescription>
+              Realizado em{' '}
+              {selectedOrder?.created &&
+                format(new Date(selectedOrder.created), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-6 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="bg-muted/30">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <ShoppingBag className="w-4 h-4" /> Fornecedor
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 font-medium">
+                  {selectedOrder?.store_name || selectedOrder?.expand?.store?.name || '-'}
+                </CardContent>
+              </Card>
+              <Card className="bg-muted/30">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Truck className="w-4 h-4" /> Status Logístico
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 text-sm">
+                  <Badge variant="outline" className="bg-background">
+                    {selectedOrder?.logistics_status || 'Aguardando'}
+                  </Badge>
+                  {selectedOrder?.tracking_code && (
+                    <div className="mt-2 text-xs font-mono bg-background p-1.5 rounded border inline-flex items-center">
+                      Rastreio: {selectedOrder.tracking_code}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                <Package className="w-4 h-4" /> Produtos
+              </h4>
+              <div className="max-h-[300px] overflow-y-auto pr-2 space-y-3">
+                {selectedOrder?.items?.map((item: any, i: number) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-4 p-3 border rounded-lg bg-background shadow-sm"
+                  >
+                    <img
+                      src={
+                        item.image || `https://img.usecurling.com/p/200/200?q=clothing&seed=${i}`
+                      }
+                      alt={item.name}
+                      className="w-16 h-16 rounded-md object-cover border"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{item.name || 'Produto'}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <Tag className="w-3 h-3 inline mr-1" /> Qtd: {item.quantity || 1}
+                      </p>
+                    </div>
+                    <div className="font-semibold tabular-nums">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format((item.price || 0) * (item.quantity || 1))}
+                    </div>
+                  </div>
+                ))}
+                {(!selectedOrder?.items || selectedOrder.items.length === 0) && (
+                  <div className="text-sm text-muted-foreground text-center py-4 border rounded-lg border-dashed">
+                    Detalhes dos produtos não disponíveis.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t">
+              <span className="font-semibold text-muted-foreground">Total do Pedido</span>
+              <span className="text-2xl font-bold tabular-nums text-primary">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                  selectedOrder?.amount || 0,
+                )}
+              </span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
