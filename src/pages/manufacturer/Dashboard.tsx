@@ -1,78 +1,65 @@
 import { useAuth } from '@/hooks/use-auth'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { VallenFabricanteChat } from '@/components/manufacturer/VallenFabricanteChat'
-
-const TEMPLATES = [
-  {
-    title: 'Lançamento de Coleção (WhatsApp)',
-    content:
-      'Olá! ✨ Acabamos de lançar nossa nova coleção no catálogo digital V MODA. Peças exclusivas com mínimo de atacado reduzido esta semana. Confira as 8 páginas de novidades: [Link]',
-  },
-  {
-    title: 'Reativação de VIP (V Club)',
-    content:
-      'Oi sumida! ❤️ Sentimos sua falta. Como você é cliente VIP no V Club, liberamos 5% de cashback extra na sua próxima compra no nosso catálogo. Vem conferir!',
-  },
-  {
-    title: 'Promoção de Estoque (Instagram)',
-    content:
-      'Últimas peças com preço especial de atacado! 👗 Arraste para cima e veja nosso catálogo digital. Condições exclusivas para revendedoras.',
-  },
-]
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Package, Users, Truck, Award } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export default function ManufacturerDashboard() {
   const { user } = useAuth()
 
   return (
-    <div className="container mx-auto py-8 px-4 space-y-8 animate-fade-in-up">
-      <div>
-        <h1 className="text-3xl font-bold">Painel do Fabricante</h1>
-        <p className="text-muted-foreground mt-2">
-          Bem-vindo(a), {user?.name || 'Fabricante'}. Gerencie seu catálogo, V Club e converse com a
-          Vallen.
-        </p>
-      </div>
+    <div className="space-y-6 animate-fade-in">
+      <h1 className="text-3xl font-bold tracking-tight">Olá, {user?.name || 'Fabricante'}!</h1>
+      <p className="text-muted-foreground">Bem-vindo ao seu portal de gestão do V Moda.</p>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Vallen - Consultora Especialista</CardTitle>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Link to="/manufacturer/catalog">
+          <Card className="hover:bg-accent/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Meu Catálogo</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent className="h-[600px] p-0 overflow-hidden rounded-b-lg border-t">
-              <VallenFabricanteChat />
+            <CardContent>
+              <div className="text-2xl font-bold">Gerenciar</div>
+              <p className="text-xs text-muted-foreground mt-1">Produtos e Coleções</p>
             </CardContent>
           </Card>
-        </div>
-
-        <div className="space-y-6">
-          <h2 className="text-xl font-semibold">Biblioteca de Templates</h2>
-          <p className="text-sm text-muted-foreground">Copie e cole mensagens de alta conversão.</p>
-
-          <div className="space-y-4">
-            {TEMPLATES.map((tpl, i) => (
-              <Card key={i}>
-                <CardHeader className="py-3">
-                  <CardTitle className="text-sm font-medium">{tpl.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md italic">
-                    "{tpl.content}"
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-3"
-                    onClick={() => navigator.clipboard.writeText(tpl.content)}
-                  >
-                    Copiar Texto
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+        </Link>
+        <Link to="/manufacturer/leads">
+          <Card className="hover:bg-accent/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">CRM & Leads</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">Acessar</div>
+              <p className="text-xs text-muted-foreground mt-1">Negociações e Clientes</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/manufacturer/logistics">
+          <Card className="hover:bg-accent/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Logística</CardTitle>
+              <Truck className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">Acompanhar</div>
+              <p className="text-xs text-muted-foreground mt-1">Status de Envios</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/manufacturer/v-club">
+          <Card className="hover:bg-accent/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">V Club</CardTitle>
+              <Award className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">Configurar</div>
+              <p className="text-xs text-muted-foreground mt-1">Cashback e Benefícios</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
     </div>
   )

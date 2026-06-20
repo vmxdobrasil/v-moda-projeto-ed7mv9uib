@@ -1,6 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { useAuth } from '@/hooks/use-auth'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -9,79 +13,126 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
+import { useToast } from '@/hooks/use-toast'
+import { RecordModel } from 'pocketbase'
 
 export default function AgentDashboard() {
-  const [agents, setAgents] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const [regions, setRegions] = useState(user?.operating_regions || '')
+  const [cities, setCities] = useState(user?.operating_cities || '')
+  const [customers, setCustomers] = useState<RecordModel[]>([])
 
   useEffect(() => {
-    const loadAgents = async () => {
+    if (!user) return
+    const loadAssignedCustomers = async () => {
       try {
-        const records = await pb.collection('users').getFullList({
-          filter: "role = 'agent'",
+        const records = await pb.collection('customers').getList(1, 20, {
+          filter: "caravan_name != ''",
           sort: '-created',
         })
-        setAgents(records)
+        setCustomers(records.items)
       } catch (err) {
-        console.error('Failed to load agents', err)
-      } finally {
-        setLoading(false)
+        console.error(err)
       }
     }
-    loadAgents()
-  }, [])
+    loadAssignedCustomers()
+  }, [user])
+
+  const updateProfile = async () => {
+    if (!user) return
+    try {
+      await pb.collection('users').update(user.id, {
+        operating_regions: regions,
+        operating_cities: cities,
+      })
+      toast({ title: 'Perfil atualizado' })
+    } catch (err) {
+      toast({ title: 'Erro ao atualizar perfil', variant: 'destructive' })
+    }
+  }
+
+  const updateNotes = async (id: string, notes: string) => {
+    try {
+      await pb.collection('customers').update(id, { logistics_notes: notes })
+      toast({ title: 'Notas atualizadas' })
+    } catch (error) {
+      toast({ title: 'Erro ao atualizar notas', variant: 'destructive' })
+    }
+  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Agentes Conveniados</h2>
-        <p className="text-muted-foreground">Gestão e acompanhamento de agentes parceiros.</p>
-      </div>
+    <div className="space-y-6 animate-fade-in-up">
+      <h1 className="text-3xl font-bold tracking-tight">Portal do Agente / Guia</h1>
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Agentes</CardTitle>
-          <CardDescription>Agentes ativos no sistema e suas regiões de atuação.</CardDescription>
+          <CardTitle>Minhas Regiões de Atuação</CardTitle>
+          <CardDescription>Defina onde você atua para receber leads e caravanas.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 max-w-lg">
+          <div className="space-y-2">
+            <Label>Regiões</Label>
+            <Input
+              value={regions}
+              onChange={(e) => setRegions(e.target.value)}
+              placeholder="Ex: Brás, Bom Retiro..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Cidades Base</Label>
+            <Input
+              value={cities}
+              onChange={(e) => setCities(e.target.value)}
+              placeholder="Ex: Goiânia, São Paulo..."
+            />
+          </div>
+          <Button onClick={updateProfile}>Salvar Regiões</Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Caravanas e Clientes</CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="py-4 text-center text-muted-foreground">Carregando...</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Regiões de Atuação</TableHead>
-                  <TableHead>Cidades</TableHead>
-                  <TableHead>Status</TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cliente / Loja</TableHead>
+                <TableHead>Caravana</TableHead>
+                <TableHead>Poltrona</TableHead>
+                <TableHead>Notas Logísticas</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {customers.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell className="font-medium">{c.name}</TableCell>
+                  <TableCell>{c.caravan_name}</TableCell>
+                  <TableCell>{c.seat_number || '-'}</TableCell>
+                  <TableCell>
+                    <Input
+                      defaultValue={c.logistics_notes}
+                      onBlur={(e) => {
+                        if (e.target.value !== c.logistics_notes) {
+                          updateNotes(c.id, e.target.value)
+                        }
+                      }}
+                      placeholder="Adicionar nota..."
+                    />
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {agents.map((agent) => (
-                  <TableRow key={agent.id}>
-                    <TableCell className="font-medium">{agent.name || 'N/A'}</TableCell>
-                    <TableCell>{agent.email}</TableCell>
-                    <TableCell>{agent.operating_regions || 'Não definido'}</TableCell>
-                    <TableCell>{agent.operating_cities || 'Não definido'}</TableCell>
-                    <TableCell>
-                      <Badge variant={agent.is_verified ? 'default' : 'secondary'}>
-                        {agent.is_verified ? 'Ativo' : 'Pendente'}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {agents.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
-                      Nenhum agente encontrado.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
+              ))}
+              {customers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
+                    Nenhum cliente ou caravana atribuído.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

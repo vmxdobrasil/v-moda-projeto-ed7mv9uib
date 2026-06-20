@@ -43,6 +43,8 @@ import Index from '@/pages/Index'
 import DashboardLayout from '@/pages/dashboard/DashboardLayout'
 import ManufacturerLayout from '@/pages/manufacturer/Layout'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
+import AdminTopBrands from '@/pages/admin/AdminTopBrands'
+import AdminManufacturers from '@/pages/admin/AdminManufacturers'
 import AdminProducts from '@/pages/admin/AdminProducts'
 import AdminCategories from '@/pages/admin/AdminCategories'
 import AdminMarketing from '@/pages/admin/AdminMarketing'
@@ -266,10 +268,8 @@ export default function App() {
                       <Route path="insights" element={<AdminInsights />} />
                       <Route path="zonas" element={<AdminZones />} />
                       <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
-                      <Route
-                        path="fabricantes"
-                        element={<PlaceholderPage title="TOP 60 MARCAS" />}
-                      />
+                      <Route path="fabricantes" element={<AdminTopBrands />} />
+                      <Route path="guia-marcas" element={<AdminManufacturers />} />
                       <Route path="produtos" element={<AdminProducts />} />
                       <Route path="catalogo" element={<AdminCatalog />} />
                       <Route path="clientes" element={<Customers />} />

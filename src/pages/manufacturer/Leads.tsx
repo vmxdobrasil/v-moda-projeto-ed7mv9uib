@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { useAuth } from '@/hooks/use-auth'
+import { useRealtime } from '@/hooks/use-realtime'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { BulkReactivationModal } from '@/components/crm/BulkReactivationModal'
 import {
   Table,
   TableBody,
@@ -10,114 +11,102 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useToast } from '@/hooks/use-toast'
+import { RecordModel } from 'pocketbase'
 
 export default function ManufacturerLeads() {
-  const [customers, setCustomers] = useState<any[]>([])
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const [leads, setLeads] = useState<RecordModel[]>([])
 
-  const loadData = async () => {
+  const loadLeads = async () => {
+    if (!user) return
     try {
       const records = await pb.collection('customers').getFullList({
-        filter: `manufacturer = "${pb.authStore.record?.id}"`,
+        filter: `manufacturer = '${user.id}'`,
         sort: '-created',
       })
-      setCustomers(records)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
+      setLeads(records)
+    } catch (error) {
+      console.error(error)
     }
   }
 
   useEffect(() => {
-    loadData()
-  }, [])
+    loadLeads()
+  }, [user])
 
-  const toggleAll = () => {
-    if (selectedIds.length === customers.length) {
-      setSelectedIds([])
-    } else {
-      setSelectedIds(customers.map((c) => c.id))
+  useRealtime('customers', () => {
+    loadLeads()
+  })
+
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      await pb.collection('customers').update(id, { status })
+      toast({ title: 'Status atualizado com sucesso' })
+    } catch (error) {
+      toast({ title: 'Erro ao atualizar', variant: 'destructive' })
     }
   }
 
-  const toggleOne = (id: string) => {
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
-  }
-
-  if (loading) return <div className="p-6">Carregando leads...</div>
-
   return (
-    <div className="p-6 space-y-6 animate-fade-in-up">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Leads & CRM</h1>
-        {selectedIds.length > 0 && (
-          <BulkReactivationModal
-            selectedCustomerIds={selectedIds}
-            onSuccess={() => {
-              setSelectedIds([])
-              loadData()
-            }}
-          />
-        )}
-      </div>
+    <div className="space-y-6 animate-fade-in-up">
+      <h1 className="text-3xl font-bold tracking-tight">CRM & Leads</h1>
 
       <Card>
         <CardHeader>
-          <CardTitle>Meus Clientes e Leads</CardTitle>
+          <CardTitle>Meus Clientes em Negociação</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]">
-                    <Checkbox
-                      checked={selectedIds.length === customers.length && customers.length > 0}
-                      onCheckedChange={toggleAll}
-                    />
-                  </TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Último Contato</TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Origem</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Data de Criação</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {leads.map((lead) => (
+                <TableRow key={lead.id}>
+                  <TableCell className="font-medium">{lead.name}</TableCell>
+                  <TableCell className="capitalize">{lead.source || 'Manual'}</TableCell>
+                  <TableCell>
+                    <Select
+                      defaultValue={lead.status || 'new'}
+                      onValueChange={(val) => updateStatus(lead.id, val)}
+                    >
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="new">Novo</SelectItem>
+                        <SelectItem value="negotiating">Em Negociação</SelectItem>
+                        <SelectItem value="converted">Convertido</SelectItem>
+                        <SelectItem value="closed">Perdido</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>{new Date(lead.created).toLocaleDateString()}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {customers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
-                      Nenhum lead encontrado.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  customers.map((customer) => (
-                    <TableRow key={customer.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedIds.includes(customer.id)}
-                          onCheckedChange={() => toggleOne(customer.id)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
-                      <TableCell>{customer.phone || '-'}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{customer.status}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {customer.last_contacted_at
-                          ? new Date(customer.last_contacted_at).toLocaleDateString('pt-BR')
-                          : '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+              {leads.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
+                    Nenhum lead encontrado.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
