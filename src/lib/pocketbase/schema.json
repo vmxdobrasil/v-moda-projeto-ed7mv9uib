@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-19T22:08:57.074Z",
+  "generatedAt": "2026-06-20T18:09:01.312Z",
   "collections": [
     {
       "name": "users",
@@ -613,11 +613,15 @@
       ],
       "indexes": [
         "CREATE INDEX idx_customers_manufacturer ON customers (manufacturer)",
-        "CREATE INDEX idx_customers_status ON customers (status)",
-        "CREATE INDEX `idx_customers_phone` ON `customers` (phone)",
         "CREATE INDEX `idx_customers_city` ON `customers` (city)",
         "CREATE INDEX `idx_customers_state` ON `customers` (state)",
-        "CREATE INDEX `idx_customers_manufacturer_phone` ON `customers` (manufacturer, phone)"
+        "CREATE INDEX `idx_customers_manufacturer_phone` ON `customers` (manufacturer, phone)",
+        "CREATE INDEX `idx_customers_name` ON `customers` (name)",
+        "CREATE INDEX `idx_customers_status` ON `customers` (status)",
+        "CREATE INDEX `idx_customers_phone` ON `customers` (phone)",
+        "CREATE INDEX `idx_customers_shipping_method` ON `customers` (shipping_method)",
+        "CREATE INDEX `idx_customers_last_contacted_at` ON `customers` (last_contacted_at)",
+        "CREATE INDEX `idx_customers_status_contacted` ON `customers` (status, last_contacted_at)"
       ]
     },
     {

@@ -4,17 +4,19 @@ routerAdd(
   (e) => {
     const body = e.requestInfo().body
     const customerIds = body.customerIds || []
-    if (!customerIds.length) return e.json(400, { error: 'No customers provided' })
+    const templateId = body.templateId
 
-    let templateContent =
-      'Olá {{name}}, notamos que você ainda não aproveitou seu bônus de 80% na Revista MODA ATUAL. Vamos retomar seu crescimento? Clique aqui: https://v-moda-project-344c0.goskip.app/revista'
+    if (!customerIds.length) return e.json(400, { error: 'No customers provided' })
+    if (!templateId) return e.json(400, { error: 'No template provided' })
+
+    let templateContent = ''
     try {
-      const tpl = $app.findFirstRecordByFilter(
-        'whatsapp_templates',
-        "trigger_event = 'reactivation_campaign' && is_active = true",
-      )
+      const tpl = $app.findRecordById('whatsapp_templates', templateId)
+      if (!tpl.get('is_active')) return e.json(400, { error: 'Template is not active' })
       templateContent = tpl.get('content')
-    } catch (_) {}
+    } catch (_) {
+      return e.json(400, { error: 'Template not found' })
+    }
 
     let channelId = ''
     try {
@@ -33,12 +35,30 @@ routerAdd(
     const messagesCol = $app.findCollectionByNameOrId('messages')
 
     let sentCount = 0
+    let skippedCount = 0
+
+    // Prevent duplicate sends: Check if a message to this customer was queued recently
+    const recentThreshold = new Date()
+    recentThreshold.setMinutes(recentThreshold.getMinutes() - 60) // 1 hour ago
+
     for (const cid of customerIds) {
       try {
         const customer = $app.findRecordById('customers', cid)
+
+        // Rate limiting check
+        const lastContactedStr = customer.get('last_contacted_at')
+        if (lastContactedStr) {
+          const lastContacted = new Date(lastContactedStr)
+          if (lastContacted > recentThreshold) {
+            skippedCount++
+            continue
+          }
+        }
+
         let content = templateContent
           .replace(/\{\{name\}\}/g, customer.get('name') || 'Cliente')
-          .replace(/\{\{benefit_link\}\}/g, 'https://v-moda-project-344c0.goskip.app/revista')
+          .replace(/\{\{status\}\}/g, customer.get('status') || '')
+          .replace(/\{\{city\}\}/g, customer.get('city') || '')
 
         const msg = new Record(messagesCol)
         msg.set('channel', channelId)
@@ -58,7 +78,7 @@ routerAdd(
       }
     }
 
-    return e.json(200, { success: true, count: sentCount })
+    return e.json(200, { success: true, count: sentCount, skipped: skippedCount })
   },
   $apis.requireAuth(),
 )
