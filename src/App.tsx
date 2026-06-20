@@ -10,6 +10,10 @@ import { PublicLayout } from '@/components/PublicLayout'
 import { PwaProvider } from '@/components/pwa/PwaProvider'
 import { PwaUpdateBanner } from '@/components/pwa/PwaUpdateBanner'
 import { PwaOnboarding } from '@/components/pwa/PwaOnboarding'
+import { RootRoute } from '@/components/RootRoute'
+import ProfilePage from '@/pages/dashboard/Profile'
+import AdminSubscriptions from '@/pages/admin/AdminSubscriptions'
+import AdminImportLogs from '@/pages/admin/AdminImportLogs'
 
 // Normalize backend API calls to use absolute URL and prevent returning HTML
 const originalFetch = window.fetch
@@ -169,7 +173,7 @@ export default function App() {
 
                 {/* Public Marketing Pages */}
                 <Route element={<PublicLayout />}>
-                  <Route index element={<Index />} />
+                  <Route index element={<RootRoute />} />
                   <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />
                   <Route path="guia-de-moda" element={<GuiaDeModa />} />
                   <Route path="conhecimento" element={<PlaceholderPage title="Conhecimento" />} />
@@ -212,8 +216,8 @@ export default function App() {
 
                   {/* Wrapped inside DashboardLayout to keep sidebar/header */}
                   <Route path="/" element={<DashboardLayout />}>
-                    <Route path="dashboard" element={<Navigate to="/" replace />} />
-                    <Route path="perfil" element={<PlaceholderPage title="Meu Perfil" />} />
+                    <Route path="dashboard" element={<DashboardAnalytics />} />
+                    <Route path="perfil" element={<ProfilePage />} />
                     <Route path="meus-pedidos" element={<PlaceholderPage title="Meus Pedidos" />} />
                     <Route path="vallen-ia" element={<VallenIA />} />
                     <Route path="maquina-vendas" element={<SalesMachine />} />
@@ -274,14 +278,8 @@ export default function App() {
                       <Route path="categorias" element={<AdminCategories />} />
                       <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />
                       <Route path="midia" element={<PlaceholderPage title="Mídia" />} />
-                      <Route
-                        path="assinaturas"
-                        element={<PlaceholderPage title="Gestão de Planos" />}
-                      />
-                      <Route
-                        path="logs-importacao"
-                        element={<PlaceholderPage title="Logs de Importação" />}
-                      />
+                      <Route path="assinaturas" element={<AdminSubscriptions />} />
+                      <Route path="logs-importacao" element={<AdminImportLogs />} />
                       <Route path="relatorios" element={<PlaceholderPage title="Relatórios" />} />
                       <Route
                         path="configuracoes"

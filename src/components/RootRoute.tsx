@@ -15,9 +15,10 @@ export function RootRoute() {
   }
 
   if (isAuthenticated) {
-    if (user?.role === 'admin') return <Navigate to="/admin" replace />
-    if (user?.role === 'manufacturer') return <Navigate to="/manufacturer" replace />
-    return <Navigate to="/dashboard/analytics" replace />
+    if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com')
+      return <Navigate to="/admin" replace />
+    if (user?.role === 'manufacturer') return <Navigate to="/manufacturer/leads" replace />
+    return <Navigate to="/dashboard" replace />
   }
 
   return <Index />
