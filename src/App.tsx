@@ -51,6 +51,7 @@ import AdminMarketing from '@/pages/admin/AdminMarketing'
 import AdminCatalog from '@/pages/admin/AdminCatalog'
 import Customers from '@/pages/admin/Customers'
 import ManufacturerDashboard from '@/pages/manufacturer/Dashboard'
+import ManufacturerCRM from '@/pages/manufacturer/ManufacturerCRM'
 import ManufacturerCatalog from '@/pages/manufacturer/Catalog'
 import ManufacturerLeads from '@/pages/manufacturer/Leads'
 import ManufacturerMessages from '@/pages/manufacturer/Messages'
@@ -206,6 +207,7 @@ export default function App() {
                     <Route path="settings" element={<ManufacturerSettings />} />
                     <Route path="team" element={<ManufacturerTeam />} />
                     <Route path="v-club" element={<ManufacturerVClub />} />
+                    <Route path="crm" element={<ManufacturerCRM />} />
                     <Route
                       path="negotiation/:customerId"
                       element={<ManufacturerNegotiationHub />}
