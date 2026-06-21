@@ -16,15 +16,13 @@ export function CRMSummaryCards() {
       try {
         const [brands, agents, retailers, consultants] = await Promise.all([
           pb.collection('customers').getList(1, 1, {
-            filter: "ranking_position > 0 && ranking_position <= 60 && v_club_status = 'approved'",
+            filter: "ranking_position > 0 && ranking_position <= 60 && status != 'inactive'",
           }),
           pb.collection('users').getList(1, 1, { filter: "role = 'agent'" }),
-          pb
-            .collection('users')
-            .getList(1, 1, { filter: "role = 'retailer' && segment_tier = 'retail'" }),
+          pb.collection('users').getList(1, 1, { filter: "role = 'retailer'" }),
           pb.collection('users').getList(1, 1, {
             filter:
-              "role = 'retailer' && (segment_tier = 'fashion_consultant' || segment_tier = 'exclusive_consultant' || segment_tier = 'premium_consultant')",
+              "role = 'affiliate' || segment_tier = 'fashion_consultant' || segment_tier = 'exclusive_consultant' || segment_tier = 'premium_consultant'",
           }),
         ])
 
@@ -45,38 +43,35 @@ export function CRMSummaryCards() {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Top 60 Marcas (V Club)</CardTitle>
-          <Star className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Top 60 Marcas Ativas</CardTitle>
+          <Star className="h-4 w-4 text-orange-500" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats.topBrands}</div>
         </CardContent>
       </Card>
-
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Agentes Credenciados</CardTitle>
-          <UserCheck className="h-4 w-4 text-muted-foreground" />
+          <UserCheck className="h-4 w-4 text-orange-500" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats.agents}</div>
         </CardContent>
       </Card>
-
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Lojistas Varejo</CardTitle>
-          <Store className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Lojistas / Revenda</CardTitle>
+          <Store className="h-4 w-4 text-orange-500" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats.retailers}</div>
         </CardContent>
       </Card>
-
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Consultoras de Moda</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
+          <Users className="h-4 w-4 text-orange-500" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats.consultants}</div>

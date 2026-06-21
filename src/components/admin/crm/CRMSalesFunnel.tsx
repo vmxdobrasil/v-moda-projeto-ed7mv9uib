@@ -1,119 +1,118 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '@/components/ui/chart'
 import pb from '@/lib/pocketbase/client'
+import { useRealtime } from '@/hooks/use-realtime'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Badge } from '@/components/ui/badge'
+import { differenceInDays } from 'date-fns'
 
-const chartConfig = {
-  value: { label: 'Clientes', color: 'hsl(var(--primary))' },
-} satisfies ChartConfig
+type Customer = any
+
+const STAGE_MAPPING: Record<string, string> = {
+  new: 'Prospecção',
+  lead: 'Prospecção',
+  contact: 'Contato',
+  interested: 'Contato',
+  proposal: 'Proposta',
+  qualified: 'Proposta',
+  negotiating: 'Negociação',
+  negotiation: 'Negociação',
+  converted: 'Fechamento',
+  closed: 'Fechamento',
+}
+
+const STAGES = ['Prospecção', 'Contato', 'Proposta', 'Negociação', 'Fechamento']
+
+function getAdaColor(customer: Customer) {
+  const dateStr = customer.last_action_date || customer.updated
+  if (!dateStr) return 'bg-gray-400'
+  const diff = differenceInDays(new Date(), new Date(dateStr))
+  if (diff <= 3) return 'bg-green-500'
+  if (diff <= 7) return 'bg-yellow-500'
+  return 'bg-red-500'
+}
 
 export function CRMSalesFunnel() {
-  const [data, setData] = useState<{ stage: string; value: number }[]>([])
-  const [period, setPeriod] = useState('30')
-  const [memberType, setMemberType] = useState('all')
+  const [customers, setCustomers] = useState<Customer[]>([])
+
+  const loadData = async () => {
+    try {
+      const records = await pb.collection('customers').getFullList({
+        sort: '-updated',
+        filter: "status != 'inactive'",
+        expand: 'category_id',
+      })
+      setCustomers(records)
+    } catch (err) {
+      console.error('Error loading CRM funnel', err)
+    }
+  }
 
   useEffect(() => {
-    async function fetchData() {
-      const date = new Date()
-      date.setDate(date.getDate() - parseInt(period, 10))
-      const dateStr = date.toISOString()
+    loadData()
+  }, [])
 
-      let filter = `created >= "${dateStr}"`
-      if (memberType !== 'all') {
-        filter += ` && source = '${memberType}'`
-      }
+  useRealtime('customers', () => {
+    loadData()
+  })
 
-      try {
-        const records = await pb.collection('customers').getFullList({
-          filter,
-          fields: 'status',
-        })
+  const getCustomersByStage = (stageName: string) => {
+    return customers.filter((c) => STAGE_MAPPING[c.status] === stageName)
+  }
 
-        const counts = records.reduce((acc: Record<string, number>, curr) => {
-          const s = curr.status || 'new'
-          acc[s] = (acc[s] || 0) + 1
-          return acc
-        }, {})
-
-        const leads = (counts['new'] || 0) + (counts['lead'] || 0) + (counts['contact'] || 0)
-        const qualified = (counts['interested'] || 0) + (counts['qualified'] || 0)
-        const negotiation =
-          (counts['negotiating'] || 0) + (counts['negotiation'] || 0) + (counts['proposal'] || 0)
-        const closed = (counts['converted'] || 0) + (counts['closed'] || 0)
-
-        setData([
-          { stage: 'Leads', value: leads },
-          { stage: 'Qualificados', value: qualified },
-          { stage: 'Em Negociação', value: negotiation },
-          { stage: 'Fechados', value: closed },
-        ])
-      } catch (err) {
-        console.error('Error fetching sales funnel data', err)
-      }
-    }
-    fetchData()
-  }, [period, memberType])
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <CardTitle>Funil de Vendas Consolidado</CardTitle>
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">Últimos 7 dias</SelectItem>
-                <SelectItem value="30">Últimos 30 dias</SelectItem>
-                <SelectItem value="90">Últimos 90 dias</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={memberType} onValueChange={setMemberType}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Origem" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as Origens</SelectItem>
-                <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                <SelectItem value="instagram">Instagram</SelectItem>
-                <SelectItem value="site">Site</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+    <Card className="flex flex-col border border-border shadow-sm">
+      <CardHeader className="border-b bg-muted/20">
+        <CardTitle>Funil de Vendas Consolidado (Singapore System)</CardTitle>
       </CardHeader>
-      <CardContent className="min-h-[400px]">
-        <ChartContainer config={chartConfig} className="h-[350px] w-full">
-          <BarChart
-            accessibilityLayer
-            data={data}
-            margin={{ top: 20, right: 0, left: 0, bottom: 20 }}
-          >
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
-            <XAxis dataKey="stage" tickLine={false} tickMargin={10} axisLine={false} />
-            <YAxis tickLine={false} axisLine={false} allowDecimals={false} />
-            <ChartTooltip
-              cursor={{ fill: 'var(--accent)' }}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Bar dataKey="value" fill="var(--color-value)" radius={[4, 4, 0, 0]} barSize={50} />
-          </BarChart>
-        </ChartContainer>
+      <CardContent className="p-4 overflow-x-auto">
+        <div className="flex gap-4 min-w-[1000px] h-[600px]">
+          {STAGES.map((stage) => {
+            const stageCustomers = getCustomersByStage(stage)
+            return (
+              <div key={stage} className="flex-1 bg-muted/50 rounded-lg p-3 flex flex-col">
+                <h3 className="font-semibold mb-3 flex justify-between items-center text-sm">
+                  {stage}
+                  <Badge variant="secondary" className="bg-background text-orange-600">
+                    {stageCustomers.length}
+                  </Badge>
+                </h3>
+                <ScrollArea className="flex-1 -mx-1 px-1">
+                  <div className="space-y-3 pb-4">
+                    {stageCustomers.map((c) => (
+                      <Card
+                        key={c.id}
+                        className="p-3 text-sm flex flex-col gap-2 shadow-sm border-l-4 border-l-orange-500"
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <span className="font-medium line-clamp-1 flex-1">{c.name}</span>
+                          <div
+                            className={`w-3 h-3 rounded-full shrink-0 mt-1 ${getAdaColor(c)}`}
+                            title="Indicador ADA de Performance"
+                          />
+                        </div>
+                        <div className="text-muted-foreground text-xs">
+                          {c.expand?.category_id?.name || c.ranking_category || 'Sem categoria'}
+                        </div>
+                        <div className="font-semibold text-orange-600">
+                          {formatCurrency(c.estimated_value || 0)}
+                        </div>
+                      </Card>
+                    ))}
+                    {stageCustomers.length === 0 && (
+                      <div className="text-center text-muted-foreground text-sm py-8 bg-background/50 rounded-md border border-dashed">
+                        Vazio
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            )
+          })}
+        </div>
       </CardContent>
     </Card>
   )

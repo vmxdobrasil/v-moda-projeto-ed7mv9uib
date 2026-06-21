@@ -8,44 +8,49 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import pb from '@/lib/pocketbase/client'
 
 const formatCurrency = (val: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
 
 export function CRMVClubFinancials() {
-  const [metrics, setMetrics] = useState({ totalReleased: 0, totalConsumed: 0 })
   const [breakdown, setBreakdown] = useState<any[]>([])
-  const [transactions, setTransactions] = useState<any[]>([])
+  const [totalMetrics, setTotalMetrics] = useState({ limit: 0, consumed: 0 })
 
   useEffect(() => {
     async function loadData() {
       try {
-        const cards = await pb.collection('v_club_cards').getFullList({ expand: 'store' })
-        let released = 0
-        let available = 0
-        const segmentMap: Record<string, { released: number; consumed: number }> = {}
+        const cards = await pb.collection('v_club_cards').getFullList({ expand: 'store,customer' })
+
+        const roleMap: Record<string, { role: string; limit: number; available: number }> = {}
+
+        let totalL = 0
+        let totalC = 0
 
         for (const card of cards) {
-          released += card.credit_limit || 0
-          available += card.available_limit || 0
-          const consumed = (card.credit_limit || 0) - (card.available_limit || 0)
+          const l = card.credit_limit || 0
+          const a = card.available_limit || 0
+          const role = card.expand?.store?.role || 'Desconhecido'
 
-          const segment = card.expand?.store?.segment_tier || card.expand?.store?.role || 'Outros'
-          if (!segmentMap[segment]) segmentMap[segment] = { released: 0, consumed: 0 }
-          segmentMap[segment].released += card.credit_limit || 0
-          segmentMap[segment].consumed += consumed
+          if (!roleMap[role]) {
+            roleMap[role] = { role, limit: 0, available: 0 }
+          }
+          roleMap[role].limit += l
+          roleMap[role].available += a
+
+          totalL += l
+          totalC += l - a
         }
 
-        setMetrics({ totalReleased: released, totalConsumed: released - available })
-        setBreakdown(Object.entries(segmentMap).map(([k, v]) => ({ segment: k, ...v })))
+        setTotalMetrics({ limit: totalL, consumed: totalC })
 
-        const trans = await pb.collection('v_club_transactions').getList(1, 10, {
-          sort: '-created',
-          expand: 'card,store',
-        })
-        setTransactions(trans.items)
+        const mapped = Object.values(roleMap).map((v) => ({
+          name: v.role,
+          Liberado: v.limit,
+          Consumido: v.limit - v.available,
+        }))
+
+        setBreakdown(mapped)
       } catch (err) {
         console.error('Error fetching V Club financials', err)
       }
@@ -54,107 +59,71 @@ export function CRMVClubFinancials() {
   }, [])
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total de Crédito Liberado</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{formatCurrency(metrics.totalReleased)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Total de Crédito Consumido</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-primary">
-              {formatCurrency(metrics.totalConsumed)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+    <Card className="border border-border shadow-sm">
+      <CardHeader className="border-b bg-muted/20">
+        <CardTitle>V Club - Controle Financeiro</CardTitle>
+      </CardHeader>
+      <CardContent className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="bg-muted/50 p-6 rounded-lg border">
+            <div className="text-sm font-medium text-muted-foreground mb-2">
+              Total Limite Liberado
+            </div>
+            <div className="text-3xl font-bold text-orange-600">
+              {formatCurrency(totalMetrics.limit)}
+            </div>
+          </div>
+          <div className="bg-muted/50 p-6 rounded-lg border">
+            <div className="text-sm font-medium text-muted-foreground mb-2">Total Consumido</div>
+            <div className="text-3xl font-bold">{formatCurrency(totalMetrics.consumed)}</div>
+          </div>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Detalhamento por Segmento</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <div className="rounded-md border overflow-hidden">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead>Segmento/Papel</TableHead>
-                <TableHead className="text-right">Crédito Liberado</TableHead>
-                <TableHead className="text-right">Crédito Consumido</TableHead>
+                <TableHead>Perfil da Loja</TableHead>
+                <TableHead className="text-right">Limite Liberado</TableHead>
+                <TableHead className="text-right">Consumido</TableHead>
+                <TableHead className="text-right">Utilização (%)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {breakdown.map((b, i) => (
-                <TableRow key={i}>
-                  <TableCell className="capitalize">{b.segment.replace(/_/g, ' ')}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(b.released)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(b.consumed)}</TableCell>
-                </TableRow>
-              ))}
+              {breakdown.map((row) => {
+                const percentage = row.Liberado > 0 ? (row.Consumido / row.Liberado) * 100 : 0
+                return (
+                  <TableRow key={row.name}>
+                    <TableCell className="font-medium capitalize">
+                      {row.name === 'manufacturer'
+                        ? 'Fabricante'
+                        : row.name === 'retailer'
+                          ? 'Lojista'
+                          : row.name}
+                    </TableCell>
+                    <TableCell className="text-right">{formatCurrency(row.Liberado)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(row.Consumido)}</TableCell>
+                    <TableCell className="text-right">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${percentage > 80 ? 'bg-red-100 text-red-700' : percentage > 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}
+                      >
+                        {percentage.toFixed(1)}%
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
               {breakdown.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
-                    Nenhum cartão emitido até o momento.
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    Nenhum dado encontrado
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Transações Recentes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Loja</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell>{new Date(t.created).toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell>{t.expand?.store?.name || t.expand?.store?.email || 'N/D'}</TableCell>
-                  <TableCell>{formatCurrency(t.amount)}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        t.status === 'approved'
-                          ? 'default'
-                          : t.status === 'pending'
-                            ? 'secondary'
-                            : 'destructive'
-                      }
-                    >
-                      {t.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {transactions.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
-                    Nenhuma transação recente.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
