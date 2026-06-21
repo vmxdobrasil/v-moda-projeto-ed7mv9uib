@@ -49,6 +49,7 @@ import AdminProducts from '@/pages/admin/AdminProducts'
 import AdminCategories from '@/pages/admin/AdminCategories'
 import AdminMarketing from '@/pages/admin/AdminMarketing'
 import AdminCatalog from '@/pages/admin/AdminCatalog'
+import AdminManufacturerCRM from '@/pages/admin/AdminManufacturerCRM'
 import Customers from '@/pages/admin/Customers'
 import ManufacturerDashboard from '@/pages/manufacturer/Dashboard'
 import ManufacturerCRM from '@/pages/manufacturer/ManufacturerCRM'
@@ -279,6 +280,7 @@ export default function App() {
                       <Route path="clientes" element={<Customers />} />
                       <Route path="logistica" element={<PlaceholderPage title="Logística" />} />
                       <Route path="marketing" element={<AdminMarketing />} />
+                      <Route path="guia-crm" element={<AdminManufacturerCRM />} />
                       <Route path="categorias" element={<AdminCategories />} />
                       <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />
                       <Route path="midia" element={<PlaceholderPage title="Mídia" />} />
