@@ -14,7 +14,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { usePricingStore } from '@/stores/usePricingStore'
 
 interface ProductCardProps {
   product: Product
@@ -27,10 +28,28 @@ export function ProductCard({ product }: ProductCardProps) {
   const { user } = useAuthStore()
   const isWishlisted = isInWishlist(product.id)
   const [open, setOpen] = useState(false)
+  const { getPrice, loadAdjustments } = usePricingStore()
 
-  const displayPrice =
-    user?.type === 'Atacado' && product.wholesalePrice ? product.wholesalePrice : product.price
-  const isWholesale = user?.type === 'Atacado' && !!product.wholesalePrice
+  useEffect(() => {
+    if (user?.id && (user?.role === 'retailer' || user?.segment_tier?.includes('consultant'))) {
+      loadAdjustments(user.id)
+    }
+  }, [user])
+
+  const baseWholesale = (product as any).wholesale_price || product.wholesalePrice || 0
+  const isWholesaleViewer = user?.role === 'manufacturer' || user?.type === 'Atacado'
+  const isRetailerViewer = user?.role === 'retailer' || user?.segment_tier?.includes('consultant')
+
+  let displayPrice = product.price
+  if (isWholesaleViewer && baseWholesale) {
+    displayPrice = baseWholesale
+  } else if (isRetailerViewer && baseWholesale) {
+    displayPrice = getPrice(product.id, baseWholesale)
+  } else if (baseWholesale) {
+    displayPrice = baseWholesale * 2.2
+  }
+
+  const isWholesale = isWholesaleViewer && !!baseWholesale
 
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.preventDefault()

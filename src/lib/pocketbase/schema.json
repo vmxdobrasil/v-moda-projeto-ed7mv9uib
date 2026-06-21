@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-21T11:14:08.135Z",
+  "generatedAt": "2026-06-21T12:23:20.678Z",
   "collections": [
     {
       "name": "users",
@@ -2314,6 +2314,70 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_order_items_order ON order_items (order_id)"]
+    },
+    {
+      "name": "price_adjustments",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && merchant = @request.auth.id",
+        "update": "@request.auth.id != '' && merchant = @request.auth.id",
+        "delete": "@request.auth.id != '' && merchant = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "merchant",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "project",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "projects"
+        },
+        {
+          "name": "customer",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "customers"
+        },
+        {
+          "name": "is_zone_wide",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "adjusted_price",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_price_adj_merchant ON price_adjustments (merchant)",
+        "CREATE INDEX idx_price_adj_project ON price_adjustments (project)"
+      ]
     }
   ]
 }
