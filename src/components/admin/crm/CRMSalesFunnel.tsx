@@ -5,6 +5,8 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { differenceInDays } from 'date-fns'
+import { MessageCircle } from 'lucide-react'
+import { OODASuggestionDialog } from './OODASuggestionDialog'
 
 type Customer = any
 
@@ -27,8 +29,8 @@ function getAdaColor(customer: Customer) {
   const dateStr = customer.last_action_date || customer.updated
   if (!dateStr) return 'bg-gray-400'
   const diff = differenceInDays(new Date(), new Date(dateStr))
-  if (diff <= 3) return 'bg-green-500'
-  if (diff <= 7) return 'bg-yellow-500'
+  if (diff <= 7) return 'bg-green-500'
+  if (diff <= 15) return 'bg-yellow-500'
   return 'bg-red-500'
 }
 
@@ -88,18 +90,40 @@ export function CRMSalesFunnel() {
                         className="p-3 text-sm flex flex-col gap-2 shadow-sm border-l-4 border-l-orange-500"
                       >
                         <div className="flex justify-between items-start gap-2">
-                          <span className="font-medium line-clamp-1 flex-1">{c.name}</span>
+                          <span className="font-medium line-clamp-1 flex-1 flex items-center gap-1">
+                            {(c.source === 'whatsapp' || c.source === 'whatsapp_group') && (
+                              <MessageCircle
+                                className="h-3.5 w-3.5 text-green-500 shrink-0"
+                                title="Origem WhatsApp"
+                              />
+                            )}
+                            {c.name}
+                          </span>
                           <div
                             className={`w-3 h-3 rounded-full shrink-0 mt-1 ${getAdaColor(c)}`}
-                            title="Indicador ADA de Performance"
+                            title="Indicador ADA de Performance (Verde <= 7d, Amarelo <= 15d, Vermelho > 15d)"
                           />
                         </div>
                         <div className="text-muted-foreground text-xs">
                           {c.expand?.category_id?.name || c.ranking_category || 'Sem categoria'}
                         </div>
-                        <div className="font-semibold text-orange-600">
-                          {formatCurrency(c.estimated_value || 0)}
+                        <div className="flex items-center justify-between mt-1">
+                          <div className="font-semibold text-orange-600">
+                            {formatCurrency(c.estimated_value || 0)}
+                          </div>
+                          {c.phone && (
+                            <a
+                              href={`https://wa.me/${c.phone.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 p-1.5 rounded-md transition-colors"
+                              title="Falar no WhatsApp"
+                            >
+                              <MessageCircle className="h-4 w-4" />
+                            </a>
+                          )}
                         </div>
+                        <OODASuggestionDialog customerId={c.id} />
                       </Card>
                     ))}
                     {stageCustomers.length === 0 && (

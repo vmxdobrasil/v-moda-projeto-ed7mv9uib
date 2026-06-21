@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Store, Users, UserCheck, Star } from 'lucide-react'
+import { Store, Users, UserCheck, Star, MessageCircle } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 
 export function CRMSummaryCards() {
@@ -9,12 +9,13 @@ export function CRMSummaryCards() {
     agents: 0,
     retailers: 0,
     consultants: 0,
+    whatsappSales: 0,
   })
 
   useEffect(() => {
     async function fetchStats() {
       try {
-        const [brands, agents, retailers, consultants] = await Promise.all([
+        const [brands, agents, retailers, consultants, whatsappSales] = await Promise.all([
           pb.collection('customers').getList(1, 1, {
             filter: "ranking_position > 0 && ranking_position <= 60 && status != 'inactive'",
           }),
@@ -24,6 +25,10 @@ export function CRMSummaryCards() {
             filter:
               "role = 'affiliate' || segment_tier = 'fashion_consultant' || segment_tier = 'exclusive_consultant' || segment_tier = 'premium_consultant'",
           }),
+          pb.collection('customers').getList(1, 1, {
+            filter:
+              "(source = 'whatsapp' || source = 'whatsapp_group') && (status = 'converted' || status = 'closed')",
+          }),
         ])
 
         setStats({
@@ -31,6 +36,7 @@ export function CRMSummaryCards() {
           agents: agents.totalItems,
           retailers: retailers.totalItems,
           consultants: consultants.totalItems,
+          whatsappSales: whatsappSales.totalItems,
         })
       } catch (err) {
         console.error('Failed to fetch CRM summary stats', err)
@@ -40,7 +46,7 @@ export function CRMSummaryCards() {
   }, [])
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Top 60 Marcas Ativas</CardTitle>
@@ -75,6 +81,15 @@ export function CRMSummaryCards() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats.consultants}</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Vendas WhatsApp</CardTitle>
+          <MessageCircle className="h-4 w-4 text-green-500" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.whatsappSales}</div>
         </CardContent>
       </Card>
     </div>
