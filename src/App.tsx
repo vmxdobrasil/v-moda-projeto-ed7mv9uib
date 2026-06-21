@@ -105,6 +105,28 @@ import ConsultantCRM from '@/pages/dashboard/ConsultantCRM'
 import InventoryManagement from '@/pages/dashboard/InventoryManagement'
 import { trackEvent } from '@/lib/tracking'
 
+import Catalog from '@/pages/Catalog'
+import CartPage from '@/pages/Cart'
+import OrderView from '@/pages/OrderView'
+import SellerOrders from '@/pages/dashboard/SellerOrders'
+import { ShoppingCart } from 'lucide-react'
+
+function FloatingCart() {
+  const items = useCartStore((state) => state.items)
+  if (items.length === 0) return null
+  return (
+    <Link
+      to="/cart"
+      className="fixed bottom-24 md:bottom-6 right-6 z-50 bg-orange-600 text-white p-4 rounded-full shadow-lg hover:bg-orange-700 transition-colors flex items-center justify-center animate-fade-in-up"
+    >
+      <ShoppingCart className="w-6 h-6" />
+      <span className="absolute -top-2 -right-2 bg-black text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
+        {items.length}
+      </span>
+    </Link>
+  )
+}
+
 function PlaceholderPage({ title }: { title: string }) {
   return (
     <div className="flex h-[80vh] flex-col items-center justify-center p-8 text-center animate-fade-in-up">
@@ -161,6 +183,7 @@ export default function App() {
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            <FloatingCart />
 
             <Routes>
               {/* Isolated routes without LiveChat or global layouts */}
@@ -182,7 +205,7 @@ export default function App() {
                 {/* Public Marketing Pages */}
                 <Route element={<PublicLayout />}>
                   <Route index element={<RootRoute />} />
-                  <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />
+                  <Route path="colecoes" element={<Catalog />} />
                   <Route path="guia-de-moda" element={<GuiaDeModa />} />
                   <Route path="conhecimento" element={<PlaceholderPage title="Conhecimento" />} />
                   <Route path="revista" element={<Magazine />} />
@@ -198,6 +221,8 @@ export default function App() {
                     path="finalizar-compra"
                     element={<PlaceholderPage title="Finalizar Compra" />}
                   />
+                  <Route path="orders/view/:id" element={<OrderView />} />
+                  <Route path="cart" element={<CartPage />} />
                 </Route>
 
                 {/* Manufacturer Routes */}
@@ -252,6 +277,7 @@ export default function App() {
                     <Route path="retail-crm" element={<RetailCRM />} />
                     <Route path="consultant-crm" element={<ConsultantCRM />} />
                     <Route path="inventory" element={<InventoryManagement />} />
+                    <Route path="seller-orders" element={<SellerOrders />} />
 
                     {/* Protected Manufacturer specifics inside DashboardLayout */}
                     <Route element={<ManufacturerGuard />}>

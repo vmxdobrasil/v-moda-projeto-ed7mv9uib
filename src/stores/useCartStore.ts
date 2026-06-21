@@ -1,86 +1,84 @@
-import { useState, useEffect } from 'react'
-import { Product } from '@/lib/data'
-import { trackEvent } from '@/lib/analytics'
+import { useSyncExternalStore } from 'react'
 
 export interface CartItem {
-  product: Product
+  id: string
+  product: any
   quantity: number
   size?: string
+  color?: string
 }
 
-let cartItems: CartItem[] = []
-try {
-  cartItems = JSON.parse(localStorage.getItem('cart') || '[]')
-} catch (e) {
-  cartItems = []
+interface CartStore {
+  items: CartItem[]
 }
 
+let cartState: CartStore = { items: [] }
 const listeners = new Set<() => void>()
 
-function notify() {
-  localStorage.setItem('cart', JSON.stringify(cartItems))
+try {
+  const saved = localStorage.getItem('v-moda-cart')
+  if (saved) {
+    cartState = JSON.parse(saved)
+  }
+} catch {
+  /* intentionally ignored */
+}
+
+function emitChange() {
+  localStorage.setItem('v-moda-cart', JSON.stringify(cartState))
   listeners.forEach((listener) => listener())
 }
 
-export default function useCartStore() {
-  const [items, setItems] = useState<CartItem[]>(cartItems)
-
-  useEffect(() => {
-    const listener = () => setItems([...cartItems])
-    listeners.add(listener)
-    return () => {
-      listeners.delete(listener)
-    }
-  }, [])
-
-  const addToCart = (product: Product, quantity = 1, size?: string) => {
-    const existing = cartItems.find((item) => item.product.id === product.id && item.size === size)
+const store = {
+  addItem: (item: Omit<CartItem, 'id'>) => {
+    const existing = cartState.items.find(
+      (i) => i.product.id === item.product.id && i.size === item.size && i.color === item.color,
+    )
     if (existing) {
-      existing.quantity += quantity
+      cartState = {
+        items: cartState.items.map((i) =>
+          i.id === existing.id ? { ...i, quantity: i.quantity + item.quantity } : i,
+        ),
+      }
     } else {
-      cartItems.push({ product, quantity, size })
-    }
-
-    trackEvent('add_to_cart', {
-      currency: 'BRL',
-      value: product.price * quantity,
-      items: [
-        {
-          item_id: product.id,
-          item_name: product.name,
-          price: product.price,
-          currency: 'BRL',
-          quantity,
-        },
-      ],
-    })
-
-    notify()
-  }
-
-  const removeFromCart = (productId: string, size?: string) => {
-    cartItems = cartItems.filter((item) => !(item.product.id === productId && item.size === size))
-    notify()
-  }
-
-  const updateQuantity = (productId: string, quantity: number, size?: string) => {
-    const existing = cartItems.find((item) => item.product.id === productId && item.size === size)
-    if (existing) {
-      if (quantity <= 0) {
-        removeFromCart(productId, size)
-      } else {
-        existing.quantity = quantity
-        notify()
+      cartState = {
+        items: [...cartState.items, { ...item, id: Math.random().toString(36).slice(2) }],
       }
     }
-  }
-
-  const clearCart = () => {
-    cartItems = []
-    notify()
-  }
-
-  const cartTotal = items.reduce((total, item) => total + item.product.price * item.quantity, 0)
-
-  return { items, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal }
+    emitChange()
+  },
+  removeItem: (id: string) => {
+    cartState = {
+      items: cartState.items.filter((i) => i.id !== id),
+    }
+    emitChange()
+  },
+  updateQuantity: (id: string, qty: number) => {
+    cartState = {
+      items: cartState.items.map((i) => (i.id === id ? { ...i, quantity: Math.max(1, qty) } : i)),
+    }
+    emitChange()
+  },
+  clearCart: () => {
+    cartState = { items: [] }
+    emitChange()
+  },
+  subscribe: (listener: () => void) => {
+    listeners.add(listener)
+    return () => listeners.delete(listener)
+  },
+  getSnapshot: () => cartState,
 }
+
+export default function useCartStore() {
+  const state = useSyncExternalStore(store.subscribe, store.getSnapshot)
+  return {
+    items: state.items,
+    addItem: store.addItem,
+    removeItem: store.removeItem,
+    updateQuantity: store.updateQuantity,
+    clearCart: store.clearCart,
+  }
+}
+
+useCartStore.getState = () => store.getSnapshot()
