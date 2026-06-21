@@ -23,7 +23,7 @@ migrate(
           name: 'customer',
           type: 'relation',
           required: false,
-          collectionId: 'customers',
+          collectionId: app.findCollectionByNameOrId('customers').id,
           cascadeDelete: false,
           maxSelect: 1,
         },

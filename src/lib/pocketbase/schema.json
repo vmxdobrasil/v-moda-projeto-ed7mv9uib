@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-21T11:10:15.443Z",
+  "generatedAt": "2026-06-21T11:14:08.135Z",
   "collections": [
     {
       "name": "users",
@@ -2165,6 +2165,155 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "orders",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || seller_id = @request.auth.id || customer = @request.auth.id)",
+        "view": "",
+        "create": "",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || seller_id = @request.auth.id)",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "seller_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "customer",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "customers"
+        },
+        {
+          "name": "guest_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "guest_phone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pending", "paid", "delivered"]
+        },
+        {
+          "name": "total_amount",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "payment_method",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["asaas", "pix"]
+        },
+        {
+          "name": "commission_amount",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_orders_seller ON orders (seller_id)",
+        "CREATE INDEX idx_orders_status ON orders (status)"
+      ]
+    },
+    {
+      "name": "order_items",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "order_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "orders"
+        },
+        {
+          "name": "project_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "projects"
+        },
+        {
+          "name": "quantity",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "price_at_purchase",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "selected_size",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "selected_color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_order_items_order ON order_items (order_id)"]
     }
   ]
 }
