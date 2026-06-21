@@ -100,6 +100,9 @@ import AdminFinance from '@/pages/admin/AdminFinance'
 import AdminNotifications from '@/pages/admin/AdminNotifications'
 import QRCodeRedirect from '@/pages/QRCodeRedirect'
 import useCartStore from '@/stores/useCartStore'
+import RetailCRM from '@/pages/dashboard/RetailCRM'
+import ConsultantCRM from '@/pages/dashboard/ConsultantCRM'
+import InventoryManagement from '@/pages/dashboard/InventoryManagement'
 import { trackEvent } from '@/lib/tracking'
 
 function PlaceholderPage({ title }: { title: string }) {
@@ -209,6 +212,7 @@ export default function App() {
                     <Route path="team" element={<ManufacturerTeam />} />
                     <Route path="v-club" element={<ManufacturerVClub />} />
                     <Route path="crm" element={<ManufacturerCRM />} />
+                    <Route path="inventory" element={<InventoryManagement />} />
                     <Route
                       path="negotiation/:customerId"
                       element={<ManufacturerNegotiationHub />}
@@ -245,6 +249,9 @@ export default function App() {
                     <Route path="revenda" element={<RevendaDashboard />} />
                     <Route path="academy" element={<Academy />} />
                     <Route path="vallen-consultora" element={<VallenConsultora />} />
+                    <Route path="retail-crm" element={<RetailCRM />} />
+                    <Route path="consultant-crm" element={<ConsultantCRM />} />
+                    <Route path="inventory" element={<InventoryManagement />} />
 
                     {/* Protected Manufacturer specifics inside DashboardLayout */}
                     <Route element={<ManufacturerGuard />}>
@@ -287,6 +294,9 @@ export default function App() {
                       <Route path="assinaturas" element={<AdminSubscriptions />} />
                       <Route path="logs-importacao" element={<AdminImportLogs />} />
                       <Route path="relatorios" element={<PlaceholderPage title="Relatórios" />} />
+                      <Route path="inventory" element={<InventoryManagement />} />
+                      <Route path="retail-crm" element={<RetailCRM />} />
+                      <Route path="consultant-crm" element={<ConsultantCRM />} />
                       <Route
                         path="configuracoes"
                         element={<PlaceholderPage title="Configurações" />}
