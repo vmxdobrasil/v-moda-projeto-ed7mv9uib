@@ -10,10 +10,50 @@ routerAdd('POST', '/backend/v1/asaas/webhook', (e) => {
   try {
     return $app.runInTransaction((txApp) => {
       let tx
+      let isOrder = false
+      let order
+
       try {
         tx = txApp.findRecordById('v_club_transactions', externalReference)
       } catch (_) {
-        return e.json(200, { received: true, ignored: true, reason: 'transaction_not_found' })
+        try {
+          order = txApp.findRecordById('orders', externalReference)
+          isOrder = true
+        } catch (err) {
+          return e.json(200, { received: true, ignored: true, reason: 'reference_not_found' })
+        }
+      }
+
+      if (isOrder) {
+        if (
+          event === 'PAYMENT_RECEIVED' ||
+          event === 'PAYMENT_CONFIRMED' ||
+          event === 'PAYMENT_SETTLED'
+        ) {
+          if (order.getString('status') !== 'paid') {
+            order.set('status', 'paid')
+            txApp.save(order)
+
+            try {
+              const finTx = txApp.findFirstRecordByFilter(
+                'financial_transactions',
+                'order = {:o}',
+                { o: order.id },
+              )
+              finTx.set('status', 'paid')
+              txApp.save(finTx)
+            } catch (_) {}
+
+            try {
+              const finAcc = txApp.findFirstRecordByFilter('financial_accounts', 'order = {:o}', {
+                o: order.id,
+              })
+              finAcc.set('status', 'paid')
+              txApp.save(finAcc)
+            } catch (_) {}
+          }
+        }
+        return e.json(200, { success: true, type: 'order' })
       }
 
       if (

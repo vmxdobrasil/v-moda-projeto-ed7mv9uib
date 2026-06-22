@@ -1,247 +1,219 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import pb from '@/lib/pocketbase/client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { AsaasPaymentForm } from '@/components/payment/AsaasPaymentForm'
 import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { QrCode, CreditCard, CheckCircle2, MessageCircle } from 'lucide-react'
-import { toast } from '@/hooks/use-toast'
+import { Button } from '@/components/ui/button'
+import { RefreshCw, CheckCircle2, ShoppingBag } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { Separator } from '@/components/ui/separator'
 
 export default function OrderView() {
   const { id } = useParams()
+  const { toast } = useToast()
   const [order, setOrder] = useState<any>(null)
-  const [items, setItems] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [paymentStep, setPaymentStep] = useState<'selection' | 'pix' | 'asaas' | 'success'>(
-    'selection',
-  )
+  const [paymentData, setPaymentData] = useState<any>(null)
+  const [isChecking, setIsChecking] = useState(false)
 
   useEffect(() => {
     if (id) {
-      loadData()
+      pb.collection('orders')
+        .getOne(id)
+        .then(setOrder)
+        .catch(() => {
+          toast({
+            title: 'Pedido não encontrado',
+            description: 'Verifique se o link está correto.',
+            variant: 'destructive',
+          })
+        })
     }
-  }, [id])
+  }, [id, toast])
 
-  async function loadData() {
+  async function checkPaymentStatus() {
+    if (!order) return
+    setIsChecking(true)
     try {
-      const orderRecord = await pb.collection('orders').getOne(id!, { expand: 'seller_id' })
-      setOrder(orderRecord)
-
-      const itemsRecords = await pb.collection('order_items').getFullList({
-        filter: `order_id="${id}"`,
-        expand: 'project_id',
-      })
-      setItems(itemsRecords)
-
-      if (orderRecord.status === 'paid' || orderRecord.status === 'delivered') {
-        setPaymentStep('success')
+      const res = await pb.send(`/backend/v1/asaas/payments/${order.id}/status`, { method: 'GET' })
+      if (res.status === 'RECEIVED' || res.status === 'CONFIRMED') {
+        setOrder({ ...order, status: 'paid' })
+        toast({ title: 'Tudo Certo!', description: 'Pagamento confirmado com sucesso.' })
+      } else {
+        toast({
+          title: 'Status do Pagamento',
+          description: `Situação atual na operadora: ${res.status}`,
+        })
       }
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSelectPayment = async (method: 'pix' | 'asaas') => {
-    try {
-      await pb.collection('orders').update(id!, { payment_method: method })
-      setPaymentStep(method)
-    } catch (err) {
-      console.error(err)
-      toast({ title: 'Erro', description: 'Erro ao selecionar pagamento', variant: 'destructive' })
-    }
-  }
-
-  const handleSendReceipt = () => {
-    const phone = order?.expand?.seller_id?.phone || ''
-    if (!phone) {
+    } catch (err: any) {
       toast({
         title: 'Aviso',
-        description: 'Número do vendedor não encontrado. Entre em contato diretamente.',
+        description: err?.response?.message || 'Ainda não foi possível atualizar o status.',
         variant: 'destructive',
       })
-      return
+    } finally {
+      setIsChecking(false)
     }
-    const cleanPhone = phone.replace(/\D/g, '')
-    const text = `Olá! Realizei o pagamento via PIX do pedido #${id}. Segue o comprovante.`
-    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank')
   }
 
-  if (loading) return <div className="p-8 text-center mt-20">Carregando pedido...</div>
-  if (!order)
-    return <div className="p-8 text-center text-red-500 mt-20">Pedido não encontrado.</div>
-
-  return (
-    <div className="container mx-auto p-4 md:p-8 max-w-5xl animate-fade-in-up mt-10">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold">Confirmação de Pedido</h1>
-        <p className="text-muted-foreground mt-2">Pedido #{id}</p>
-        <div className="mt-4">
-          <Badge
-            variant={order.status === 'pending' ? 'outline' : 'default'}
-            className="text-sm px-4 py-1"
-          >
-            Status:{' '}
-            {order.status === 'pending'
-              ? 'Aguardando Pagamento'
-              : order.status === 'paid'
-                ? 'Pago'
-                : 'Entregue'}
-          </Badge>
+  if (!order) {
+    return (
+      <div className="flex justify-center items-center h-[60vh]">
+        <div className="animate-pulse flex flex-col items-center gap-2">
+          <ShoppingBag className="w-8 h-8 text-muted-foreground" />
+          <p className="text-muted-foreground">Localizando pedido...</p>
         </div>
       </div>
+    )
+  }
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Itens do Pedido</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Produto</TableHead>
-                      <TableHead>Variação</TableHead>
-                      <TableHead className="text-right">Qtd</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">
-                          {item.expand?.project_id?.name || 'Produto não encontrado'}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {item.selected_size && <span>Tam: {item.selected_size} </span>}
-                          {item.selected_color && <span>Cor: {item.selected_color}</span>}
-                        </TableCell>
-                        <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-right font-medium">
-                          R$ {(item.price_at_purchase * item.quantity).toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              <div className="mt-6 flex justify-end text-xl font-bold text-orange-600">
-                Total: R$ {(order.total_amount || 0).toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
+  return (
+    <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-8 animate-fade-in-up">
+      <div className="bg-card border rounded-2xl p-6 md:p-8 shadow-sm relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute top-0 right-0 p-16 bg-primary/5 rounded-bl-full -z-10" />
+
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <div>
+            <p className="text-sm text-muted-foreground font-medium mb-1">Resumo da Compra</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Pedido <span className="opacity-50">#{order.id.slice(0, 8).toUpperCase()}</span>
+            </h1>
+          </div>
+
+          <div className="flex flex-col items-end gap-2">
+            <Badge
+              variant={
+                order.status === 'paid'
+                  ? 'default'
+                  : order.status === 'delivered'
+                    ? 'secondary'
+                    : 'outline'
+              }
+              className="text-sm px-3 py-1 bg-background shadow-sm"
+            >
+              {order.status === 'paid' && <CheckCircle2 className="w-3 h-3 mr-1 inline" />}
+              {order.status === 'paid'
+                ? 'Pagamento Confirmado'
+                : order.status === 'delivered'
+                  ? 'Entregue'
+                  : 'Aguardando Pagamento'}
+            </Badge>
+            {order.status !== 'paid' && order.status !== 'delivered' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={checkPaymentStatus}
+                disabled={isChecking}
+                className="text-xs text-muted-foreground"
+              >
+                <RefreshCw className={`w-3 h-3 mr-1 ${isChecking ? 'animate-spin' : ''}`} />
+                Atualizar Status
+              </Button>
+            )}
+          </div>
         </div>
 
-        <div className="space-y-6">
-          {paymentStep === 'success' ? (
-            <Card className="bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900">
-              <CardContent className="flex flex-col items-center justify-center p-8 text-center">
-                <CheckCircle2 className="w-16 h-16 text-green-500 mb-4" />
-                <h3 className="text-xl font-bold text-green-700 dark:text-green-400">
-                  Pagamento Confirmado
-                </h3>
-                <p className="mt-2 text-green-600 dark:text-green-500">
-                  Seu pedido está em processamento e será enviado em breve.
-                </p>
-              </CardContent>
-            </Card>
-          ) : paymentStep === 'selection' ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Forma de Pagamento</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button
-                  className="w-full h-16 flex flex-col items-center justify-center gap-1 bg-[#00B4D8] hover:bg-[#0096B4] text-white"
-                  onClick={() => handleSelectPayment('pix')}
-                >
-                  <div className="flex items-center gap-2 font-bold">
-                    <QrCode className="w-5 h-5" /> PIX
-                  </div>
-                  <span className="text-xs opacity-90">Aprovação imediata</span>
-                </Button>
+        <div className="bg-muted/30 p-4 rounded-xl mb-8 flex justify-between items-center border">
+          <span className="font-medium text-muted-foreground">Total a Pagar</span>
+          <span className="text-2xl font-bold text-foreground">
+            R$ {order.total_amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </span>
+        </div>
 
-                <Button
-                  className="w-full h-16 flex flex-col items-center justify-center gap-1 bg-zinc-900 hover:bg-zinc-800 text-white"
-                  onClick={() => handleSelectPayment('asaas')}
-                >
-                  <div className="flex items-center gap-2 font-bold">
-                    <CreditCard className="w-5 h-5" /> Cartão / Boleto
-                  </div>
-                  <span className="text-xs opacity-90">Via Asaas Seguros</span>
-                </Button>
-              </CardContent>
-            </Card>
-          ) : paymentStep === 'pix' ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Pagamento PIX</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6 flex flex-col items-center">
-                <div className="p-4 bg-white rounded-lg border">
+        {order.status === 'pending' && !paymentData && (
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Como você prefere pagar?</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              A plataforma assegura o processamento rápido e protegido de todos os seus dados.
+            </p>
+            <AsaasPaymentForm
+              orderId={order.id}
+              amount={order.total_amount}
+              onSuccess={setPaymentData}
+            />
+          </div>
+        )}
+
+        {paymentData && (
+          <div className="mt-8 animate-fade-in">
+            <Separator className="mb-8" />
+
+            {paymentData.billingType === 'PIX' && paymentData.pixQrCode && (
+              <div className="text-center space-y-6 max-w-sm mx-auto">
+                <div>
+                  <h3 className="font-bold text-lg">Pagamento via PIX</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Abra o app do seu banco e escaneie o código abaixo.
+                  </p>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border shadow-sm mx-auto inline-block">
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=00020126420014br.gov.bcb.pix0120exemplo@vmoda.com.br5204000053039865802BR59039866004${(order.total_amount || 0).toFixed(2)}6207V Moda630400006304C4C2`}
+                    src={`data:image/png;base64,${paymentData.pixQrCode.encodedImage}`}
                     alt="QR Code PIX"
-                    className="w-48 h-48"
+                    className="w-48 h-48 md:w-56 md:h-56"
                   />
                 </div>
-                <div className="text-center w-full">
-                  <p className="text-sm font-medium">Chave PIX (E-mail):</p>
-                  <code className="block p-2 bg-muted rounded mt-1 select-all font-mono text-sm text-orange-600">
-                    pagamentos@vmodabrasil.com.br
-                  </code>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Ou utilize o código Copia e Cola:</p>
+                  <div className="bg-muted p-3 rounded-lg text-xs font-mono break-all text-left border select-all focus:ring-2 outline-none">
+                    {paymentData.pixQrCode.payload}
+                  </div>
                 </div>
+
                 <Button
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
-                  onClick={handleSendReceipt}
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Enviar Comprovante
-                </Button>
-                <Button
-                  variant="ghost"
+                  onClick={checkPaymentStatus}
+                  disabled={isChecking}
+                  variant="outline"
                   className="w-full"
-                  onClick={() => setPaymentStep('selection')}
                 >
-                  Voltar
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isChecking ? 'animate-spin' : ''}`} />
+                  Já realizei o pagamento
                 </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Pagamento Asaas</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-center">
-                <p className="text-muted-foreground text-sm mb-4">
-                  Você será redirecionado para o ambiente seguro do Asaas para finalizar seu
-                  pagamento com Cartão de Crédito ou Boleto.
+              </div>
+            )}
+
+            {paymentData.billingType === 'BOLETO' && (
+              <div className="text-center space-y-6 max-w-sm mx-auto">
+                <div>
+                  <h3 className="font-bold text-lg">Boleto Bancário</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    O boleto foi gerado e está pronto para impressão ou pagamento online.
+                  </p>
+                </div>
+
+                <Button asChild className="w-full h-12 text-base">
+                  <a href={paymentData.bankSlipUrl} target="_blank" rel="noreferrer">
+                    Visualizar Boleto
+                  </a>
+                </Button>
+
+                <p className="text-xs text-muted-foreground">
+                  A compensação pode levar até 2 dias úteis.
                 </p>
-                <Button className="w-full bg-[#0030B9] hover:bg-[#002080] text-white">
-                  Ir para Checkout Asaas
+              </div>
+            )}
+
+            {paymentData.billingType === 'CREDIT_CARD' && (
+              <div className="text-center space-y-6 max-w-sm mx-auto">
+                <CheckCircle2 className="w-12 h-12 mx-auto text-emerald-500" />
+                <div>
+                  <h3 className="font-bold text-lg">Fatura Gerada</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Utilize o link seguro abaixo para inserir os dados do seu cartão.
+                  </p>
+                </div>
+
+                <Button asChild className="w-full h-12 text-base">
+                  <a href={paymentData.invoiceUrl} target="_blank" rel="noreferrer">
+                    Acessar Link de Pagamento
+                  </a>
                 </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => setPaymentStep('selection')}
-                >
-                  Voltar
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

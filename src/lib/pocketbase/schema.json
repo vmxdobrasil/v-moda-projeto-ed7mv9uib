@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-21T12:23:20.678Z",
+  "generatedAt": "2026-06-22T18:42:43.407Z",
   "collections": [
     {
       "name": "users",
@@ -112,7 +112,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["ceo", "manager", "salesperson"]
+          "selectValues": ["ceo", "manager", "salesperson", "finance", "store"]
         },
         {
           "name": "parent_brand",
@@ -144,6 +144,44 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "store_role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["admin", "manager", "salesperson", "finance"]
+        },
+        {
+          "name": "tax_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "address",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "contact_person",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "monthly_capacity",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "approval_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["pending", "approved", "denied"]
         }
       ],
       "indexes": [
@@ -607,6 +645,30 @@
         {
           "name": "estimated_value",
           "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tax_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "responsible_legal",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "contact_person",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "address",
+          "type": "text",
           "required": false,
           "system": false
         }
@@ -2377,6 +2439,270 @@
       "indexes": [
         "CREATE INDEX idx_price_adj_merchant ON price_adjustments (merchant)",
         "CREATE INDEX idx_price_adj_project ON price_adjustments (project)"
+      ]
+    },
+    {
+      "name": "stock_movements",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "store",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "project",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "projects"
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "quantity",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["in", "out"]
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "size",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_stock_movements_store ON stock_movements (store)",
+        "CREATE INDEX idx_stock_movements_project ON stock_movements (project)"
+      ]
+    },
+    {
+      "name": "financial_transactions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && store = @request.auth.id",
+        "view": "@request.auth.id != '' && store = @request.auth.id",
+        "create": "@request.auth.id != '' && store = @request.auth.id",
+        "update": "@request.auth.id != '' && store = @request.auth.id",
+        "delete": "@request.auth.id != '' && store = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "store",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["payable", "receivable"]
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pending", "paid", "overdue", "canceled"]
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "customer",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "customers"
+        },
+        {
+          "name": "order",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "orders"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_financial_transactions_store ON financial_transactions (store)",
+        "CREATE INDEX idx_financial_transactions_status ON financial_transactions (status)",
+        "CREATE INDEX idx_financial_transactions_due_date ON financial_transactions (due_date)"
+      ]
+    },
+    {
+      "name": "financial_accounts",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (store = @request.auth.id || store = @request.auth.parent_brand || @request.auth.role = 'admin')",
+        "view": "@request.auth.id != '' && (store = @request.auth.id || store = @request.auth.parent_brand || @request.auth.role = 'admin')",
+        "create": "@request.auth.id != '' && (store = @request.auth.id || store = @request.auth.parent_brand)",
+        "update": "@request.auth.id != '' && (store = @request.auth.id || store = @request.auth.parent_brand)",
+        "delete": "@request.auth.id != '' && (store = @request.auth.id || store = @request.auth.parent_brand)"
+      },
+      "fields": [
+        {
+          "name": "store",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["payable", "receivable"]
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pending", "paid", "overdue", "canceled"]
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "order",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "orders"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_fin_accounts_store ON financial_accounts (store)",
+        "CREATE INDEX idx_fin_accounts_type ON financial_accounts (type)",
+        "CREATE INDEX idx_fin_accounts_status ON financial_accounts (status)"
       ]
     }
   ]
