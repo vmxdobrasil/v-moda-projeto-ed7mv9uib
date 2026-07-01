@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T21:40:15.370Z",
+  "generatedAt": "2026-07-01T21:49:15.071Z",
   "collections": [
     {
       "name": "users",
@@ -3168,6 +3168,368 @@
       "indexes": [
         "CREATE INDEX idx_leads_retailers_status ON leads_retailers (status)",
         "CREATE INDEX idx_leads_retailers_state ON leads_retailers (state)"
+      ]
+    },
+    {
+      "name": "revendedoras",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cpf",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "whatsapp",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "region",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "city",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tier",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["bronze", "prata", "ouro", "diamante"]
+        },
+        {
+          "name": "total_points",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "monthly_points",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_sales",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["active", "inactive", "pending"]
+        },
+        {
+          "name": "source",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["mgm", "ads", "whatsapp_group", "direct"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "referrer",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "revendedoras"
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_revendedoras_state ON revendedoras (state)",
+        "CREATE INDEX idx_revendedoras_status ON revendedoras (status)",
+        "CREATE INDEX idx_revendedoras_user ON revendedoras (user)"
+      ]
+    },
+    {
+      "name": "niveis_revenda",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'",
+        "update": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'",
+        "delete": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["bronze", "prata", "ouro", "diamante"]
+        },
+        {
+          "name": "min_points",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "discount_percent",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "benefits",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_niveis_revenda_name ON niveis_revenda (name)"]
+    },
+    {
+      "name": "pedidos_revenda",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'"
+      },
+      "fields": [
+        {
+          "name": "revendedora",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "revendedoras"
+        },
+        {
+          "name": "project",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "projects"
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["wholesale", "dropshipping"]
+        },
+        {
+          "name": "quantity",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "unit_price",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "total_amount",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "profit",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "points_earned",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pending", "paid", "delivered", "canceled"]
+        },
+        {
+          "name": "client_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "client_phone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "client_address",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "share_link",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_pedidos_revenda_revendedora ON pedidos_revenda (revendedora)",
+        "CREATE INDEX idx_pedidos_revenda_status ON pedidos_revenda (status)"
+      ]
+    },
+    {
+      "name": "historico_pontos_revenda",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'",
+        "delete": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'"
+      },
+      "fields": [
+        {
+          "name": "revendedora",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "revendedoras"
+        },
+        {
+          "name": "order",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "pedidos_revenda"
+        },
+        {
+          "name": "points",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["earned", "redeemed"]
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "balance_after",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_hist_pontos_revendedora ON historico_pontos_revenda (revendedora)"
       ]
     }
   ]
