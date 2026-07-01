@@ -103,6 +103,9 @@ import LojasFabricantes from '@/pages/LojasFabricantes'
 import RetailerLanding from '@/pages/RetailerLanding'
 import RetailerOnboarding from '@/pages/RetailerOnboarding'
 import AdminGeographic from '@/pages/admin/AdminGeographic'
+import Empreenda from '@/pages/Empreenda'
+import ResellerDashboard from '@/pages/dashboard/ResellerDashboard'
+import AdminResellers from '@/pages/admin/AdminResellers'
 import { StoreManagement } from '@/components/manufacturer/StoreManagement'
 import useCartStore from '@/stores/useCartStore'
 import RetailCRM from '@/pages/dashboard/RetailCRM'
@@ -216,6 +219,7 @@ export default function App() {
                   <Route path="sobre-nos" element={<PlaceholderPage title="Sobre Nós" />} />
                   <Route path="contato" element={<PlaceholderPage title="Contato" />} />
                   <Route path="revenda" element={<RetailerLanding />} />
+                  <Route path="empreenda" element={<Empreenda />} />
                   <Route path="faq" element={<PlaceholderPage title="FAQ" />} />
                   <Route path="favoritos" element={<PlaceholderPage title="Lista de Desejos" />} />
                   <Route
@@ -275,6 +279,7 @@ export default function App() {
                     <Route path="v-club" element={<VClubWallet />} />
                     <Route path="media-kit" element={<PlaceholderPage title="Media Kit" />} />
                     <Route path="revenda" element={<RevendaDashboard />} />
+                    <Route path="revendedora-dashboard" element={<ResellerDashboard />} />
                     <Route path="academy" element={<Academy />} />
                     <Route path="vallen-consultora" element={<VallenConsultora />} />
                     <Route path="retail-crm" element={<RetailCRM />} />
@@ -308,6 +313,7 @@ export default function App() {
                       />
                       <Route path="insights" element={<AdminInsights />} />
                       <Route path="geografico" element={<AdminGeographic />} />
+                      <Route path="revendedoras" element={<AdminResellers />} />
                       <Route path="zonas" element={<AdminZones />} />
                       <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
                       <Route path="fabricantes" element={<AdminTopBrands />} />

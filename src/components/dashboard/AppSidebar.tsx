@@ -152,6 +152,14 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/admin/revendedoras')}>
+                    <Link to="/admin/revendedoras">
+                      <ShoppingBag />
+                      <span>Revendedoras</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -261,6 +269,14 @@ export function AppSidebar() {
                     <Link to="/revenda">
                       <ShoppingBag />
                       <span>Central de Pedidos</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/revendedora-dashboard')}>
+                    <Link to="/revendedora-dashboard">
+                      <Wallet />
+                      <span>Minha Revenda</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

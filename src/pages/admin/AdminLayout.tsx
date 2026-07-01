@@ -26,6 +26,7 @@ export default function AdminLayout() {
     { name: 'Parceiros', href: '/admin/parceiros', icon: Store },
     { name: 'Top Marcas', href: '/admin/fabricantes', icon: Store },
     { name: 'Guia de Marcas', href: '/admin/guia-marcas', icon: Users },
+    { name: 'Revendedoras', href: '/admin/revendedoras', icon: ShoppingBag },
     { name: 'Configurações', href: '/admin/configuracoes', icon: Settings },
   ]
 
