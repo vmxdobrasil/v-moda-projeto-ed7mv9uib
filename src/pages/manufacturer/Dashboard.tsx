@@ -15,7 +15,6 @@ import {
 import { Package, Users, Truck, Award, Eye, TrendingUp, Mail, Phone, Store } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getManufacturerLeads, type Lead } from '@/services/leads'
-import { Badge } from '@/components/ui/badge'
 
 export default function ManufacturerDashboard() {
   const { user } = useAuth()
