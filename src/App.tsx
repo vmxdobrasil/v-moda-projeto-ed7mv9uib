@@ -14,6 +14,7 @@ import { RootRoute } from '@/components/RootRoute'
 import ProfilePage from '@/pages/dashboard/Profile'
 import AdminSubscriptions from '@/pages/admin/AdminSubscriptions'
 import AdminImportLogs from '@/pages/admin/AdminImportLogs'
+import AdminAgents from '@/pages/admin/AdminAgents'
 
 // Normalize backend API calls to use absolute URL and prevent returning HTML
 const originalFetch = window.fetch
@@ -305,6 +306,7 @@ export default function App() {
                       <Route path="agentes" element={<AdminPartners defaultTab="agent" />} />
                       <Route path="afiliados" element={<AdminPartners defaultTab="affiliate" />} />
                       <Route path="parceiros" element={<AdminPartners />} />
+                      <Route path="agentes" element={<AdminAgents />} />
                       <Route path="financeiro" element={<AdminFinance />} />
                       <Route path="notificacoes" element={<AdminNotifications />} />
                       <Route

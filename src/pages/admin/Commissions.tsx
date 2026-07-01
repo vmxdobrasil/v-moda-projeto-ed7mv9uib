@@ -139,6 +139,7 @@ export default function AdminCommissions() {
     if (method === 'transportadora') return 'Transportadora'
     if (method === 'correios') return 'Correios'
     if (method === 'caravana_onibus') return 'Caravana/Ônibus'
+    if (method === 'agente_credenciado') return 'Agente Credenciado'
     return '-'
   }
 

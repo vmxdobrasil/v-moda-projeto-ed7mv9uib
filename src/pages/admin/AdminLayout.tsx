@@ -9,6 +9,10 @@ import {
   LogOut,
   ChevronLeft,
   CreditCard,
+  UserCheck,
+  MapPin,
+  TrendingUp,
+  Bell,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -21,12 +25,17 @@ export default function AdminLayout() {
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'CRM Global', href: '/admin/crm-global', icon: Users },
     { name: 'Guia CRM', href: '/admin/guia-crm', icon: Users },
+    { name: 'Agentes', href: '/admin/agentes', icon: UserCheck },
     { name: 'V Club', href: '/admin/v-club', icon: ShoppingBag },
     { name: 'Financeiro', href: '/admin/financeiro', icon: CreditCard },
     { name: 'Parceiros', href: '/admin/parceiros', icon: Store },
     { name: 'Top Marcas', href: '/admin/fabricantes', icon: Store },
     { name: 'Guia de Marcas', href: '/admin/guia-marcas', icon: Users },
     { name: 'Revendedoras', href: '/admin/revendedoras', icon: ShoppingBag },
+    { name: 'Geográfico', href: '/admin/geografico', icon: MapPin },
+    { name: 'Zonas', href: '/admin/zonas', icon: MapPin },
+    { name: 'Insights', href: '/admin/insights', icon: TrendingUp },
+    { name: 'Notificações', href: '/admin/notificacoes', icon: Bell },
     { name: 'Configurações', href: '/admin/configuracoes', icon: Settings },
   ]
 

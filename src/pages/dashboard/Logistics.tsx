@@ -229,7 +229,9 @@ export default function Logistics() {
                           ? 'Correios'
                           : delivery.shipping_method === 'caravana_onibus'
                             ? 'Caravana/Ônibus'
-                            : '-'}
+                            : delivery.shipping_method === 'agente_credenciado'
+                              ? 'Agente Credenciado'
+                              : '-'}
                     </TableCell>
                     <TableCell>
                       <span
@@ -357,6 +359,7 @@ export default function Logistics() {
                       <SelectItem value="transportadora">Transportadora</SelectItem>
                       <SelectItem value="correios">Correios</SelectItem>
                       <SelectItem value="caravana_onibus">Caravana / Ônibus</SelectItem>
+                      <SelectItem value="agente_credenciado">Agente Credenciado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

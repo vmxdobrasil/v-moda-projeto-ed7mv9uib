@@ -6,6 +6,10 @@ import { AgentOverview } from '@/components/agent/AgentOverview'
 import { AgentClients } from '@/components/agent/AgentClients'
 import { AgentFinances } from '@/components/agent/AgentFinances'
 import { AgentLogistics } from '@/components/agent/AgentLogistics'
+import { AgentExcursions } from '@/components/agent/AgentExcursions'
+import { AgentCargoControl } from '@/components/agent/AgentCargoControl'
+import { AgentOnboardingLinks } from '@/components/agent/AgentOnboardingLinks'
+import { AgentQrScanner } from '@/components/agent/AgentQrScanner'
 
 export default function AgentDashboard() {
   const { user } = useAuth()
@@ -38,22 +42,38 @@ export default function AgentDashboard() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6 animate-fade-in-up">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 animate-fade-in-up">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Portal do Agente</h2>
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Portal do Agente</h2>
       </div>
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="flex flex-wrap h-auto">
+        <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="clients">Meus Clientes</TabsTrigger>
-          <TabsTrigger value="finances">Extrato Financeiro</TabsTrigger>
-          <TabsTrigger value="logistics">Logística (Caravanas)</TabsTrigger>
+          <TabsTrigger value="clients">Clientes</TabsTrigger>
+          <TabsTrigger value="excursions">Excursoes</TabsTrigger>
+          <TabsTrigger value="cargo">Cargas</TabsTrigger>
+          <TabsTrigger value="links">Links</TabsTrigger>
+          <TabsTrigger value="qr">QR Entrega</TabsTrigger>
+          <TabsTrigger value="finances">Financeiro</TabsTrigger>
+          <TabsTrigger value="logistics">Logística</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
           <AgentOverview customers={customers} referrals={referrals} user={user} />
         </TabsContent>
         <TabsContent value="clients" className="space-y-4">
           <AgentClients customers={customers} />
+        </TabsContent>
+        <TabsContent value="excursions" className="space-y-4">
+          <AgentExcursions />
+        </TabsContent>
+        <TabsContent value="cargo" className="space-y-4">
+          <AgentCargoControl />
+        </TabsContent>
+        <TabsContent value="links" className="space-y-4">
+          <AgentOnboardingLinks />
+        </TabsContent>
+        <TabsContent value="qr" className="space-y-4">
+          <AgentQrScanner />
         </TabsContent>
         <TabsContent value="finances" className="space-y-4">
           <AgentFinances referrals={referrals} user={user} />
