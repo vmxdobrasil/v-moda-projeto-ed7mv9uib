@@ -23,6 +23,14 @@ export interface Referral {
   }
 }
 
+export const getBrandLeads = async (userId: string) => {
+  return pb.collection('referrals').getFullList<Referral>({
+    filter: `brand.manufacturer = "${userId}" && (type = "lead" || type = "conversion")`,
+    sort: '-created',
+    expand: 'brand,affiliate',
+  })
+}
+
 export const getReferrals = async () => {
   const user = pb.authStore.record
   if (!user) return []

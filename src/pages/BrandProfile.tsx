@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   Star,
   MessageSquareQuote,
+  Store,
 } from 'lucide-react'
 import { useSEO } from '@/hooks/useSEO'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -103,7 +104,7 @@ export default function BrandProfile() {
     )
   }
 
-  const isTop60 = (brand.ranking_position > 0 && brand.ranking_position <= 60) || brand.is_exclusive
+  const isTopBrand = brand.ranking_position > 0 || brand.is_exclusive
   const existingReview = reviews.find((r) => r.user === user?.id)
 
   const handleVideoCall = async () => {
@@ -144,6 +145,22 @@ export default function BrandProfile() {
     }
   }
 
+  const handleResellerClick = async () => {
+    if (!user) {
+      toast({ title: 'Atenção', description: 'Faça login para se candidatar.' })
+      navigate('/login')
+      return
+    }
+    if (brand.id) {
+      pb.send(`/backend/v1/partners/${brand.id}/click`, { method: 'POST' }).catch(console.error)
+    }
+    toast({ title: 'Interesse registrado!', description: 'A marca entrará em contato.' })
+    if (brand.phone) {
+      const msg = encodeURIComponent('Olá! Tenho interesse em revender seus produtos.')
+      window.open(`https://wa.me/${brand.phone.replace(/\D/g, '')}?text=${msg}`, '_blank')
+    }
+  }
+
   const handleWhatsAppClick = async () => {
     if (brand.id) {
       try {
@@ -181,9 +198,12 @@ export default function BrandProfile() {
 
         <FadeIn>
           <div className="bg-background rounded-2xl p-8 md:p-12 shadow-sm border relative overflow-hidden">
-            {isTop60 && (
+            {isTopBrand && (
               <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-6 py-2 rounded-bl-2xl font-bold tracking-wider uppercase text-sm flex items-center gap-2 shadow-md z-10">
-                <Trophy className="w-4 h-4" /> TOP 60
+                <Trophy className="w-4 h-4" />{' '}
+                {brand.ranking_position > 0
+                  ? `${brand.ranking_position}º no TOP ${brand.ranking_category?.replace(/_/g, ' ') || ''}`
+                  : 'TOP'}
               </div>
             )}
             <div className="absolute top-4 left-4 z-10">
@@ -281,6 +301,15 @@ export default function BrandProfile() {
                       Contato Indisponível
                     </Button>
                   )}
+                  <Button
+                    size="lg"
+                    variant="default"
+                    className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white"
+                    onClick={handleResellerClick}
+                  >
+                    <Store className="w-5 h-5 mr-2" />
+                    Quero Revender
+                  </Button>
                   {user && (
                     <ReviewDialog
                       brandId={brand.id}
