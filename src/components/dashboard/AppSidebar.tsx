@@ -144,6 +144,14 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/admin/geografico')}>
+                    <Link to="/admin/geografico">
+                      <BarChart />
+                      <span>Distribuição Geográfica</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -245,14 +253,22 @@ export function AppSidebar() {
 
         {isRetailer && (
           <SidebarGroup>
-            <SidebarGroupLabel>Minha Conta</SidebarGroupLabel>
+            <SidebarGroupLabel>Central de Abastecimento</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/dashboard')}>
-                    <Link to="/dashboard">
-                      <LayoutDashboard />
-                      <span>Dashboard</span>
+                  <SidebarMenuButton asChild isActive={getIsActive('/revenda')}>
+                    <Link to="/revenda">
+                      <ShoppingBag />
+                      <span>Central de Pedidos</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/guia-de-moda')}>
+                    <Link to="/guia-de-moda">
+                      <Store />
+                      <span>Vitrine de Marcas</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -268,7 +284,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild isActive={getIsActive('/perfil')}>
                     <Link to="/perfil">
                       <Settings />
-                      <span>Perfil</span>
+                      <span>Meu Perfil</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

@@ -100,6 +100,9 @@ import AdminZones from '@/pages/admin/AdminZones'
 import AdminFinance from '@/pages/admin/AdminFinance'
 import AdminNotifications from '@/pages/admin/AdminNotifications'
 import LojasFabricantes from '@/pages/LojasFabricantes'
+import RetailerLanding from '@/pages/RetailerLanding'
+import RetailerOnboarding from '@/pages/RetailerOnboarding'
+import AdminGeographic from '@/pages/admin/AdminGeographic'
 import { StoreManagement } from '@/components/manufacturer/StoreManagement'
 import useCartStore from '@/stores/useCartStore'
 import RetailCRM from '@/pages/dashboard/RetailCRM'
@@ -206,15 +209,13 @@ export default function App() {
                   <Route index element={<RootRoute />} />
                   <Route path="colecoes" element={<Catalog />} />
                   <Route path="lojas-fabricantes" element={<LojasFabricantes />} />
+                  <Route path="central-de-abastecimento" element={<RetailerLanding />} />
                   <Route path="guia-de-moda" element={<GuiaDeModa />} />
                   <Route path="conhecimento" element={<PlaceholderPage title="Conhecimento" />} />
                   <Route path="revista" element={<Magazine />} />
                   <Route path="sobre-nos" element={<PlaceholderPage title="Sobre Nós" />} />
                   <Route path="contato" element={<PlaceholderPage title="Contato" />} />
-                  <Route
-                    path="revenda"
-                    element={<PlaceholderPage title="Seja uma Revendedora" />}
-                  />
+                  <Route path="revenda" element={<RetailerLanding />} />
                   <Route path="faq" element={<PlaceholderPage title="FAQ" />} />
                   <Route path="favoritos" element={<PlaceholderPage title="Lista de Desejos" />} />
                   <Route
@@ -248,6 +249,7 @@ export default function App() {
 
                 {/* Protected Dashboard/User Pages */}
                 <Route element={<AuthGuard />}>
+                  <Route path="/onboarding" element={<RetailerOnboarding />} />
                   <Route path="/negotiation/video/:sessionId" element={<VideoNegotiation />} />
 
                   {/* Wrapped inside DashboardLayout to keep sidebar/header */}
@@ -305,6 +307,7 @@ export default function App() {
                         element={<Navigate to="/admin/insights" replace />}
                       />
                       <Route path="insights" element={<AdminInsights />} />
+                      <Route path="geografico" element={<AdminGeographic />} />
                       <Route path="zonas" element={<AdminZones />} />
                       <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
                       <Route path="fabricantes" element={<AdminTopBrands />} />

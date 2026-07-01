@@ -110,7 +110,7 @@ export default function Signup() {
         navigate('/manufacturer')
       } else {
         toast({ title: 'Conta criada com sucesso!' })
-        navigate('/dashboard')
+        navigate('/onboarding')
       }
     } catch (err: any) {
       toast({

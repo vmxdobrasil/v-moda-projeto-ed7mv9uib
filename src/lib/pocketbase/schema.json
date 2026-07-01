@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T14:05:09.594Z",
+  "generatedAt": "2026-07-01T17:57:20.637Z",
   "collections": [
     {
       "name": "users",
@@ -3064,6 +3064,111 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_unidades_lojas_mfr ON unidades_lojas (manufacturer)"]
+    },
+    {
+      "name": "leads_retailers",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'",
+        "view": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'",
+        "create": "",
+        "update": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'",
+        "delete": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'"
+      },
+      "fields": [
+        {
+          "name": "store_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "contact_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cnpj",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "city",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "fashion_hub",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["44_goiania", "fama_goiania", "bras_sp", "bom_retiro_sp", "outros"]
+        },
+        {
+          "name": "utm_source",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "utm_medium",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "utm_campaign",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pending", "contacted", "approved", "rejected"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_leads_retailers_status ON leads_retailers (status)",
+        "CREATE INDEX idx_leads_retailers_state ON leads_retailers (state)"
+      ]
     }
   ]
 }

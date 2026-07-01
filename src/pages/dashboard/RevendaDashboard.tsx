@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Tag,
   Package,
+  RefreshCw,
 } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -43,6 +44,9 @@ import {
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { BrandCard } from '@/components/BrandCard'
+import { Button } from '@/components/ui/button'
+import useCartStore from '@/stores/useCartStore'
+import { toast } from 'sonner'
 
 // Mock Data
 const MOCK_ORDERS = [
@@ -134,6 +138,7 @@ export default function RevendaDashboard() {
 
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [fashionHubFilter, setFashionHubFilter] = useState('all')
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
 
   useEffect(() => {
@@ -203,9 +208,10 @@ export default function RevendaDashboard() {
     return brands.filter((b) => {
       const matchSearch = b.name?.toLowerCase().includes(search.toLowerCase())
       const matchCategory = categoryFilter === 'all' || b.ranking_category === categoryFilter
-      return matchSearch && matchCategory
+      const matchHub = fashionHubFilter === 'all' || b.fashion_hub === fashionHubFilter
+      return matchSearch && matchCategory && matchHub
     })
-  }, [brands, search, categoryFilter])
+  }, [brands, search, categoryFilter, fashionHubFilter])
 
   const exclusiveBrands = useMemo(() => {
     const fromCRM = myCustomers.filter((c) => c.is_exclusive)
@@ -314,6 +320,19 @@ export default function RevendaDashboard() {
                 <SelectItem value="moda_praia">Moda Praia</SelectItem>
                 <SelectItem value="moda_masculina">Moda Masculina</SelectItem>
                 <SelectItem value="plus_size">Plus Size</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={fashionHubFilter} onValueChange={setFashionHubFilter}>
+              <SelectTrigger className="w-full md:w-[200px] bg-muted/50">
+                <SelectValue placeholder="Polo de Moda" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Polos</SelectItem>
+                <SelectItem value="44_goiania">44 Goiânia</SelectItem>
+                <SelectItem value="fama_goiania">Fama Goiânia</SelectItem>
+                <SelectItem value="bras_sp">Brás SP</SelectItem>
+                <SelectItem value="bom_retiro_sp">Bom Retiro SP</SelectItem>
+                <SelectItem value="outros">Outros</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -496,11 +515,35 @@ export default function RevendaDashboard() {
                         <Tag className="w-3 h-3 inline mr-1" /> Qtd: {item.quantity || 1}
                       </p>
                     </div>
-                    <div className="font-semibold tabular-nums">
-                      {new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      }).format((item.price || 0) * (item.quantity || 1))}
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="font-semibold tabular-nums">
+                        {new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        }).format((item.price || 0) * (item.quantity || 1))}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs h-7 gap-1.5 border-electric/30 text-electric hover:bg-electric/10"
+                        onClick={() => {
+                          const cart = useCartStore.getState()
+                          if (cart.addItem) {
+                            cart.addItem({
+                              product: {
+                                id: item.id || `rebuy-${i}`,
+                                name: item.name || 'Produto',
+                                price: item.price || 0,
+                              },
+                              quantity: item.quantity || 1,
+                            })
+                            toast.success('Item adicionado para reposição!')
+                          }
+                        }}
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        Reposição
+                      </Button>
                     </div>
                   </div>
                 ))}
