@@ -100,6 +100,12 @@ export function Footer() {
             Seja uma Revendedora
           </Link>
           <Link
+            to="/lojas-fabricantes"
+            className="text-sm text-primary-foreground/70 hover:text-accent transition-colors font-medium text-accent"
+          >
+            Seja um Fabricante Parceiro
+          </Link>
+          <Link
             to="/admin"
             className="text-sm text-primary-foreground/70 hover:text-white transition-colors mt-2 font-semibold"
           >

@@ -30,6 +30,10 @@
     --mint-foreground: 122 39% 15%;
     --azul: 215 85% 45%;
     --azul-foreground: 0 0% 100%;
+    --navy: 210 100% 12.5%;
+    --navy-foreground: 0 0% 100%;
+    --electric: 16 100% 50%;
+    --electric-foreground: 0 0% 100%;
   }
 
   .dark {
@@ -58,6 +62,10 @@
     --mint-foreground: 122 39% 15%;
     --azul: 215 85% 45%;
     --azul-foreground: 0 0% 100%;
+    --navy: 210 100% 12.5%;
+    --navy-foreground: 0 0% 100%;
+    --electric: 16 100% 50%;
+    --electric-foreground: 0 0% 100%;
   }
 }
 

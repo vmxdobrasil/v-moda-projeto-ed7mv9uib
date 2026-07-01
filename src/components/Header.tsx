@@ -134,6 +134,7 @@ export function Header() {
     { name: 'SOBRE NÓS', path: '/sobre-nos' },
     { name: 'CONTATO', path: '/contato' },
     { name: 'SEJA UMA REVENDEDORA', path: '/revenda' },
+    { name: 'SEJA FABRICANTE', path: '/lojas-fabricantes' },
   ]
 
   if (isAuthenticated && (user?.role === 'manufacturer' || user?.role === 'admin')) {

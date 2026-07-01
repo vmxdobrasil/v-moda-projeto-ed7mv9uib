@@ -99,7 +99,8 @@ import VallenConsultora from '@/pages/dashboard/VallenConsultora'
 import AdminZones from '@/pages/admin/AdminZones'
 import AdminFinance from '@/pages/admin/AdminFinance'
 import AdminNotifications from '@/pages/admin/AdminNotifications'
-import QRCodeRedirect from '@/pages/QRCodeRedirect'
+import LojasFabricantes from '@/pages/LojasFabricantes'
+import { StoreManagement } from '@/components/manufacturer/StoreManagement'
 import useCartStore from '@/stores/useCartStore'
 import RetailCRM from '@/pages/dashboard/RetailCRM'
 import ConsultantCRM from '@/pages/dashboard/ConsultantCRM'
@@ -187,9 +188,6 @@ export default function App() {
             <FloatingCart />
 
             <Routes>
-              {/* Isolated routes without LiveChat or global layouts */}
-              <Route path="/qrcode/:id" element={<QRCodeRedirect />} />
-
               {/* Routes with LiveChat */}
               <Route element={<AppRoot />}>
                 {/* Public Auth Routes */}
@@ -207,6 +205,7 @@ export default function App() {
                 <Route element={<PublicLayout />}>
                   <Route index element={<RootRoute />} />
                   <Route path="colecoes" element={<Catalog />} />
+                  <Route path="lojas-fabricantes" element={<LojasFabricantes />} />
                   <Route path="guia-de-moda" element={<GuiaDeModa />} />
                   <Route path="conhecimento" element={<PlaceholderPage title="Conhecimento" />} />
                   <Route path="revista" element={<Magazine />} />
@@ -231,6 +230,7 @@ export default function App() {
                   <Route path="/manufacturer" element={<ManufacturerLayout />}>
                     <Route index element={<ManufacturerDashboard />} />
                     <Route path="catalog" element={<ManufacturerCatalog />} />
+                    <Route path="stores" element={<StoreManagement />} />
                     <Route path="leads" element={<ManufacturerLeads />} />
                     <Route path="messages" element={<ManufacturerMessages />} />
                     <Route path="logistics" element={<ManufacturerLogistics />} />

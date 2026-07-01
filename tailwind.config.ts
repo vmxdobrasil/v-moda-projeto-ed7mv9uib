@@ -71,6 +71,14 @@ export default {
           DEFAULT: 'hsl(var(--azul))',
           foreground: 'hsl(var(--azul-foreground))',
         },
+        navy: {
+          DEFAULT: 'hsl(var(--navy))',
+          foreground: 'hsl(var(--navy-foreground))',
+        },
+        electric: {
+          DEFAULT: 'hsl(var(--electric))',
+          foreground: 'hsl(var(--electric-foreground))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
