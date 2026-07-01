@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Crown, MapPin, Store, Switch } from 'lucide-react'
+import { Crown, MapPin, Store, ToggleLeft } from 'lucide-react'
 import { getGlobalTopLimit } from '@/services/curatorship'
 import { QueroRevenderButton } from '@/components/QueroRevenderButton'
 import { BrandCatalogDialog } from '@/components/guia-de-moda/BrandCatalogDialog'
@@ -87,7 +87,7 @@ export function TopMarcasSection() {
             onClick={() => setShowTop100(!showTop100)}
             className={showTop100 ? 'bg-azul text-azul-foreground' : 'border-azul/30 text-azul'}
           >
-            <Switch className="w-4 h-4 mr-2" />
+            <ToggleLeft className="w-4 h-4 mr-2" />
             {showTop100 ? 'TOP 100 ATIVO' : 'Ver TOP 100'}
           </Button>
         </div>
