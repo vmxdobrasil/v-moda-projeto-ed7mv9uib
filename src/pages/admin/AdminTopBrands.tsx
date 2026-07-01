@@ -59,12 +59,10 @@ export default function AdminTopBrands() {
         pb
           .collection('customers')
           .getFullList({ filter: 'ranking_position > 0', sort: 'ranking_position' }),
-        pb
-          .collection('customers')
-          .getList(1, 20, {
-            filter: 'ranking_position = 0 && is_verified = true',
-            sort: '-created',
-          }),
+        pb.collection('customers').getList(1, 20, {
+          filter: 'ranking_position = 0 && is_verified = true',
+          sort: '-created',
+        }),
         getGlobalTopLimit(),
       ])
       setTopBrands(top)

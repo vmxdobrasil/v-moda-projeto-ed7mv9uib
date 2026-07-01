@@ -12,14 +12,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Package, Users, Truck, Award, Eye, TrendingUp, Mail, Phone } from 'lucide-react'
+import { Package, Users, Truck, Award, Eye, TrendingUp, Mail, Phone, Store } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { getManufacturerLeads, type Lead } from '@/services/leads'
+import { Badge } from '@/components/ui/badge'
 
 export default function ManufacturerDashboard() {
   const { user } = useAuth()
   const [stats, setStats] = useState({ views: 0, leads: 0, conversions: 0 })
   const [leads, setLeads] = useState<any[]>([])
   const [rankingStatus, setRankingStatus] = useState('')
+  const [revendaLeads, setRevendaLeads] = useState<Lead[]>([])
 
   useEffect(() => {
     if (!user) return
@@ -49,6 +52,14 @@ export default function ManufacturerDashboard() {
         } catch {
           /* intentionally ignored */
         }
+
+        let revendaLeadsData: Lead[] = []
+        try {
+          revendaLeadsData = await getManufacturerLeads(user.id)
+        } catch {
+          /* intentionally ignored */
+        }
+        setRevendaLeads(revendaLeadsData)
 
         setStats({
           views: totalViews,
@@ -208,6 +219,70 @@ export default function ManufacturerDashboard() {
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                     Nenhum lead ainda.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Store className="w-5 h-5 text-primary" /> Leads de Lojistas ("Quero Revender")
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Revendedora</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Data</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {revendaLeads.slice(0, 10).map((l) => (
+                <TableRow key={l.id}>
+                  <TableCell className="font-medium">
+                    {l.expand?.retailer?.name || 'Usuário'}
+                    {l.expand?.retailer?.email && (
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Mail className="h-3 w-3 mr-1" />
+                        {l.expand.retailer.email}
+                      </div>
+                    )}
+                    {l.expand?.retailer?.phone && (
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Phone className="h-3 w-3 mr-1" />
+                        {l.expand.retailer.phone}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        l.status === 'converted'
+                          ? 'default'
+                          : l.status === 'pending'
+                            ? 'secondary'
+                            : 'outline'
+                      }
+                      className={l.status === 'pending' ? 'bg-primary/10 text-primary' : ''}
+                    >
+                      {l.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(l.created).toLocaleDateString('pt-BR')}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {revendaLeads.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                    Nenhum lead de revenda ainda.
                   </TableCell>
                 </TableRow>
               )}

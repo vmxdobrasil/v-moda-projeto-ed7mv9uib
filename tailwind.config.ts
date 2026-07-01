@@ -67,6 +67,10 @@ export default {
           DEFAULT: 'hsl(var(--mint))',
           foreground: 'hsl(var(--mint-foreground))',
         },
+        azul: {
+          DEFAULT: 'hsl(var(--azul))',
+          foreground: 'hsl(var(--azul-foreground))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

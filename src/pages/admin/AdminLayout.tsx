@@ -24,7 +24,8 @@ export default function AdminLayout() {
     { name: 'V Club', href: '/admin/v-club', icon: ShoppingBag },
     { name: 'Financeiro', href: '/admin/financeiro', icon: CreditCard },
     { name: 'Parceiros', href: '/admin/parceiros', icon: Store },
-    { name: 'Fabricantes', href: '/admin/fabricantes', icon: Store },
+    { name: 'Top Marcas', href: '/admin/fabricantes', icon: Store },
+    { name: 'Guia de Marcas', href: '/admin/guia-marcas', icon: Users },
     { name: 'Configurações', href: '/admin/configuracoes', icon: Settings },
   ]
 

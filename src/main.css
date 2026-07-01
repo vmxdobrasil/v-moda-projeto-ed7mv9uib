@@ -28,6 +28,8 @@
     --emerald-foreground: 0 0% 100%;
     --mint: 120 35% 67%;
     --mint-foreground: 122 39% 15%;
+    --azul: 215 85% 45%;
+    --azul-foreground: 0 0% 100%;
   }
 
   .dark {
@@ -54,6 +56,8 @@
     --emerald-foreground: 0 0% 100%;
     --mint: 120 35% 67%;
     --mint-foreground: 122 39% 15%;
+    --azul: 215 85% 45%;
+    --azul-foreground: 0 0% 100%;
   }
 }
 
