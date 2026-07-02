@@ -301,12 +301,12 @@ export default function App() {
                   {/* Admin Routes */}
                   <Route element={<AdminGuard />}>
                     <Route path="/admin" element={<AdminLayout />}>
-                      <Route index element={<AdminDashboard />} />
+                      <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                      <Route path="dashboard" element={<AdminDashboard />} />
                       <Route path="hub" element={<DashboardHub />} />
                       <Route path="crm-global" element={<AdminCRMGlobal />} />
                       <Route path="comissoes" element={<AdminCommissions />} />
                       <Route path="v-club" element={<AdminVClub />} />
-                      <Route path="agentes" element={<AdminPartners defaultTab="agent" />} />
                       <Route path="afiliados" element={<AdminPartners defaultTab="affiliate" />} />
                       <Route path="parceiros" element={<AdminPartners />} />
                       <Route path="agentes" element={<AdminAgents />} />
@@ -322,8 +322,16 @@ export default function App() {
                       <Route path="revendedoras" element={<AdminResellers />} />
                       <Route path="zonas" element={<AdminZones />} />
                       <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
-                      <Route path="fabricantes" element={<AdminTopBrands />} />
-                      <Route path="guia-marcas" element={<AdminManufacturers />} />
+                      <Route path="top-marcas" element={<AdminTopBrands />} />
+                      <Route path="guia-de-marcas" element={<AdminManufacturers />} />
+                      <Route
+                        path="fabricantes"
+                        element={<Navigate to="/admin/top-marcas" replace />}
+                      />
+                      <Route
+                        path="guia-marcas"
+                        element={<Navigate to="/admin/guia-de-marcas" replace />}
+                      />
                       <Route path="produtos" element={<AdminProducts />} />
                       <Route path="catalogo" element={<AdminCatalog />} />
                       <Route path="clientes" element={<Customers />} />
