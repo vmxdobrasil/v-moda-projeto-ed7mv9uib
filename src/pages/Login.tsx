@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
+import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,6 +22,15 @@ export default function Login() {
   const { signIn } = useAuth()
   const navigate = useNavigate()
 
+  const getRedirectPath = (role?: string, isTransporter?: boolean): string => {
+    if (role === 'admin') return '/admin'
+    if (role === 'manufacturer') return '/manufacturer'
+    if (role === 'agent') return '/agentes'
+    if (role === 'affiliate') return '/affiliates'
+    if (isTransporter) return '/logistica-transportadoras'
+    return '/lojistas'
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -34,7 +44,8 @@ export default function Login() {
           description: 'Verifique suas credenciais e tente novamente.',
         })
       } else {
-        navigate('/dashboard')
+        const record = pb.authStore.record as any
+        navigate(getRedirectPath(record?.role, record?.is_transporter))
       }
     } catch (err) {
       toast({

@@ -4,7 +4,16 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/hooks/use-auth'
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom'
-import { AuthGuard, PublicRoute, ManufacturerGuard, AdminGuard } from '@/components/AuthGuard'
+import {
+  AuthGuard,
+  PublicRoute,
+  ManufacturerGuard,
+  AdminGuard,
+  CrmGuard,
+  RetailerGuard,
+  AgentGuard,
+  AgentOrTransporterGuard,
+} from '@/components/AuthGuard'
 import { AiAssistantProvider, LiveChat } from '@/components/LiveChat'
 import { PublicLayout } from '@/components/PublicLayout'
 import { PwaProvider } from '@/components/pwa/PwaProvider'
@@ -121,6 +130,11 @@ import CartPage from '@/pages/Cart'
 import OrderView from '@/pages/OrderView'
 import SellerOrders from '@/pages/dashboard/SellerOrders'
 import { ShoppingCart } from 'lucide-react'
+import CRMHub from '@/pages/CRMHub'
+import TopMarcas from '@/pages/TopMarcas'
+import GuiaCompras from '@/pages/GuiaCompras'
+import LogisticaTransportadoras from '@/pages/LogisticaTransportadoras'
+import FinanceiroHub from '@/pages/FinanceiroHub'
 
 function FloatingCart() {
   const items = useCartStore((state) => state.items)
@@ -232,6 +246,8 @@ export default function App() {
                   />
                   <Route path="orders/view/:id" element={<OrderView />} />
                   <Route path="cart" element={<CartPage />} />
+                  <Route path="top-marcas" element={<TopMarcas />} />
+                  <Route path="guia-compras" element={<GuiaCompras />} />
                 </Route>
 
                 {/* Manufacturer Routes */}
@@ -290,6 +306,37 @@ export default function App() {
                     <Route path="consultant-crm" element={<ConsultantCRM />} />
                     <Route path="inventory" element={<InventoryManagement />} />
                     <Route path="seller-orders" element={<SellerOrders />} />
+
+                    {/* Official Route Map — Fashion Tech Navigation */}
+                    <Route element={<CrmGuard />}>
+                      <Route path="crm" element={<CRMHub />} />
+                    </Route>
+
+                    <Route element={<AgentOrTransporterGuard />}>
+                      <Route
+                        path="logistica-transportadoras"
+                        element={<LogisticaTransportadoras />}
+                      />
+                    </Route>
+
+                    <Route path="financeiro" element={<FinanceiroHub />} />
+
+                    <Route element={<ManufacturerGuard />}>
+                      <Route path="fabricantes" element={<Navigate to="/manufacturer" replace />} />
+                    </Route>
+
+                    <Route element={<RetailerGuard />}>
+                      <Route path="lojistas" element={<Navigate to="/revenda" replace />} />
+                    </Route>
+
+                    <Route
+                      path="revendedoras"
+                      element={<Navigate to="/revendedora-dashboard" replace />}
+                    />
+
+                    <Route element={<AgentGuard />}>
+                      <Route path="agentes" element={<Navigate to="/agente" replace />} />
+                    </Route>
 
                     {/* Protected Manufacturer specifics inside DashboardLayout */}
                     <Route element={<ManufacturerGuard />}>

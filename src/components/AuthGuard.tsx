@@ -61,6 +61,103 @@ export function ManufacturerGuard() {
   return <Outlet />
 }
 
+export function CrmGuard() {
+  const { isAuthenticated, user, loading } = useAuth()
+  const location = useLocation()
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  }
+
+  const hasAccess =
+    user?.role === 'admin' ||
+    user?.email === 'valterpmendonca@gmail.com' ||
+    user?.manufacturer_role === 'manager' ||
+    user?.brand_role === 'manager'
+
+  if (!hasAccess) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <Outlet />
+}
+
+export function RetailerGuard() {
+  const { isAuthenticated, user, loading } = useAuth()
+  const location = useLocation()
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  }
+
+  const isRetailer =
+    user?.role === 'retailer' ||
+    user?.email === 'valterpmendonca@gmail.com' ||
+    user?.role === 'admin'
+
+  if (!isRetailer) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <Outlet />
+}
+
+export function AgentGuard() {
+  const { isAuthenticated, user, loading } = useAuth()
+  const location = useLocation()
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  }
+
+  const isAgent =
+    user?.role === 'agent' || user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
+
+  if (!isAgent) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <Outlet />
+}
+
+export function AgentOrTransporterGuard() {
+  const { isAuthenticated, user, loading } = useAuth()
+  const location = useLocation()
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  }
+
+  const hasAccess =
+    user?.role === 'agent' ||
+    user?.role === 'retailer' ||
+    user?.is_transporter === true ||
+    user?.email === 'valterpmendonca@gmail.com' ||
+    user?.role === 'admin'
+
+  if (!hasAccess) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <Outlet />
+}
+
 export function PublicRoute() {
   const { isAuthenticated, loading } = useAuth()
   const location = useLocation()

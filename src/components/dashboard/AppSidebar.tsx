@@ -169,6 +169,46 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/crm')}>
+                    <Link to="/crm">
+                      <Activity />
+                      <span>CRM Hub</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/financeiro')}>
+                    <Link to="/financeiro">
+                      <CreditCard />
+                      <span>Financeiro</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/logistica-transportadoras')}>
+                    <Link to="/logistica-transportadoras">
+                      <Truck />
+                      <span>Logística & Transporte</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/top-marcas')}>
+                    <Link to="/top-marcas">
+                      <Star />
+                      <span>Top 100 Marcas</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/guia-compras')}>
+                    <Link to="/guia-compras">
+                      <Store />
+                      <span>Guia de Compras</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -227,6 +267,22 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/financeiro')}>
+                    <Link to="/financeiro">
+                      <CreditCard />
+                      <span>Financeiro</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/logistica-transportadoras')}>
+                    <Link to="/logistica-transportadoras">
+                      <Truck />
+                      <span>Logística & Transporte</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -245,6 +301,22 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/logistica-transportadoras')}>
+                    <Link to="/logistica-transportadoras">
+                      <Truck />
+                      <span>Logística & Transporte</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/financeiro')}>
+                    <Link to="/financeiro">
+                      <CreditCard />
+                      <span>Financeiro</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -260,6 +332,14 @@ export function AppSidebar() {
                     <Link to="/affiliates">
                       <BarChart />
                       <span>Performance & Links</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/financeiro')}>
+                    <Link to="/financeiro">
+                      <CreditCard />
+                      <span>Financeiro</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -310,6 +390,38 @@ export function AppSidebar() {
                     <Link to="/perfil">
                       <Settings />
                       <span>Meu Perfil</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/top-marcas')}>
+                    <Link to="/top-marcas">
+                      <Star />
+                      <span>Top 100 Marcas</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/guia-compras')}>
+                    <Link to="/guia-compras">
+                      <Store />
+                      <span>Guia de Compras</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/logistica-transportadoras')}>
+                    <Link to="/logistica-transportadoras">
+                      <Truck />
+                      <span>Logística & Transporte</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/financeiro')}>
+                    <Link to="/financeiro">
+                      <CreditCard />
+                      <span>Financeiro</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
