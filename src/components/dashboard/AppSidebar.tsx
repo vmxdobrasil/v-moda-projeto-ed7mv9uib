@@ -13,6 +13,7 @@ import {
   Star,
   Award,
   BarChart,
+  Megaphone,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -133,6 +134,14 @@ export function AppSidebar() {
                     <Link to="/admin/agentes">
                       <MapPin />
                       <span>Agentes & Parceiros</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={getIsActive('/admin/influencers')}>
+                    <Link to="/admin/influencers">
+                      <Megaphone />
+                      <span>Influenciadores</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

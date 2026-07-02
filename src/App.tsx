@@ -99,6 +99,7 @@ import Academy from '@/pages/dashboard/Academy'
 import VallenConsultora from '@/pages/dashboard/VallenConsultora'
 import AdminZones from '@/pages/admin/AdminZones'
 import AdminFinance from '@/pages/admin/AdminFinance'
+import AdminInfluencers from '@/pages/admin/AdminInfluencers'
 import AdminNotifications from '@/pages/admin/AdminNotifications'
 import LojasFabricantes from '@/pages/LojasFabricantes'
 import RetailerLanding from '@/pages/RetailerLanding'
@@ -113,6 +114,7 @@ import RetailCRM from '@/pages/dashboard/RetailCRM'
 import ConsultantCRM from '@/pages/dashboard/ConsultantCRM'
 import InventoryManagement from '@/pages/dashboard/InventoryManagement'
 import { trackEvent } from '@/lib/tracking'
+import { captureAffiliateRef } from '@/lib/affiliate-tracking'
 
 import Catalog from '@/pages/Catalog'
 import CartPage from '@/pages/Cart'
@@ -163,6 +165,7 @@ function AppRoot() {
 
 export default function App() {
   useEffect(() => {
+    captureAffiliateRef()
     const handleBeforeUnload = () => {
       const cartItems = useCartStore.getState().items
       if (cartItems.length > 0 && !window.location.pathname.includes('/finalizar-compra')) {
@@ -308,6 +311,7 @@ export default function App() {
                       <Route path="parceiros" element={<AdminPartners />} />
                       <Route path="agentes" element={<AdminAgents />} />
                       <Route path="financeiro" element={<AdminFinance />} />
+                      <Route path="influencers" element={<AdminInfluencers />} />
                       <Route path="notificacoes" element={<AdminNotifications />} />
                       <Route
                         path="inteligencia"
