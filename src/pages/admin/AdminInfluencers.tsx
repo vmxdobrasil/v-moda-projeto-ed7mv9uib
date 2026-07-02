@@ -45,12 +45,10 @@ export default function AdminInfluencers() {
   const loadData = async () => {
     try {
       const [pendingList, allList] = await Promise.all([
-        pb
-          .collection('users')
-          .getFullList({
-            filter: 'role = "affiliate" && approval_status = "pending"',
-            sort: '-created',
-          }),
+        pb.collection('users').getFullList({
+          filter: 'role = "affiliate" && approval_status = "pending"',
+          sort: '-created',
+        }),
         pb.collection('users').getFullList({ filter: 'role = "affiliate"', sort: '-created' }),
       ])
       setPending(pendingList)

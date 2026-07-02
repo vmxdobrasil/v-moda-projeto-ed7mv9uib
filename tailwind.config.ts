@@ -24,6 +24,12 @@ export default {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
         serif: ['Playfair Display', 'serif'],
+        display: ['Montserrat', 'sans-serif'],
+      },
+      boxShadow: {
+        soft: '0 2px 8px -2px rgba(0, 31, 63, 0.08), 0 4px 16px -4px rgba(0, 31, 63, 0.06)',
+        'soft-lg': '0 4px 24px -4px rgba(0, 31, 63, 0.12), 0 8px 32px -8px rgba(0, 31, 63, 0.08)',
+        glow: '0 0 20px -2px rgba(255, 102, 0, 0.4), 0 0 40px -4px rgba(255, 69, 0, 0.2)',
       },
       colors: {
         border: 'hsl(var(--border))',

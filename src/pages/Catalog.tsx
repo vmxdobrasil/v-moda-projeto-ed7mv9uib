@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, ShoppingCart } from 'lucide-react'
+import { Search, ShoppingCart, Filter } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,7 @@ import {
 export default function Catalog() {
   const [projects, setProjects] = useState<any[]>([])
   const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
   const { addItem } = useCartStore()
 
   useEffect(() => {
@@ -32,12 +33,15 @@ export default function Catalog() {
       loadProjects()
     }, 500)
     return () => clearTimeout(delayDebounceFn)
-  }, [search])
+  }, [search, categoryFilter])
 
   async function loadProjects() {
     try {
+      const conditions: string[] = []
+      if (search) conditions.push(`name ~ "${search}"`)
+      if (categoryFilter !== 'all') conditions.push(`category = "${categoryFilter}"`)
       const records = await pb.collection('projects').getList(1, 50, {
-        filter: search ? `name ~ "${search}"` : '',
+        filter: conditions.join(' && '),
         expand: 'manufacturer',
       })
       setProjects(records.items)
@@ -57,20 +61,38 @@ export default function Catalog() {
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-8 space-y-8 animate-fade-in-up">
+    <div className="container mx-auto p-4 md:p-8 space-y-8 page-transition">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Catálogo de Produtos</h1>
           <p className="text-muted-foreground mt-1">Explore e adicione itens ao seu carrinho.</p>
         </div>
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar produtos..."
-            className="pl-8"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+          <div className="relative w-full md:w-72">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar produtos..."
+              className="pl-8 rounded-xl"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-full md:w-52 rounded-xl">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas Categorias</SelectItem>
+              <SelectItem value="moda_feminina">Moda Feminina</SelectItem>
+              <SelectItem value="jeans">Jeans</SelectItem>
+              <SelectItem value="moda_praia">Moda Praia</SelectItem>
+              <SelectItem value="moda_masculina">Moda Masculina</SelectItem>
+              <SelectItem value="moda_fitness">Moda Fitness</SelectItem>
+              <SelectItem value="plus_size">Plus Size</SelectItem>
+              <SelectItem value="moda_evangelica">Moda Evangélica</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

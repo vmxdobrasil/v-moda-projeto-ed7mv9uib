@@ -139,8 +139,11 @@ export function AgentCargoControl() {
           <h3 className="text-lg font-semibold">Controle de Cargas</h3>
           <p className="text-sm text-muted-foreground">Registre volumes e acompanhe entregas.</p>
         </div>
-        <Button className="bg-electric text-electric-foreground" onClick={() => setIsOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Nova Carga
+        <Button
+          className="bg-electric text-electric-foreground rounded-xl h-12 px-6 text-base cta-glow"
+          onClick={() => setIsOpen(true)}
+        >
+          <Plus className="h-5 w-5 mr-2" /> Nova Carga
         </Button>
       </div>
 
@@ -292,10 +295,13 @@ export function AgentCargoControl() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsOpen(false)}>
+            <Button variant="outline" className="rounded-xl h-11" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
-            <Button className="bg-electric text-electric-foreground" onClick={handleCreate}>
+            <Button
+              className="bg-electric text-electric-foreground rounded-xl h-11 cta-glow"
+              onClick={handleCreate}
+            >
               Registrar
             </Button>
           </DialogFooter>

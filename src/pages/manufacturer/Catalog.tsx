@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { Plus, Trash2, Pencil, Package } from 'lucide-react'
 import { RecordModel } from 'pocketbase'
+import { BulkUpdateDialog } from '@/components/manufacturer/BulkUpdateDialog'
 
 export default function ManufacturerCatalog() {
   const { user } = useAuth()
@@ -73,27 +74,30 @@ export default function ManufacturerCatalog() {
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Meu Catálogo</h1>
-        <Dialog
-          open={open}
-          onOpenChange={(o) => {
-            setOpen(o)
-            if (!o) setEditing(null)
-          }}
-        >
-          <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90">
-              <Plus className="mr-2 h-4 w-4" /> Novo Produto
-            </Button>
-          </DialogTrigger>
-          <ProductForm editing={editing} onSave={handleSave} />
-        </Dialog>
+        <h1 className="text-3xl font-bold tracking-tight font-display">Lookbook</h1>
+        <div className="flex gap-3 items-center">
+          <BulkUpdateDialog projects={projects} onUpdated={loadProjects} />
+          <Dialog
+            open={open}
+            onOpenChange={(o) => {
+              setOpen(o)
+              if (!o) setEditing(null)
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90 rounded-xl cta-glow">
+                <Plus className="mr-2 h-4 w-4" /> Novo Produto
+              </Button>
+            </DialogTrigger>
+            <ProductForm editing={editing} onSave={handleSave} />
+          </Dialog>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {projects.map((item) => (
-          <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="aspect-[4/5] bg-muted overflow-hidden">
+          <Card key={item.id} className="overflow-hidden rounded-2xl shadow-soft hover-depth">
+            <div className="aspect-[4/5] bg-muted overflow-hidden rounded-t-2xl">
               <img
                 src={
                   item.image
@@ -138,7 +142,7 @@ export default function ManufacturerCatalog() {
           </Card>
         ))}
         {projects.length === 0 && (
-          <div className="col-span-full text-center py-16 text-muted-foreground">
+          <div className="col-span-full text-center py-20 text-muted-foreground">
             <Package className="w-16 h-16 mx-auto mb-4 opacity-20" />
             <p>Nenhum produto cadastrado. Clique em "Novo Produto" para começar.</p>
           </div>

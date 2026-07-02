@@ -41,9 +41,11 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-muted/30 flex flex-col lg:flex-row">
-      <aside className="w-full lg:w-64 bg-background border-r border-border flex flex-col gap-4 p-4 shrink-0 shadow-sm z-10 relative">
+      <aside className="w-full lg:w-64 bg-background/80 backdrop-blur-xl border-r border-border flex flex-col gap-4 p-4 shrink-0 shadow-soft z-10 relative">
         <div className="flex items-center justify-between pb-4 border-b">
-          <div className="font-bold text-lg tracking-tight text-primary">V MODA Admin</div>
+          <div className="font-bold text-lg tracking-tight text-primary font-display">
+            V MODA Command
+          </div>
           <Link to="/">
             <Button variant="ghost" size="icon" title="Voltar ao App">
               <ChevronLeft className="w-4 h-4" />
@@ -61,9 +63,9 @@ export default function AdminLayout() {
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover-depth',
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    ? 'bg-primary text-primary-foreground shadow-soft cta-glow'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >
@@ -88,7 +90,7 @@ export default function AdminLayout() {
         </div>
       </aside>
       <main className="flex-1 overflow-auto bg-muted/10 relative">
-        <div className="p-4 md:p-8 max-w-7xl mx-auto animate-fade-in">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto page-transition">
           <Outlet />
         </div>
       </main>
