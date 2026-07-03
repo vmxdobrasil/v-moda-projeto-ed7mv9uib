@@ -5,7 +5,7 @@ export default function DashboardHub() {
   return (
     <div className="space-y-6 animate-fade-in-up p-2">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Início</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Central de Comando</h1>
         <p className="text-muted-foreground mt-2">
           Bem-vindo ao portal da V MODA. Descubra tendências e coleções.
         </p>

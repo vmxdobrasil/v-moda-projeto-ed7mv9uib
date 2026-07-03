@@ -77,6 +77,7 @@ import JoinGuide from '@/pages/join/Guide'
 import JoinInfluencer from '@/pages/join/Influencer'
 import JoinAgent from '@/pages/join/Agent'
 import AdminLayout from '@/pages/admin/AdminLayout'
+import AdminLogin from '@/pages/admin/Login'
 import AdminCRMGlobal from '@/pages/admin/AdminCRMGlobal'
 import AdminCommissions from '@/pages/admin/Commissions'
 import AdminInsights from '@/pages/admin/AdminInsights'
@@ -232,8 +233,7 @@ export default function App() {
                   <Route path="/join/guide" element={<JoinGuide />} />
                   <Route path="/join/influencer" element={<JoinInfluencer />} />
                   <Route path="/join/agent" element={<JoinAgent />} />
-                  <Route path="customers/:id" element={<CustomerDetails />} />{' '}
-                  <Route path="/admin/login" element={<Login />} />
+                  <Route path="/admin/login" element={<AdminLogin />} />
                 </Route>
 
                 {/* Public Marketing Pages */}

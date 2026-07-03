@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 import {
   Sheet,
   SheetContent,
@@ -31,7 +32,7 @@ export default function AdminLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const navigation = [
-    { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Painel', href: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'CRM Global', href: '/admin/crm-global', icon: Users },
     { name: 'Guia CRM', href: '/admin/guia-crm', icon: Users },
     { name: 'Agentes', href: '/admin/agentes', icon: UserCheck },
@@ -105,9 +106,7 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-muted/30 flex flex-col lg:flex-row">
       {/* Mobile Header */}
       <div className="lg:hidden flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="font-bold text-lg tracking-tight text-primary font-display">
-          V MODA BRASIL
-        </div>
+        <img src={logoUrl} alt="V MODA BRASIL" className="h-10 w-auto object-contain" />
         <div className="flex items-center gap-2">
           <Link to="/">
             <Button variant="ghost" size="icon" title="Voltar ao App">
@@ -126,9 +125,7 @@ export default function AdminLayout() {
                 Acesse as áreas administrativas da plataforma
               </SheetDescription>
               <div className="flex items-center justify-between pb-4 border-b">
-                <div className="font-bold text-lg tracking-tight text-primary font-display">
-                  V MODA BRASIL
-                </div>
+                <img src={logoUrl} alt="V MODA BRASIL" className="h-10 w-auto object-contain" />
               </div>
               <NavItems />
             </SheetContent>
@@ -139,9 +136,7 @@ export default function AdminLayout() {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 bg-background/80 backdrop-blur-xl border-r border-border flex-col gap-4 p-4 shrink-0 shadow-soft z-10 relative h-screen sticky top-0">
         <div className="flex items-center justify-between pb-4 border-b">
-          <div className="font-bold text-lg tracking-tight text-primary font-display">
-            V MODA BRASIL
-          </div>
+          <img src={logoUrl} alt="V MODA BRASIL" className="h-10 w-auto object-contain" />
           <Link to="/">
             <Button variant="ghost" size="icon" title="Voltar ao App">
               <ChevronLeft className="w-4 h-4" />

@@ -61,7 +61,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild isActive={getIsActive('/admin')}>
                     <Link to="/admin">
                       <LayoutDashboard />
-                      <span>Dashboard</span>
+                      <span>Painel</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -223,7 +223,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild isActive={getIsActive('/manufacturer')}>
                     <Link to="/manufacturer">
                       <LayoutDashboard />
-                      <span>Dashboard</span>
+                      <span>Painel</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
