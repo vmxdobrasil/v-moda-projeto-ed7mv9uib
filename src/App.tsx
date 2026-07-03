@@ -131,6 +131,15 @@ import OrderView from '@/pages/OrderView'
 import SellerOrders from '@/pages/dashboard/SellerOrders'
 import { ShoppingCart } from 'lucide-react'
 import CRMHub from '@/pages/CRMHub'
+import FashionistaLayout from '@/pages/fashionista/FashionistaLayout'
+import FashionistaLogin from '@/pages/fashionista/FashionistaLogin'
+import FashionistaSignup from '@/pages/fashionista/FashionistaSignup'
+import FashionistaDashboard from '@/pages/fashionista/FashionistaDashboard'
+import FashionistaCatalog from '@/pages/fashionista/FashionistaCatalog'
+import FashionistaCart from '@/pages/fashionista/FashionistaCart'
+import FashionistaWishlist from '@/pages/fashionista/FashionistaWishlist'
+import FashionistaProfile from '@/pages/fashionista/FashionistaProfile'
+import { FashionistaGuard } from '@/components/FashionistaGuard'
 import TopMarcas from '@/pages/TopMarcas'
 import GuiaCompras from '@/pages/GuiaCompras'
 import LogisticaTransportadoras from '@/pages/LogisticaTransportadoras'
@@ -401,6 +410,21 @@ export default function App() {
                       />
                       <Route path="partnerships/zoop" element={<ZoopProposal />} />
                     </Route>
+                  </Route>
+                </Route>
+
+                {/* Fashionista Public Routes */}
+                <Route path="/fashionista/login" element={<FashionistaLogin />} />
+                <Route path="/fashionista/signup" element={<FashionistaSignup />} />
+
+                {/* Fashionista Protected Routes */}
+                <Route element={<FashionistaGuard />}>
+                  <Route path="/fashionista" element={<FashionistaLayout />}>
+                    <Route index element={<FashionistaDashboard />} />
+                    <Route path="catalog" element={<FashionistaCatalog />} />
+                    <Route path="cart" element={<FashionistaCart />} />
+                    <Route path="wishlist" element={<FashionistaWishlist />} />
+                    <Route path="profile" element={<FashionistaProfile />} />
                   </Route>
                 </Route>
 
