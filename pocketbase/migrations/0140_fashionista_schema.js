@@ -4,9 +4,8 @@ migrate(
     const users = app.findCollectionByNameOrId('_pb_users_auth_')
     const roleField = users.fields.getByName('role')
     if (roleField) {
-      const values = roleField.options.values || roleField.values || []
-      if (values.indexOf('fashionista') === -1) {
-        roleField.options.values = roleField.values
+      const values = roleField.values || []
+      if (!values.includes('fashionista')) {
         roleField.values = [...values, 'fashionista']
       }
     }
