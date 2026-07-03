@@ -22,8 +22,8 @@ export default function Login() {
   const { signIn } = useAuth()
   const navigate = useNavigate()
 
-  const getRedirectPath = (role?: string, isTransporter?: boolean): string => {
-    if (role === 'admin') return '/admin'
+  const getRedirectPath = (role?: string, isTransporter?: boolean, email?: string): string => {
+    if (role === 'admin' || email === 'valterpmendonca@gmail.com') return '/admin'
     if (role === 'manufacturer') return '/manufacturer'
     if (role === 'agent') return '/agentes'
     if (role === 'affiliate') return '/affiliates'
@@ -45,7 +45,7 @@ export default function Login() {
         })
       } else {
         const record = pb.authStore.record as any
-        navigate(getRedirectPath(record?.role, record?.is_transporter))
+        navigate(getRedirectPath(record?.role, record?.is_transporter, record?.email))
       }
     } catch (err) {
       toast({

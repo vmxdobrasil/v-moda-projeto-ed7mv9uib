@@ -25,7 +25,7 @@ export function AdminGuard() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/admin/login" state={{ from: location.pathname }} replace />
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
   const isAdmin = user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
@@ -159,7 +159,7 @@ export function AgentOrTransporterGuard() {
 }
 
 export function PublicRoute() {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, user, loading } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -167,9 +167,12 @@ export function PublicRoute() {
   }
 
   if (isAuthenticated) {
-    if (location.pathname === '/admin/login') {
+    if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com') {
       return <Navigate to="/admin" replace />
     }
+    if (user?.role === 'manufacturer') return <Navigate to="/manufacturer" replace />
+    if (user?.role === 'agent') return <Navigate to="/agente" replace />
+    if (user?.role === 'affiliate') return <Navigate to="/affiliates" replace />
     return <Navigate to="/dashboard" replace />
   }
 

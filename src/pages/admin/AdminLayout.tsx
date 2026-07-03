@@ -106,7 +106,7 @@ export default function AdminLayout() {
       {/* Mobile Header */}
       <div className="lg:hidden flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="font-bold text-lg tracking-tight text-primary font-display">
-          V MODA Command
+          V MODA BRASIL
         </div>
         <div className="flex items-center gap-2">
           <Link to="/">
@@ -127,7 +127,7 @@ export default function AdminLayout() {
               </SheetDescription>
               <div className="flex items-center justify-between pb-4 border-b">
                 <div className="font-bold text-lg tracking-tight text-primary font-display">
-                  V MODA Command
+                  V MODA BRASIL
                 </div>
               </div>
               <NavItems />
@@ -140,7 +140,7 @@ export default function AdminLayout() {
       <aside className="hidden lg:flex w-64 bg-background/80 backdrop-blur-xl border-r border-border flex-col gap-4 p-4 shrink-0 shadow-soft z-10 relative h-screen sticky top-0">
         <div className="flex items-center justify-between pb-4 border-b">
           <div className="font-bold text-lg tracking-tight text-primary font-display">
-            V MODA Command
+            V MODA BRASIL
           </div>
           <Link to="/">
             <Button variant="ghost" size="icon" title="Voltar ao App">
