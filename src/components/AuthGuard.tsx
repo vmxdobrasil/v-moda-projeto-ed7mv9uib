@@ -159,10 +159,27 @@ export function AgentOrTransporterGuard() {
 }
 
 export function PublicRoute() {
-  const { loading } = useAuth()
+  const { loading, isAuthenticated, user } = useAuth()
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground animate-pulse">Carregando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isAuthenticated) {
+    if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com')
+      return <Navigate to="/admin/dashboard" replace />
+    if (user?.role === 'manufacturer') return <Navigate to="/manufacturer" replace />
+    if (user?.role === 'agent') return <Navigate to="/agente" replace />
+    if (user?.role === 'affiliate') return <Navigate to="/affiliates" replace />
+    if (user?.is_transporter === true) return <Navigate to="/logistica-transportadoras" replace />
+    return <Navigate to="/dashboard" replace />
   }
 
   return <Outlet />
