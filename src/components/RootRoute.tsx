@@ -23,5 +23,5 @@ export function RootRoute() {
     return <Navigate to="/dashboard" replace />
   }
 
-  return <Navigate to="/login" replace />
+  return <Index />
 }

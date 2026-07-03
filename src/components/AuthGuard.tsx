@@ -159,21 +159,10 @@ export function AgentOrTransporterGuard() {
 }
 
 export function PublicRoute() {
-  const { isAuthenticated, user, loading } = useAuth()
-  const location = useLocation()
+  const { loading } = useAuth()
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
-  }
-
-  if (isAuthenticated) {
-    if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com') {
-      return <Navigate to="/admin" replace />
-    }
-    if (user?.role === 'manufacturer') return <Navigate to="/manufacturer" replace />
-    if (user?.role === 'agent') return <Navigate to="/agente" replace />
-    if (user?.role === 'affiliate') return <Navigate to="/affiliates" replace />
-    return <Navigate to="/dashboard" replace />
   }
 
   return <Outlet />
