@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-03T10:53:58.725Z",
+  "generatedAt": "2026-07-03T12:24:53.647Z",
   "collections": [
     {
       "name": "users",
@@ -738,7 +738,9 @@
         "CREATE INDEX `idx_customers_phone` ON `customers` (phone)",
         "CREATE INDEX `idx_customers_shipping_method` ON `customers` (shipping_method)",
         "CREATE INDEX `idx_customers_last_contacted_at` ON `customers` (last_contacted_at)",
-        "CREATE INDEX `idx_customers_status_contacted` ON `customers` (status, last_contacted_at)"
+        "CREATE INDEX `idx_customers_status_contacted` ON `customers` (status, last_contacted_at)",
+        "CREATE INDEX `idx_customers_exclusivity_zone` ON `customers` (exclusivity_zone)",
+        "CREATE INDEX `idx_customers_is_exclusive` ON `customers` (is_exclusive)"
       ]
     },
     {
@@ -2372,6 +2374,31 @@
           "required": false,
           "system": false,
           "selectValues": ["retail", "wholesale"]
+        },
+        {
+          "name": "pickup_qr_code",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_pickup",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "pickup_partner_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "customers"
+        },
+        {
+          "name": "split_json",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Trash2, ShoppingBag, AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import useCartStore from '@/stores/useCartStore'
 import { Button } from '@/components/ui/button'
@@ -8,12 +8,19 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
+import { ClickCollectPanel } from '@/components/ClickCollectPanel'
+import type { ExclusivePartner } from '@/services/exclusivity'
+import { getOrderImageUrl } from '@/services/orders'
 
 export default function FashionistaCart() {
   const { items, removeItem, updateQuantity, clearCart } = useCartStore()
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [brandMinimums, setBrandMinimums] = useState<Record<string, number>>({})
+  const [pickupPartner, setPickupPartner] = useState<ExclusivePartner | null>(null)
+  const [isPickup, setIsPickup] = useState(false)
+
+  const navigate = useNavigate()
 
   useEffect(() => {
     async function loadMinimums() {
@@ -32,21 +39,10 @@ export default function FashionistaCart() {
     if (items.length > 0) loadMinimums()
   }, [items])
 
-  const getImageUrl = (product: any) => {
-    if (product.gallery) {
-      return `${import.meta.env.VITE_POCKETBASE_URL}/api/files/${product.collectionId}/${product.id}/${product.gallery}?thumb=100x100`
-    }
-    if (product.image) {
-      return `${import.meta.env.VITE_POCKETBASE_URL}/api/files/${product.collectionId}/${product.id}/${product.image}?thumb=100x100`
-    }
-    return `https://img.usecurling.com/p/100/100?q=fashion`
-  }
-
   const displayPrice = (product: any) => product.retail_price || product.price || 0
-
   const total = items.reduce((acc, item) => acc + displayPrice(item.product) * item.quantity, 0)
+  const manufacturerIds = [...new Set(items.map((i) => i.product.manufacturer).filter(Boolean))]
 
-  // Group by manufacturer to check minimums
   const itemsByBrand = items.reduce(
     (acc, item) => {
       const mfgId = item.product.manufacturer || 'unknown'
@@ -74,14 +70,20 @@ export default function FashionistaCart() {
       missing: brandMinimums[mfgId] - group.totalQty,
     }))
 
-  const canCheckout = items.length > 0 && unmetMinimums.length === 0
+  const isPickupMandatory = !!pickupPartner
+  const canCheckout = items.length > 0 && (isPickup || unmetMinimums.length === 0)
+
+  const handlePickupChange = (pickup: boolean, partner: ExclusivePartner | null) => {
+    setIsPickup(pickup)
+    setPickupPartner(partner)
+  }
 
   const handleCheckout = async () => {
     if (!canCheckout) {
       toast({
         variant: 'destructive',
-        title: 'Pedido mínimo não atingido',
-        description: 'Verifique os requisitos de peças por marca.',
+        title: 'Requisitos não atingidos',
+        description: 'Verifique o pedido mínimo ou use Click & Collect.',
       })
       return
     }
@@ -92,13 +94,14 @@ export default function FashionistaCart() {
         total_amount: total,
         order_type: 'retail',
         payment_method: 'pix',
+        seller_id: items[0]?.product.manufacturer,
+        guest_name: user?.name || 'Fashionista',
+        guest_phone: user?.phone || '',
+        is_pickup: isPickup,
       }
-      if (user) {
-        orderData.seller_id = items[0]?.product.manufacturer
-      }
+      if (pickupPartner) orderData.pickup_partner_id = pickupPartner.id
 
       const order = await pb.collection('orders').create(orderData)
-
       for (const item of items) {
         await pb.collection('order_items').create({
           order_id: order.id,
@@ -109,16 +112,13 @@ export default function FashionistaCart() {
           selected_color: item.color || '',
         })
       }
-
       clearCart()
-      toast({
-        title: 'Pedido realizado!',
-        description: `Pedido #${order.id.slice(0, 8)} criado com sucesso.`,
-      })
+      toast({ title: 'Pedido criado!', description: `Pedido #${order.id.slice(0, 8)} criado.` })
+      navigate(`/orders/view/${order.id}`)
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'Erro ao finalizar pedido',
+        title: 'Erro',
         description: err.message || 'Tente novamente.',
       })
     } finally {
@@ -133,7 +133,7 @@ export default function FashionistaCart() {
           <ShoppingBag className="w-16 h-16 text-muted-foreground/30 mb-4" />
           <h2 className="text-2xl font-display font-semibold mb-2">Sua sacola está vazia</h2>
           <p className="text-muted-foreground mb-6">Explore nosso catálogo e adicione produtos.</p>
-          <Button asChild className="bg-electric hover:bg-electric/90 text-white">
+          <Button asChild className="bg-[#FF6600] hover:bg-[#e65c00] text-white">
             <Link to="/fashionista/catalog">Explorar Catálogo</Link>
           </Button>
         </div>
@@ -157,20 +157,24 @@ export default function FashionistaCart() {
         </Button>
       </div>
 
-      {unmetMinimums.length > 0 && (
+      {!isPickup && unmetMinimums.length > 0 && (
         <div className="space-y-2 mb-6">
           {unmetMinimums.map((um, idx) => (
             <Alert key={idx} variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Pedido mínimo não atingido: {um.brandName}</AlertTitle>
+              <AlertTitle>Mínimo não atingido: {um.brandName}</AlertTitle>
               <AlertDescription>
-                Faltam <strong>{um.missing}</strong> peça(s) para atingir o mínimo de {um.required}{' '}
-                peças desta marca.
+                Faltam <strong>{um.missing}</strong> peça(s) para o mínimo de {um.required}. Use
+                Click & Collect para retirar no local.
               </AlertDescription>
             </Alert>
           ))}
         </div>
       )}
+
+      <div className="mb-6">
+        <ClickCollectPanel manufacturerIds={manufacturerIds} onPickupChange={handlePickupChange} />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
@@ -178,7 +182,7 @@ export default function FashionistaCart() {
             <Card key={item.id}>
               <CardContent className="p-4 flex items-center gap-4">
                 <img
-                  src={getImageUrl(item.product)}
+                  src={getOrderImageUrl(item.product)}
                   alt={item.product.name}
                   className="w-16 h-20 rounded object-cover"
                 />
@@ -230,26 +234,37 @@ export default function FashionistaCart() {
                 <span className="text-muted-foreground">Itens</span>
                 <span>{items.length}</span>
               </div>
+              {isPickup && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#FF6600] font-medium">Click & Collect</span>
+                  <span className="text-[#FF6600]">Retirada no local</span>
+                </div>
+              )}
               <div className="border-t pt-4 flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span className="text-primary">R$ {total.toFixed(2)}</span>
+                <span className="text-[#FF6600]">R$ {total.toFixed(2)}</span>
               </div>
-              {canCheckout ? (
+              {canCheckout && (
                 <div className="flex items-center gap-2 text-green-600 text-xs">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Pedido mínimo atingido para todas as marcas</span>
+                  <span>{isPickup ? 'Click & Collect ativado' : 'Pedido mínimo atingido'}</span>
                 </div>
-              ) : null}
+              )}
               <Button
                 onClick={handleCheckout}
                 disabled={!canCheckout || loading}
-                className="w-full bg-electric hover:bg-electric/90 text-white h-12 font-semibold"
+                className="w-full bg-[#FF6600] hover:bg-[#e65c00] text-white h-12 font-semibold"
               >
                 {loading ? 'Processando...' : 'Finalizar Pedido'}
               </Button>
-              {!canCheckout && (
+              {isPickupMandatory && (
+                <p className="text-xs text-[#FF6600] text-center font-medium">
+                  Retirada obrigatória na unidade exclusiva
+                </p>
+              )}
+              {!canCheckout && !isPickupMandatory && (
                 <p className="text-xs text-muted-foreground text-center">
-                  Adicione mais peças para atingir o pedido mínimo
+                  Adicione mais peças ou use Click & Collect
                 </p>
               )}
             </CardContent>

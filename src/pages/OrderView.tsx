@@ -134,6 +134,44 @@ export default function OrderView() {
           </div>
         )}
 
+        {order.is_pickup && order.pickup_qr_code && order.status === 'paid' && (
+          <div className="mt-8 animate-fade-in">
+            <Separator className="mb-8" />
+            <div className="text-center space-y-6 max-w-sm mx-auto">
+              <div>
+                <h3 className="font-bold text-lg">QR Code de Retirada</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Apresente este código na unidade de retirada.
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-2xl border shadow-sm mx-auto inline-block">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=${encodeURIComponent(order.pickup_qr_code)}&color=FF6600`}
+                  alt="QR Code de Retirada"
+                  className="w-48 h-48 md:w-56 md:h-56"
+                />
+              </div>
+              <div className="bg-muted p-3 rounded-lg text-sm font-mono break-all text-center border select-all">
+                {order.pickup_qr_code}
+              </div>
+              {order.expand?.pickup_partner_id && (
+                <div className="text-sm space-y-1">
+                  <p className="font-medium">{order.expand.pickup_partner_id.name}</p>
+                  <p className="text-muted-foreground">{order.expand.pickup_partner_id.address}</p>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.expand.pickup_partner_id.address || '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-[#FF6600] hover:underline"
+                  >
+                    Ver no Mapa
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {paymentData && (
           <div className="mt-8 animate-fade-in">
             <Separator className="mb-8" />

@@ -139,6 +139,8 @@ import FashionistaCatalog from '@/pages/fashionista/FashionistaCatalog'
 import FashionistaCart from '@/pages/fashionista/FashionistaCart'
 import FashionistaWishlist from '@/pages/fashionista/FashionistaWishlist'
 import FashionistaProfile from '@/pages/fashionista/FashionistaProfile'
+import FashionistaOrders from '@/pages/fashionista/FashionistaOrders'
+import RetailerPickupValidation from '@/pages/RetailerPickupValidation'
 import { FashionistaGuard } from '@/components/FashionistaGuard'
 import TopMarcas from '@/pages/TopMarcas'
 import GuiaCompras from '@/pages/GuiaCompras'
@@ -315,6 +317,7 @@ export default function App() {
                     <Route path="consultant-crm" element={<ConsultantCRM />} />
                     <Route path="inventory" element={<InventoryManagement />} />
                     <Route path="seller-orders" element={<SellerOrders />} />
+                    <Route path="pickup-validation" element={<RetailerPickupValidation />} />
 
                     {/* Official Route Map — Fashion Tech Navigation */}
                     <Route element={<CrmGuard />}>
@@ -425,6 +428,7 @@ export default function App() {
                     <Route path="cart" element={<FashionistaCart />} />
                     <Route path="wishlist" element={<FashionistaWishlist />} />
                     <Route path="profile" element={<FashionistaProfile />} />
+                    <Route path="orders" element={<FashionistaOrders />} />
                   </Route>
                 </Route>
 
