@@ -14,6 +14,12 @@ import {
   TrendingUp,
   Bell,
   Menu,
+  Star,
+  Activity,
+  Wallet,
+  Award,
+  Megaphone,
+  BarChart,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -33,24 +39,26 @@ export default function AdminLayout() {
 
   const navigation = [
     { name: 'Painel', href: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'CRM Global', href: '/admin/crm-global', icon: Users },
-    { name: 'Guia CRM', href: '/admin/guia-crm', icon: Users },
-    { name: 'Agentes', href: '/admin/agentes', icon: UserCheck },
-    { name: 'V Club', href: '/admin/v-club', icon: ShoppingBag },
-    { name: 'Financeiro', href: '/admin/financeiro', icon: CreditCard },
-    { name: 'Parceiros', href: '/admin/parceiros', icon: Store },
-    { name: 'Top Marcas', href: '/admin/top-marcas', icon: Store },
-    { name: 'Guia de Marcas', href: '/admin/guia-de-marcas', icon: Users },
-    { name: 'Revendedoras', href: '/admin/revendedoras', icon: ShoppingBag },
-    { name: 'Geográfico', href: '/admin/geografico', icon: MapPin },
-    { name: 'Zonas', href: '/admin/zonas', icon: MapPin },
+    { name: 'Top 60 Marcas', href: '/admin/top-marcas', icon: Star },
+    { name: 'Fabricantes do Guia', href: '/admin/guia-de-marcas', icon: Store },
+    { name: 'Clientes', href: '/admin/clientes', icon: Users },
+    { name: 'CRM Global', href: '/admin/crm-global', icon: Activity },
+    { name: 'Assinaturas', href: '/admin/assinaturas', icon: Wallet },
+    { name: 'Comissões', href: '/admin/comissoes', icon: CreditCard },
     { name: 'Insights', href: '/admin/insights', icon: TrendingUp },
-    { name: 'Notificações', href: '/admin/notificacoes', icon: Bell },
-    { name: 'Configurações', href: '/admin/configuracoes', icon: Settings },
+    { name: 'V Club (Admin)', href: '/admin/v-club', icon: Award },
+    { name: 'Agentes & Parceiros', href: '/admin/agentes', icon: MapPin },
+    { name: 'Influenciadores', href: '/admin/influencers', icon: Megaphone },
+    { name: 'Produtos', href: '/admin/produtos', icon: ShoppingBag },
+    { name: 'Distribuição Geográfica', href: '/admin/geografico', icon: BarChart },
+    { name: 'Revendedoras', href: '/admin/revendedoras', icon: ShoppingBag },
   ]
 
   const NavItems = () => (
     <>
+      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        Administração
+      </div>
       <nav className="flex flex-col gap-1 flex-1 overflow-y-auto pr-2">
         {navigation.map((item) => {
           return (

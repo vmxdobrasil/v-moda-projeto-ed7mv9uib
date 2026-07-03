@@ -23,7 +23,7 @@ export default function Login() {
   const navigate = useNavigate()
 
   const getRedirectPath = (role?: string, isTransporter?: boolean, email?: string): string => {
-    if (role === 'admin' || email === 'valterpmendonca@gmail.com') return '/admin'
+    if (role === 'admin' || email === 'valterpmendonca@gmail.com') return '/admin/dashboard'
     if (role === 'manufacturer') return '/manufacturer'
     if (role === 'agent') return '/agentes'
     if (role === 'affiliate') return '/affiliates'
