@@ -97,7 +97,7 @@ export default function CartPage() {
   return (
     <div className="container mx-auto p-4 md:p-8 space-y-6 max-w-5xl animate-fade-in-up">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Meu Carrinho</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Minha Sacola de Compras</h1>
         <Button variant="outline" asChild>
           <Link to="/colecoes">Continuar Comprando</Link>
         </Button>
@@ -106,7 +106,7 @@ export default function CartPage() {
       {items.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center">
           <ShoppingBag className="w-16 h-16 text-muted-foreground mb-4" />
-          <h2 className="text-2xl font-semibold mb-2">Seu carrinho está vazio</h2>
+          <h2 className="text-2xl font-semibold mb-2">Sua sacola está vazia</h2>
           <p className="text-muted-foreground mb-6">
             Explore nosso catálogo e adicione produtos ao carrinho.
           </p>
@@ -198,7 +198,7 @@ export default function CartPage() {
                   <span className="text-orange-600">R$ {total.toFixed(2)}</span>
                 </div>
                 <Button
-                  className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                  className="w-full rounded-2xl bg-accent hover:bg-accent/90 text-accent-foreground"
                   size="lg"
                   onClick={handleShare}
                   disabled={loading}

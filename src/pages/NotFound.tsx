@@ -12,8 +12,8 @@ export default function NotFound() {
         A página que você está procurando não existe, foi movida ou você não tem permissão para
         acessá-la.
       </p>
-      <Button asChild size="lg" className="rounded-full px-8">
-        <Link to="/">Voltar para o Dashboard</Link>
+      <Button asChild size="lg" className="rounded-2xl px-8">
+        <Link to="/">Voltar para o Painel de Gestão</Link>
       </Button>
     </div>
   )

@@ -424,7 +424,7 @@ export function Header() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <button aria-label="Carrinho" className="p-1 relative">
+              <button aria-label="Sacola de Compras" className="p-1 relative">
                 <ShoppingCart className={iconClasses} />
                 {totalCartItems > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white">
@@ -435,14 +435,16 @@ export function Header() {
             </SheetTrigger>
             <SheetContent className="w-[300px] sm:w-[400px] flex flex-col border-l-0 shadow-2xl">
               <SheetHeader>
-                <SheetTitle className="font-serif text-2xl text-left">Seu Carrinho</SheetTitle>
+                <SheetTitle className="font-serif text-2xl text-left">
+                  Sua Sacola de Compras
+                </SheetTitle>
               </SheetHeader>
 
               <div className="flex-1 overflow-y-auto py-6 flex flex-col gap-6 scrollbar-hide">
                 {cartItems.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center">
                     <ShoppingCart className="w-12 h-12 text-muted-foreground mb-4 opacity-20" />
-                    <p className="text-muted-foreground">Seu carrinho está vazio.</p>
+                    <p className="text-muted-foreground">Sua sacola está vazia.</p>
                   </div>
                 ) : (
                   cartItems.map((item) => (

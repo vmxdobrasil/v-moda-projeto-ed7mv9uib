@@ -92,7 +92,7 @@ export default function Login() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button className="w-full" type="submit" disabled={loading}>
+            <Button className="w-full rounded-2xl" type="submit" disabled={loading}>
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
           </CardFooter>

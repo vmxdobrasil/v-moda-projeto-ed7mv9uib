@@ -231,7 +231,7 @@ export default function JoinInfluencer() {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-electric hover:bg-electric/90 text-electric-foreground"
+                className="w-full rounded-2xl bg-electric hover:bg-electric/90 text-electric-foreground"
                 disabled={loading}
               >
                 {loading ? 'Cadastrando...' : 'Quero ser Influenciador'}

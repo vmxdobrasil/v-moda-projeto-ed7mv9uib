@@ -234,7 +234,7 @@ export default function Signup() {
             )}
             <Button
               type="submit"
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+              className="w-full rounded-2xl bg-orange-500 hover:bg-orange-600 text-white"
               disabled={loading}
             >
               {loading ? 'Cadastrando...' : 'Cadastrar'}

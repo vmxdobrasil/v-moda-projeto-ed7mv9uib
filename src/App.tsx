@@ -296,6 +296,7 @@ export default function App() {
                     <Route path="maquina-vendas" element={<SalesMachine />} />
                     <Route path="customers" element={<DashboardCustomers />} />
                     <Route path="customers/:id" element={<CustomerDetails />} />
+                    <Route path="customer/:id" element={<CustomerDetails />} />
                     <Route path="products" element={<DashboardProjects />} />
                     <Route
                       path="admin-products"

@@ -185,7 +185,7 @@ export default function Checkout() {
   if (cartItems.length === 0) {
     return (
       <div className="container py-24 md:py-32 flex flex-col items-center justify-center min-h-[60vh]">
-        <h1 className="text-3xl font-serif mb-6">Seu carrinho está vazio</h1>
+        <h1 className="text-3xl font-serif mb-6">Sua sacola está vazia</h1>
         <p className="text-muted-foreground mb-8">Adicione alguns produtos para continuar.</p>
         <Button asChild className="rounded-none h-12 px-8 uppercase tracking-widest">
           <Link to="/colecoes">Continuar Comprando</Link>

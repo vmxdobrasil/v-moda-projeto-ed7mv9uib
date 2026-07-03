@@ -103,7 +103,7 @@ export default function JoinAgent() {
                 minLength={8}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full rounded-2xl" disabled={loading}>
               {loading ? 'Cadastrando...' : 'Finalizar Cadastro'}
             </Button>
           </form>
