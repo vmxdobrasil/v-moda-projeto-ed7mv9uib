@@ -87,7 +87,7 @@ export default function AdminLogin() {
             <img
               src={logoUrl}
               alt="V Moda Brasil"
-              className="w-full max-w-[240px] h-auto object-contain"
+              className="w-full max-w-[288px] h-auto object-contain"
             />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Acesso Restrito</CardTitle>

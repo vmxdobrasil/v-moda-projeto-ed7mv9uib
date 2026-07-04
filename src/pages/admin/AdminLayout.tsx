@@ -115,7 +115,7 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-muted/30 flex flex-col lg:flex-row">
       {/* Mobile Header */}
       <div className="lg:hidden flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-xl sticky top-0 z-50">
-        <img src={logoUrl} alt="V MODA BRASIL" className="h-10 w-auto object-contain" />
+        <img src={logoUrl} alt="V MODA BRASIL" className="h-12 w-auto object-contain" />
         <div className="flex items-center gap-2">
           <Link to="/">
             <Button variant="ghost" size="icon" title="Voltar ao App">
@@ -134,7 +134,7 @@ export default function AdminLayout() {
                 Acesse as áreas administrativas da plataforma
               </SheetDescription>
               <div className="flex items-center justify-between pb-4 border-b">
-                <img src={logoUrl} alt="V MODA BRASIL" className="h-10 w-auto object-contain" />
+                <img src={logoUrl} alt="V MODA BRASIL" className="h-12 w-auto object-contain" />
               </div>
               <NavItems />
             </SheetContent>
@@ -145,7 +145,7 @@ export default function AdminLayout() {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 bg-background/80 backdrop-blur-xl border-r border-border flex-col gap-4 p-4 shrink-0 shadow-soft z-10 relative h-screen sticky top-0">
         <div className="flex items-center justify-between pb-4 border-b">
-          <img src={logoUrl} alt="V MODA BRASIL" className="h-10 w-auto object-contain" />
+          <img src={logoUrl} alt="V MODA BRASIL" className="h-12 w-auto object-contain" />
           <Link to="/">
             <Button variant="ghost" size="icon" title="Voltar ao App">
               <ChevronLeft className="w-4 h-4" />

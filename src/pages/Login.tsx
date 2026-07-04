@@ -70,7 +70,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-6">
           <Link to="/">
-            <img src={logoUrl} alt="V MODA Brasil" className="h-16 w-auto object-contain" />
+            <img src={logoUrl} alt="V MODA Brasil" className="h-[4.8rem] w-auto object-contain" />
           </Link>
         </div>
 
