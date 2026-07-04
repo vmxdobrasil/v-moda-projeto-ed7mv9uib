@@ -263,6 +263,9 @@ export default function App() {
                   <Route path="guia-compras" element={<GuiaCompras />} />
                 </Route>
 
+                {/* Redirect /marketing to /admin/marketing */}
+                <Route path="/marketing" element={<Navigate to="/admin/marketing" replace />} />
+
                 {/* Manufacturer Routes */}
                 <Route element={<ManufacturerGuard />}>
                   <Route path="/manufacturer" element={<ManufacturerLayout />}>
