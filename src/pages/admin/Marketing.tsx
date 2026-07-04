@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import {
@@ -15,11 +15,17 @@ import { PRODUCTS, formatPrice } from '@/lib/data'
 import { useToast } from '@/hooks/use-toast'
 import { useMagazineStore } from '@/stores/useMagazineStore'
 
+import { patchCrossOriginStylesheets } from '@/lib/safe-css-rules'
+
 export default function AdminMarketing() {
   const [prodId, setProdId] = useState('')
   const [format, setFormat] = useState<'web' | 'app'>('web')
   const [generating, setGenerating] = useState(false)
   const { toast } = useToast()
+
+  useEffect(() => {
+    patchCrossOriginStylesheets()
+  }, [])
   const { publishIssue } = useMagazineStore()
   const prod = PRODUCTS.find((p) => p.id === prodId)
 

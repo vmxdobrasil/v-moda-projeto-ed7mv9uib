@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { patchCrossOriginStylesheets } from '@/lib/safe-css-rules'
 import {
   Table,
   TableBody,
@@ -17,6 +18,7 @@ export default function AdminMarketing() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    patchCrossOriginStylesheets()
     pb.collection('message_templates')
       .getFullList({ sort: '-created' })
       .then((res) => {
