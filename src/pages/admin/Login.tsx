@@ -15,6 +15,7 @@ import { Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
+import { getRoleBasedRedirect } from '@/lib/auth-redirects'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 export default function AdminLogin() {
@@ -38,23 +39,13 @@ export default function AdminLogin() {
       await pb.collection('users').authWithPassword(email, password)
       localStorage.setItem('admin_auth', '1')
 
-      const isAdmin =
-        pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
-        pb.authStore.record?.role === 'admin'
-
-      const isManufacturer = pb.authStore.record?.role === 'manufacturer'
-
       toast.success('Login bem-sucedido. Bem-vindo ao painel.')
 
       const from = location.state?.from?.pathname
       if (from && !['/login', '/admin/login', '/cadastro', '/'].includes(from)) {
         navigate(from, { replace: true })
-      } else if (isAdmin) {
-        navigate('/admin', { replace: true })
-      } else if (isManufacturer) {
-        navigate('/manufacturer', { replace: true })
       } else {
-        navigate('/dashboard', { replace: true })
+        navigate(getRoleBasedRedirect(pb.authStore.record), { replace: true })
       }
     } catch (err: any) {
       pb.authStore.clear()

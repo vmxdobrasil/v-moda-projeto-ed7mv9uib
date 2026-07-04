@@ -69,6 +69,7 @@ export default function Signup() {
         userData.brand_name = brandName
         userData.tax_id = taxId
         userData.wallet_id = walletId
+        userData.approval_status = 'pending'
       }
       await pb.collection('users').create(userData)
       await signIn(email, password)

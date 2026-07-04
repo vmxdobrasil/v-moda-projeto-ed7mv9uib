@@ -27,10 +27,6 @@ export default function Login() {
   const { signIn, authError, clearAuthError } = useAuth()
   const navigate = useNavigate()
 
-  const getRedirectPath = (record: any): string => {
-    return getRoleBasedRedirect(record)
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
@@ -59,7 +55,7 @@ export default function Login() {
         }
       } else {
         const record = pb.authStore.record as any
-        navigate(getRedirectPath(record))
+        navigate(getRoleBasedRedirect(record))
       }
     } catch (err: any) {
       const msg = getErrorMessage(err)

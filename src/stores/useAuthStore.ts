@@ -29,101 +29,33 @@ interface AuthState {
   initialize: () => Promise<void>
 }
 
-const isAdmin =
-  pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
-  pb.authStore.record?.collectionName === '_superusers'
-
 const getInitialState = () => {
   const isValid = pb.authStore.isValid
   return {
     user: (pb.authStore.record as unknown as User) || null,
     isAuthenticated: isValid,
-    isInitialized: false,
+    isInitialized: true,
   }
 }
 
-let initPromise: Promise<void> | null = null
-let hasRefreshed = false
-
-const useAuthStore = create<AuthState>((set, get) => {
-  // Sync with external auth changes (like login/logout from other tabs or components)
-  pb.authStore.onChange((token, record) => {
+const useAuthStore = create<AuthState>((set) => ({
+  ...getInitialState(),
+  login: (user) => set({ user, isAuthenticated: true }),
+  logout: () => {
+    pb.authStore.clear()
+    set({ user: null, isAuthenticated: false })
+  },
+  updateUser: (data) =>
+    set((state) => ({
+      user: state.user ? { ...state.user, ...data } : null,
+    })),
+  initialize: async () => {
     set({
-      user: (record as unknown as User) || null,
+      user: (pb.authStore.record as unknown as User) || null,
       isAuthenticated: pb.authStore.isValid,
       isInitialized: true,
     })
-  })
-
-  return {
-    ...getInitialState(),
-    login: (user) => set({ user, isAuthenticated: true }),
-    logout: () => {
-      pb.authStore.clear()
-      set({ user: null, isAuthenticated: false })
-    },
-    updateUser: (data) =>
-      set((state) => ({
-        user: state.user ? { ...state.user, ...data } : null,
-      })),
-    initialize: async () => {
-      if (hasRefreshed) return
-      hasRefreshed = true
-
-      if (initPromise) {
-        await initPromise
-        return
-      }
-
-      initPromise = (async () => {
-        const initialToken = pb.authStore.token
-
-        if (pb.authStore.isValid && initialToken) {
-          try {
-            const collection = pb.authStore.record?.collectionName || 'users'
-
-            const authData = await pb.collection(collection).authRefresh()
-            set({
-              user: (authData.record as unknown as User) || null,
-              isAuthenticated: true,
-              isInitialized: true,
-            })
-          } catch (err: any) {
-            if (err?.status === 401 && pb.authStore.token === initialToken) {
-              pb.authStore.clear()
-              set({ user: null, isAuthenticated: false, isInitialized: true })
-            } else if (
-              err?.status >= 400 &&
-              err?.status < 500 &&
-              pb.authStore.token === initialToken
-            ) {
-              set({
-                isInitialized: true,
-                isAuthenticated: true,
-                user: (pb.authStore.record as unknown as User) || null,
-              })
-            } else {
-              set({
-                isInitialized: true,
-                isAuthenticated: true,
-                user: (pb.authStore.record as unknown as User) || null,
-              })
-            }
-          }
-        } else {
-          // If there is no token or it is invalid locally, ensure consistency
-          if (!pb.authStore.isValid || !pb.authStore.token) {
-            set({ user: null, isAuthenticated: false, isInitialized: true })
-          } else {
-            set({ isInitialized: true })
-          }
-        }
-      })()
-
-      await initPromise
-      initPromise = null
-    },
-  }
-})
+  },
+}))
 
 export default useAuthStore

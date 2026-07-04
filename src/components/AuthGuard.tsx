@@ -26,7 +26,7 @@ export function AdminGuard() {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
-  if (!isSuperuserOrAdmin(user)) return <Navigate to="/" replace />
+  if (!isSuperuserOrAdmin(user)) return <Navigate to={getRoleBasedRedirect(user)} replace />
 
   return <Outlet />
 }
