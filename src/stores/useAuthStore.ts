@@ -82,19 +82,6 @@ const useAuthStore = create<AuthState>((set, get) => {
           try {
             const collection = pb.authStore.record?.collectionName || 'users'
 
-            // Bypass refresh for superusers or specific admin as they use a different flow
-            if (
-              collection === '_superusers' ||
-              pb.authStore.record?.email === 'valterpmendonca@gmail.com'
-            ) {
-              set({
-                user: (pb.authStore.record as unknown as User) || null,
-                isAuthenticated: true,
-                isInitialized: true,
-              })
-              return
-            }
-
             const authData = await pb.collection(collection).authRefresh()
             set({
               user: (authData.record as unknown as User) || null,

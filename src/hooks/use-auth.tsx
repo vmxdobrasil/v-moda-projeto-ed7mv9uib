@@ -10,6 +10,7 @@ interface AuthContextType {
   loading: boolean
   authError: string | null
   clearAuthError: () => void
+  handleAuthFailure: (message?: string) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -42,20 +43,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const record = pb.authStore.record
       const collectionName = record?.collectionName || 'users'
 
-      if (collectionName === '_superusers') {
-        setLoading(false)
-        return
-      }
-
-      if (record?.email === 'valterpmendonca@gmail.com') {
-        setLoading(false)
-        return
-      }
-
       try {
         await pb.collection(collectionName).authRefresh()
       } catch (err: any) {
-        if (err?.status === 401) {
+        if (err?.status === 401 || err?.status === 403) {
           pb.authStore.clear()
           setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
         }
@@ -99,6 +90,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const clearAuthError = () => setAuthError(null)
 
+  const handleAuthFailure = (message?: string) => {
+    pb.authStore.clear()
+    setAuthError(message || 'Sua sessão expirou. Por favor, faça login novamente.')
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -110,6 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loading,
         authError,
         clearAuthError,
+        handleAuthFailure,
       }}
     >
       {children}

@@ -2,6 +2,14 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 
+function isSuperuserOrAdmin(user: any): boolean {
+  return (
+    user?.collectionName === '_superusers' ||
+    user?.role === 'admin' ||
+    user?.email === 'valterpmendonca@gmail.com'
+  )
+}
+
 export function AuthGuard() {
   const { isAuthenticated, loading } = useAuth()
   const location = useLocation()
@@ -25,9 +33,7 @@ export function AdminGuard() {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
-  const isAdmin = user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
-
-  if (!isAdmin) return <Navigate to="/" replace />
+  if (!isSuperuserOrAdmin(user)) return <Navigate to="/" replace />
 
   return <Outlet />
 }
@@ -42,10 +48,7 @@ export function ManufacturerGuard() {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
-  const isManufacturer =
-    user?.role === 'manufacturer' ||
-    user?.email === 'valterpmendonca@gmail.com' ||
-    user?.role === 'admin'
+  const isManufacturer = user?.role === 'manufacturer' || isSuperuserOrAdmin(user)
 
   if (!isManufacturer) return <Navigate to="/" replace />
 
@@ -63,8 +66,7 @@ export function CrmGuard() {
   }
 
   const hasAccess =
-    user?.role === 'admin' ||
-    user?.email === 'valterpmendonca@gmail.com' ||
+    isSuperuserOrAdmin(user) ||
     user?.manufacturer_role === 'manager' ||
     user?.brand_role === 'manager'
 
@@ -83,10 +85,7 @@ export function RetailerGuard() {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
-  const isRetailer =
-    user?.role === 'retailer' ||
-    user?.email === 'valterpmendonca@gmail.com' ||
-    user?.role === 'admin'
+  const isRetailer = user?.role === 'retailer' || isSuperuserOrAdmin(user)
 
   if (!isRetailer) return <Navigate to="/dashboard" replace />
 
@@ -103,8 +102,7 @@ export function AgentGuard() {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
-  const isAgent =
-    user?.role === 'agent' || user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
+  const isAgent = user?.role === 'agent' || isSuperuserOrAdmin(user)
 
   if (!isAgent) return <Navigate to="/dashboard" replace />
 
@@ -125,8 +123,7 @@ export function AgentOrTransporterGuard() {
     user?.role === 'agent' ||
     user?.role === 'retailer' ||
     user?.is_transporter === true ||
-    user?.email === 'valterpmendonca@gmail.com' ||
-    user?.role === 'admin'
+    isSuperuserOrAdmin(user)
 
   if (!hasAccess) return <Navigate to="/dashboard" replace />
 
@@ -139,8 +136,7 @@ export function PublicRoute() {
   if (loading) return <AuthLoadingScreen />
 
   if (isAuthenticated) {
-    if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com')
-      return <Navigate to="/admin/dashboard" replace />
+    if (isSuperuserOrAdmin(user)) return <Navigate to="/admin/dashboard" replace />
     if (user?.role === 'manufacturer') return <Navigate to="/manufacturer" replace />
     if (user?.role === 'agent') return <Navigate to="/agente" replace />
     if (user?.role === 'affiliate') return <Navigate to="/affiliates" replace />

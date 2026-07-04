@@ -45,6 +45,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Megaphone,
+  RefreshCw,
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -82,6 +83,7 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
   const [selectAllMatching, setSelectAllMatching] = useState(false)
   const [waConfig, setWaConfig] = useState<any>(null)
   const [isReactivationModalOpen, setIsReactivationModalOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     pb.collection('categories')
@@ -125,6 +127,7 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
 
   const loadData = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const result = await pb.collection('customers').getList(page, perPage, {
         filter: buildFiltersString(),
@@ -132,8 +135,15 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
         expand: 'category_id',
       })
       setData(result)
-    } catch (error) {
-      console.error('Failed to load customers:', error)
+    } catch (err: any) {
+      console.error('Failed to load customers:', err)
+      if (err?.status === 401 || err?.status === 403) {
+        setError('Acesso negado. Você não tem permissão para visualizar estes dados.')
+      } else if (err?.status === 0) {
+        setError('Erro de conexão. Verifique sua internet e tente novamente.')
+      } else {
+        setError('Não foi possível carregar os leads. Tente novamente.')
+      }
     } finally {
       setLoading(false)
     }
@@ -354,98 +364,108 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
         </div>
       )}
 
-      <div className="rounded-md border bg-card relative min-h-[400px] shadow-sm">
-        {loading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-md">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        )}
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[40px]">
-                <Checkbox
-                  checked={isAllCurrentPageSelected || selectAllMatching}
-                  onCheckedChange={handleSelectAllCurrentPage}
-                />
-              </TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead>Contato</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Envio</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.items.length === 0 && !loading ? (
+      {error ? (
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-8 text-center animate-fade-in">
+          <AlertCircle className="h-10 w-10 mx-auto mb-3 text-destructive" />
+          <p className="text-sm text-destructive font-medium mb-4">{error}</p>
+          <Button variant="outline" size="sm" onClick={() => loadData()}>
+            <RefreshCw className="w-4 h-4 mr-2" /> Tentar novamente
+          </Button>
+        </div>
+      ) : (
+        <div className="rounded-md border bg-card relative min-h-[400px] shadow-sm">
+          {loading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-md">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                  Nenhum lead encontrado.
-                </TableCell>
+                <TableHead className="w-[40px]">
+                  <Checkbox
+                    checked={isAllCurrentPageSelected || selectAllMatching}
+                    onCheckedChange={handleSelectAllCurrentPage}
+                  />
+                </TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Contato</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Envio</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
-            ) : (
-              data.items.map((lead: any) => (
-                <TableRow
-                  key={lead.id}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors duration-200"
-                  onClick={() => openDetails(lead)}
-                >
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selectedIds.has(lead.id) || selectAllMatching}
-                      onCheckedChange={(checked) => handleSelectRow(lead.id, checked as boolean)}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{lead.name || 'Sem Nome'}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="text-sm">{lead.phone || 'S/ Telefone'}</span>
-                      <span className="text-xs text-muted-foreground">{lead.email || '-'}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">{lead.expand?.category_id?.name || '-'}</span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        lead.status === 'converted'
-                          ? 'default'
-                          : lead.status === 'new'
-                            ? 'secondary'
-                            : 'outline'
-                      }
-                    >
-                      {lead.status || 'N/A'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm capitalize">
-                      {lead.shipping_method?.replace('_', ' ') || '-'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        openDetails(lead)
-                      }}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="default" size="icon" onClick={(e) => openWhatsApp(e, lead)}>
-                      <MessageCircle className="h-4 w-4" />
-                    </Button>
+            </TableHeader>
+            <TableBody>
+              {data.items.length === 0 && !loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                    Nenhum lead encontrado.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ) : (
+                data.items.map((lead: any) => (
+                  <TableRow
+                    key={lead.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors duration-200"
+                    onClick={() => openDetails(lead)}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(lead.id) || selectAllMatching}
+                        onCheckedChange={(checked) => handleSelectRow(lead.id, checked as boolean)}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">{lead.name || 'Sem Nome'}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="text-sm">{lead.phone || 'S/ Telefone'}</span>
+                        <span className="text-xs text-muted-foreground">{lead.email || '-'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{lead.expand?.category_id?.name || '-'}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          lead.status === 'converted'
+                            ? 'default'
+                            : lead.status === 'new'
+                              ? 'secondary'
+                              : 'outline'
+                        }
+                      >
+                        {lead.status || 'N/A'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm capitalize">
+                        {lead.shipping_method?.replace('_', ' ') || '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openDetails(lead)
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="default" size="icon" onClick={(e) => openWhatsApp(e, lead)}>
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       <div className="flex items-center justify-between px-2">
         <div className="text-sm text-muted-foreground">

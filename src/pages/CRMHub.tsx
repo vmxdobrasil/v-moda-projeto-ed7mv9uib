@@ -11,8 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Users, Store, ShoppingBag, Share2 } from 'lucide-react'
+import { Users, Store, ShoppingBag, Share2, AlertCircle, RefreshCw } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
+import { Button } from '@/components/ui/button'
 
 export default function CRMHub() {
   const [leadsVenda, setLeadsVenda] = useState<any[]>([])
@@ -20,8 +21,10 @@ export default function CRMHub() {
   const [leadsRet, setLeadsRet] = useState<any[]>([])
   const [referrals, setReferrals] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
+    setError(null)
     try {
       const [venda, fab, ret, refs] = await Promise.all([
         pb
@@ -45,6 +48,14 @@ export default function CRMHub() {
       setLeadsFab(fab)
       setLeadsRet(ret)
       setReferrals(refs)
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        setError('Acesso negado. Você não tem permissão para visualizar estes dados.')
+      } else if (err?.status === 0) {
+        setError('Erro de conexão. Verifique sua internet e tente novamente.')
+      } else {
+        setError('Não foi possível carregar os dados. Tente novamente.')
+      }
     } finally {
       setLoading(false)
     }
@@ -81,6 +92,18 @@ export default function CRMHub() {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-[80vh] flex-col items-center justify-center gap-4 animate-fade-in">
+        <AlertCircle className="h-10 w-10 text-destructive" />
+        <p className="text-sm text-destructive font-medium">{error}</p>
+        <Button variant="outline" size="sm" onClick={() => loadData()}>
+          <RefreshCw className="w-4 h-4 mr-2" /> Tentar novamente
+        </Button>
       </div>
     )
   }
