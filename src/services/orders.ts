@@ -22,3 +22,29 @@ export function getOrderImageUrl(product: any): string {
   }
   return `https://img.usecurling.com/p/100/100?q=fashion`
 }
+
+export async function getSellerOrders(userId: string) {
+  return pb.collection('orders').getFullList({
+    sort: '-created',
+    filter: `seller_id="${userId}"`,
+    expand: 'customer',
+  })
+}
+
+export async function getAllOrders() {
+  return pb.collection('orders').getFullList({
+    sort: '-created',
+    expand: 'customer',
+  })
+}
+
+export async function getOrderItems(orderId: string) {
+  return pb.collection('order_items').getFullList({
+    filter: `order_id="${orderId}"`,
+    expand: 'project_id',
+  })
+}
+
+export async function updateOrderStatus(orderId: string, status: string) {
+  return pb.collection('orders').update(orderId, { status })
+}
