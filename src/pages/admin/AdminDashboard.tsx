@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
 import { Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { Users, DollarSign, ShoppingCart, MapPin, Activity } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Link } from 'react-router-dom'
 import { useRealtime } from '@/hooks/use-realtime'
 import { CRMLeadGrid } from '@/components/crm/CRMLeadGrid'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -130,6 +132,9 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <div className="text-sm font-medium text-muted-foreground bg-white/50 dark:bg-slate-800/50 px-4 py-2 rounded-xl border">
+                Total de Leads: {customerCount}
+              </div>
+              <div className="text-sm font-medium text-muted-foreground bg-white/50 dark:bg-slate-800/50 px-4 py-2 rounded-xl border">
                 Total Leads: {customerCount}
               </div>
             </div>
@@ -145,6 +150,14 @@ export default function AdminDashboard() {
             <p className="text-muted-foreground mt-2">
               Visão geral em tempo real do ecossistema V MODA BRASIL.
             </p>
+          </div>
+
+          <Link to="/admin/master" className="inline-block">
+            <Button variant="outline" size="sm" className="mb-4">
+              <Activity className="w-4 h-4 mr-2" />
+              Ver Painel Master Completo
+            </Button>
+          </Link>
           </div>
 
           {loading ? (

@@ -1,14 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
-
-function isSuperuserOrAdmin(user: any): boolean {
-  return (
-    user?.collectionName === '_superusers' ||
-    user?.role === 'admin' ||
-    user?.email === 'valterpmendonca@gmail.com'
-  )
-}
+import { getRoleBasedRedirect, isSuperuserOrAdmin } from '@/lib/auth-redirects'
 
 export function AuthGuard() {
   const { isAuthenticated, loading } = useAuth()
@@ -50,7 +43,7 @@ export function ManufacturerGuard() {
 
   const isManufacturer = user?.role === 'manufacturer' || isSuperuserOrAdmin(user)
 
-  if (!isManufacturer) return <Navigate to="/" replace />
+  if (!isManufacturer) return <Navigate to={getRoleBasedRedirect(user)} replace />
 
   return <Outlet />
 }
@@ -70,7 +63,7 @@ export function CrmGuard() {
     user?.manufacturer_role === 'manager' ||
     user?.brand_role === 'manager'
 
-  if (!hasAccess) return <Navigate to="/dashboard" replace />
+  if (!hasAccess) return <Navigate to={getRoleBasedRedirect(user)} replace />
 
   return <Outlet />
 }
@@ -87,7 +80,7 @@ export function RetailerGuard() {
 
   const isRetailer = user?.role === 'retailer' || isSuperuserOrAdmin(user)
 
-  if (!isRetailer) return <Navigate to="/dashboard" replace />
+  if (!isRetailer) return <Navigate to={getRoleBasedRedirect(user)} replace />
 
   return <Outlet />
 }
@@ -104,7 +97,7 @@ export function AgentGuard() {
 
   const isAgent = user?.role === 'agent' || isSuperuserOrAdmin(user)
 
-  if (!isAgent) return <Navigate to="/dashboard" replace />
+  if (!isAgent) return <Navigate to={getRoleBasedRedirect(user)} replace />
 
   return <Outlet />
 }
@@ -125,7 +118,22 @@ export function AgentOrTransporterGuard() {
     user?.is_transporter === true ||
     isSuperuserOrAdmin(user)
 
-  if (!hasAccess) return <Navigate to="/dashboard" replace />
+  if (!hasAccess) return <Navigate to={getRoleBasedRedirect(user)} replace />
+
+  return <Outlet />
+}
+
+export function MasterAdminGuard() {
+  const { isAuthenticated, user, loading } = useAuth()
+  const location = useLocation()
+
+  if (loading) return <AuthLoadingScreen />
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  }
+
+  if (!isSuperuserOrAdmin(user)) return <Navigate to={getRoleBasedRedirect(user)} replace />
 
   return <Outlet />
 }
@@ -136,12 +144,7 @@ export function PublicRoute() {
   if (loading) return <AuthLoadingScreen />
 
   if (isAuthenticated) {
-    if (isSuperuserOrAdmin(user)) return <Navigate to="/admin/dashboard" replace />
-    if (user?.role === 'manufacturer') return <Navigate to="/manufacturer" replace />
-    if (user?.role === 'agent') return <Navigate to="/agente" replace />
-    if (user?.role === 'affiliate') return <Navigate to="/affiliates" replace />
-    if (user?.is_transporter === true) return <Navigate to="/logistica-transportadoras" replace />
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to={getRoleBasedRedirect(user)} replace />
   }
 
   return <Outlet />

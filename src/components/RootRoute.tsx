@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import Index from '@/pages/Index'
 import { Loader2 } from 'lucide-react'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
+import { getRoleBasedRedirect } from '@/lib/auth-redirects'
 
 export function RootRoute() {
   const { isAuthenticated, user, loading } = useAuth()
@@ -23,13 +24,7 @@ export function RootRoute() {
   }
 
   if (isAuthenticated) {
-    if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com')
-      return <Navigate to="/admin/dashboard" replace />
-    if (user?.role === 'manufacturer') return <Navigate to="/manufacturer" replace />
-    if (user?.role === 'agent') return <Navigate to="/agente" replace />
-    if (user?.role === 'affiliate') return <Navigate to="/affiliates" replace />
-    if (user?.is_transporter === true) return <Navigate to="/logistica-transportadoras" replace />
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to={getRoleBasedRedirect(user)} replace />
   }
 
   return <Index />

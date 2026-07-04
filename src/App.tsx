@@ -9,11 +9,13 @@ import {
   PublicRoute,
   ManufacturerGuard,
   AdminGuard,
+  MasterAdminGuard,
   CrmGuard,
   RetailerGuard,
   AgentGuard,
   AgentOrTransporterGuard,
 } from '@/components/AuthGuard'
+import AdminMaster from '@/pages/admin/AdminMaster'
 import { AiAssistantProvider, LiveChat } from '@/components/LiveChat'
 import { PublicLayout } from '@/components/PublicLayout'
 import { PwaProvider } from '@/components/pwa/PwaProvider'
@@ -356,6 +358,11 @@ export default function App() {
                       <Route path="logistics" element={<DashboardLogistics />} />
                       <Route path="settings" element={<WhatsappSettings />} />
                     </Route>
+                  </Route>
+
+                  {/* Master Admin Route */}
+                  <Route element={<MasterAdminGuard />}>
+                    <Route path="/admin/master" element={<AdminMaster />} />
                   </Route>
 
                   {/* Admin Routes */}

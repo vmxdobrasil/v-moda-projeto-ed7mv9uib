@@ -38,7 +38,8 @@ export default function AdminLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const navigation = [
-    { name: 'Painel', href: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Painel de Gestão', href: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Painel Master', href: '/admin/master', icon: Activity },
     { name: 'Top 60 Marcas', href: '/admin/top-marcas', icon: Star },
     { name: 'Fabricantes do Guia', href: '/admin/guia-de-marcas', icon: Store },
     { name: 'Clientes', href: '/admin/clientes', icon: Users },

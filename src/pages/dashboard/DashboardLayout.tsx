@@ -49,7 +49,7 @@ export default function DashboardLayout() {
           <SidebarTrigger />
           <div className="flex-1" />
           <div className="text-sm font-medium text-muted-foreground mr-4">
-            Total Leads (Sistema): <span className="text-foreground">{stats.totalLeads}</span>
+            Total de Leads (Sistema): <span className="text-foreground">{stats.totalLeads}</span>
           </div>
         </header>
         <main className="flex-1 overflow-auto p-4 sm:p-6 md:p-8 bg-muted/10 relative">

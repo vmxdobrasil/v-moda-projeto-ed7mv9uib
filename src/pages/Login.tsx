@@ -17,6 +17,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
+import { getRoleBasedRedirect } from '@/lib/auth-redirects'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -26,13 +27,8 @@ export default function Login() {
   const { signIn, authError, clearAuthError } = useAuth()
   const navigate = useNavigate()
 
-  const getRedirectPath = (role?: string, isTransporter?: boolean, email?: string): string => {
-    if (role === 'admin' || email === 'valterpmendonca@gmail.com') return '/admin/dashboard'
-    if (role === 'manufacturer') return '/manufacturer'
-    if (role === 'agent') return '/agentes'
-    if (role === 'affiliate') return '/affiliates'
-    if (isTransporter) return '/logistica-transportadoras'
-    return '/lojistas'
+  const getRedirectPath = (record: any): string => {
+    return getRoleBasedRedirect(record)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +59,7 @@ export default function Login() {
         }
       } else {
         const record = pb.authStore.record as any
-        navigate(getRedirectPath(record?.role, record?.is_transporter, record?.email))
+        navigate(getRedirectPath(record))
       }
     } catch (err: any) {
       const msg = getErrorMessage(err)
