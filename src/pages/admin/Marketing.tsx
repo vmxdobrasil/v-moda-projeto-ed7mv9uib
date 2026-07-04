@@ -48,6 +48,13 @@ export default function AdminMarketing() {
       await new Promise((res, rej) => {
         img.onload = res
         img.onerror = rej
+      }).catch(() => {
+        const fallback = new Image()
+        return new Promise((res) => {
+          fallback.onload = res
+          fallback.onerror = res
+          fallback.src = prod.image
+        })
       })
 
       const hh = Math.floor(h * 0.1),

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
+import { patchCrossOriginStylesheets } from '@/lib/safe-css-rules'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -103,6 +104,10 @@ Oportunidades (Business):
 Stack Tecnológica: Vite, React, TypeScript, TailwindCSS e Skip Cloud.`
 
 export default function ZoopProposal() {
+  useEffect(() => {
+    patchCrossOriginStylesheets()
+  }, [])
+
   const { toast } = useToast()
   const [copied, setCopied] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
