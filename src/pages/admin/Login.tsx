@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import pb from '@/lib/pocketbase/client'
+import { useAuth } from '@/hooks/use-auth'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 export default function AdminLogin() {
@@ -22,9 +23,11 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+  const { authError, clearAuthError } = useAuth()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    clearAuthError()
     if (!email || !password) {
       toast.error('Por favor, preencha o e-mail e a senha.')
       return
@@ -103,6 +106,11 @@ export default function AdminLogin() {
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
+            {authError && (
+              <div className="rounded-2xl bg-destructive/10 p-3 text-sm text-destructive">
+                {authError}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
               <Input
@@ -111,6 +119,7 @@ export default function AdminLogin() {
                 placeholder="admin@vmoda.com.br"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onFocus={clearAuthError}
               />
             </div>
             <div className="space-y-2">
@@ -123,6 +132,7 @@ export default function AdminLogin() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={clearAuthError}
               />
             </div>
           </CardContent>

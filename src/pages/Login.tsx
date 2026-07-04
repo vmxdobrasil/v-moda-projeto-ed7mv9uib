@@ -23,7 +23,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const { signIn } = useAuth()
+  const { signIn, authError, clearAuthError } = useAuth()
   const navigate = useNavigate()
 
   const getRedirectPath = (role?: string, isTransporter?: boolean, email?: string): string => {
@@ -91,10 +91,10 @@ export default function Login() {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
-              {errorMessage && (
+              {(errorMessage || authError) && (
                 <Alert variant="destructive" className="rounded-2xl">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{errorMessage}</AlertDescription>
+                  <AlertDescription>{errorMessage || authError}</AlertDescription>
                 </Alert>
               )}
               <div className="space-y-2">
@@ -105,6 +105,7 @@ export default function Login() {
                   placeholder="nome@exemplo.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onFocus={clearAuthError}
                   required
                   className="rounded-2xl"
                 />
@@ -116,6 +117,7 @@ export default function Login() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onFocus={clearAuthError}
                   required
                   className="rounded-2xl"
                 />

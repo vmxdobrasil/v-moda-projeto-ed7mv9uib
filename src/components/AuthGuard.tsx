@@ -1,13 +1,12 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
+import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 
 export function AuthGuard() {
   const { isAuthenticated, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
-  }
+  if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
@@ -20,9 +19,7 @@ export function AdminGuard() {
   const { isAuthenticated, user, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
-  }
+  if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
@@ -30,9 +27,7 @@ export function AdminGuard() {
 
   const isAdmin = user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
 
-  if (!isAdmin) {
-    return <Navigate to="/" replace />
-  }
+  if (!isAdmin) return <Navigate to="/" replace />
 
   return <Outlet />
 }
@@ -41,9 +36,7 @@ export function ManufacturerGuard() {
   const { isAuthenticated, user, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
-  }
+  if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
@@ -54,9 +47,7 @@ export function ManufacturerGuard() {
     user?.email === 'valterpmendonca@gmail.com' ||
     user?.role === 'admin'
 
-  if (!isManufacturer) {
-    return <Navigate to="/" replace />
-  }
+  if (!isManufacturer) return <Navigate to="/" replace />
 
   return <Outlet />
 }
@@ -65,9 +56,7 @@ export function CrmGuard() {
   const { isAuthenticated, user, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
-  }
+  if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
@@ -79,9 +68,7 @@ export function CrmGuard() {
     user?.manufacturer_role === 'manager' ||
     user?.brand_role === 'manager'
 
-  if (!hasAccess) {
-    return <Navigate to="/dashboard" replace />
-  }
+  if (!hasAccess) return <Navigate to="/dashboard" replace />
 
   return <Outlet />
 }
@@ -90,9 +77,7 @@ export function RetailerGuard() {
   const { isAuthenticated, user, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
-  }
+  if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
@@ -103,9 +88,7 @@ export function RetailerGuard() {
     user?.email === 'valterpmendonca@gmail.com' ||
     user?.role === 'admin'
 
-  if (!isRetailer) {
-    return <Navigate to="/dashboard" replace />
-  }
+  if (!isRetailer) return <Navigate to="/dashboard" replace />
 
   return <Outlet />
 }
@@ -114,9 +97,7 @@ export function AgentGuard() {
   const { isAuthenticated, user, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
-  }
+  if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
@@ -125,9 +106,7 @@ export function AgentGuard() {
   const isAgent =
     user?.role === 'agent' || user?.email === 'valterpmendonca@gmail.com' || user?.role === 'admin'
 
-  if (!isAgent) {
-    return <Navigate to="/dashboard" replace />
-  }
+  if (!isAgent) return <Navigate to="/dashboard" replace />
 
   return <Outlet />
 }
@@ -136,9 +115,7 @@ export function AgentOrTransporterGuard() {
   const { isAuthenticated, user, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
-  }
+  if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
@@ -151,9 +128,7 @@ export function AgentOrTransporterGuard() {
     user?.email === 'valterpmendonca@gmail.com' ||
     user?.role === 'admin'
 
-  if (!hasAccess) {
-    return <Navigate to="/dashboard" replace />
-  }
+  if (!hasAccess) return <Navigate to="/dashboard" replace />
 
   return <Outlet />
 }
@@ -161,16 +136,7 @@ export function AgentOrTransporterGuard() {
 export function PublicRoute() {
   const { loading, isAuthenticated, user } = useAuth()
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Carregando...</p>
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <AuthLoadingScreen />
 
   if (isAuthenticated) {
     if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com')

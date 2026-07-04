@@ -8,6 +8,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => void
   loading: boolean
+  authError: string | null
+  clearAuthError: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -22,6 +24,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(pb.authStore.isValid ? pb.authStore.record : null)
   const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid)
   const [loading, setLoading] = useState(true)
+  const [authError, setAuthError] = useState<string | null>(null)
 
   useEffect(() => {
     const unsubscribe = pb.authStore.onChange((_token, record) => {
@@ -29,15 +32,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAuthenticated(pb.authStore.isValid)
     })
 
-    if (pb.authStore.isValid) {
-      pb.collection('users')
-        .authRefresh()
-        .catch(() => pb.authStore.clear())
-        .finally(() => setLoading(false))
-    } else {
-      if (pb.authStore.record) pb.authStore.clear()
-      setLoading(false)
+    const validateSession = async () => {
+      if (!pb.authStore.isValid) {
+        if (pb.authStore.record) pb.authStore.clear()
+        setLoading(false)
+        return
+      }
+
+      const record = pb.authStore.record
+      const collectionName = record?.collectionName || 'users'
+
+      if (collectionName === '_superusers') {
+        setLoading(false)
+        return
+      }
+
+      if (record?.email === 'valterpmendonca@gmail.com') {
+        setLoading(false)
+        return
+      }
+
+      try {
+        await pb.collection(collectionName).authRefresh()
+      } catch (err: any) {
+        if (err?.status === 401) {
+          pb.authStore.clear()
+          setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
+        }
+      } finally {
+        setLoading(false)
+      }
     }
+
+    validateSession()
+
     return () => {
       unsubscribe()
     }
@@ -45,6 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (email: string, password: string) => {
     try {
+      setAuthError(null)
       await pb.collection('users').create({ email, password, passwordConfirm: password })
       await pb.collection('users').authWithPassword(email, password)
       return { error: null }
@@ -55,6 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
+      setAuthError(null)
       await pb.collection('users').authWithPassword(email, password)
       return { error: null }
     } catch (error) {
@@ -64,7 +94,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = () => {
     pb.authStore.clear()
+    setAuthError(null)
   }
+
+  const clearAuthError = () => setAuthError(null)
 
   return (
     <AuthContext.Provider
@@ -75,6 +108,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signIn,
         signOut,
         loading,
+        authError,
+        clearAuthError,
       }}
     >
       {children}

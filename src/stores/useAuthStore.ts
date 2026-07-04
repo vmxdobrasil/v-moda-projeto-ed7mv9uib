@@ -102,26 +102,20 @@ const useAuthStore = create<AuthState>((set, get) => {
               isInitialized: true,
             })
           } catch (err: any) {
-            if (err?.status >= 400 && err?.status < 500) {
-              // Prevent clearing the store if the user logged in concurrently
-              if (pb.authStore.token === initialToken) {
-                if (err.status === 401) {
-                  pb.authStore.clear()
-                  set({ user: null, isAuthenticated: false, isInitialized: true })
-                } else {
-                  // Maintain session persistence for admins or temporary errors (403/404)
-                  set({
-                    isInitialized: true,
-                    isAuthenticated: true,
-                    user: (pb.authStore.record as unknown as User) || null,
-                  })
-                }
-              } else {
-                // User logged in concurrently with a new token, keep initialized true
-                set({ isInitialized: true })
-              }
+            if (err?.status === 401 && pb.authStore.token === initialToken) {
+              pb.authStore.clear()
+              set({ user: null, isAuthenticated: false, isInitialized: true })
+            } else if (
+              err?.status >= 400 &&
+              err?.status < 500 &&
+              pb.authStore.token === initialToken
+            ) {
+              set({
+                isInitialized: true,
+                isAuthenticated: true,
+                user: (pb.authStore.record as unknown as User) || null,
+              })
             } else {
-              // Keep authenticated state for network errors or server crashes
               set({
                 isInitialized: true,
                 isAuthenticated: true,
