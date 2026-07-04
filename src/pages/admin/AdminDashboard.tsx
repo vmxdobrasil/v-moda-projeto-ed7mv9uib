@@ -134,9 +134,6 @@ export default function AdminDashboard() {
               <div className="text-sm font-medium text-muted-foreground bg-white/50 dark:bg-slate-800/50 px-4 py-2 rounded-xl border">
                 Total de Leads: {customerCount}
               </div>
-              <div className="text-sm font-medium text-muted-foreground bg-white/50 dark:bg-slate-800/50 px-4 py-2 rounded-xl border">
-                Total Leads: {customerCount}
-              </div>
             </div>
           </div>
           <CRMLeadGrid adminView={true} />
@@ -158,7 +155,6 @@ export default function AdminDashboard() {
               Ver Painel Master Completo
             </Button>
           </Link>
-          </div>
 
           {loading ? (
             <div className="p-8 text-center text-muted-foreground">Carregando painel...</div>
