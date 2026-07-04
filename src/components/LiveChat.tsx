@@ -75,14 +75,8 @@ export function AiAssistantProvider({ children }: { children: ReactNode }) {
 
       try {
         await pb.collection('brand_settings').getList(1, 1)
-        console.log(
-          '[VALLEN IA] Successfully connected to backend collections (AI instruction collections) without 401 or 404 errors.',
-        )
       } catch (dbErr) {
-        console.log(
-          '[VALLEN IA] Connected to PocketBase, but collection access check failed:',
-          dbErr,
-        )
+        console.warn('[VALLEN IA] Collection access check failed:', dbErr)
       }
 
       setConnectionStatus('connected')
