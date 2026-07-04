@@ -5,6 +5,7 @@ routerAdd(
     const body = e.requestInfo().body || {}
     const { amount, method, externalReference, customerName, customerEmail, customerCpfCnpj } = body
 
+    const asaasUrl = $secrets.get('ASAAS_API_URL') || 'https://api.asaas.com/v3'
     const apiKey = $secrets.get('ASAAS_API_KEY')
     if (!apiKey) {
       return e.internalServerError(
@@ -39,7 +40,7 @@ routerAdd(
 
     try {
       // 1. Create or ensure customer exists
-      const custRes = fetchRetry('https://api.asaas.com/v3/customers', {
+      const custRes = fetchRetry(asaasUrl + '/customers', {
         method: 'POST',
         headers: { access_token: apiKey, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -70,7 +71,7 @@ routerAdd(
         externalReference: externalReference,
       }
 
-      const payRes = fetchRetry('https://api.asaas.com/v3/payments', {
+      const payRes = fetchRetry(asaasUrl + '/payments', {
         method: 'POST',
         headers: { access_token: apiKey, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -88,7 +89,7 @@ routerAdd(
 
       // 3. Fetch PIX QR Code if applicable
       if (method === 'PIX') {
-        const qrRes = fetchRetry(`https://api.asaas.com/v3/payments/${paymentData.id}/pixQrCode`, {
+        const qrRes = fetchRetry(`${asaasUrl}/payments/${paymentData.id}/pixQrCode`, {
           method: 'GET',
           headers: { access_token: apiKey },
         })

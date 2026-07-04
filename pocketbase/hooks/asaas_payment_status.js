@@ -3,6 +3,7 @@ routerAdd(
   '/backend/v1/asaas/payments/{id}/status',
   (e) => {
     const id = e.request.pathValue('id')
+    const asaasUrl = $secrets.get('ASAAS_API_URL') || 'https://api.asaas.com/v3'
     const apiKey = $secrets.get('ASAAS_API_KEY')
 
     if (!apiKey) return e.internalServerError('A chave da API Asaas não está configurada.')
@@ -28,10 +29,9 @@ routerAdd(
     }
 
     try {
-      let url = `https://api.asaas.com/v3/payments/${id}`
-      // If the caller passed our local externalReference instead of an Asaas internal ID
+      let url = `${asaasUrl}/payments/${id}`
       if (!id.startsWith('pay_')) {
-        url = `https://api.asaas.com/v3/payments?externalReference=${id}`
+        url = `${asaasUrl}/payments?externalReference=${id}`
       }
 
       const res = fetchRetry(url, {

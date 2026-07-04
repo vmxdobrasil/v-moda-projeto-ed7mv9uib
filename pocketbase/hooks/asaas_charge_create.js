@@ -3,7 +3,7 @@ routerAdd(
   '/backend/v1/asaas/charge',
   (e) => {
     const body = e.requestInfo().body || {}
-    const { orderId, billingType } = body
+    const { orderId, billingType, creditCard, customerInfo } = body
 
     const asaasUrl = $secrets.get('ASAAS_API_URL') || 'https://sandbox.asaas.com/api/v3'
     const apiKey = $secrets.get('ASAAS_API_KEY')
@@ -49,9 +49,31 @@ routerAdd(
       let order, customer
       try {
         order = txApp.findRecordById('orders', orderId)
-        customer = txApp.findRecordById('customers', order.getString('customer'))
       } catch (err) {
-        return e.badRequestError('Order or Customer not found.')
+        return e.badRequestError('Order not found.')
+      }
+
+      const customerRelId = order.getString('customer')
+      if (customerRelId) {
+        try {
+          customer = txApp.findRecordById('customers', customerRelId)
+        } catch (_) {
+          customer = null
+        }
+      }
+
+      if (!customer) {
+        const custCol = txApp.findCollectionByNameOrId('customers')
+        customer = new Record(custCol)
+        customer.set('name', order.getString('guest_name') || 'Cliente')
+        customer.set('phone', order.getString('guest_phone') || '')
+        if (customerInfo && customerInfo.email) customer.set('email', customerInfo.email)
+        if (customerInfo && customerInfo.cpfCnpj) customer.set('tax_id', customerInfo.cpfCnpj)
+        customer.set('status', 'new')
+        customer.set('source', 'site')
+        txApp.save(customer)
+        order.set('customer', customer.id)
+        txApp.save(order)
       }
 
       const amount = order.getFloat('total_amount')
@@ -79,10 +101,16 @@ routerAdd(
           method: 'POST',
           headers: { access_token: apiKey, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: customer.getString('name'),
-            cpfCnpj: customer.getString('tax_id') || '00000000000',
-            email: customer.getString('email') || 'cliente@example.com',
-            phone: customer.getString('phone'),
+            name: (customerInfo && customerInfo.name) || customer.getString('name'),
+            cpfCnpj:
+              (customerInfo && customerInfo.cpfCnpj) ||
+              customer.getString('tax_id') ||
+              '00000000000',
+            email:
+              (customerInfo && customerInfo.email) ||
+              customer.getString('email') ||
+              'cliente@example.com',
+            phone: (customerInfo && customerInfo.phone) || customer.getString('phone'),
           }),
           timeout: 15,
         })
@@ -105,6 +133,30 @@ routerAdd(
         dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
         externalReference: order.id,
         description: `Pagamento Pedido #${order.id.slice(0, 8).toUpperCase()}`,
+      }
+
+      if (billingType === 'CREDIT_CARD' && creditCard) {
+        chargePayload.creditCard = {
+          holderName: creditCard.holderName,
+          number: creditCard.number,
+          expiryMonth: creditCard.expiryMonth,
+          expiryYear: creditCard.expiryYear,
+          ccv: creditCard.ccv,
+        }
+        chargePayload.creditCardHolderInfo = {
+          name: (customerInfo && customerInfo.name) || customer.getString('name'),
+          email:
+            (customerInfo && customerInfo.email) ||
+            customer.getString('email') ||
+            'cliente@vmoda.com.br',
+          cpfCnpj:
+            (customerInfo && customerInfo.cpfCnpj) || customer.getString('tax_id') || '00000000000',
+          postalCode: (customerInfo && customerInfo.cep) || '',
+          addressNumber: (customerInfo && customerInfo.addressNumber) || '',
+          addressComplement: (customerInfo && customerInfo.addressComplement) || '',
+          phone: (customerInfo && customerInfo.phone) || customer.getString('phone') || '',
+          mobilePhone: (customerInfo && customerInfo.phone) || customer.getString('phone') || '',
+        }
       }
 
       const chargeRes = fetchWithRetry(`${asaasUrl}/payments`, {
@@ -146,6 +198,19 @@ routerAdd(
                 err.message,
               )
           }
+        }
+
+        if ((billingType === 'PIX' || !billingType) && paymentData.id) {
+          try {
+            const qrRes = fetchWithRetry(`${asaasUrl}/payments/${paymentData.id}/pixQrCode`, {
+              method: 'GET',
+              headers: { access_token: apiKey },
+              timeout: 15,
+            })
+            if (qrRes.statusCode === 200) {
+              paymentData.pixQrCode = qrRes.json
+            }
+          } catch (_) {}
         }
 
         return e.json(200, paymentData)
