@@ -9,7 +9,6 @@ import {
   PublicRoute,
   ManufacturerGuard,
   AdminGuard,
-  CrmGuard,
   RetailerGuard,
   AgentGuard,
   AgentOrTransporterGuard,
@@ -133,7 +132,6 @@ import CartPage from '@/pages/Cart'
 import OrderView from '@/pages/OrderView'
 import SellerOrders from '@/pages/dashboard/SellerOrders'
 import { ShoppingCart } from 'lucide-react'
-import CRMHub from '@/pages/CRMHub'
 import FashionistaLayout from '@/pages/fashionista/FashionistaLayout'
 import FashionistaLogin from '@/pages/fashionista/FashionistaLogin'
 import FashionistaSignup from '@/pages/fashionista/FashionistaSignup'
@@ -329,11 +327,6 @@ export default function App() {
                     <Route path="inventory" element={<InventoryManagement />} />
                     <Route path="seller-orders" element={<SellerOrders />} />
                     <Route path="pickup-validation" element={<RetailerPickupValidation />} />
-
-                    {/* Official Route Map — Fashion Tech Navigation */}
-                    <Route element={<CrmGuard />}>
-                      <Route path="crm" element={<CRMHub />} />
-                    </Route>
 
                     <Route element={<AgentOrTransporterGuard />}>
                       <Route

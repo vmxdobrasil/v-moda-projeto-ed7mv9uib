@@ -52,7 +52,6 @@ const ROUTE_LABELS: Record<string, string> = {
   '/perfil': 'Meu Perfil',
   '/vallen-ia': 'Vallen IA',
   '/maquina-vendas': 'Máquina de Vendas',
-  '/crm': 'CRM Hub',
   '/logistica-transportadoras': 'Logística & Transporte',
   '/retail-crm': 'CRM Varejo',
   '/consultant-crm': 'CRM Consultor',

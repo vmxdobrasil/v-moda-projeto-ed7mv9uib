@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useRouteLabels } from '@/hooks/use-route-labels'
 import { cn } from '@/lib/utils'
-import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
+import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-affs8.png'
 
 const HEADER_NAV = [
   { label: 'Resumo', path: '/crm' },
@@ -21,12 +21,18 @@ export function GlassHeader() {
   const { currentLabel } = useRouteLabels()
 
   const safeLabel =
-    currentLabel === 'Login' || currentLabel === 'Entrar' ? 'Painel CRM' : currentLabel
+    currentLabel === 'Login' || currentLabel === 'Entrar' || currentLabel === 'Início'
+      ? 'Painel CRM'
+      : currentLabel
 
   return (
     <header className="crm-header rounded-[28px] px-5 py-3 flex items-center justify-between gap-4 shrink-0">
       <div className="flex items-center gap-5">
         <img src={logoUrl} alt="V MODA BRASIL" className="h-9 w-auto object-contain" />
+        <div className="hidden xl:block h-6 w-px bg-white/10" />
+        <span className="hidden xl:block text-sm font-display text-white/40 transition-all duration-300">
+          {safeLabel}
+        </span>
         <div className="hidden lg:flex items-center gap-1">
           {HEADER_NAV.map((link) => {
             const isActive =
@@ -38,7 +44,7 @@ export function GlassHeader() {
                 key={link.label}
                 to={link.path}
                 className={cn(
-                  'px-3 py-1.5 rounded-full text-xs font-medium font-display transition-all duration-300',
+                  'px-3 py-1.5 rounded-full text-xs font-medium font-display transition-all duration-300 hover:-translate-y-0.5 hover:scale-105',
                   isActive
                     ? 'bg-primary/20 text-primary'
                     : 'text-white/60 hover:text-white hover:bg-white/5',
@@ -52,7 +58,7 @@ export function GlassHeader() {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="hidden md:flex items-center bg-white/5 rounded-full px-4 py-1.5 border border-white/10">
+        <div className="hidden md:flex items-center bg-white/5 rounded-full px-4 py-1.5 border border-white/10 transition-all duration-300 hover:border-primary/20 hover:scale-105">
           <Search className="w-4 h-4 text-white/40 mr-2 shrink-0" />
           <Input
             placeholder="Buscar..."
@@ -63,14 +69,14 @@ export function GlassHeader() {
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-full text-white/60 hover:text-primary hover:bg-white/5 relative h-9 w-9"
+          className="rounded-full text-white/60 hover:text-primary hover:bg-white/5 relative h-9 w-9 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5"
         >
           <Bell className="w-5 h-5" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
         </Button>
 
         <div className="flex items-center gap-2 pl-3 border-l border-white/10">
-          <Avatar className="w-9 h-9 border-2 border-primary/30">
+          <Avatar className="w-9 h-9 border-2 border-primary/30 transition-all duration-300 hover:scale-105">
             <AvatarFallback className="bg-gradient-to-br from-primary to-electric text-white text-xs font-bold">
               VM
             </AvatarFallback>
