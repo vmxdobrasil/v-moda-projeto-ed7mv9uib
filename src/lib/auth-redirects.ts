@@ -1,8 +1,8 @@
 export function getRoleBasedRedirect(user: any): string {
   if (!user) return '/login'
 
-  if (user?.collectionName === '_superusers') return '/admin/master'
-  if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com') return '/admin/master'
+  if (user?.collectionName === '_superusers') return '/crm'
+  if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com') return '/crm'
   if (user?.role === 'manufacturer') return '/manufacturer'
   if (user?.role === 'retailer') return '/dashboard'
   if (user?.role === 'agent') return '/agente'
