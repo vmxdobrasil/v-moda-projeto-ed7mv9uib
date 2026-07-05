@@ -32,10 +32,9 @@ interface AuthState {
 }
 
 const getInitialState = () => {
-  const isValid = pb.authStore.isValid && !!pb.authStore.record
   return {
-    user: (pb.authStore.record as unknown as User) || null,
-    isAuthenticated: isValid,
+    user: null,
+    isAuthenticated: false,
     isInitialized: false,
   }
 }
@@ -52,11 +51,7 @@ const useAuthStore = create<AuthState>((set) => ({
       user: state.user ? { ...state.user, ...data } : null,
     })),
   initialize: async () => {
-    set({
-      user: (pb.authStore.record as unknown as User) || null,
-      isAuthenticated: pb.authStore.isValid && !!pb.authStore.record,
-      isInitialized: true,
-    })
+    set({ isInitialized: true })
   },
   syncState: (user, isAuthenticated) => set({ user, isAuthenticated, isInitialized: true }),
 }))

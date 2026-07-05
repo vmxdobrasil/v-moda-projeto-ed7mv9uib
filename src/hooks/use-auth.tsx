@@ -28,9 +28,8 @@ function syncAuthStore(isValid: boolean, record: any) {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const initialIsValid = pb.authStore.isValid && !!pb.authStore.record
-  const [user, setUser] = useState<any>(initialIsValid ? pb.authStore.record : null)
-  const [isAuthenticated, setIsAuthenticated] = useState(initialIsValid)
+  const [user, setUser] = useState<any>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState<string | null>(null)
 
@@ -45,6 +44,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const validateSession = async () => {
       if (!pb.authStore.isValid || !pb.authStore.record) {
         if (pb.authStore.record) pb.authStore.clear()
+        setUser(null)
+        setIsAuthenticated(false)
         syncAuthStore(false, null)
         setLoading(false)
         return
@@ -55,12 +56,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       try {
         await pb.collection(collectionName).authRefresh()
-        syncAuthStore(true, pb.authStore.record)
-      } catch (err: any) {
-        if (err?.status === 401 || err?.status === 403) {
+        const isValid = pb.authStore.isValid && !!pb.authStore.record
+        if (isValid) {
+          const refreshedRecord = pb.authStore.record
+          setUser(refreshedRecord)
+          setIsAuthenticated(true)
+          syncAuthStore(true, refreshedRecord)
+        } else {
           pb.authStore.clear()
+          setUser(null)
+          setIsAuthenticated(false)
           syncAuthStore(false, null)
+        }
+      } catch (err: any) {
+        pb.authStore.clear()
+        setUser(null)
+        setIsAuthenticated(false)
+        syncAuthStore(false, null)
+        if (err?.status === 401 || err?.status === 403) {
           setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
+        } else if (err?.status === 0) {
+          setAuthError('Erro de conexão. Verifique sua internet e tente novamente.')
         }
       } finally {
         setLoading(false)
@@ -79,7 +95,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setAuthError(null)
       await pb.collection('users').create({ email, password, passwordConfirm: password })
       await pb.collection('users').authWithPassword(email, password)
-      syncAuthStore(true, pb.authStore.record)
+      const record = pb.authStore.record
+      setUser(record)
+      setIsAuthenticated(true)
+      syncAuthStore(true, record)
       return { error: null }
     } catch (error) {
       return { error }
@@ -90,7 +109,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setAuthError(null)
       await pb.collection('users').authWithPassword(email, password)
-      syncAuthStore(true, pb.authStore.record)
+      const record = pb.authStore.record
+      setUser(record)
+      setIsAuthenticated(true)
+      syncAuthStore(true, record)
       return { error: null }
     } catch (error) {
       return { error }
@@ -99,6 +121,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = () => {
     pb.authStore.clear()
+    setUser(null)
+    setIsAuthenticated(false)
     syncAuthStore(false, null)
     setAuthError(null)
   }
@@ -107,6 +131,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const handleAuthFailure = (message?: string) => {
     pb.authStore.clear()
+    setUser(null)
+    setIsAuthenticated(false)
     syncAuthStore(false, null)
     setAuthError(message || 'Sua sessão expirou. Por favor, faça login novamente.')
   }
@@ -117,8 +143,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const updated = await pb.collection('users').getOne(pb.authStore.record.id)
       setUser(updated)
       syncAuthStore(true, updated)
-    } catch {
-      // keep existing user data on failure
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        pb.authStore.clear()
+        setUser(null)
+        setIsAuthenticated(false)
+        syncAuthStore(false, null)
+        setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
+      }
     }
   }
 
