@@ -149,6 +149,11 @@ import TopMarcas from '@/pages/TopMarcas'
 import GuiaCompras from '@/pages/GuiaCompras'
 import LogisticaTransportadoras from '@/pages/LogisticaTransportadoras'
 import FinanceiroHub from '@/pages/FinanceiroHub'
+import { CrmLayout } from '@/components/crm/CrmLayout'
+import CrmDashboard from '@/pages/crm/CrmDashboard'
+import CrmLeads from '@/pages/crm/CrmLeads'
+import CrmPipeline from '@/pages/crm/CrmPipeline'
+import CrmPlaceholder from '@/pages/crm/CrmPlaceholder'
 
 function FloatingCart() {
   const items = useCartStore((state) => state.items)
@@ -422,6 +427,20 @@ export default function App() {
                       />
                       <Route path="partnerships/zoop" element={<ZoopProposal />} />
                     </Route>
+                  </Route>
+                </Route>
+
+                {/* CRM Routes */}
+                <Route element={<AdminGuard />}>
+                  <Route path="/crm" element={<CrmLayout />}>
+                    <Route index element={<CrmDashboard />} />
+                    <Route path="leads" element={<CrmLeads />} />
+                    <Route path="pipeline" element={<CrmPipeline />} />
+                    <Route path="atividades" element={<CrmPlaceholder title="Atividades" />} />
+                    <Route path="tarefas" element={<CrmPlaceholder title="Tarefas" />} />
+                    <Route path="propostas" element={<CrmPlaceholder title="Propostas" />} />
+                    <Route path="relatorios" element={<CrmPlaceholder title="Relatórios" />} />
+                    <Route path="fundadores" element={<CrmPlaceholder title="Fundadores" />} />
                   </Route>
                 </Route>
 

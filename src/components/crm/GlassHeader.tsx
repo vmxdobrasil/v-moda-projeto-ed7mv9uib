@@ -1,0 +1,88 @@
+import { Link, useLocation } from 'react-router-dom'
+import { Search, Bell } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { useRouteLabels } from '@/hooks/use-route-labels'
+import { cn } from '@/lib/utils'
+import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
+
+const HEADER_NAV = [
+  { label: 'Resumo', path: '/crm' },
+  { label: 'Fundadores', path: '/crm/fundadores' },
+  { label: 'Finanças', path: '/financeiro' },
+  { label: 'Contatos', path: '/crm/leads' },
+  { label: 'Crescimento', path: '/crm/pipeline' },
+  { label: 'Projetos', path: '/admin/produtos' },
+]
+
+export function GlassHeader() {
+  const location = useLocation()
+  const { currentLabel } = useRouteLabels()
+
+  const safeLabel =
+    currentLabel === 'Login' || currentLabel === 'Entrar' ? 'Painel CRM' : currentLabel
+
+  return (
+    <header className="crm-header rounded-[28px] px-5 py-3 flex items-center justify-between gap-4 shrink-0">
+      <div className="flex items-center gap-5">
+        <img src={logoUrl} alt="V MODA BRASIL" className="h-9 w-auto object-contain" />
+        <div className="hidden lg:flex items-center gap-1">
+          {HEADER_NAV.map((link) => {
+            const isActive =
+              link.path === '/crm'
+                ? location.pathname === '/crm'
+                : location.pathname.startsWith(link.path)
+            return (
+              <Link
+                key={link.label}
+                to={link.path}
+                className={cn(
+                  'px-3 py-1.5 rounded-full text-xs font-medium font-display transition-all duration-300',
+                  isActive
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-white/60 hover:text-white hover:bg-white/5',
+                )}
+              >
+                {link.label}
+              </Link>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="hidden md:flex items-center bg-white/5 rounded-full px-4 py-1.5 border border-white/10">
+          <Search className="w-4 h-4 text-white/40 mr-2 shrink-0" />
+          <Input
+            placeholder="Buscar..."
+            className="border-0 bg-transparent p-0 h-auto text-sm text-white placeholder:text-white/40 focus-visible:ring-0 w-40"
+          />
+        </div>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full text-white/60 hover:text-primary hover:bg-white/5 relative h-9 w-9"
+        >
+          <Bell className="w-5 h-5" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
+        </Button>
+
+        <div className="flex items-center gap-2 pl-3 border-l border-white/10">
+          <Avatar className="w-9 h-9 border-2 border-primary/30">
+            <AvatarFallback className="bg-gradient-to-br from-primary to-electric text-white text-xs font-bold">
+              VM
+            </AvatarFallback>
+          </Avatar>
+          <div className="hidden sm:block">
+            <p className="text-sm font-semibold text-white leading-tight font-display">
+              Valter Mendonça
+            </p>
+            <p className="text-[10px] text-primary leading-tight uppercase tracking-wider">CEO</p>
+          </div>
+        </div>
+      </div>
+    </header>
+  )
+}
