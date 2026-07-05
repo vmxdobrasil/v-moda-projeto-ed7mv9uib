@@ -7,7 +7,7 @@ export interface User {
   email: string
   type?: 'Varejo' | 'Atacado' | 'Lojista Fabricante'
   manufacturerId?: string
-  role?: 'manufacturer' | 'retailer' | 'affiliate' | 'agent' | 'admin'
+  role?: 'manufacturer' | 'retailer' | 'affiliate' | 'agent' | 'admin' | 'fashionista'
   manufacturer_role?: 'manager' | 'operator'
   affiliate_code?: string
   unlocked_benefits?: Record<string, boolean> | null
@@ -17,6 +17,7 @@ export interface User {
   operating_cities?: string
   fashion_hubs?: string[]
   freight_commission_rate?: number
+  collectionName?: string
 }
 
 interface AuthState {
@@ -27,23 +28,24 @@ interface AuthState {
   logout: () => void
   updateUser: (data: Partial<User>) => void
   initialize: () => Promise<void>
+  syncState: (user: User | null, isAuthenticated: boolean) => void
 }
 
 const getInitialState = () => {
-  const isValid = pb.authStore.isValid
+  const isValid = pb.authStore.isValid && !!pb.authStore.record
   return {
     user: (pb.authStore.record as unknown as User) || null,
     isAuthenticated: isValid,
-    isInitialized: true,
+    isInitialized: false,
   }
 }
 
 const useAuthStore = create<AuthState>((set) => ({
   ...getInitialState(),
-  login: (user) => set({ user, isAuthenticated: true }),
+  login: (user) => set({ user, isAuthenticated: true, isInitialized: true }),
   logout: () => {
     pb.authStore.clear()
-    set({ user: null, isAuthenticated: false })
+    set({ user: null, isAuthenticated: false, isInitialized: true })
   },
   updateUser: (data) =>
     set((state) => ({
@@ -52,10 +54,11 @@ const useAuthStore = create<AuthState>((set) => ({
   initialize: async () => {
     set({
       user: (pb.authStore.record as unknown as User) || null,
-      isAuthenticated: pb.authStore.isValid,
+      isAuthenticated: pb.authStore.isValid && !!pb.authStore.record,
       isInitialized: true,
     })
   },
+  syncState: (user, isAuthenticated) => set({ user, isAuthenticated, isInitialized: true }),
 }))
 
 export default useAuthStore

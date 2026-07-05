@@ -39,13 +39,20 @@ export default function AdminLogin() {
       await pb.collection('users').authWithPassword(email, password)
       localStorage.setItem('admin_auth', '1')
 
+      const record = pb.authStore.record as any
+      if (!record) {
+        toast.error('Erro ao processar login. Tente novamente.')
+        pb.authStore.clear()
+        return
+      }
+
       toast.success('Login bem-sucedido. Bem-vindo ao painel.')
 
       const from = location.state?.from?.pathname
       if (from && !['/login', '/admin/login', '/cadastro', '/'].includes(from)) {
         navigate(from, { replace: true })
       } else {
-        navigate(getRoleBasedRedirect(pb.authStore.record), { replace: true })
+        navigate(getRoleBasedRedirect(record), { replace: true })
       }
     } catch (err: any) {
       pb.authStore.clear()

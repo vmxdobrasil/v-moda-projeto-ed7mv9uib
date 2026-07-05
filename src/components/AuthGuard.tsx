@@ -2,14 +2,15 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 import { getRoleBasedRedirect, isSuperuserOrAdmin } from '@/lib/auth-redirects'
+import pb from '@/lib/pocketbase/client'
 
 export function AuthGuard() {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, user, loading } = useAuth()
   const location = useLocation()
 
   if (loading) return <AuthLoadingScreen />
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -22,7 +23,7 @@ export function AdminGuard() {
 
   if (loading) return <AuthLoadingScreen />
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -37,7 +38,7 @@ export function ManufacturerGuard() {
 
   if (loading) return <AuthLoadingScreen />
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -54,7 +55,7 @@ export function CrmGuard() {
 
   if (loading) return <AuthLoadingScreen />
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -74,7 +75,7 @@ export function RetailerGuard() {
 
   if (loading) return <AuthLoadingScreen />
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -91,7 +92,7 @@ export function AgentGuard() {
 
   if (loading) return <AuthLoadingScreen />
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -108,7 +109,7 @@ export function AgentOrTransporterGuard() {
 
   if (loading) return <AuthLoadingScreen />
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -129,7 +130,7 @@ export function MasterAdminGuard() {
 
   if (loading) return <AuthLoadingScreen />
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -143,8 +144,12 @@ export function PublicRoute() {
 
   if (loading) return <AuthLoadingScreen />
 
-  if (isAuthenticated) {
+  if (isAuthenticated && user) {
     return <Navigate to={getRoleBasedRedirect(user)} replace />
+  }
+
+  if (isAuthenticated && !user) {
+    pb.authStore.clear()
   }
 
   return <Outlet />

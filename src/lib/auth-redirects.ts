@@ -20,3 +20,15 @@ export function isSuperuserOrAdmin(user: any): boolean {
     user?.email === 'valterpmendonca@gmail.com'
   )
 }
+
+export function isManufacturer(user: any): boolean {
+  return user?.role === 'manufacturer' || isSuperuserOrAdmin(user)
+}
+
+export function isRetailer(user: any): boolean {
+  return user?.role === 'retailer' || isSuperuserOrAdmin(user)
+}
+
+export function isAgent(user: any): boolean {
+  return user?.role === 'agent' || isSuperuserOrAdmin(user)
+}

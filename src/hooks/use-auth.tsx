@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import pb from '@/lib/pocketbase/client'
+import useAuthStore from '@/stores/useAuthStore'
 
 interface AuthContextType {
   user: any
@@ -11,6 +12,7 @@ interface AuthContextType {
   authError: string | null
   clearAuthError: () => void
   handleAuthFailure: (message?: string) => void
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -21,21 +23,29 @@ export const useAuth = () => {
   return context
 }
 
+function syncAuthStore(isValid: boolean, record: any) {
+  useAuthStore.getState().syncState(isValid ? record : null, isValid)
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(pb.authStore.isValid ? pb.authStore.record : null)
-  const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid)
+  const initialIsValid = pb.authStore.isValid && !!pb.authStore.record
+  const [user, setUser] = useState<any>(initialIsValid ? pb.authStore.record : null)
+  const [isAuthenticated, setIsAuthenticated] = useState(initialIsValid)
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState<string | null>(null)
 
   useEffect(() => {
     const unsubscribe = pb.authStore.onChange((_token, record) => {
-      setUser(pb.authStore.isValid ? record : null)
-      setIsAuthenticated(pb.authStore.isValid)
+      const isValid = pb.authStore.isValid && !!record
+      setUser(isValid ? record : null)
+      setIsAuthenticated(isValid)
+      syncAuthStore(isValid, record)
     })
 
     const validateSession = async () => {
-      if (!pb.authStore.isValid) {
+      if (!pb.authStore.isValid || !pb.authStore.record) {
         if (pb.authStore.record) pb.authStore.clear()
+        syncAuthStore(false, null)
         setLoading(false)
         return
       }
@@ -45,9 +55,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       try {
         await pb.collection(collectionName).authRefresh()
+        syncAuthStore(true, pb.authStore.record)
       } catch (err: any) {
         if (err?.status === 401 || err?.status === 403) {
           pb.authStore.clear()
+          syncAuthStore(false, null)
           setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
         }
       } finally {
@@ -67,6 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setAuthError(null)
       await pb.collection('users').create({ email, password, passwordConfirm: password })
       await pb.collection('users').authWithPassword(email, password)
+      syncAuthStore(true, pb.authStore.record)
       return { error: null }
     } catch (error) {
       return { error }
@@ -77,6 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setAuthError(null)
       await pb.collection('users').authWithPassword(email, password)
+      syncAuthStore(true, pb.authStore.record)
       return { error: null }
     } catch (error) {
       return { error }
@@ -85,6 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = () => {
     pb.authStore.clear()
+    syncAuthStore(false, null)
     setAuthError(null)
   }
 
@@ -92,7 +107,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const handleAuthFailure = (message?: string) => {
     pb.authStore.clear()
+    syncAuthStore(false, null)
     setAuthError(message || 'Sua sessão expirou. Por favor, faça login novamente.')
+  }
+
+  const refreshUser = async () => {
+    if (!pb.authStore.isValid || !pb.authStore.record) return
+    try {
+      const updated = await pb.collection('users').getOne(pb.authStore.record.id)
+      setUser(updated)
+      syncAuthStore(true, updated)
+    } catch {
+      // keep existing user data on failure
+    }
   }
 
   return (
@@ -107,6 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         authError,
         clearAuthError,
         handleAuthFailure,
+        refreshUser,
       }}
     >
       {children}

@@ -23,8 +23,12 @@ export function RootRoute() {
     )
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated && user) {
     return <Navigate to={getRoleBasedRedirect(user)} replace />
+  }
+
+  if (isAuthenticated && !user) {
+    return <Navigate to="/login" replace />
   }
 
   return <Index />

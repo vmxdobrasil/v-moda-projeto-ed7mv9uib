@@ -55,7 +55,9 @@ export default function Login() {
         }
       } else {
         const record = pb.authStore.record as any
-        navigate(getRoleBasedRedirect(record))
+        if (record) {
+          navigate(getRoleBasedRedirect(record), { replace: true })
+        }
       }
     } catch (err: any) {
       const msg = getErrorMessage(err)
