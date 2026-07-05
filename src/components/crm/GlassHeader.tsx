@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useRouteLabels } from '@/hooks/use-route-labels'
 import { cn } from '@/lib/utils'
-import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-affs8.png'
+import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 const HEADER_NAV = [
   { label: 'Resumo', path: '/crm' },
