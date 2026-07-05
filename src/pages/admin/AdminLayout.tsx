@@ -31,6 +31,8 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { BreadcrumbNav } from '@/components/dashboard/BreadcrumbNav'
 import { useState } from 'react'
 
 export default function AdminLayout() {
@@ -157,6 +159,19 @@ export default function AdminLayout() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto bg-muted/10 relative">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/95 backdrop-blur px-4 sm:h-16 sm:px-6 lg:px-8">
+          <BreadcrumbNav className="flex-1 min-w-0" />
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-sm text-muted-foreground hidden sm:block truncate max-w-[180px]">
+              {user?.name || user?.email}
+            </span>
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+        </header>
         <div className="p-4 md:p-8 max-w-7xl mx-auto page-transition">
           <Outlet />
         </div>

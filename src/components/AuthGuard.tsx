@@ -154,3 +154,24 @@ export function PublicRoute() {
 
   return <Outlet />
 }
+
+export function FinancialGuard() {
+  const { isAuthenticated, user, loading } = useAuth()
+  const location = useLocation()
+
+  if (loading) return <AuthLoadingScreen />
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  }
+
+  const hasFinancialAccess =
+    isSuperuserOrAdmin(user) ||
+    user?.role === 'manufacturer' ||
+    user?.role === 'retailer' ||
+    user?.role === 'agent'
+
+  if (!hasFinancialAccess) return <Navigate to={getRoleBasedRedirect(user)} replace />
+
+  return <Outlet />
+}

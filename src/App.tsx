@@ -9,11 +9,11 @@ import {
   PublicRoute,
   ManufacturerGuard,
   AdminGuard,
-  MasterAdminGuard,
   CrmGuard,
   RetailerGuard,
   AgentGuard,
   AgentOrTransporterGuard,
+  FinancialGuard,
 } from '@/components/AuthGuard'
 import AdminMaster from '@/pages/admin/AdminMaster'
 import { AiAssistantProvider, LiveChat } from '@/components/LiveChat'
@@ -337,7 +337,9 @@ export default function App() {
                       />
                     </Route>
 
-                    <Route path="financeiro" element={<FinanceiroHub />} />
+                    <Route element={<FinancialGuard />}>
+                      <Route path="financeiro" element={<FinanceiroHub />} />
+                    </Route>
 
                     <Route element={<ManufacturerGuard />}>
                       <Route path="fabricantes" element={<Navigate to="/manufacturer" replace />} />
@@ -363,15 +365,11 @@ export default function App() {
                     </Route>
                   </Route>
 
-                  {/* Master Admin Route */}
-                  <Route element={<MasterAdminGuard />}>
-                    <Route path="/admin/master" element={<AdminMaster />} />
-                  </Route>
-
                   {/* Admin Routes */}
                   <Route element={<AdminGuard />}>
                     <Route path="/admin" element={<AdminLayout />}>
                       <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                      <Route path="master" element={<AdminMaster />} />
                       <Route path="dashboard" element={<AdminDashboard />} />
                       <Route path="hub" element={<DashboardHub />} />
                       <Route path="crm-global" element={<AdminCRMGlobal />} />
