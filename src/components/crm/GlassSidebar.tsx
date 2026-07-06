@@ -7,6 +7,7 @@ import {
   CheckSquare,
   FileText,
   BarChart3,
+  Shield,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { label: 'Tarefas', path: '/crm/tarefas', icon: CheckSquare },
   { label: 'Propostas', path: '/crm/propostas', icon: FileText },
   { label: 'Relatórios', path: '/crm/relatorios', icon: BarChart3 },
+  { label: 'Gestão Admin', path: '/crm/admin', icon: Shield },
 ]
 
 export function GlassSidebar() {

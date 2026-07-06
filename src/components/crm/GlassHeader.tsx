@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Search, Bell, Settings, LogOut } from 'lucide-react'
+import { Search, Settings, LogOut } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useRouteLabels } from '@/hooks/use-route-labels'
+import { AdminNotificationBell } from '@/components/crm/AdminNotificationBell'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -103,14 +104,7 @@ export function GlassHeader() {
           />
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full text-white/60 hover:text-primary hover:bg-white/5 relative h-9 w-9 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
-        </Button>
+        <AdminNotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -153,6 +153,7 @@ import CrmDashboard from '@/pages/crm/CrmDashboard'
 import CrmLeads from '@/pages/crm/CrmLeads'
 import CrmPipeline from '@/pages/crm/CrmPipeline'
 import CrmPlaceholder from '@/pages/crm/CrmPlaceholder'
+import CrmAdmin from '@/pages/crm/CrmAdmin'
 
 function FloatingCart() {
   const items = useCartStore((state) => state.items)
@@ -436,6 +437,7 @@ export default function App() {
                     <Route path="propostas" element={<CrmPlaceholder title="Propostas" />} />
                     <Route path="relatorios" element={<CrmPlaceholder title="Relatórios" />} />
                     <Route path="fundadores" element={<CrmPlaceholder title="Fundadores" />} />
+                    <Route path="admin" element={<CrmAdmin />} />
                   </Route>
                 </Route>
 
