@@ -116,6 +116,7 @@ import LojasFabricantes from '@/pages/LojasFabricantes'
 import RetailerLanding from '@/pages/RetailerLanding'
 import RetailerOnboarding from '@/pages/RetailerOnboarding'
 import AdminGeographic from '@/pages/admin/AdminGeographic'
+import AdminLeadAnalytics from '@/pages/admin/AdminLeadAnalytics'
 import Empreenda from '@/pages/Empreenda'
 import ResellerDashboard from '@/pages/dashboard/ResellerDashboard'
 import AdminResellers from '@/pages/admin/AdminResellers'
@@ -385,6 +386,7 @@ export default function App() {
                       />
                       <Route path="insights" element={<AdminInsights />} />
                       <Route path="geografico" element={<AdminGeographic />} />
+                      <Route path="lead-analytics" element={<AdminLeadAnalytics />} />
                       <Route path="revendedoras" element={<AdminResellers />} />
                       <Route path="zonas" element={<AdminZones />} />
                       <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />

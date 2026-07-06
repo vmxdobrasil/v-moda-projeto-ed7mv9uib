@@ -54,6 +54,7 @@ export default function AdminLayout() {
     { name: 'Influenciadores', href: '/admin/influencers', icon: Megaphone },
     { name: 'Produtos', href: '/admin/produtos', icon: ShoppingBag },
     { name: 'Distribuição Geográfica', href: '/admin/geografico', icon: BarChart },
+    { name: 'Lead Analytics', href: '/admin/lead-analytics', icon: BarChart },
     { name: 'Revendedoras', href: '/admin/revendedoras', icon: ShoppingBag },
   ]
 

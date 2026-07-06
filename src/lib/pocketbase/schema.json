@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T12:07:57.184Z",
+  "generatedAt": "2026-07-06T12:56:46.315Z",
   "collections": [
     {
       "name": "users",
@@ -726,6 +726,12 @@
           "required": false,
           "system": false,
           "selectValues": ["44_goiania", "fama_goiania", "bras_sp", "bom_retiro_sp", "outros"]
+        },
+        {
+          "name": "ddd",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -740,7 +746,8 @@
         "CREATE INDEX `idx_customers_last_contacted_at` ON `customers` (last_contacted_at)",
         "CREATE INDEX `idx_customers_status_contacted` ON `customers` (status, last_contacted_at)",
         "CREATE INDEX `idx_customers_exclusivity_zone` ON `customers` (exclusivity_zone)",
-        "CREATE INDEX `idx_customers_is_exclusive` ON `customers` (is_exclusive)"
+        "CREATE INDEX `idx_customers_is_exclusive` ON `customers` (is_exclusive)",
+        "CREATE INDEX `idx_customers_ddd` ON `customers` (ddd)"
       ]
     },
     {
@@ -3215,11 +3222,18 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "ddd",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_leads_retailers_status ON leads_retailers (status)",
-        "CREATE INDEX idx_leads_retailers_state ON leads_retailers (state)"
+        "CREATE INDEX idx_leads_retailers_state ON leads_retailers (state)",
+        "CREATE INDEX `idx_leads_retailers_ddd` ON `leads_retailers` (ddd)"
       ]
     },
     {
