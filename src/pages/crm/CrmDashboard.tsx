@@ -11,6 +11,7 @@ import {
 import { CrmMetricCards } from '@/components/crm/CrmMetricCards'
 import { CrmFunnel } from '@/components/crm/CrmFunnel'
 import { CrmInteractionGrid } from '@/components/crm/CrmInteractionGrid'
+import { toast } from 'sonner'
 
 export default function CrmDashboard() {
   const [metrics, setMetrics] = useState<CrmMetrics | null>(null)
@@ -30,6 +31,7 @@ export default function CrmDashboard() {
       setInteractions(i)
     } catch (e) {
       console.error(e)
+      toast.error('Erro ao carregar dados do dashboard.')
     } finally {
       setLoading(false)
     }

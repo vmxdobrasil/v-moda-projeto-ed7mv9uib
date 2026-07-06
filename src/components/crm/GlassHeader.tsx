@@ -1,11 +1,21 @@
-import { Link, useLocation } from 'react-router-dom'
-import { Search, Bell } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Search, Bell, Settings, LogOut } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useRouteLabels } from '@/hooks/use-route-labels'
+import { useAuth } from '@/hooks/use-auth'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
+import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-affs8.png'
 
 const HEADER_NAV = [
   { label: 'Resumo', path: '/crm' },
@@ -16,14 +26,41 @@ const HEADER_NAV = [
   { label: 'Projetos', path: '/admin/produtos' },
 ]
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'CEO',
+  manufacturer: 'Fabricante',
+  retailer: 'Varejista',
+  agent: 'Agente',
+  fashionista: 'Fashionista',
+  affiliate: 'Afiliado',
+}
+
 export function GlassHeader() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { user, signOut } = useAuth()
   const { currentLabel } = useRouteLabels()
 
   const safeLabel =
     currentLabel === 'Login' || currentLabel === 'Entrar' || currentLabel === 'Início'
       ? 'Painel CRM'
       : currentLabel
+
+  const userName = user?.name || 'Valter Mendonça'
+  const roleLabel = ROLE_LABELS[user?.role || 'admin'] || 'CEO'
+  const initials =
+    userName
+      .split(' ')
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || 'VM'
+
+  const handleSignOut = () => {
+    signOut()
+    toast.success('Sessão encerrada com sucesso.')
+    navigate('/login')
+  }
 
   return (
     <header className="crm-header rounded-[28px] px-5 py-3 flex items-center justify-between gap-4 shrink-0">
@@ -75,19 +112,46 @@ export function GlassHeader() {
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
         </Button>
 
-        <div className="flex items-center gap-2 pl-3 border-l border-white/10">
-          <Avatar className="w-9 h-9 border-2 border-primary/30 transition-all duration-300 hover:scale-105">
-            <AvatarFallback className="bg-gradient-to-br from-primary to-electric text-white text-xs font-bold">
-              VM
-            </AvatarFallback>
-          </Avatar>
-          <div className="hidden sm:block">
-            <p className="text-sm font-semibold text-white leading-tight font-display">
-              Valter Mendonça
-            </p>
-            <p className="text-[10px] text-primary leading-tight uppercase tracking-wider">CEO</p>
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2 pl-3 border-l border-white/10 outline-none cursor-pointer transition-all duration-300 hover:scale-105">
+              <Avatar className="w-9 h-9 border-2 border-primary/30 transition-all duration-300 hover:scale-105">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-electric text-white text-xs font-bold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="hidden sm:block text-left">
+                <p className="text-sm font-semibold text-white leading-tight font-display">
+                  {userName}
+                </p>
+                <p className="text-[10px] text-primary leading-tight uppercase tracking-wider">
+                  {roleLabel}
+                </p>
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56 bg-card border-border">
+            <DropdownMenuLabel className="font-display">
+              <p className="text-sm font-semibold">{userName}</p>
+              <p className="text-xs text-muted-foreground">{roleLabel}</p>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/admin/configuracoes" className="cursor-pointer">
+                <Settings className="w-4 h-4 mr-2" />
+                Configurações
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleSignOut}
+              className="cursor-pointer text-destructive focus:text-destructive"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   )
