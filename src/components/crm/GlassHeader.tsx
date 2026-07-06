@@ -27,7 +27,7 @@ const HEADER_NAV = [
 ]
 
 const ROLE_LABELS: Record<string, string> = {
-  admin: 'CEO',
+  admin: 'Admin Master',
   manufacturer: 'Fabricante',
   retailer: 'Varejista',
   agent: 'Agente',
@@ -47,7 +47,7 @@ export function GlassHeader() {
       : currentLabel
 
   const userName = user?.name || 'Valter Mendonça'
-  const roleLabel = ROLE_LABELS[user?.role || 'admin'] || 'CEO'
+  const roleLabel = ROLE_LABELS[user?.role || 'admin'] || 'Admin Master'
   const initials =
     userName
       .split(' ')
