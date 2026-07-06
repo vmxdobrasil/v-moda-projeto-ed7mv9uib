@@ -173,19 +173,27 @@ function FloatingCart() {
   )
 }
 
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div className="flex h-[80vh] flex-col items-center justify-center p-8 text-center animate-fade-in-up">
-      <div className="rounded-full bg-primary/10 p-4 mb-4">
-        <div className="h-8 w-8 text-primary" />
-      </div>
-      <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
-      <p className="text-muted-foreground mt-2 max-w-sm">
-        Esta seção do sistema está em desenvolvimento e será disponibilizada em breve.
-      </p>
-    </div>
-  )
-}
+import Conhecimento from '@/pages/Conhecimento'
+import SobreNos from '@/pages/SobreNos'
+import ContatoPage from '@/pages/ContatoPage'
+import FaqPage from '@/pages/FaqPage'
+import FavoritosPage from '@/pages/FavoritosPage'
+import FinalizarCompraPage from '@/pages/FinalizarCompraPage'
+import MeusPedidos from '@/pages/dashboard/MeusPedidos'
+import AdminProductsPage from '@/pages/dashboard/AdminProductsPage'
+import MessagesPage from '@/pages/dashboard/MessagesPage'
+import MediaKitPage from '@/pages/dashboard/MediaKitPage'
+import AdminPedidos from '@/pages/admin/AdminPedidos'
+import AdminLogisticaPage from '@/pages/admin/AdminLogisticaPage'
+import AdminColecoes from '@/pages/admin/AdminColecoes'
+import AdminMidia from '@/pages/admin/AdminMidia'
+import AdminRelatorios from '@/pages/admin/AdminRelatorios'
+import AdminConfiguracoes from '@/pages/admin/AdminConfiguracoes'
+import CrmAtividades from '@/pages/crm/CrmAtividades'
+import CrmTarefas from '@/pages/crm/CrmTarefas'
+import CrmPropostas from '@/pages/crm/CrmPropostas'
+import CrmRelatorios from '@/pages/crm/CrmRelatorios'
+import CrmFundadores from '@/pages/crm/CrmFundadores'
 
 function AppRoot() {
   return (
@@ -252,18 +260,15 @@ export default function App() {
                   <Route path="lojas-fabricantes" element={<LojasFabricantes />} />
                   <Route path="central-de-abastecimento" element={<RetailerLanding />} />
                   <Route path="guia-de-moda" element={<GuiaDeModa />} />
-                  <Route path="conhecimento" element={<PlaceholderPage title="Conhecimento" />} />
+                  <Route path="conhecimento" element={<Conhecimento />} />
                   <Route path="revista" element={<Magazine />} />
-                  <Route path="sobre-nos" element={<PlaceholderPage title="Sobre Nós" />} />
-                  <Route path="contato" element={<PlaceholderPage title="Contato" />} />
+                  <Route path="sobre-nos" element={<SobreNos />} />
+                  <Route path="contato" element={<ContatoPage />} />
                   <Route path="revenda" element={<RetailerLanding />} />
                   <Route path="empreenda" element={<Empreenda />} />
-                  <Route path="faq" element={<PlaceholderPage title="FAQ" />} />
-                  <Route path="favoritos" element={<PlaceholderPage title="Lista de Desejos" />} />
-                  <Route
-                    path="finalizar-compra"
-                    element={<PlaceholderPage title="Finalizar Compra" />}
-                  />
+                  <Route path="faq" element={<FaqPage />} />
+                  <Route path="favoritos" element={<FavoritosPage />} />
+                  <Route path="finalizar-compra" element={<FinalizarCompraPage />} />
                   <Route path="orders/view/:id" element={<OrderView />} />
                   <Route path="cart" element={<CartPage />} />
                   <Route path="top-marcas" element={<TopMarcas />} />
@@ -303,25 +308,22 @@ export default function App() {
                   <Route path="/" element={<DashboardLayout />}>
                     <Route path="dashboard" element={<DashboardAnalytics />} />
                     <Route path="perfil" element={<ProfilePage />} />
-                    <Route path="meus-pedidos" element={<PlaceholderPage title="Meus Pedidos" />} />
+                    <Route path="meus-pedidos" element={<MeusPedidos />} />
                     <Route path="vallen-ia" element={<VallenIA />} />
                     <Route path="maquina-vendas" element={<SalesMachine />} />
                     <Route path="customers" element={<DashboardCustomers />} />
                     <Route path="customers/:id" element={<CustomerDetails />} />
                     <Route path="customer/:id" element={<CustomerDetails />} />
                     <Route path="products" element={<DashboardProjects />} />
-                    <Route
-                      path="admin-products"
-                      element={<PlaceholderPage title="Admin Produtos" />}
-                    />
-                    <Route path="messages" element={<PlaceholderPage title="Mensagens" />} />
+                    <Route path="admin-products" element={<AdminProductsPage />} />
+                    <Route path="messages" element={<MessagesPage />} />
                     <Route path="manufacturers" element={<ManufacturersHub />} />
                     <Route path="affiliates" element={<AffiliateDashboard />} />
                     <Route path="agente" element={<AgentDashboard />} />
                     <Route path="resources" element={<Resources />} />
                     <Route path="analytics" element={<DashboardAnalytics />} />
                     <Route path="v-club" element={<VClubWallet />} />
-                    <Route path="media-kit" element={<PlaceholderPage title="Media Kit" />} />
+                    <Route path="media-kit" element={<MediaKitPage />} />
                     <Route path="revenda" element={<RevendaDashboard />} />
                     <Route path="revendedora-dashboard" element={<ResellerDashboard />} />
                     <Route path="academy" element={<Academy />} />
@@ -392,7 +394,7 @@ export default function App() {
                       <Route path="lead-analytics" element={<AdminLeadAnalytics />} />
                       <Route path="revendedoras" element={<AdminResellers />} />
                       <Route path="zonas" element={<AdminZones />} />
-                      <Route path="pedidos" element={<PlaceholderPage title="Pedidos" />} />
+                      <Route path="pedidos" element={<AdminPedidos />} />
                       <Route path="top-marcas" element={<AdminTopBrands />} />
                       <Route path="guia-de-marcas" element={<AdminManufacturers />} />
                       <Route
@@ -406,25 +408,22 @@ export default function App() {
                       <Route path="produtos" element={<AdminProducts />} />
                       <Route path="catalogo" element={<AdminCatalog />} />
                       <Route path="clientes" element={<Customers />} />
-                      <Route path="logistica" element={<PlaceholderPage title="Logística" />} />
+                      <Route path="logistica" element={<AdminLogisticaPage />} />
                       <Route path="marketing" element={<AdminMarketing />} />
                       <Route path="precificacao" element={<AdminPricing />} />
                       <Route path="guia-crm" element={<AdminManufacturerCRM />} />
                       <Route path="categorias" element={<AdminCategories />} />
-                      <Route path="colecoes" element={<PlaceholderPage title="Coleções" />} />
-                      <Route path="midia" element={<PlaceholderPage title="Mídia" />} />
+                      <Route path="colecoes" element={<AdminColecoes />} />
+                      <Route path="midia" element={<AdminMidia />} />
                       <Route path="assinaturas" element={<AdminSubscriptions />} />
                       <Route path="logs-importacao" element={<AdminImportLogs />} />
-                      <Route path="relatorios" element={<PlaceholderPage title="Relatórios" />} />
+                      <Route path="relatorios" element={<AdminRelatorios />} />
                       <Route path="inventory" element={<InventoryManagement />} />
                       <Route path="retail-crm" element={<RetailCRM />} />
                       <Route path="consultant-crm" element={<ConsultantCRM />} />
                       <Route path="usuarios" element={<AdminUsers />} />
                       <Route path="logs" element={<AdminLogs />} />
-                      <Route
-                        path="configuracoes"
-                        element={<PlaceholderPage title="Configurações" />}
-                      />
+                      <Route path="configuracoes" element={<AdminConfiguracoes />} />
                       <Route path="partnerships/zoop" element={<ZoopProposal />} />
                     </Route>
                   </Route>
@@ -436,11 +435,11 @@ export default function App() {
                     <Route index element={<CrmDashboard />} />
                     <Route path="leads" element={<CrmLeads />} />
                     <Route path="pipeline" element={<CrmPipeline />} />
-                    <Route path="atividades" element={<CrmPlaceholder title="Atividades" />} />
-                    <Route path="tarefas" element={<CrmPlaceholder title="Tarefas" />} />
-                    <Route path="propostas" element={<CrmPlaceholder title="Propostas" />} />
-                    <Route path="relatorios" element={<CrmPlaceholder title="Relatórios" />} />
-                    <Route path="fundadores" element={<CrmPlaceholder title="Fundadores" />} />
+                    <Route path="atividades" element={<CrmAtividades />} />
+                    <Route path="tarefas" element={<CrmTarefas />} />
+                    <Route path="propostas" element={<CrmPropostas />} />
+                    <Route path="relatorios" element={<CrmRelatorios />} />
+                    <Route path="fundadores" element={<CrmFundadores />} />
                     <Route path="admin" element={<CrmAdmin />} />
                   </Route>
                 </Route>
