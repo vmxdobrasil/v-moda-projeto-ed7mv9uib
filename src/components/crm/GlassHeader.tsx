@@ -19,12 +19,12 @@ import { cn } from '@/lib/utils'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 const HEADER_NAV = [
-  { label: 'Resumo', path: '/crm' },
-  { label: 'Fundadores', path: '/crm/fundadores' },
+  { label: 'CRM', path: '/crm' },
+  { label: 'Admin', path: '/admin' },
+  { label: 'Fabricantes', path: '/fabricantes' },
   { label: 'Finanças', path: '/financeiro' },
   { label: 'Contatos', path: '/crm/leads' },
   { label: 'Crescimento', path: '/crm/pipeline' },
-  { label: 'Projetos', path: '/admin/produtos' },
 ]
 
 const ROLE_LABELS: Record<string, string> = {
@@ -74,9 +74,11 @@ export function GlassHeader() {
         <div className="hidden lg:flex items-center gap-1">
           {HEADER_NAV.map((link) => {
             const isActive =
-              link.path === '/crm'
-                ? location.pathname === '/crm'
-                : location.pathname.startsWith(link.path)
+              location.pathname === link.path ||
+              location.pathname.startsWith(link.path + '/') ||
+              (link.path === '/fabricantes' &&
+                (location.pathname === '/manufacturer' ||
+                  location.pathname.startsWith('/manufacturer/')))
             return (
               <Link
                 key={link.label}
