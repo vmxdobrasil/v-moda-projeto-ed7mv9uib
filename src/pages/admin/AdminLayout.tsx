@@ -56,6 +56,8 @@ export default function AdminLayout() {
     { name: 'Distribuição Geográfica', href: '/admin/geografico', icon: BarChart },
     { name: 'Lead Analytics', href: '/admin/lead-analytics', icon: BarChart },
     { name: 'Revendedoras', href: '/admin/revendedoras', icon: ShoppingBag },
+    { name: 'Usuários', href: '/admin/usuarios', icon: UserCheck },
+    { name: 'Logs de Atividade', href: '/admin/logs', icon: Activity },
   ]
 
   const NavItems = () => (

@@ -1,8 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getUsers, updateUserRole, deleteUser } from '@/services/admin-users'
+import {
+  getUsers,
+  updateUserRole,
+  updateUserWaitlist,
+  updateUserApprovalStatus,
+  deleteUser,
+} from '@/services/admin-users'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -14,6 +21,7 @@ import { Trash2, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useRealtime } from '@/hooks/use-realtime'
 
 const ROLES = [
   { value: 'admin', label: 'Admin' },
@@ -22,6 +30,12 @@ const ROLES = [
   { value: 'affiliate', label: 'Afiliado' },
   { value: 'agent', label: 'Agente' },
   { value: 'fashionista', label: 'Fashionista' },
+]
+
+const APPROVAL_STATUSES = [
+  { value: 'pending', label: 'Pendente' },
+  { value: 'approved', label: 'Aprovado' },
+  { value: 'denied', label: 'Negado' },
 ]
 
 export function UserManagementTable() {
@@ -49,6 +63,8 @@ export function UserManagementTable() {
     return () => clearTimeout(timer)
   }, [loadUsers])
 
+  useRealtime('users', () => loadUsers())
+
   const handleRoleChange = async (userId: string, role: string, userName: string) => {
     try {
       await updateUserRole(userId, role, userName)
@@ -56,6 +72,26 @@ export function UserManagementTable() {
       toast.success(`Role atualizado para ${userName}`)
     } catch {
       toast.error('Erro ao atualizar role')
+    }
+  }
+
+  const handleWaitlistToggle = async (userId: string, checked: boolean, userName: string) => {
+    try {
+      await updateUserWaitlist(userId, checked, userName)
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, is_waitlisted: checked } : u)))
+      toast.success(`${userName} ${checked ? 'adicionado à lista de espera' : 'liberado'}`)
+    } catch {
+      toast.error('Erro ao atualizar lista de espera')
+    }
+  }
+
+  const handleApprovalChange = async (userId: string, status: string, userName: string) => {
+    try {
+      await updateUserApprovalStatus(userId, status, userName)
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, approval_status: status } : u)))
+      toast.success(`Aprovação de ${userName} atualizada`)
+    } catch {
+      toast.error('Erro ao atualizar aprovação')
     }
   }
 
@@ -84,7 +120,7 @@ export function UserManagementTable() {
           className="border-0 bg-transparent p-0 h-auto text-sm text-white placeholder:text-white/40 focus-visible:ring-0"
         />
       </div>
-      <div className="rounded-2xl border border-white/10 overflow-hidden">
+      <div className="rounded-2xl border border-white/10 overflow-hidden backdrop-blur-xl">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-white/5">
@@ -92,20 +128,22 @@ export function UserManagementTable() {
                 <th className="px-4 py-3 font-medium">Usuário</th>
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Role</th>
-                <th className="px-4 py-3 font-medium">Criado em</th>
+                <th className="px-4 py-3 font-medium">Espera</th>
+                <th className="px-4 py-3 font-medium">Aprovação</th>
+                <th className="px-4 py-3 font-medium">Criado</th>
                 <th className="px-4 py-3 font-medium text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-white/40">
+                  <td colSpan={7} className="text-center py-8 text-white/40">
                     Carregando...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-white/40">
+                  <td colSpan={7} className="text-center py-8 text-white/40">
                     Nenhum usuário encontrado.
                   </td>
                 </tr>
@@ -145,7 +183,32 @@ export function UserManagementTable() {
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="px-4 py-3 text-sm text-white/60">
+                    <td className="px-4 py-3">
+                      <Switch
+                        checked={!!u.is_waitlisted}
+                        onCheckedChange={(checked) =>
+                          handleWaitlistToggle(u.id, checked, u.name || u.email)
+                        }
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Select
+                        value={u.approval_status || 'pending'}
+                        onValueChange={(v) => handleApprovalChange(u.id, v, u.name || u.email)}
+                      >
+                        <SelectTrigger className="w-32 h-8 bg-white/5 border-white/10 text-white text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {APPROVAL_STATUSES.map((a) => (
+                            <SelectItem key={a.value} value={a.value}>
+                              {a.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-white/60 whitespace-nowrap">
                       {u.created
                         ? format(new Date(u.created), 'dd/MM/yyyy', { locale: ptBR })
                         : '-'}

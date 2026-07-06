@@ -21,7 +21,9 @@ export function AdminNotificationBell() {
   const loadNotifications = async () => {
     if (!user) return
     try {
+      const filter = `user = "${user.id}" || user = ""`
       const records = await pb.collection('notifications').getList(1, 10, {
+        filter,
         sort: '-created',
       })
       setNotifications(records.items)
@@ -65,7 +67,7 @@ export function AdminNotificationBell() {
         <button className="relative flex items-center justify-center w-9 h-9 rounded-full text-white/60 hover:text-primary hover:bg-white/5 transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 outline-none cursor-pointer">
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
-            <span className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary text-[9px] text-white font-bold px-1 cta-glow">
+            <span className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[9px] text-white font-bold px-1 cta-glow">
               {unreadCount}
             </span>
           )}

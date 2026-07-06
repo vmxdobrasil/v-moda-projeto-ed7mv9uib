@@ -25,6 +25,8 @@ import ProfilePage from '@/pages/dashboard/Profile'
 import AdminSubscriptions from '@/pages/admin/AdminSubscriptions'
 import AdminImportLogs from '@/pages/admin/AdminImportLogs'
 import AdminAgents from '@/pages/admin/AdminAgents'
+import AdminUsers from '@/pages/admin/AdminUsers'
+import AdminLogs from '@/pages/admin/AdminLogs'
 
 // Normalize backend API calls to use absolute URL and prevent returning HTML
 const originalFetch = window.fetch
@@ -417,6 +419,8 @@ export default function App() {
                       <Route path="inventory" element={<InventoryManagement />} />
                       <Route path="retail-crm" element={<RetailCRM />} />
                       <Route path="consultant-crm" element={<ConsultantCRM />} />
+                      <Route path="usuarios" element={<AdminUsers />} />
+                      <Route path="logs" element={<AdminLogs />} />
                       <Route
                         path="configuracoes"
                         element={<PlaceholderPage title="Configurações" />}
