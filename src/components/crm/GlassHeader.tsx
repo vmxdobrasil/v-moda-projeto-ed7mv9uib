@@ -15,7 +15,7 @@ import { useRouteLabels } from '@/hooks/use-route-labels'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-affs8.png'
+import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 const HEADER_NAV = [
   { label: 'Resumo', path: '/crm' },
