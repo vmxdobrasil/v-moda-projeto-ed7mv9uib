@@ -27,6 +27,23 @@ function syncAuthStore(isValid: boolean, record: any) {
   useAuthStore.getState().syncState(isValid ? record : null, isValid)
 }
 
+function isJwtExpired(): boolean {
+  const token = pb.authStore.token
+  if (!token) return true
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return true
+    let payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    while (payloadB64.length % 4) payloadB64 += '='
+    const payload = JSON.parse(atob(payloadB64))
+    if (!payload.exp) return false
+    const now = Math.floor(Date.now() / 1000)
+    return payload.exp < now - 5
+  } catch {
+    return false
+  }
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -70,19 +87,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (err: any) {
         if (err?.status === 0) {
-          const record = pb.authStore.record
-          if (record) {
-            setUser(record)
+          const existingRecord = pb.authStore.record
+          if (existingRecord) {
+            setUser(existingRecord)
             setIsAuthenticated(true)
-            syncAuthStore(true, record)
+            syncAuthStore(true, existingRecord)
+          }
+        } else if (err?.status === 401 || err?.status === 403) {
+          if (isJwtExpired()) {
+            pb.authStore.clear()
+            setUser(null)
+            setIsAuthenticated(false)
+            syncAuthStore(false, null)
+            setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
+          } else {
+            const existingRecord = pb.authStore.record
+            if (existingRecord) {
+              setUser(existingRecord)
+              setIsAuthenticated(true)
+              syncAuthStore(true, existingRecord)
+            }
           }
         } else {
-          pb.authStore.clear()
-          setUser(null)
-          setIsAuthenticated(false)
-          syncAuthStore(false, null)
-          if (err?.status === 401 || err?.status === 403) {
-            setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
+          const existingRecord = pb.authStore.record
+          if (existingRecord && pb.authStore.isValid) {
+            setUser(existingRecord)
+            setIsAuthenticated(true)
+            syncAuthStore(true, existingRecord)
           }
         }
       } finally {
@@ -96,6 +127,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       unsubscribe()
     }
   }, [])
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated && pb.authStore.isValid && pb.authStore.record) {
+      const record = pb.authStore.record
+      setUser(record)
+      setIsAuthenticated(true)
+      syncAuthStore(true, record)
+    }
+  }, [loading, isAuthenticated])
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -152,11 +192,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       syncAuthStore(true, updated)
     } catch (err: any) {
       if (err?.status === 401 || err?.status === 403) {
-        pb.authStore.clear()
-        setUser(null)
-        setIsAuthenticated(false)
-        syncAuthStore(false, null)
-        setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
+        if (isJwtExpired()) {
+          pb.authStore.clear()
+          setUser(null)
+          setIsAuthenticated(false)
+          syncAuthStore(false, null)
+          setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
+        }
       }
     }
   }

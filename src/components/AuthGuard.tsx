@@ -4,16 +4,31 @@ import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 import { getRoleBasedRedirect, isSuperuserOrAdmin } from '@/lib/auth-redirects'
 import pb from '@/lib/pocketbase/client'
 
-export function AuthGuard() {
+function useAuthGuardState() {
   const { isAuthenticated, user, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) return <AuthLoadingScreen />
+  if (loading) return { status: 'loading' as const }
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />
+    if (pb.authStore.isValid && pb.authStore.record) {
+      return { status: 'loading' as const }
+    }
+    return {
+      status: 'unauthenticated' as const,
+      loginState: { from: location.pathname },
+    }
   }
 
+  return { status: 'authenticated' as const, user }
+}
+
+export function AuthGuard() {
+  const state = useAuthGuardState()
+  if (state.status === 'loading') return <AuthLoadingScreen />
+  if (state.status === 'unauthenticated') {
+    return <Navigate to="/login" state={state.loginState} replace />
+  }
   return <Outlet />
 }
 
@@ -24,6 +39,7 @@ export function AdminGuard() {
   if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated || !user) {
+    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -39,6 +55,7 @@ export function ManufacturerGuard() {
   if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated || !user) {
+    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -56,6 +73,7 @@ export function CrmGuard() {
   if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated || !user) {
+    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -76,6 +94,7 @@ export function RetailerGuard() {
   if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated || !user) {
+    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -93,6 +112,7 @@ export function AgentGuard() {
   if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated || !user) {
+    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -110,6 +130,7 @@ export function AgentOrTransporterGuard() {
   if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated || !user) {
+    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -131,6 +152,7 @@ export function MasterAdminGuard() {
   if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated || !user) {
+    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
@@ -148,10 +170,6 @@ export function PublicRoute() {
     return <Navigate to={getRoleBasedRedirect(user)} replace />
   }
 
-  if (isAuthenticated && !user) {
-    pb.authStore.clear()
-  }
-
   return <Outlet />
 }
 
@@ -162,6 +180,7 @@ export function FinancialGuard() {
   if (loading) return <AuthLoadingScreen />
 
   if (!isAuthenticated || !user) {
+    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
