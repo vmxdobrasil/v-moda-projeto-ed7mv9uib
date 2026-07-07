@@ -1,14 +1,16 @@
 import { useAuth } from '@/hooks/use-auth'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import Index from '@/pages/Index'
 import { Loader2 } from 'lucide-react'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
-import { getRoleBasedRedirect } from '@/lib/auth-redirects'
+import { getRoleBasedRedirect, getIntendedRoute, setIntendedRoute } from '@/lib/auth-redirects'
 
 export function RootRoute() {
   const { isAuthenticated, user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
+    setIntendedRoute(location.pathname + location.search)
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -24,6 +26,10 @@ export function RootRoute() {
   }
 
   if (isAuthenticated && user) {
+    const intended = getIntendedRoute()
+    if (intended && intended !== '/') {
+      return <Navigate to={intended} replace />
+    }
     return <Navigate to={getRoleBasedRedirect(user)} replace />
   }
 

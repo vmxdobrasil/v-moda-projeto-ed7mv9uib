@@ -1,3 +1,18 @@
+export function setIntendedRoute(path: string): void {
+  if (path && path !== '/login' && path !== '/signup' && path !== '/admin/login') {
+    sessionStorage.setItem('auth_intended_route', path)
+  }
+}
+
+export function getIntendedRoute(): string | null {
+  const route = sessionStorage.getItem('auth_intended_route')
+  if (route) {
+    sessionStorage.removeItem('auth_intended_route')
+    return route
+  }
+  return null
+}
+
 export function getRoleBasedRedirect(user: any): string {
   if (!user) return '/login'
 

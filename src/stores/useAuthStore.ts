@@ -24,11 +24,13 @@ interface AuthState {
   user: User | null
   isAuthenticated: boolean
   isInitialized: boolean
+  isHydrating: boolean
   login: (user: User) => void
   logout: () => void
   updateUser: (data: Partial<User>) => void
   initialize: () => Promise<void>
-  syncState: (user: User | null, isAuthenticated: boolean) => void
+  syncState: (user: User | null, isAuthenticated: boolean, isHydrating?: boolean) => void
+  setHydrating: (hydrating: boolean) => void
 }
 
 const getInitialState = () => {
@@ -36,15 +38,16 @@ const getInitialState = () => {
     user: null,
     isAuthenticated: false,
     isInitialized: false,
+    isHydrating: true,
   }
 }
 
 const useAuthStore = create<AuthState>((set) => ({
   ...getInitialState(),
-  login: (user) => set({ user, isAuthenticated: true, isInitialized: true }),
+  login: (user) => set({ user, isAuthenticated: true, isInitialized: true, isHydrating: false }),
   logout: () => {
     pb.authStore.clear()
-    set({ user: null, isAuthenticated: false, isInitialized: true })
+    set({ user: null, isAuthenticated: false, isInitialized: true, isHydrating: false })
   },
   updateUser: (data) =>
     set((state) => ({
@@ -53,7 +56,9 @@ const useAuthStore = create<AuthState>((set) => ({
   initialize: async () => {
     set({ isInitialized: true })
   },
-  syncState: (user, isAuthenticated) => set({ user, isAuthenticated, isInitialized: true }),
+  syncState: (user, isAuthenticated, isHydrating = false) =>
+    set({ user, isAuthenticated, isInitialized: true, isHydrating }),
+  setHydrating: (hydrating) => set({ isHydrating: hydrating }),
 }))
 
 export default useAuthStore

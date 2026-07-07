@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
-import { getRoleBasedRedirect, isSuperuserOrAdmin } from '@/lib/auth-redirects'
+import { getRoleBasedRedirect, isSuperuserOrAdmin, setIntendedRoute } from '@/lib/auth-redirects'
 
 type GuardState =
   | { status: 'loading' }
@@ -12,12 +12,17 @@ function useGuardBase(): GuardState {
   const { isAuthenticated, user, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) return { status: 'loading' }
-  if (!isAuthenticated) return { status: 'unauthenticated', from: location.pathname }
+  if (loading) {
+    setIntendedRoute(location.pathname + location.search)
+    return { status: 'loading' }
+  }
+  if (!isAuthenticated)
+    return { status: 'unauthenticated', from: location.pathname + location.search }
   return { status: 'authenticated', user }
 }
 
 function toLogin(from: string) {
+  setIntendedRoute(from)
   return <Navigate to="/login" state={{ from }} replace />
 }
 

@@ -1,10 +1,19 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  ReactNode,
+} from 'react'
 import pb from '@/lib/pocketbase/client'
 import useAuthStore from '@/stores/useAuthStore'
 
 interface AuthContextType {
   user: any
   isAuthenticated: boolean
+  isHydrating: boolean
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => void
@@ -23,10 +32,6 @@ export const useAuth = () => {
   return context
 }
 
-function syncAuthStore(isValid: boolean, record: any) {
-  useAuthStore.getState().syncState(isValid ? record : null, isValid)
-}
-
 function isJwtExpired(): boolean {
   const token = pb.authStore.token
   if (!token) return true
@@ -43,11 +48,49 @@ function isJwtExpired(): boolean {
   }
 }
 
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000,
+): Promise<T> {
+  let lastError: any
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (err: any) {
+      lastError = err
+      if (err?.status === 401 || err?.status === 403) {
+        throw err
+      }
+      if (attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt)
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      }
+    }
+  }
+  throw lastError
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(pb.authStore.isValid ? pb.authStore.record : null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(pb.authStore.isValid)
   const [loading, setLoading] = useState(true)
+  const [isHydrating, setIsHydrating] = useState(true)
   const [authError, setAuthError] = useState<string | null>(null)
+  const commitLockRef = useRef(false)
+
+  const commitAuthState = useCallback((authenticated: boolean, record: any, hydrating: boolean) => {
+    if (commitLockRef.current) return
+    commitLockRef.current = true
+    try {
+      setUser(authenticated ? record : null)
+      setIsAuthenticated(authenticated)
+      setIsHydrating(hydrating)
+      useAuthStore.getState().syncState(authenticated ? record : null, authenticated, hydrating)
+    } finally {
+      commitLockRef.current = false
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -55,18 +98,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       if (cancelled) return
       const isValid = pb.authStore.isValid && !!record
-      setUser(isValid ? record : null)
-      setIsAuthenticated(isValid)
-      syncAuthStore(isValid, record)
+      if (!isValid && !pb.authStore.token) {
+        commitAuthState(false, null, false)
+      }
     })
 
     const validateSession = async () => {
       if (!pb.authStore.isValid || !pb.authStore.record) {
         if (pb.authStore.record) pb.authStore.clear()
         if (cancelled) return
-        setUser(null)
-        setIsAuthenticated(false)
-        syncAuthStore(false, null)
+        commitAuthState(false, null, false)
         setLoading(false)
         return
       }
@@ -75,50 +116,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const collectionName = record?.collectionName || 'users'
 
       try {
-        await pb.collection(collectionName).authRefresh()
+        await retryWithBackoff(() => pb.collection(collectionName).authRefresh())
         if (cancelled) return
         const isValid = pb.authStore.isValid && !!pb.authStore.record
         if (isValid) {
-          setUser(pb.authStore.record)
-          setIsAuthenticated(true)
-          syncAuthStore(true, pb.authStore.record)
+          commitAuthState(true, pb.authStore.record, false)
         } else {
           pb.authStore.clear()
-          setUser(null)
-          setIsAuthenticated(false)
-          syncAuthStore(false, null)
+          commitAuthState(false, null, false)
         }
       } catch (err: any) {
         if (cancelled) return
-        if (err?.status === 0) {
-          const existing = pb.authStore.record
-          if (existing) {
-            setUser(existing)
-            setIsAuthenticated(true)
-            syncAuthStore(true, existing)
-          }
-        } else if (err?.status === 401 || err?.status === 403) {
+        if (err?.status === 401 || err?.status === 403) {
           if (isJwtExpired()) {
             pb.authStore.clear()
-            setUser(null)
-            setIsAuthenticated(false)
-            syncAuthStore(false, null)
+            commitAuthState(false, null, false)
             setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
           } else {
-            const existing = pb.authStore.record
-            if (existing) {
-              setUser(existing)
-              setIsAuthenticated(true)
-              syncAuthStore(true, existing)
-            }
+            commitAuthState(true, record, false)
           }
         } else {
-          const existing = pb.authStore.record
-          if (existing && pb.authStore.isValid) {
-            setUser(existing)
-            setIsAuthenticated(true)
-            syncAuthStore(true, existing)
-          }
+          commitAuthState(true, record, false)
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -131,7 +149,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       cancelled = true
       unsubscribe()
     }
-  }, [])
+  }, [commitAuthState])
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -143,9 +161,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       })
       await pb.collection('users').authWithPassword(email, password)
       const record = pb.authStore.record
-      setUser(record)
-      setIsAuthenticated(true)
-      syncAuthStore(true, record)
+      commitAuthState(true, record, false)
       return { error: null }
     } catch (error) {
       return { error }
@@ -157,9 +173,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setAuthError(null)
       await pb.collection('users').authWithPassword(email, password)
       const record = pb.authStore.record
-      setUser(record)
-      setIsAuthenticated(true)
-      syncAuthStore(true, record)
+      commitAuthState(true, record, false)
       return { error: null }
     } catch (error) {
       return { error }
@@ -168,9 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = () => {
     pb.authStore.clear()
-    setUser(null)
-    setIsAuthenticated(false)
-    syncAuthStore(false, null)
+    commitAuthState(false, null, false)
     setAuthError(null)
   }
 
@@ -178,9 +190,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const handleAuthFailure = (message?: string) => {
     pb.authStore.clear()
-    setUser(null)
-    setIsAuthenticated(false)
-    syncAuthStore(false, null)
+    commitAuthState(false, null, false)
     setAuthError(message || 'Sua sessão expirou. Por favor, faça login novamente.')
   }
 
@@ -188,15 +198,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!pb.authStore.isValid || !pb.authStore.record) return
     try {
       const updated = await pb.collection('users').getOne(pb.authStore.record.id)
-      setUser(updated)
-      syncAuthStore(true, updated)
+      commitAuthState(true, updated, false)
     } catch (err: any) {
       if (err?.status === 401 || err?.status === 403) {
         if (isJwtExpired()) {
           pb.authStore.clear()
-          setUser(null)
-          setIsAuthenticated(false)
-          syncAuthStore(false, null)
+          commitAuthState(false, null, false)
           setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
         }
       }
@@ -208,6 +215,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user,
         isAuthenticated,
+        isHydrating,
         signUp,
         signIn,
         signOut,
