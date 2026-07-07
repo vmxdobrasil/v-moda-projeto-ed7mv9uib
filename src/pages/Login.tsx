@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
@@ -26,6 +26,7 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const { signIn, authError, clearAuthError } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,7 +57,8 @@ export default function Login() {
       } else {
         const record = pb.authStore.record as any
         if (record) {
-          navigate(getRoleBasedRedirect(record), { replace: true })
+          const from = (location.state as { from?: string })?.from
+          navigate(from || getRoleBasedRedirect(record), { replace: true })
         }
       }
     } catch (err: any) {

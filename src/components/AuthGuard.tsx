@@ -2,195 +2,116 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 import { getRoleBasedRedirect, isSuperuserOrAdmin } from '@/lib/auth-redirects'
-import pb from '@/lib/pocketbase/client'
 
-function useAuthGuardState() {
+type GuardState =
+  | { status: 'loading' }
+  | { status: 'unauthenticated'; from: string }
+  | { status: 'authenticated'; user: any }
+
+function useGuardBase(): GuardState {
   const { isAuthenticated, user, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) return { status: 'loading' as const }
+  if (loading) return { status: 'loading' }
+  if (!isAuthenticated) return { status: 'unauthenticated', from: location.pathname }
+  return { status: 'authenticated', user }
+}
 
-  if (!isAuthenticated || !user) {
-    if (pb.authStore.isValid && pb.authStore.record) {
-      return { status: 'loading' as const }
-    }
-    return {
-      status: 'unauthenticated' as const,
-      loginState: { from: location.pathname },
-    }
-  }
-
-  return { status: 'authenticated' as const, user }
+function toLogin(from: string) {
+  return <Navigate to="/login" state={{ from }} replace />
 }
 
 export function AuthGuard() {
-  const state = useAuthGuardState()
-  if (state.status === 'loading') return <AuthLoadingScreen />
-  if (state.status === 'unauthenticated') {
-    return <Navigate to="/login" state={state.loginState} replace />
-  }
+  const s = useGuardBase()
+  if (s.status === 'loading') return <AuthLoadingScreen />
+  if (s.status === 'unauthenticated') return toLogin(s.from)
   return <Outlet />
 }
 
 export function AdminGuard() {
-  const { isAuthenticated, user, loading } = useAuth()
-  const location = useLocation()
-
-  if (loading) return <AuthLoadingScreen />
-
-  if (!isAuthenticated || !user) {
-    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />
-  }
-
-  if (!isSuperuserOrAdmin(user)) return <Navigate to={getRoleBasedRedirect(user)} replace />
-
+  const s = useGuardBase()
+  if (s.status === 'loading') return <AuthLoadingScreen />
+  if (s.status === 'unauthenticated') return toLogin(s.from)
+  if (!isSuperuserOrAdmin(s.user)) return <Navigate to={getRoleBasedRedirect(s.user)} replace />
   return <Outlet />
 }
 
 export function ManufacturerGuard() {
-  const { isAuthenticated, user, loading } = useAuth()
-  const location = useLocation()
-
-  if (loading) return <AuthLoadingScreen />
-
-  if (!isAuthenticated || !user) {
-    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />
-  }
-
-  const isManufacturer = user?.role === 'manufacturer' || isSuperuserOrAdmin(user)
-
-  if (!isManufacturer) return <Navigate to={getRoleBasedRedirect(user)} replace />
-
+  const s = useGuardBase()
+  if (s.status === 'loading') return <AuthLoadingScreen />
+  if (s.status === 'unauthenticated') return toLogin(s.from)
+  const ok = s.user?.role === 'manufacturer' || isSuperuserOrAdmin(s.user)
+  if (!ok) return <Navigate to={getRoleBasedRedirect(s.user)} replace />
   return <Outlet />
 }
 
 export function CrmGuard() {
-  const { isAuthenticated, user, loading } = useAuth()
-  const location = useLocation()
-
-  if (loading) return <AuthLoadingScreen />
-
-  if (!isAuthenticated || !user) {
-    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />
-  }
-
-  const hasAccess =
-    isSuperuserOrAdmin(user) ||
-    user?.manufacturer_role === 'manager' ||
-    user?.brand_role === 'manager'
-
-  if (!hasAccess) return <Navigate to={getRoleBasedRedirect(user)} replace />
-
+  const s = useGuardBase()
+  if (s.status === 'loading') return <AuthLoadingScreen />
+  if (s.status === 'unauthenticated') return toLogin(s.from)
+  const ok =
+    isSuperuserOrAdmin(s.user) ||
+    s.user?.manufacturer_role === 'manager' ||
+    s.user?.brand_role === 'manager'
+  if (!ok) return <Navigate to={getRoleBasedRedirect(s.user)} replace />
   return <Outlet />
 }
 
 export function RetailerGuard() {
-  const { isAuthenticated, user, loading } = useAuth()
-  const location = useLocation()
-
-  if (loading) return <AuthLoadingScreen />
-
-  if (!isAuthenticated || !user) {
-    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />
-  }
-
-  const isRetailer = user?.role === 'retailer' || isSuperuserOrAdmin(user)
-
-  if (!isRetailer) return <Navigate to={getRoleBasedRedirect(user)} replace />
-
+  const s = useGuardBase()
+  if (s.status === 'loading') return <AuthLoadingScreen />
+  if (s.status === 'unauthenticated') return toLogin(s.from)
+  const ok = s.user?.role === 'retailer' || isSuperuserOrAdmin(s.user)
+  if (!ok) return <Navigate to={getRoleBasedRedirect(s.user)} replace />
   return <Outlet />
 }
 
 export function AgentGuard() {
-  const { isAuthenticated, user, loading } = useAuth()
-  const location = useLocation()
-
-  if (loading) return <AuthLoadingScreen />
-
-  if (!isAuthenticated || !user) {
-    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />
-  }
-
-  const isAgent = user?.role === 'agent' || isSuperuserOrAdmin(user)
-
-  if (!isAgent) return <Navigate to={getRoleBasedRedirect(user)} replace />
-
+  const s = useGuardBase()
+  if (s.status === 'loading') return <AuthLoadingScreen />
+  if (s.status === 'unauthenticated') return toLogin(s.from)
+  const ok = s.user?.role === 'agent' || isSuperuserOrAdmin(s.user)
+  if (!ok) return <Navigate to={getRoleBasedRedirect(s.user)} replace />
   return <Outlet />
 }
 
 export function AgentOrTransporterGuard() {
-  const { isAuthenticated, user, loading } = useAuth()
-  const location = useLocation()
-
-  if (loading) return <AuthLoadingScreen />
-
-  if (!isAuthenticated || !user) {
-    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />
-  }
-
-  const hasAccess =
-    user?.role === 'agent' ||
-    user?.role === 'retailer' ||
-    user?.is_transporter === true ||
-    isSuperuserOrAdmin(user)
-
-  if (!hasAccess) return <Navigate to={getRoleBasedRedirect(user)} replace />
-
+  const s = useGuardBase()
+  if (s.status === 'loading') return <AuthLoadingScreen />
+  if (s.status === 'unauthenticated') return toLogin(s.from)
+  const ok =
+    s.user?.role === 'agent' ||
+    s.user?.role === 'retailer' ||
+    s.user?.is_transporter === true ||
+    isSuperuserOrAdmin(s.user)
+  if (!ok) return <Navigate to={getRoleBasedRedirect(s.user)} replace />
   return <Outlet />
 }
 
 export function MasterAdminGuard() {
-  const { isAuthenticated, user, loading } = useAuth()
-  const location = useLocation()
-
-  if (loading) return <AuthLoadingScreen />
-
-  if (!isAuthenticated || !user) {
-    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />
-  }
-
-  if (!isSuperuserOrAdmin(user)) return <Navigate to={getRoleBasedRedirect(user)} replace />
-
+  const s = useGuardBase()
+  if (s.status === 'loading') return <AuthLoadingScreen />
+  if (s.status === 'unauthenticated') return toLogin(s.from)
+  if (!isSuperuserOrAdmin(s.user)) return <Navigate to={getRoleBasedRedirect(s.user)} replace />
   return <Outlet />
 }
 
 export function PublicRoute() {
   const { loading, isAuthenticated, user } = useAuth()
-
   if (loading) return <AuthLoadingScreen />
-
-  if (isAuthenticated && user) {
-    return <Navigate to={getRoleBasedRedirect(user)} replace />
-  }
-
+  if (isAuthenticated && user) return <Navigate to={getRoleBasedRedirect(user)} replace />
   return <Outlet />
 }
 
 export function FinancialGuard() {
-  const { isAuthenticated, user, loading } = useAuth()
-  const location = useLocation()
-
-  if (loading) return <AuthLoadingScreen />
-
-  if (!isAuthenticated || !user) {
-    if (pb.authStore.isValid && pb.authStore.record) return <AuthLoadingScreen />
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />
-  }
-
-  const hasFinancialAccess =
-    isSuperuserOrAdmin(user) ||
-    user?.role === 'manufacturer' ||
-    user?.role === 'retailer' ||
-    user?.role === 'agent'
-
-  if (!hasFinancialAccess) return <Navigate to={getRoleBasedRedirect(user)} replace />
-
+  const s = useGuardBase()
+  if (s.status === 'loading') return <AuthLoadingScreen />
+  if (s.status === 'unauthenticated') return toLogin(s.from)
+  const ok =
+    isSuperuserOrAdmin(s.user) ||
+    s.user?.role === 'manufacturer' ||
+    s.user?.role === 'retailer' ||
+    s.user?.role === 'agent'
+  if (!ok) return <Navigate to={getRoleBasedRedirect(s.user)} replace />
   return <Outlet />
 }

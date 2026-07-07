@@ -37,21 +37,23 @@ function isJwtExpired(): boolean {
     while (payloadB64.length % 4) payloadB64 += '='
     const payload = JSON.parse(atob(payloadB64))
     if (!payload.exp) return false
-    const now = Math.floor(Date.now() / 1000)
-    return payload.exp < now - 5
+    return payload.exp < Math.floor(Date.now() / 1000) - 5
   } catch {
     return false
   }
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [user, setUser] = useState<any>(pb.authStore.isValid ? pb.authStore.record : null)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(pb.authStore.isValid)
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+
     const unsubscribe = pb.authStore.onChange((_token, record) => {
+      if (cancelled) return
       const isValid = pb.authStore.isValid && !!record
       setUser(isValid ? record : null)
       setIsAuthenticated(isValid)
@@ -61,6 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const validateSession = async () => {
       if (!pb.authStore.isValid || !pb.authStore.record) {
         if (pb.authStore.record) pb.authStore.clear()
+        if (cancelled) return
         setUser(null)
         setIsAuthenticated(false)
         syncAuthStore(false, null)
@@ -73,12 +76,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       try {
         await pb.collection(collectionName).authRefresh()
+        if (cancelled) return
         const isValid = pb.authStore.isValid && !!pb.authStore.record
         if (isValid) {
-          const refreshedRecord = pb.authStore.record
-          setUser(refreshedRecord)
+          setUser(pb.authStore.record)
           setIsAuthenticated(true)
-          syncAuthStore(true, refreshedRecord)
+          syncAuthStore(true, pb.authStore.record)
         } else {
           pb.authStore.clear()
           setUser(null)
@@ -86,12 +89,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           syncAuthStore(false, null)
         }
       } catch (err: any) {
+        if (cancelled) return
         if (err?.status === 0) {
-          const existingRecord = pb.authStore.record
-          if (existingRecord) {
-            setUser(existingRecord)
+          const existing = pb.authStore.record
+          if (existing) {
+            setUser(existing)
             setIsAuthenticated(true)
-            syncAuthStore(true, existingRecord)
+            syncAuthStore(true, existing)
           }
         } else if (err?.status === 401 || err?.status === 403) {
           if (isJwtExpired()) {
@@ -101,46 +105,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             syncAuthStore(false, null)
             setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
           } else {
-            const existingRecord = pb.authStore.record
-            if (existingRecord) {
-              setUser(existingRecord)
+            const existing = pb.authStore.record
+            if (existing) {
+              setUser(existing)
               setIsAuthenticated(true)
-              syncAuthStore(true, existingRecord)
+              syncAuthStore(true, existing)
             }
           }
         } else {
-          const existingRecord = pb.authStore.record
-          if (existingRecord && pb.authStore.isValid) {
-            setUser(existingRecord)
+          const existing = pb.authStore.record
+          if (existing && pb.authStore.isValid) {
+            setUser(existing)
             setIsAuthenticated(true)
-            syncAuthStore(true, existingRecord)
+            syncAuthStore(true, existing)
           }
         }
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     validateSession()
 
     return () => {
+      cancelled = true
       unsubscribe()
     }
   }, [])
 
-  useEffect(() => {
-    if (!loading && !isAuthenticated && pb.authStore.isValid && pb.authStore.record) {
-      const record = pb.authStore.record
-      setUser(record)
-      setIsAuthenticated(true)
-      syncAuthStore(true, record)
-    }
-  }, [loading, isAuthenticated])
-
   const signUp = async (email: string, password: string) => {
     try {
       setAuthError(null)
-      await pb.collection('users').create({ email, password, passwordConfirm: password })
+      await pb.collection('users').create({
+        email,
+        password,
+        passwordConfirm: password,
+      })
       await pb.collection('users').authWithPassword(email, password)
       const record = pb.authStore.record
       setUser(record)
