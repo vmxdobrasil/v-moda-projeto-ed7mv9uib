@@ -1,108 +1,89 @@
-interface AuthDiagnosticEntry {
-  timestamp: string
-  event: string
+interface AuthStateLog {
   loading: boolean
   isAuthenticated: boolean
   isHydrating: boolean
   hasToken: boolean
   hasRecord: boolean
   pathname?: string
-  details?: Record<string, unknown>
 }
 
-const STORAGE_KEY = 'v_moda_auth_diagnostics'
-const MAX_ENTRIES = 30
+const PREFIX = '[V-Moda Auth]'
+
+const PROTECTED_PATTERNS = ['pocketbase', 'pb_auth', 'auth_token', 'token']
+const STALE_PREFIXES = ['temp_', 'cache_', 'pending_', 'old_']
 
 export function logAuthEvent(
   event: string,
-  state: {
-    loading?: boolean
-    isAuthenticated?: boolean
-    isHydrating?: boolean
-    hasToken?: boolean
-    hasRecord?: boolean
-    pathname?: string
-  },
-  details?: Record<string, unknown>,
+  state: AuthStateLog,
+  extras?: Record<string, unknown>,
 ): void {
-  const entry: AuthDiagnosticEntry = {
+  console.log(PREFIX, event, {
+    ...state,
+    ...extras,
     timestamp: new Date().toISOString(),
-    event,
-    loading: state.loading ?? false,
-    isAuthenticated: state.isAuthenticated ?? false,
-    isHydrating: state.isHydrating ?? false,
-    hasToken: state.hasToken ?? false,
-    hasRecord: state.hasRecord ?? false,
-    pathname: state.pathname,
-    details,
-  }
-
-  if (import.meta.env.DEV) {
-    console.log(`[Auth] ${event}`, {
-      loading: entry.loading,
-      isAuthenticated: entry.isAuthenticated,
-      isHydrating: entry.isHydrating,
-      hasToken: entry.hasToken,
-      hasRecord: entry.hasRecord,
-      pathname: entry.pathname,
-      ...details,
-    })
-  }
-
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const logs: AuthDiagnosticEntry[] = raw ? JSON.parse(raw) : []
-    logs.push(entry)
-    if (logs.length > MAX_ENTRIES) logs.shift()
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs))
-  } catch {
-    // localStorage unavailable
-  }
-}
-
-export function getAuthDiagnostics(): AuthDiagnosticEntry[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
-export function clearAuthDiagnostics(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // ignore
-  }
+  })
 }
 
 export function isHardRefresh(): boolean {
   try {
     const entries = performance.getEntriesByType('navigation')
     if (entries.length > 0) {
-      return (entries[0] as PerformanceNavigationTiming).type === 'reload'
+      const nav = entries[0] as PerformanceNavigationTiming
+      return nav.type === 'reload' || nav.type === 'navigate'
     }
   } catch {
-    // Performance API unavailable
+    /* intentionally ignored */
   }
   return false
 }
 
+function isProtectedKey(key: string): boolean {
+  const lower = key.toLowerCase()
+  return PROTECTED_PATTERNS.some((p) => lower.includes(p))
+}
+
+function isStaleKey(key: string): boolean {
+  return STALE_PREFIXES.some((p) => key.startsWith(p))
+}
+
 export function clearStaleAuthKeys(): void {
   try {
-    const raw = localStorage.getItem('pocketbase_auth')
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (!parsed || !parsed.token || typeof parsed.token !== 'string') {
-        localStorage.removeItem('pocketbase_auth')
+    const toRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key || isProtectedKey(key)) continue
+      if (isStaleKey(key)) toRemove.push(key)
+    }
+    toRemove.forEach((key) => localStorage.removeItem(key))
+    if (toRemove.length > 0) {
+      logAuthEvent(
+        'clearStaleAuthKeys',
+        {
+          loading: true,
+          isAuthenticated: false,
+          isHydrating: true,
+          hasToken: false,
+          hasRecord: false,
+        },
+        { keysRemoved: toRemove },
+      )
+    }
+  } catch (err) {
+    console.warn(PREFIX, 'clearStaleAuthKeys error:', err)
+  }
+}
+
+export function hasAuthInLocalStorage(): boolean {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && isProtectedKey(key)) {
+        const val = localStorage.getItem(key)
+        if (val && val.length > 10) return true
       }
     }
   } catch {
-    try {
-      localStorage.removeItem('pocketbase_auth')
-    } catch {
-      // ignore
-    }
+    /* intentionally ignored */
   }
+  return false
 }

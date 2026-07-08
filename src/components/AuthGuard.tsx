@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 import { getRoleBasedRedirect, isSuperuserOrAdmin, setIntendedRoute } from '@/lib/auth-redirects'
 import { logAuthEvent } from '@/lib/auth-diagnostics'
+import pb from '@/lib/pocketbase/client'
 
 type GuardState =
   | { status: 'loading' }
@@ -18,7 +19,7 @@ function useGuardBase(): GuardState {
       loading,
       isAuthenticated,
       isHydrating,
-      hasToken: false,
+      hasToken: !!pb.authStore.token,
       hasRecord: !!user,
       pathname: location.pathname,
     })

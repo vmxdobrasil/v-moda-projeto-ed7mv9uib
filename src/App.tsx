@@ -148,6 +148,8 @@ import RetailerPickupValidation from '@/pages/RetailerPickupValidation'
 import { FashionistaGuard } from '@/components/FashionistaGuard'
 import TopMarcas from '@/pages/TopMarcas'
 import GuiaCompras from '@/pages/GuiaCompras'
+import Explorar from '@/pages/Explorar'
+import Produto from '@/pages/Produto'
 import LogisticaTransportadoras from '@/pages/LogisticaTransportadoras'
 import FinanceiroHub from '@/pages/FinanceiroHub'
 import { CrmLayout } from '@/components/crm/CrmLayout'
@@ -273,6 +275,8 @@ export default function App() {
                   <Route path="cart" element={<CartPage />} />
                   <Route path="top-marcas" element={<TopMarcas />} />
                   <Route path="guia-compras" element={<GuiaCompras />} />
+                  <Route path="explorar" element={<Explorar />} />
+                  <Route path="produto/:id" element={<Produto />} />
                 </Route>
 
                 {/* Redirect /marketing to /admin/marketing */}

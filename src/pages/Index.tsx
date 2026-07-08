@@ -4,8 +4,10 @@ import { Link } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function Index() {
+  const { user, isAuthenticated } = useAuth()
   const [topBrands, setTopBrands] = useState<Record<string, any[]>>({})
 
   useEffect(() => {
@@ -54,7 +56,15 @@ export default function Index() {
   }
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-background min-h-screen animate-fade-transition">
+      {isAuthenticated && user && (
+        <div className="bg-primary text-primary-foreground py-6 px-4 text-center">
+          <h2 className="text-2xl font-bold font-display">
+            Bem-vindo(a), {user.name || user.email}!
+          </h2>
+          <p className="text-sm opacity-90 mt-1">V MODA BRASIL</p>
+        </div>
+      )}
       {/* Hero Section */}
       <section className="bg-black text-white py-20 px-4 text-center">
         <div className="container mx-auto max-w-4xl space-y-6 animate-fade-in-up">

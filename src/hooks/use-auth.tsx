@@ -9,7 +9,12 @@ import {
 } from 'react'
 import pb from '@/lib/pocketbase/client'
 import useAuthStore from '@/stores/useAuthStore'
-import { logAuthEvent, isHardRefresh, clearStaleAuthKeys } from '@/lib/auth-diagnostics'
+import {
+  logAuthEvent,
+  isHardRefresh,
+  clearStaleAuthKeys,
+  hasAuthInLocalStorage,
+} from '@/lib/auth-diagnostics'
 
 interface AuthContextType {
   user: any
@@ -45,7 +50,7 @@ function isJwtExpired(): boolean {
     if (!payload.exp) return false
     return payload.exp < Math.floor(Date.now() / 1000) - 5
   } catch {
-    return false
+    return true
   }
 }
 
@@ -85,6 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const commitLockRef = useRef(false)
   const refreshInProgressRef = useRef(false)
   const lastRefreshRef = useRef<number>(0)
+  const isInitializingRef = useRef<boolean>(true)
 
   const commitAuthState = useCallback((authenticated: boolean, record: any, hydrating: boolean) => {
     if (commitLockRef.current) return
@@ -191,6 +197,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       if (cancelled) return
       if (!pb.authStore.token && !record) {
+        if (isInitializingRef.current) {
+          logAuthEvent('authStore_change_skipped_during_init', {
+            loading: true,
+            isAuthenticated: false,
+            isHydrating: true,
+            hasToken: false,
+            hasRecord: false,
+            pathname: window.location.pathname,
+          })
+          return
+        }
         logAuthEvent('authStore_change_cleared', {
           loading: false,
           isAuthenticated: false,
@@ -205,8 +222,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const validateSession = async () => {
       if (!pb.authStore.token || !pb.authStore.record) {
+        if (hasAuthInLocalStorage() && !pb.authStore.token) {
+          logAuthEvent('validateSession_token_in_storage_not_store', {
+            loading: true,
+            isAuthenticated: false,
+            isHydrating: true,
+            hasToken: false,
+            hasRecord: false,
+            pathname: window.location.pathname,
+          })
+        }
         if (pb.authStore.record) pb.authStore.clear()
         if (cancelled) return
+        isInitializingRef.current = false
         logAuthEvent('validateSession_no_token', {
           loading: false,
           isAuthenticated: false,
@@ -311,7 +339,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
-    validateSession()
+    validateSession().finally(() => {
+      if (!cancelled) isInitializingRef.current = false
+    })
 
     const refreshInterval = setInterval(() => {
       if (!cancelled && pb.authStore.token) {

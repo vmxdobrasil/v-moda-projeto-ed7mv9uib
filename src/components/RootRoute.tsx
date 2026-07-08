@@ -1,10 +1,10 @@
 import { useAuth } from '@/hooks/use-auth'
 import { Navigate, useLocation } from 'react-router-dom'
 import Index from '@/pages/Index'
-import { Loader2 } from 'lucide-react'
-import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
+import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 import { getRoleBasedRedirect, getIntendedRoute, setIntendedRoute } from '@/lib/auth-redirects'
 import { logAuthEvent } from '@/lib/auth-diagnostics'
+import pb from '@/lib/pocketbase/client'
 
 export function RootRoute() {
   const { isAuthenticated, user, loading, isHydrating } = useAuth()
@@ -16,7 +16,7 @@ export function RootRoute() {
       loading,
       isAuthenticated,
       isHydrating,
-      hasToken: !!user,
+      hasToken: !!pb.authStore.token,
       hasRecord: !!user,
       pathname: location.pathname,
     },
@@ -25,18 +25,7 @@ export function RootRoute() {
 
   if (loading || isHydrating) {
     setIntendedRoute(location.pathname + location.search)
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <img
-            src={logoUrl}
-            alt="V MODA Brasil"
-            className="h-12 w-auto object-contain opacity-80"
-          />
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </div>
-    )
+    return <AuthLoadingScreen />
   }
 
   if (isAuthenticated && user) {

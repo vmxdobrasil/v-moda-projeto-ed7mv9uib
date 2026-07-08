@@ -20,6 +20,8 @@ import {
   Award,
   Megaphone,
   BarChart,
+  Package,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -52,12 +54,14 @@ export default function AdminLayout() {
     { name: 'V Club (Admin)', href: '/admin/v-club', icon: Award },
     { name: 'Agentes & Parceiros', href: '/admin/agentes', icon: MapPin },
     { name: 'Influenciadores', href: '/admin/influencers', icon: Megaphone },
-    { name: 'Produtos', href: '/admin/produtos', icon: ShoppingBag },
+    { name: 'Gerenciar Produtos', href: '/admin/produtos', icon: ShoppingBag },
+    { name: 'Pedidos', href: '/admin/pedidos', icon: Package },
     { name: 'Distribuição Geográfica', href: '/admin/geografico', icon: BarChart },
     { name: 'Lead Analytics', href: '/admin/lead-analytics', icon: BarChart },
     { name: 'Revendedoras', href: '/admin/revendedoras', icon: ShoppingBag },
     { name: 'Usuários', href: '/admin/usuarios', icon: UserCheck },
     { name: 'Logs de Atividade', href: '/admin/logs', icon: Activity },
+    { name: 'Relatórios', href: '/admin/relatorios', icon: FileText },
   ]
 
   const NavItems = () => (
@@ -101,16 +105,15 @@ export default function AdminLayout() {
         })}
       </nav>
       <div className="mt-auto pt-4 border-t flex flex-col gap-4">
+        <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Account
+        </div>
         <div className="px-2 text-sm text-muted-foreground truncate" title={user?.email}>
           {user?.email}
         </div>
-        <Button
-          variant="outline"
-          className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={signOut}
-        >
+        <Button variant="destructive" className="w-full justify-start" onClick={signOut}>
           <LogOut className="w-4 h-4 mr-2" />
-          Encerrar Sessão
+          Sair
         </Button>
       </div>
     </>
