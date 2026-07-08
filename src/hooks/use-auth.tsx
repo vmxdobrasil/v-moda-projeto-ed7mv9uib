@@ -121,6 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         commitAuthState(false, null, false)
         setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
       }
+      // All other errors (500, 503, network timeouts) — retain current session
     } finally {
       refreshInProgressRef.current = false
     }
@@ -147,7 +148,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const record = pb.authStore.record
       const collectionName = record?.collectionName || 'users'
+      const jwtExpired = isJwtExpired()
 
+      // If JWT is still valid, optimistically authenticate immediately
+      // and refresh in the background — prevents login page flash on F5
+      if (!jwtExpired) {
+        commitAuthState(true, record, false)
+        setLoading(false)
+
+        try {
+          await retryWithBackoff(() => pb.collection(collectionName).authRefresh(), 1, 1500)
+          lastRefreshRef.current = Date.now()
+          if (cancelled) return
+          if (pb.authStore.isValid && pb.authStore.record) {
+            commitAuthState(true, pb.authStore.record, false)
+          }
+        } catch (err: any) {
+          if (cancelled) return
+          const status = err?.status ?? 0
+          if (status === 401 || status === 403) {
+            pb.authStore.clear()
+            commitAuthState(false, null, false)
+            setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
+          }
+          // Network error — retain the still-valid session
+        }
+        return
+      }
+
+      // JWT is expired — must refresh before rendering protected content
       try {
         await retryWithBackoff(() => pb.collection(collectionName).authRefresh())
         lastRefreshRef.current = Date.now()
@@ -167,6 +196,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           commitAuthState(false, null, false)
           setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
         } else {
+          // Network error with expired JWT — keep session optimistically;
+          // the next API call will handle 401 if the token is truly invalid
           commitAuthState(true, record, false)
         }
       } finally {
@@ -189,11 +220,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
+    const handleOnline = () => {
+      if (pb.authStore.token) {
+        silentRefresh()
+      }
+    }
+    window.addEventListener('online', handleOnline)
+
     return () => {
       cancelled = true
       unsubscribe()
       clearInterval(refreshInterval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('online', handleOnline)
     }
   }, [commitAuthState, silentRefresh])
 
