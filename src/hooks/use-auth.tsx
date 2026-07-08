@@ -71,13 +71,19 @@ async function retryWithBackoff<T>(
   throw lastError
 }
 
+const MIN_REFRESH_INTERVAL_MS = 60_000
+const BACKGROUND_REFRESH_INTERVAL_MS = 10 * 60_000
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(pb.authStore.isValid ? pb.authStore.record : null)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(pb.authStore.isValid)
+  const hasToken = !!pb.authStore.token
+  const [user, setUser] = useState<any>(hasToken ? pb.authStore.record : null)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(hasToken)
   const [loading, setLoading] = useState(true)
   const [isHydrating, setIsHydrating] = useState(true)
   const [authError, setAuthError] = useState<string | null>(null)
   const commitLockRef = useRef(false)
+  const refreshInProgressRef = useRef(false)
+  const lastRefreshRef = useRef<number>(0)
 
   const commitAuthState = useCallback((authenticated: boolean, record: any, hydrating: boolean) => {
     if (commitLockRef.current) return
@@ -92,19 +98,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [])
 
+  const silentRefresh = useCallback(async () => {
+    if (refreshInProgressRef.current) return
+    if (!pb.authStore.token || !pb.authStore.record) return
+
+    const now = Date.now()
+    if (now - lastRefreshRef.current < MIN_REFRESH_INTERVAL_MS) return
+
+    refreshInProgressRef.current = true
+    try {
+      const record = pb.authStore.record
+      const collectionName = record?.collectionName || 'users'
+      await pb.collection(collectionName).authRefresh()
+      lastRefreshRef.current = Date.now()
+      if (pb.authStore.isValid && pb.authStore.record) {
+        commitAuthState(true, pb.authStore.record, false)
+      }
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        if (isJwtExpired()) {
+          pb.authStore.clear()
+          commitAuthState(false, null, false)
+          setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
+        }
+      }
+    } finally {
+      refreshInProgressRef.current = false
+    }
+  }, [commitAuthState])
+
   useEffect(() => {
     let cancelled = false
 
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       if (cancelled) return
-      const isValid = pb.authStore.isValid && !!record
-      if (!isValid && !pb.authStore.token) {
+      if (!pb.authStore.token && !record) {
         commitAuthState(false, null, false)
       }
     })
 
     const validateSession = async () => {
-      if (!pb.authStore.isValid || !pb.authStore.record) {
+      if (!pb.authStore.token || !pb.authStore.record) {
         if (pb.authStore.record) pb.authStore.clear()
         if (cancelled) return
         commitAuthState(false, null, false)
@@ -117,6 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       try {
         await retryWithBackoff(() => pb.collection(collectionName).authRefresh())
+        lastRefreshRef.current = Date.now()
         if (cancelled) return
         const isValid = pb.authStore.isValid && !!pb.authStore.record
         if (isValid) {
@@ -128,13 +163,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (err: any) {
         if (cancelled) return
         if (err?.status === 401 || err?.status === 403) {
-          if (isJwtExpired()) {
-            pb.authStore.clear()
-            commitAuthState(false, null, false)
-            setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
-          } else {
-            commitAuthState(true, record, false)
-          }
+          pb.authStore.clear()
+          commitAuthState(false, null, false)
+          setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
         } else {
           commitAuthState(true, record, false)
         }
@@ -145,11 +176,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     validateSession()
 
+    const refreshInterval = setInterval(() => {
+      if (!cancelled && pb.authStore.token) {
+        silentRefresh()
+      }
+    }, BACKGROUND_REFRESH_INTERVAL_MS)
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && pb.authStore.token) {
+        silentRefresh()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     return () => {
       cancelled = true
       unsubscribe()
+      clearInterval(refreshInterval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [commitAuthState])
+  }, [commitAuthState, silentRefresh])
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -160,6 +206,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         passwordConfirm: password,
       })
       await pb.collection('users').authWithPassword(email, password)
+      lastRefreshRef.current = Date.now()
       const record = pb.authStore.record
       commitAuthState(true, record, false)
       return { error: null }
@@ -172,6 +219,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setAuthError(null)
       await pb.collection('users').authWithPassword(email, password)
+      lastRefreshRef.current = Date.now()
       const record = pb.authStore.record
       commitAuthState(true, record, false)
       return { error: null }

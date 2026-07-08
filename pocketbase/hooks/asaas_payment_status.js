@@ -3,7 +3,7 @@ routerAdd(
   '/backend/v1/asaas/payments/{id}/status',
   (e) => {
     const id = e.request.pathValue('id')
-    const asaasUrl = $secrets.get('ASAAS_API_URL') || 'https://api.asaas.com/v3'
+    const asaasUrl = $secrets.get('ASAAS_API_URL') || 'https://sandbox.asaas.com/api/v3'
     const apiKey = $secrets.get('ASAAS_API_KEY')
 
     if (!apiKey) return e.internalServerError('A chave da API Asaas não está configurada.')
