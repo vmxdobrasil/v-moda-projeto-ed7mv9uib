@@ -5,7 +5,7 @@ routerAdd(
     const body = e.requestInfo().body || {}
     const { amount, method, externalReference, customerName, customerEmail, customerCpfCnpj } = body
 
-    const asaasUrl = $secrets.get('ASAAS_API_URL') || 'https://api.asaas.com/v3'
+    const asaasUrl = $secrets.get('ASAAS_API_URL') || 'https://sandbox.asaas.com/api/v3'
     const apiKey = $secrets.get('ASAAS_API_KEY')
     if (!apiKey) {
       return e.internalServerError(

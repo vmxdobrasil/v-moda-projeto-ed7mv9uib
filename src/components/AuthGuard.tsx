@@ -9,10 +9,10 @@ type GuardState =
   | { status: 'authenticated'; user: any }
 
 function useGuardBase(): GuardState {
-  const { isAuthenticated, user, loading } = useAuth()
+  const { isAuthenticated, user, loading, isHydrating } = useAuth()
   const location = useLocation()
 
-  if (loading) {
+  if (loading || isHydrating) {
     setIntendedRoute(location.pathname + location.search)
     return { status: 'loading' }
   }
@@ -102,8 +102,8 @@ export function MasterAdminGuard() {
 }
 
 export function PublicRoute() {
-  const { loading, isAuthenticated, user } = useAuth()
-  if (loading) return <AuthLoadingScreen />
+  const { loading, isHydrating, isAuthenticated, user } = useAuth()
+  if (loading || isHydrating) return <AuthLoadingScreen />
   if (isAuthenticated && user) return <Navigate to={getRoleBasedRedirect(user)} replace />
   return <Outlet />
 }

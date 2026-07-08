@@ -109,18 +109,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const record = pb.authStore.record
       const collectionName = record?.collectionName || 'users'
-      await pb.collection(collectionName).authRefresh()
+      await retryWithBackoff(() => pb.collection(collectionName).authRefresh(), 2, 1500)
       lastRefreshRef.current = Date.now()
       if (pb.authStore.isValid && pb.authStore.record) {
         commitAuthState(true, pb.authStore.record, false)
       }
     } catch (err: any) {
-      if (err?.status === 401 || err?.status === 403) {
-        if (isJwtExpired()) {
-          pb.authStore.clear()
-          commitAuthState(false, null, false)
-          setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
-        }
+      const status = err?.status ?? 0
+      if (status === 401 || status === 403) {
+        pb.authStore.clear()
+        commitAuthState(false, null, false)
+        setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
       }
     } finally {
       refreshInProgressRef.current = false
@@ -162,7 +161,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (err: any) {
         if (cancelled) return
-        if (err?.status === 401 || err?.status === 403) {
+        const status = err?.status ?? 0
+        if (status === 401 || status === 403) {
           pb.authStore.clear()
           commitAuthState(false, null, false)
           setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
@@ -248,12 +248,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const updated = await pb.collection('users').getOne(pb.authStore.record.id)
       commitAuthState(true, updated, false)
     } catch (err: any) {
-      if (err?.status === 401 || err?.status === 403) {
-        if (isJwtExpired()) {
-          pb.authStore.clear()
-          commitAuthState(false, null, false)
-          setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
-        }
+      const status = err?.status ?? 0
+      if (status === 401 || status === 403) {
+        pb.authStore.clear()
+        commitAuthState(false, null, false)
+        setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
       }
     }
   }

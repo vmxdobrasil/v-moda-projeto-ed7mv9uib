@@ -4,6 +4,9 @@ routerAdd(
   (e) => {
     const id = e.request.pathValue('id')
     const asaasUrl = $secrets.get('ASAAS_API_URL') || 'https://sandbox.asaas.com/api/v3'
+    if (!asaasUrl.includes('sandbox.asaas.com') && !asaasUrl.includes('api.asaas.com')) {
+      return e.internalServerError('URL do Asaas malformada no ambiente.')
+    }
     const apiKey = $secrets.get('ASAAS_API_KEY')
 
     if (!apiKey) return e.internalServerError('A chave da API Asaas não está configurada.')
