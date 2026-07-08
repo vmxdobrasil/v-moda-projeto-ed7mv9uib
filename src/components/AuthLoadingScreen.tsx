@@ -3,7 +3,12 @@ import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 export function AuthLoadingScreen({ className }: { className?: string }) {
   return (
-    <div className={cn('min-h-screen flex items-center justify-center bg-background', className)}>
+    <div
+      className={cn(
+        'min-h-screen flex items-center justify-center bg-background animate-fade-transition',
+        className,
+      )}
+    >
       <div className="flex flex-col items-center gap-6">
         <img
           src={logoUrl}
@@ -12,7 +17,7 @@ export function AuthLoadingScreen({ className }: { className?: string }) {
         />
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground animate-pulse">Carregando...</p>
+          <p className="text-sm text-muted-foreground animate-pulse">Verificando sessão...</p>
         </div>
       </div>
     </div>

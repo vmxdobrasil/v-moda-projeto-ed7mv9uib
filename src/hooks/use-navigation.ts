@@ -27,5 +27,17 @@ export function useNavigation() {
     [navigate],
   )
 
-  return { navegar, voltar, irParaRaiz, navegarParaProduto }
+  const navegarParaTab = useCallback(
+    (tab: 'home' | 'explorar' | 'admin') => {
+      const routeMap: Record<typeof tab, string> = {
+        home: ROUTES.home,
+        explorar: ROUTES.explorar,
+        admin: ROUTES.admin,
+      }
+      navigate(routeMap[tab])
+    },
+    [navigate],
+  )
+
+  return { navegar, voltar, irParaRaiz, navegarParaProduto, navegarParaTab }
 }

@@ -149,6 +149,9 @@
   .animate-fade-in-up {
     animation: fadeInUp 0.5s ease-in-out;
   }
+  .animate-fade-transition {
+    animation: fadeTransition 0.3s ease-in-out;
+  }
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -165,6 +168,14 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+  @keyframes fadeTransition {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
     }
   }
   @keyframes pageTransition {

@@ -141,7 +141,7 @@ export default function Explorar() {
             <Sparkles className="w-5 h-5 text-primary" />
             <Badge variant="secondary">Catálogo Completo</Badge>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Explorar Moda</h1>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Explorar Coleções</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mb-8">
             Descubra as melhores marcas e produtos do ecossistema V Moda Brasil
           </p>

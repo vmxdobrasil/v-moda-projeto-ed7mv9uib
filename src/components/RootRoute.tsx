@@ -27,7 +27,7 @@ export function RootRoute() {
   if (loading || isHydrating) {
     setIntendedRoute(location.pathname + location.search)
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
+      <div className="flex h-screen items-center justify-center bg-background animate-fade-transition">
         <div className="flex flex-col items-center gap-4">
           <img
             src={logoUrl}

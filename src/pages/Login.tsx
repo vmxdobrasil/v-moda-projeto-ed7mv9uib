@@ -70,7 +70,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-navy/5 via-background to-primary/5 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-navy/5 via-background to-primary/5 p-4 animate-fade-transition">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-6">
           <Link to="/">
