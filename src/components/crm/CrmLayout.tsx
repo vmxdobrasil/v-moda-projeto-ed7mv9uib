@@ -1,10 +1,31 @@
-import { Outlet } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Outlet, useLocation } from 'react-router-dom'
 import { GlassSidebar } from '@/components/crm/GlassSidebar'
 import { GlassHeader } from '@/components/crm/GlassHeader'
 import { ClientInsightPanel } from '@/components/crm/ClientInsightPanel'
 import { BreadcrumbNav } from '@/components/dashboard/BreadcrumbNav'
+import { useAuth } from '@/hooks/use-auth'
+import { logAuthEvent } from '@/lib/auth-diagnostics'
 
 export function CrmLayout() {
+  const { isAuthenticated, isHydrating, loading, user } = useAuth()
+  const location = useLocation()
+
+  useEffect(() => {
+    logAuthEvent(
+      'CrmLayout_mounted',
+      {
+        loading,
+        isAuthenticated,
+        isHydrating,
+        hasToken: !!user,
+        hasRecord: !!user,
+        pathname: location.pathname,
+      },
+      { role: user?.role, userId: user?.id },
+    )
+  }, [])
+
   return (
     <div className="crm-page-bg min-h-screen p-4 flex gap-4">
       <GlassSidebar />

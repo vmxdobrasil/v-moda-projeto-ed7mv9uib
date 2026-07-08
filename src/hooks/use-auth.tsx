@@ -9,6 +9,7 @@ import {
 } from 'react'
 import pb from '@/lib/pocketbase/client'
 import useAuthStore from '@/stores/useAuthStore'
+import { logAuthEvent, isHardRefresh, clearStaleAuthKeys } from '@/lib/auth-diagnostics'
 
 interface AuthContextType {
   user: any
@@ -93,6 +94,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAuthenticated(authenticated)
       setIsHydrating(hydrating)
       useAuthStore.getState().syncState(authenticated ? record : null, authenticated, hydrating)
+      logAuthEvent(
+        'commitAuthState',
+        {
+          loading: false,
+          isAuthenticated: authenticated,
+          isHydrating: hydrating,
+          hasToken: !!pb.authStore.token,
+          hasRecord: !!record,
+          pathname: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        },
+        { userId: record?.id },
+      )
     } finally {
       commitLockRef.current = false
     }
@@ -117,11 +130,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (err: any) {
       const status = err?.status ?? 0
       if (status === 401 || status === 403) {
+        logAuthEvent(
+          'silentRefresh_unauthorized',
+          {
+            loading: false,
+            isAuthenticated: false,
+            isHydrating: false,
+            hasToken: false,
+            hasRecord: false,
+            pathname: window.location.pathname,
+          },
+          { status },
+        )
         pb.authStore.clear()
         commitAuthState(false, null, false)
         setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
+      } else {
+        logAuthEvent(
+          'silentRefresh_transient_error',
+          {
+            loading: false,
+            isAuthenticated: true,
+            isHydrating: false,
+            hasToken: !!pb.authStore.token,
+            hasRecord: !!pb.authStore.record,
+            pathname: window.location.pathname,
+          },
+          { status, error: err?.message },
+        )
       }
-      // All other errors (500, 503, network timeouts) — retain current session
     } finally {
       refreshInProgressRef.current = false
     }
@@ -130,9 +167,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let cancelled = false
 
+    if (isHardRefresh()) {
+      logAuthEvent('hard_refresh_detected', {
+        loading: true,
+        isAuthenticated: false,
+        isHydrating: true,
+        hasToken: !!pb.authStore.token,
+        hasRecord: !!pb.authStore.record,
+        pathname: window.location.pathname,
+      })
+      clearStaleAuthKeys()
+    }
+
+    logAuthEvent('useEffect_mount', {
+      loading: true,
+      isAuthenticated: hasToken,
+      isHydrating: true,
+      hasToken: !!pb.authStore.token,
+      hasRecord: !!pb.authStore.record,
+      pathname: window.location.pathname,
+    })
+
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       if (cancelled) return
       if (!pb.authStore.token && !record) {
+        logAuthEvent('authStore_change_cleared', {
+          loading: false,
+          isAuthenticated: false,
+          isHydrating: false,
+          hasToken: false,
+          hasRecord: false,
+          pathname: window.location.pathname,
+        })
         commitAuthState(false, null, false)
       }
     })
@@ -141,6 +207,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!pb.authStore.token || !pb.authStore.record) {
         if (pb.authStore.record) pb.authStore.clear()
         if (cancelled) return
+        logAuthEvent('validateSession_no_token', {
+          loading: false,
+          isAuthenticated: false,
+          isHydrating: false,
+          hasToken: !!pb.authStore.token,
+          hasRecord: !!pb.authStore.record,
+          pathname: window.location.pathname,
+        })
         commitAuthState(false, null, false)
         setLoading(false)
         return
@@ -153,6 +227,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // If JWT is still valid, optimistically authenticate immediately
       // and refresh in the background — prevents login page flash on F5
       if (!jwtExpired) {
+        logAuthEvent('validateSession_jwt_valid', {
+          loading: false,
+          isAuthenticated: true,
+          isHydrating: false,
+          hasToken: true,
+          hasRecord: true,
+          pathname: window.location.pathname,
+        })
         commitAuthState(true, record, false)
         setLoading(false)
 
@@ -177,14 +259,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // JWT is expired — must refresh before rendering protected content
+      logAuthEvent('validateSession_jwt_expired_refreshing', {
+        loading: true,
+        isAuthenticated: false,
+        isHydrating: true,
+        hasToken: true,
+        hasRecord: true,
+        pathname: window.location.pathname,
+      })
       try {
         await retryWithBackoff(() => pb.collection(collectionName).authRefresh())
         lastRefreshRef.current = Date.now()
         if (cancelled) return
         const isValid = pb.authStore.isValid && !!pb.authStore.record
         if (isValid) {
+          logAuthEvent('validateSession_refresh_success', {
+            loading: false,
+            isAuthenticated: true,
+            isHydrating: false,
+            hasToken: true,
+            hasRecord: true,
+            pathname: window.location.pathname,
+          })
           commitAuthState(true, pb.authStore.record, false)
         } else {
+          logAuthEvent('validateSession_refresh_invalid', {
+            loading: false,
+            isAuthenticated: false,
+            isHydrating: false,
+            hasToken: false,
+            hasRecord: false,
+            pathname: window.location.pathname,
+          })
           pb.authStore.clear()
           commitAuthState(false, null, false)
         }
@@ -260,14 +366,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await pb.collection('users').authWithPassword(email, password)
       lastRefreshRef.current = Date.now()
       const record = pb.authStore.record
+      logAuthEvent(
+        'signIn_success',
+        {
+          loading: false,
+          isAuthenticated: true,
+          isHydrating: false,
+          hasToken: !!pb.authStore.token,
+          hasRecord: !!record,
+          pathname: window.location.pathname,
+        },
+        { userId: record?.id },
+      )
       commitAuthState(true, record, false)
       return { error: null }
     } catch (error) {
+      logAuthEvent(
+        'signIn_error',
+        {
+          loading: false,
+          isAuthenticated: false,
+          isHydrating: false,
+          hasToken: false,
+          hasRecord: false,
+          pathname: window.location.pathname,
+        },
+        { error: (error as any)?.status },
+      )
       return { error }
     }
   }
 
   const signOut = () => {
+    logAuthEvent('signOut', {
+      loading: false,
+      isAuthenticated: false,
+      isHydrating: false,
+      hasToken: false,
+      hasRecord: false,
+      pathname: window.location.pathname,
+    })
     pb.authStore.clear()
     commitAuthState(false, null, false)
     setAuthError(null)

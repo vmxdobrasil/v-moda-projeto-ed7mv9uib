@@ -4,12 +4,26 @@ import Index from '@/pages/Index'
 import { Loader2 } from 'lucide-react'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 import { getRoleBasedRedirect, getIntendedRoute, setIntendedRoute } from '@/lib/auth-redirects'
+import { logAuthEvent } from '@/lib/auth-diagnostics'
 
 export function RootRoute() {
-  const { isAuthenticated, user, loading } = useAuth()
+  const { isAuthenticated, user, loading, isHydrating } = useAuth()
   const location = useLocation()
 
-  if (loading) {
+  logAuthEvent(
+    'RootRoute_render',
+    {
+      loading,
+      isAuthenticated,
+      isHydrating,
+      hasToken: !!user,
+      hasRecord: !!user,
+      pathname: location.pathname,
+    },
+    { role: user?.role },
+  )
+
+  if (loading || isHydrating) {
     setIntendedRoute(location.pathname + location.search)
     return (
       <div className="flex h-screen items-center justify-center bg-background">
