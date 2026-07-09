@@ -375,6 +375,9 @@ export default function App() {
 
                   {/* Admin Routes */}
                   <Route element={<AdminGuard />}>
+                    <Route path="/AdminMaster" element={<AdminLayout />}>
+                      <Route index element={<AdminMaster />} />
+                    </Route>
                     <Route path="/admin" element={<AdminLayout />}>
                       <Route index element={<Navigate to="/admin/dashboard" replace />} />
                       <Route path="master" element={<AdminMaster />} />

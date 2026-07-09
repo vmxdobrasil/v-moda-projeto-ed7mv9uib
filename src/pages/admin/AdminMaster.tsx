@@ -3,37 +3,21 @@ import { Link } from 'react-router-dom'
 import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
-import {
-  Bar,
-  BarChart,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Pie,
-  PieChart,
-  Cell,
-} from 'recharts'
-import {
-  Users,
-  DollarSign,
-  ShoppingCart,
-  Store,
-  TrendingUp,
-  Activity,
-  Package,
-  Award,
-} from 'lucide-react'
-import { useRealtime } from '@/hooks/use-realtime'
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Pie, PieChart, Cell } from 'recharts'
 import { Button } from '@/components/ui/button'
-import { AdminMasterTools } from '@/components/admin/AdminMasterTools'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Activity, Package, ShoppingCart, TrendingUp } from 'lucide-react'
+import { useRealtime } from '@/hooks/use-realtime'
+import { AdminMasterMetrics } from '@/components/admin/AdminMasterMetrics'
+import { AdminMasterVClub } from '@/components/admin/AdminMasterVClub'
+import { AdminMasterMagazine } from '@/components/admin/AdminMasterMagazine'
+import { AdminMasterModules } from '@/components/admin/AdminMasterModules'
 
 export default function AdminMaster() {
   const [orders, setOrders] = useState<any[]>([])
-  const [customerCount, setCustomerCount] = useState(0)
   const [manufacturerCount, setManufacturerCount] = useState(0)
   const [retailerCount, setRetailerCount] = useState(0)
+  const [customerCount, setCustomerCount] = useState(0)
   const [productCount, setProductCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
@@ -61,7 +45,7 @@ export default function AdminMaster() {
           .getList(1, 1, { filter: 'role = "retailer"' })
           .catch(() => ({ totalItems: 0 })),
       ])
-      setOrders(ord)
+      setOrders(ord as any[])
       setCustomerCount((cust as any).totalItems || 0)
       setProductCount((prods as any).totalItems || 0)
       setManufacturerCount((mfrs as any).totalItems || 0)
@@ -79,11 +63,6 @@ export default function AdminMaster() {
   useRealtime('orders', loadData)
   useRealtime('customers', loadData)
 
-  const totalRevenue = orders
-    .filter((o) => o.status === 'paid')
-    .reduce((s, o) => s + (o.total_amount || 0), 0)
-  const pendingOrders = orders.filter((o) => o.status === 'pending').length
-
   const salesData = useMemo(() => {
     const labels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
     const today = new Date()
@@ -93,7 +72,10 @@ export default function AdminMaster() {
       const dayOrders = orders.filter(
         (o) => new Date(o.created).toDateString() === date.toDateString(),
       )
-      return { day, vendas: dayOrders.reduce((s, o) => s + (o.total_amount || 0), 0) }
+      return {
+        day,
+        vendas: dayOrders.reduce((s, o) => s + (o.total_amount || 0), 0),
+      }
     })
   }, [orders])
 
@@ -113,32 +95,15 @@ export default function AdminMaster() {
     value: { label: 'Total', color: 'hsl(210, 100%, 12.5%)' },
   }
 
-  const stats = [
-    {
-      label: 'Receita Total',
-      value: `R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      icon: DollarSign,
-      color: 'text-primary',
-    },
-    {
-      label: 'Pedidos Pendentes',
-      value: pendingOrders,
-      icon: ShoppingCart,
-      color: 'text-electric',
-    },
-    { label: 'Fabricantes', value: manufacturerCount, icon: Store, color: 'text-navy' },
-    { label: 'Lojistas', value: retailerCount, icon: Users, color: 'text-azul' },
-  ]
-
   return (
     <div className="space-y-6 animate-fade-in-up p-2">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight font-display text-navy dark:text-white">
-            Painel Master — Vmx do Brasil
+            Painel Master — V MODA BRASIL
           </h1>
           <p className="text-muted-foreground mt-2">
-            Visão macro do ecossistema V MODA BRASIL — Administradora de Cartões e Benefícios Ltda.
+            Central de comando: CRM, Financeiro, Logística, V Club e Revista ModaAtual.
           </p>
         </div>
         <Link to="/admin/dashboard">
@@ -148,29 +113,32 @@ export default function AdminMaster() {
         </Link>
       </div>
 
-      {loading ? (
-        <div className="p-8 text-center text-muted-foreground">Carregando painel master...</div>
-      ) : (
-        <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {stats.map((s) => {
-              const Icon = s.icon
-              return (
-                <Card
-                  key={s.label}
-                  className="rounded-2xl shadow-soft hover-depth border-primary/10"
-                >
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium font-display">{s.label}</CardTitle>
-                    <Icon className={`h-5 w-5 ${s.color}`} />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-display">{s.value}</div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="bg-background shadow-sm border border-border/50">
+          <TabsTrigger
+            value="overview"
+            className="data-[state=active]:text-primary data-[state=active]:bg-primary/10"
+          >
+            <Activity className="w-4 h-4 mr-2" />
+            Visão Geral
+          </TabsTrigger>
+          <TabsTrigger
+            value="vclub"
+            className="data-[state=active]:text-primary data-[state=active]:bg-primary/10"
+          >
+            <Package className="w-4 h-4 mr-2" />V Club Card
+          </TabsTrigger>
+          <TabsTrigger
+            value="magazine"
+            className="data-[state=active]:text-primary data-[state=active]:bg-primary/10"
+          >
+            <TrendingUp className="w-4 h-4 mr-2" />
+            Revista ModaAtual
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="mt-6 space-y-6">
+          <AdminMasterMetrics />
 
           <div className="grid gap-6 md:grid-cols-2">
             <Card className="rounded-2xl shadow-soft border-primary/10">
@@ -215,41 +183,53 @@ export default function AdminMaster() {
             </Card>
           </div>
 
-          <Card className="rounded-2xl shadow-soft border-primary/10">
-            <CardHeader>
-              <CardTitle className="font-display">Resumo do Ecossistema</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="rounded-xl bg-muted/50 p-4 border border-border/50">
-                  <Package className="w-5 h-5 text-primary mb-2" />
-                  <p className="text-sm text-muted-foreground">Produtos Cadastrados</p>
-                  <p className="text-xl font-bold font-display">{productCount}</p>
+          {!loading && (
+            <Card className="rounded-2xl shadow-soft border-primary/10">
+              <CardHeader>
+                <CardTitle className="font-display">Resumo do Ecossistema</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="rounded-xl bg-muted/50 p-4 border border-border/50">
+                    <Package className="w-5 h-5 text-primary mb-2" />
+                    <p className="text-sm text-muted-foreground">Produtos</p>
+                    <p className="text-xl font-bold font-display">{productCount}</p>
+                  </div>
+                  <div className="rounded-xl bg-muted/50 p-4 border border-border/50">
+                    <ShoppingCart className="w-5 h-5 text-electric mb-2" />
+                    <p className="text-sm text-muted-foreground">Pedidos Totais</p>
+                    <p className="text-xl font-bold font-display">{orders.length}</p>
+                  </div>
+                  <div className="rounded-xl bg-muted/50 p-4 border border-border/50">
+                    <TrendingUp className="w-5 h-5 text-emerald mb-2" />
+                    <p className="text-sm text-muted-foreground">Pagos</p>
+                    <p className="text-xl font-bold font-display text-emerald">
+                      {orders.filter((o) => o.status === 'paid').length}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-muted/50 p-4 border border-border/50">
+                    <Activity className="w-5 h-5 text-electric mb-2" />
+                    <p className="text-sm text-muted-foreground">Pendentes</p>
+                    <p className="text-xl font-bold font-display text-electric">
+                      {orders.filter((o) => o.status === 'pending').length}
+                    </p>
+                  </div>
                 </div>
-                <div className="rounded-xl bg-muted/50 p-4 border border-border/50">
-                  <ShoppingCart className="w-5 h-5 text-electric mb-2" />
-                  <p className="text-sm text-muted-foreground">Pedidos Totais</p>
-                  <p className="text-xl font-bold font-display">{orders.length}</p>
-                </div>
-                <div className="rounded-xl bg-muted/50 p-4 border border-border/50">
-                  <TrendingUp className="w-5 h-5 text-emerald mb-2" />
-                  <p className="text-sm text-muted-foreground">Pagos</p>
-                  <p className="text-xl font-bold font-display text-emerald">
-                    {orders.filter((o) => o.status === 'paid').length}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-muted/50 p-4 border border-border/50">
-                  <Activity className="w-5 h-5 text-electric mb-2" />
-                  <p className="text-sm text-muted-foreground">Pendentes</p>
-                  <p className="text-xl font-bold font-display text-electric">{pendingOrders}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
-          <AdminMasterTools />
-        </>
-      )}
+          <AdminMasterModules />
+        </TabsContent>
+
+        <TabsContent value="vclub" className="mt-6">
+          <AdminMasterVClub />
+        </TabsContent>
+
+        <TabsContent value="magazine" className="mt-6">
+          <AdminMasterMagazine />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
