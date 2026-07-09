@@ -16,8 +16,8 @@ export function getIntendedRoute(): string | null {
 export function getRoleBasedRedirect(user: any): string {
   if (!user) return '/login'
 
-  if (user?.collectionName === '_superusers') return '/crm'
-  if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com') return '/crm'
+  if (user?.collectionName === '_superusers') return '/AdminMaster'
+  if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com') return '/AdminMaster'
   if (user?.role === 'manufacturer') return '/manufacturer'
   if (user?.role === 'retailer') return '/customers'
   if (user?.role === 'agent') return '/agente'

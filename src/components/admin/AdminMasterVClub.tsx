@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -11,36 +9,42 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { CreditCard, Wallet, Award, Eye } from 'lucide-react'
+import { CreditCard, Wallet, CheckCircle } from 'lucide-react'
+import { getVClubCards, getVClubCashback } from '@/services/v-club'
 import { useRealtime } from '@/hooks/use-realtime'
+
+const statusVariant = (s: string): any =>
+  s === 'active' ? 'default' : s === 'blocked' ? 'destructive' : 'secondary'
+
+const physLabel = (s: string) => {
+  const m: Record<string, string> = {
+    none: 'Nenhum',
+    requested: 'Solicitado',
+    produced: 'Produzido',
+    in_transit: 'Em Trânsito',
+    delivered: 'Entregue',
+    active: 'Ativo',
+  }
+  return m[s] || s
+}
 
 export function AdminMasterVClub() {
   const [cards, setCards] = useState<any[]>([])
-  const [transactions, setTransactions] = useState<any[]>([])
-  const [cashback, setCashback] = useState<any[]>([])
+  const [cashbacks, setCashbacks] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   const loadData = async () => {
     try {
-      const [cardsRes, txRes, cbRes] = await Promise.all([
-        pb
-          .collection('v_club_cards')
-          .getFullList({ expand: 'customer,store' })
-          .catch(() => []),
-        pb
-          .collection('v_club_transactions')
-          .getFullList({ expand: 'store,card', sort: '-created' })
-          .catch(() => []),
-        pb
-          .collection('v_club_cashback')
-          .getFullList({ expand: 'customer,store' })
-          .catch(() => []),
+      const [c, cb] = await Promise.all([
+        getVClubCards().catch(() => []),
+        getVClubCashback().catch(() => []),
       ])
-      setCards(cardsRes as any[])
-      setTransactions((txRes as any[]).slice(0, 10))
-      setCashback(cbRes as any[])
+      setCards(c as any[])
+      setCashbacks(cb as any[])
     } catch (e) {
       console.error(e)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -48,26 +52,15 @@ export function AdminMasterVClub() {
     loadData()
   }, [])
   useRealtime('v_club_cards', loadData)
-  useRealtime('v_club_transactions', loadData)
+  useRealtime('v_club_cashback', loadData)
 
   const activeCards = cards.filter((c) => c.status === 'active').length
-  const blockedCards = cards.filter((c) => c.status === 'blocked').length
-  const totalCreditLimit = cards.reduce((s, c) => s + (c.credit_limit || 0), 0)
-  const totalCashback = cashback.reduce((s, c) => s + (c.balance || 0), 0)
+  const totalLimit = cards.reduce((s, c) => s + (c.credit_limit || 0), 0)
+  const totalCashback = cashbacks.reduce((s, c) => s + (c.balance || 0), 0)
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold font-display text-navy dark:text-white">V Club Card</h2>
-        <Link to="/admin/v-club">
-          <Button variant="outline" size="sm">
-            <Eye className="w-4 h-4 mr-2" />
-            Gerenciar V Club
-          </Button>
-        </Link>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card className="rounded-2xl shadow-soft border-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Cartões Ativos</CardTitle>
@@ -75,80 +68,101 @@ export function AdminMasterVClub() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{activeCards}</div>
-          </CardContent>
-        </Card>
-        <Card className="rounded-2xl shadow-soft border-primary/10">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Bloqueados</CardTitle>
-            <CreditCard className="h-5 w-5 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{blockedCards}</div>
+            <p className="text-xs text-muted-foreground">de {cards.length} total</p>
           </CardContent>
         </Card>
         <Card className="rounded-2xl shadow-soft border-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Limite Total</CardTitle>
-            <Award className="h-5 w-5 text-primary" />
+            <Wallet className="h-5 w-5 text-electric" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              R$ {totalCreditLimit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </div>
+            <div className="text-2xl font-bold">R$ {totalLimit.toLocaleString('pt-BR')}</div>
           </CardContent>
         </Card>
         <Card className="rounded-2xl shadow-soft border-primary/10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Cashback Total</CardTitle>
-            <Wallet className="h-5 w-5 text-emerald" />
+            <CheckCircle className="h-5 w-5 text-emerald" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald">
-              R$ {totalCashback.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </div>
+            <div className="text-2xl font-bold">R$ {totalCashback.toLocaleString('pt-BR')}</div>
           </CardContent>
         </Card>
       </div>
 
       <Card className="rounded-2xl shadow-soft border-primary/10">
         <CardHeader>
-          <CardTitle className="font-display">Transações Recentes</CardTitle>
+          <CardTitle className="font-display">Cartões V Club</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Data</TableHead>
+                <TableHead>Número</TableHead>
+                <TableHead>Cliente</TableHead>
                 <TableHead>Loja</TableHead>
-                <TableHead>Valor</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Cartão Físico</TableHead>
+                <TableHead>Limite</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell>{new Date(t.created).toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell>{t.expand?.store?.name || '—'}</TableCell>
-                  <TableCell>R$ {(t.amount || 0).toFixed(2)}</TableCell>
+              {cards.map((card) => (
+                <TableRow key={card.id}>
+                  <TableCell className="font-medium">**** {card.card_number?.slice(-4)}</TableCell>
+                  <TableCell>{card.expand?.customer?.name || 'N/A'}</TableCell>
+                  <TableCell>{card.expand?.store?.name || 'N/A'}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        t.status === 'approved'
-                          ? 'default'
-                          : t.status === 'denied'
-                            ? 'destructive'
-                            : 'secondary'
-                      }
-                    >
-                      {t.status}
-                    </Badge>
+                    <Badge variant={statusVariant(card.status)}>{card.status}</Badge>
                   </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {physLabel(card.physical_status)}
+                    </span>
+                  </TableCell>
+                  <TableCell>R$ {(card.credit_limit || 0).toLocaleString('pt-BR')}</TableCell>
                 </TableRow>
               ))}
-              {transactions.length === 0 && (
+              {cards.length === 0 && !loading && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
-                    Nenhuma transação encontrada.
+                  <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                    Nenhum cartão encontrado.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-2xl shadow-soft border-primary/10">
+        <CardHeader>
+          <CardTitle className="font-display">Saldos de Cashback</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Loja</TableHead>
+                <TableHead>Saldo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cashbacks.map((cb) => (
+                <TableRow key={cb.id}>
+                  <TableCell className="font-medium">
+                    {cb.expand?.customer?.name || 'N/A'}
+                  </TableCell>
+                  <TableCell>{cb.expand?.store?.name || 'N/A'}</TableCell>
+                  <TableCell>R$ {(cb.balance || 0).toLocaleString('pt-BR')}</TableCell>
+                </TableRow>
+              ))}
+              {cashbacks.length === 0 && !loading && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
+                    Nenhum cashback encontrado.
                   </TableCell>
                 </TableRow>
               )}

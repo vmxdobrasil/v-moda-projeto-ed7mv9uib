@@ -2,6 +2,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/hooks/use-auth'
+import { GlobalAuthGate } from '@/components/GlobalAuthGate'
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom'
 import {
@@ -236,243 +237,251 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AiAssistantProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <FloatingCart />
+        <GlobalAuthGate>
+          <AiAssistantProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <FloatingCart />
 
-            <Routes>
-              {/* Routes with LiveChat */}
-              <Route element={<AppRoot />}>
-                {/* Public Auth Routes */}
-                <Route element={<PublicRoute />}>
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
-                  <Route path="/join/guide" element={<JoinGuide />} />
-                  <Route path="/join/influencer" element={<JoinInfluencer />} />
-                  <Route path="/join/agent" element={<JoinAgent />} />
-                  <Route path="/admin/login" element={<AdminLogin />} />
-                </Route>
-
-                {/* Public Marketing Pages */}
-                <Route element={<PublicLayout />}>
-                  <Route index element={<RootRoute />} />
-                  <Route path="colecoes" element={<Catalog />} />
-                  <Route path="lojas-fabricantes" element={<LojasFabricantes />} />
-                  <Route path="central-de-abastecimento" element={<RetailerLanding />} />
-                  <Route path="guia-de-moda" element={<GuiaDeModa />} />
-                  <Route path="conhecimento" element={<Conhecimento />} />
-                  <Route path="revista" element={<Magazine />} />
-                  <Route path="sobre-nos" element={<SobreNos />} />
-                  <Route path="contato" element={<ContatoPage />} />
-                  <Route path="revenda" element={<RetailerLanding />} />
-                  <Route path="empreenda" element={<Empreenda />} />
-                  <Route path="faq" element={<FaqPage />} />
-                  <Route path="favoritos" element={<FavoritosPage />} />
-                  <Route path="finalizar-compra" element={<FinalizarCompraPage />} />
-                  <Route path="orders/view/:id" element={<OrderView />} />
-                  <Route path="cart" element={<CartPage />} />
-                  <Route path="top-marcas" element={<TopMarcas />} />
-                  <Route path="guia-compras" element={<GuiaCompras />} />
-                  <Route path="explorar" element={<Explorar />} />
-                  <Route path="produto/:id" element={<Produto />} />
-                </Route>
-
-                {/* Redirect /marketing to /admin/marketing */}
-                <Route path="/marketing" element={<Navigate to="/admin/marketing" replace />} />
-
-                {/* Manufacturer Routes */}
-                <Route element={<ManufacturerGuard />}>
-                  <Route path="/manufacturer" element={<ManufacturerLayout />}>
-                    <Route index element={<ManufacturerDashboard />} />
-                    <Route path="catalog" element={<ManufacturerCatalog />} />
-                    <Route path="stores" element={<StoreManagement />} />
-                    <Route path="leads" element={<ManufacturerLeads />} />
-                    <Route path="messages" element={<ManufacturerMessages />} />
-                    <Route path="logistics" element={<ManufacturerLogistics />} />
-                    <Route path="settings" element={<ManufacturerSettings />} />
-                    <Route path="team" element={<ManufacturerTeam />} />
-                    <Route path="v-club" element={<ManufacturerVClub />} />
-                    <Route path="crm" element={<ManufacturerCRM />} />
-                    <Route path="inventory" element={<InventoryManagement />} />
-                    <Route
-                      path="negotiation/:customerId"
-                      element={<ManufacturerNegotiationHub />}
-                    />
-                  </Route>
-                </Route>
-
-                {/* Protected Dashboard/User Pages */}
-                <Route element={<AuthGuard />}>
-                  <Route path="/onboarding" element={<RetailerOnboarding />} />
-                  <Route path="/negotiation/video/:sessionId" element={<VideoNegotiation />} />
-
-                  {/* Wrapped inside DashboardLayout to keep sidebar/header */}
-                  <Route path="/" element={<DashboardLayout />}>
-                    <Route path="dashboard" element={<DashboardAnalytics />} />
-                    <Route path="perfil" element={<ProfilePage />} />
-                    <Route path="meus-pedidos" element={<MeusPedidos />} />
-                    <Route path="vallen-ia" element={<VallenIA />} />
-                    <Route path="maquina-vendas" element={<SalesMachine />} />
-                    <Route path="customers" element={<DashboardCustomers />} />
-                    <Route path="customers/:id" element={<CustomerDetails />} />
-                    <Route path="customer/:id" element={<CustomerDetails />} />
-                    <Route path="products" element={<DashboardProjects />} />
-                    <Route path="admin-products" element={<AdminProductsPage />} />
-                    <Route path="messages" element={<MessagesPage />} />
-                    <Route path="manufacturers" element={<ManufacturersHub />} />
-                    <Route path="affiliates" element={<AffiliateDashboard />} />
-                    <Route path="agente" element={<AgentDashboard />} />
-                    <Route path="resources" element={<Resources />} />
-                    <Route path="analytics" element={<DashboardAnalytics />} />
-                    <Route path="v-club" element={<VClubWallet />} />
-                    <Route path="media-kit" element={<MediaKitPage />} />
-                    <Route path="revenda" element={<RevendaDashboard />} />
-                    <Route path="revendedora-dashboard" element={<ResellerDashboard />} />
-                    <Route path="academy" element={<Academy />} />
-                    <Route path="vallen-consultora" element={<VallenConsultora />} />
-                    <Route path="retail-crm" element={<RetailCRM />} />
-                    <Route path="consultant-crm" element={<ConsultantCRM />} />
-                    <Route path="inventory" element={<InventoryManagement />} />
-                    <Route path="seller-orders" element={<SellerOrders />} />
-                    <Route path="pickup-validation" element={<RetailerPickupValidation />} />
-
-                    <Route element={<AgentOrTransporterGuard />}>
-                      <Route
-                        path="logistica-transportadoras"
-                        element={<LogisticaTransportadoras />}
-                      />
-                    </Route>
-
-                    <Route element={<FinancialGuard />}>
-                      <Route path="financeiro" element={<FinanceiroHub />} />
-                    </Route>
-
-                    <Route element={<ManufacturerGuard />}>
-                      <Route path="fabricantes" element={<Navigate to="/manufacturer" replace />} />
-                    </Route>
-
-                    <Route element={<RetailerGuard />}>
-                      <Route path="lojistas" element={<Navigate to="/revenda" replace />} />
-                    </Route>
-
-                    <Route
-                      path="revendedoras"
-                      element={<Navigate to="/revendedora-dashboard" replace />}
-                    />
-
-                    <Route element={<AgentGuard />}>
-                      <Route path="agentes" element={<Navigate to="/agente" replace />} />
-                    </Route>
-
-                    {/* Protected Manufacturer specifics inside DashboardLayout */}
-                    <Route element={<ManufacturerGuard />}>
-                      <Route path="logistics" element={<DashboardLogistics />} />
-                      <Route path="settings" element={<WhatsappSettings />} />
-                    </Route>
+              <Routes>
+                {/* Routes with LiveChat */}
+                <Route element={<AppRoot />}>
+                  {/* Public Auth Routes */}
+                  <Route element={<PublicRoute />}>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+                    <Route path="/join/guide" element={<JoinGuide />} />
+                    <Route path="/join/influencer" element={<JoinInfluencer />} />
+                    <Route path="/join/agent" element={<JoinAgent />} />
+                    <Route path="/admin/login" element={<AdminLogin />} />
                   </Route>
 
-                  {/* Admin Routes */}
-                  <Route element={<AdminGuard />}>
-                    <Route path="/AdminMaster" element={<AdminLayout />}>
-                      <Route index element={<AdminMaster />} />
-                    </Route>
-                    <Route path="/admin" element={<AdminLayout />}>
-                      <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                      <Route path="master" element={<AdminMaster />} />
-                      <Route path="dashboard" element={<AdminDashboard />} />
-                      <Route path="hub" element={<DashboardHub />} />
-                      <Route path="crm-global" element={<AdminCRMGlobal />} />
-                      <Route path="comissoes" element={<AdminCommissions />} />
-                      <Route path="v-club" element={<AdminVClub />} />
-                      <Route path="afiliados" element={<AdminPartners defaultTab="affiliate" />} />
-                      <Route path="parceiros" element={<AdminPartners />} />
-                      <Route path="agentes" element={<AdminAgents />} />
-                      <Route path="financeiro" element={<AdminFinance />} />
-                      <Route path="influencers" element={<AdminInfluencers />} />
-                      <Route path="notificacoes" element={<AdminNotifications />} />
-                      <Route
-                        path="inteligencia"
-                        element={<Navigate to="/admin/insights" replace />}
-                      />
-                      <Route path="insights" element={<AdminInsights />} />
-                      <Route path="geografico" element={<AdminGeographic />} />
-                      <Route path="lead-analytics" element={<AdminLeadAnalytics />} />
-                      <Route path="revendedoras" element={<AdminResellers />} />
-                      <Route path="zonas" element={<AdminZones />} />
-                      <Route path="pedidos" element={<AdminPedidos />} />
-                      <Route path="top-marcas" element={<AdminTopBrands />} />
-                      <Route path="guia-de-marcas" element={<AdminManufacturers />} />
-                      <Route
-                        path="fabricantes"
-                        element={<Navigate to="/admin/top-marcas" replace />}
-                      />
-                      <Route
-                        path="guia-marcas"
-                        element={<Navigate to="/admin/guia-de-marcas" replace />}
-                      />
-                      <Route path="produtos" element={<AdminProducts />} />
-                      <Route path="catalogo" element={<AdminCatalog />} />
-                      <Route path="clientes" element={<Customers />} />
-                      <Route path="logistica" element={<AdminLogisticaPage />} />
-                      <Route path="marketing" element={<AdminMarketing />} />
-                      <Route path="precificacao" element={<AdminPricing />} />
-                      <Route path="guia-crm" element={<AdminManufacturerCRM />} />
-                      <Route path="categorias" element={<AdminCategories />} />
-                      <Route path="colecoes" element={<AdminColecoes />} />
-                      <Route path="midia" element={<AdminMidia />} />
-                      <Route path="assinaturas" element={<AdminSubscriptions />} />
-                      <Route path="logs-importacao" element={<AdminImportLogs />} />
-                      <Route path="relatorios" element={<AdminRelatorios />} />
+                  {/* Public Marketing Pages */}
+                  <Route element={<PublicLayout />}>
+                    <Route index element={<RootRoute />} />
+                    <Route path="colecoes" element={<Catalog />} />
+                    <Route path="lojas-fabricantes" element={<LojasFabricantes />} />
+                    <Route path="central-de-abastecimento" element={<RetailerLanding />} />
+                    <Route path="guia-de-moda" element={<GuiaDeModa />} />
+                    <Route path="conhecimento" element={<Conhecimento />} />
+                    <Route path="revista" element={<Magazine />} />
+                    <Route path="sobre-nos" element={<SobreNos />} />
+                    <Route path="contato" element={<ContatoPage />} />
+                    <Route path="revenda" element={<RetailerLanding />} />
+                    <Route path="empreenda" element={<Empreenda />} />
+                    <Route path="faq" element={<FaqPage />} />
+                    <Route path="favoritos" element={<FavoritosPage />} />
+                    <Route path="finalizar-compra" element={<FinalizarCompraPage />} />
+                    <Route path="orders/view/:id" element={<OrderView />} />
+                    <Route path="cart" element={<CartPage />} />
+                    <Route path="top-marcas" element={<TopMarcas />} />
+                    <Route path="guia-compras" element={<GuiaCompras />} />
+                    <Route path="explorar" element={<Explorar />} />
+                    <Route path="produto/:id" element={<Produto />} />
+                  </Route>
+
+                  {/* Redirect /marketing to /admin/marketing */}
+                  <Route path="/marketing" element={<Navigate to="/admin/marketing" replace />} />
+
+                  {/* Manufacturer Routes */}
+                  <Route element={<ManufacturerGuard />}>
+                    <Route path="/manufacturer" element={<ManufacturerLayout />}>
+                      <Route index element={<ManufacturerDashboard />} />
+                      <Route path="catalog" element={<ManufacturerCatalog />} />
+                      <Route path="stores" element={<StoreManagement />} />
+                      <Route path="leads" element={<ManufacturerLeads />} />
+                      <Route path="messages" element={<ManufacturerMessages />} />
+                      <Route path="logistics" element={<ManufacturerLogistics />} />
+                      <Route path="settings" element={<ManufacturerSettings />} />
+                      <Route path="team" element={<ManufacturerTeam />} />
+                      <Route path="v-club" element={<ManufacturerVClub />} />
+                      <Route path="crm" element={<ManufacturerCRM />} />
                       <Route path="inventory" element={<InventoryManagement />} />
+                      <Route
+                        path="negotiation/:customerId"
+                        element={<ManufacturerNegotiationHub />}
+                      />
+                    </Route>
+                  </Route>
+
+                  {/* Protected Dashboard/User Pages */}
+                  <Route element={<AuthGuard />}>
+                    <Route path="/onboarding" element={<RetailerOnboarding />} />
+                    <Route path="/negotiation/video/:sessionId" element={<VideoNegotiation />} />
+
+                    {/* Wrapped inside DashboardLayout to keep sidebar/header */}
+                    <Route path="/" element={<DashboardLayout />}>
+                      <Route path="dashboard" element={<DashboardAnalytics />} />
+                      <Route path="perfil" element={<ProfilePage />} />
+                      <Route path="meus-pedidos" element={<MeusPedidos />} />
+                      <Route path="vallen-ia" element={<VallenIA />} />
+                      <Route path="maquina-vendas" element={<SalesMachine />} />
+                      <Route path="customers" element={<DashboardCustomers />} />
+                      <Route path="customers/:id" element={<CustomerDetails />} />
+                      <Route path="customer/:id" element={<CustomerDetails />} />
+                      <Route path="products" element={<DashboardProjects />} />
+                      <Route path="admin-products" element={<AdminProductsPage />} />
+                      <Route path="messages" element={<MessagesPage />} />
+                      <Route path="manufacturers" element={<ManufacturersHub />} />
+                      <Route path="affiliates" element={<AffiliateDashboard />} />
+                      <Route path="agente" element={<AgentDashboard />} />
+                      <Route path="resources" element={<Resources />} />
+                      <Route path="analytics" element={<DashboardAnalytics />} />
+                      <Route path="v-club" element={<VClubWallet />} />
+                      <Route path="media-kit" element={<MediaKitPage />} />
+                      <Route path="revenda" element={<RevendaDashboard />} />
+                      <Route path="revendedora-dashboard" element={<ResellerDashboard />} />
+                      <Route path="academy" element={<Academy />} />
+                      <Route path="vallen-consultora" element={<VallenConsultora />} />
                       <Route path="retail-crm" element={<RetailCRM />} />
                       <Route path="consultant-crm" element={<ConsultantCRM />} />
-                      <Route path="usuarios" element={<AdminUsers />} />
-                      <Route path="logs" element={<AdminLogs />} />
-                      <Route path="configuracoes" element={<AdminConfiguracoes />} />
-                      <Route path="partnerships/zoop" element={<ZoopProposal />} />
+                      <Route path="inventory" element={<InventoryManagement />} />
+                      <Route path="seller-orders" element={<SellerOrders />} />
+                      <Route path="pickup-validation" element={<RetailerPickupValidation />} />
+
+                      <Route element={<AgentOrTransporterGuard />}>
+                        <Route
+                          path="logistica-transportadoras"
+                          element={<LogisticaTransportadoras />}
+                        />
+                      </Route>
+
+                      <Route element={<FinancialGuard />}>
+                        <Route path="financeiro" element={<FinanceiroHub />} />
+                      </Route>
+
+                      <Route element={<ManufacturerGuard />}>
+                        <Route
+                          path="fabricantes"
+                          element={<Navigate to="/manufacturer" replace />}
+                        />
+                      </Route>
+
+                      <Route element={<RetailerGuard />}>
+                        <Route path="lojistas" element={<Navigate to="/revenda" replace />} />
+                      </Route>
+
+                      <Route
+                        path="revendedoras"
+                        element={<Navigate to="/revendedora-dashboard" replace />}
+                      />
+
+                      <Route element={<AgentGuard />}>
+                        <Route path="agentes" element={<Navigate to="/agente" replace />} />
+                      </Route>
+
+                      {/* Protected Manufacturer specifics inside DashboardLayout */}
+                      <Route element={<ManufacturerGuard />}>
+                        <Route path="logistics" element={<DashboardLogistics />} />
+                        <Route path="settings" element={<WhatsappSettings />} />
+                      </Route>
+                    </Route>
+
+                    {/* Admin Routes */}
+                    <Route element={<AdminGuard />}>
+                      <Route path="/AdminMaster" element={<AdminLayout />}>
+                        <Route index element={<AdminMaster />} />
+                      </Route>
+                      <Route path="/admin" element={<AdminLayout />}>
+                        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                        <Route path="master" element={<AdminMaster />} />
+                        <Route path="dashboard" element={<AdminDashboard />} />
+                        <Route path="hub" element={<DashboardHub />} />
+                        <Route path="crm-global" element={<AdminCRMGlobal />} />
+                        <Route path="comissoes" element={<AdminCommissions />} />
+                        <Route path="v-club" element={<AdminVClub />} />
+                        <Route
+                          path="afiliados"
+                          element={<AdminPartners defaultTab="affiliate" />}
+                        />
+                        <Route path="parceiros" element={<AdminPartners />} />
+                        <Route path="agentes" element={<AdminAgents />} />
+                        <Route path="financeiro" element={<AdminFinance />} />
+                        <Route path="influencers" element={<AdminInfluencers />} />
+                        <Route path="notificacoes" element={<AdminNotifications />} />
+                        <Route
+                          path="inteligencia"
+                          element={<Navigate to="/admin/insights" replace />}
+                        />
+                        <Route path="insights" element={<AdminInsights />} />
+                        <Route path="geografico" element={<AdminGeographic />} />
+                        <Route path="lead-analytics" element={<AdminLeadAnalytics />} />
+                        <Route path="revendedoras" element={<AdminResellers />} />
+                        <Route path="zonas" element={<AdminZones />} />
+                        <Route path="pedidos" element={<AdminPedidos />} />
+                        <Route path="top-marcas" element={<AdminTopBrands />} />
+                        <Route path="guia-de-marcas" element={<AdminManufacturers />} />
+                        <Route
+                          path="fabricantes"
+                          element={<Navigate to="/admin/top-marcas" replace />}
+                        />
+                        <Route
+                          path="guia-marcas"
+                          element={<Navigate to="/admin/guia-de-marcas" replace />}
+                        />
+                        <Route path="produtos" element={<AdminProducts />} />
+                        <Route path="catalogo" element={<AdminCatalog />} />
+                        <Route path="clientes" element={<Customers />} />
+                        <Route path="logistica" element={<AdminLogisticaPage />} />
+                        <Route path="marketing" element={<AdminMarketing />} />
+                        <Route path="precificacao" element={<AdminPricing />} />
+                        <Route path="guia-crm" element={<AdminManufacturerCRM />} />
+                        <Route path="categorias" element={<AdminCategories />} />
+                        <Route path="colecoes" element={<AdminColecoes />} />
+                        <Route path="midia" element={<AdminMidia />} />
+                        <Route path="assinaturas" element={<AdminSubscriptions />} />
+                        <Route path="logs-importacao" element={<AdminImportLogs />} />
+                        <Route path="relatorios" element={<AdminRelatorios />} />
+                        <Route path="inventory" element={<InventoryManagement />} />
+                        <Route path="retail-crm" element={<RetailCRM />} />
+                        <Route path="consultant-crm" element={<ConsultantCRM />} />
+                        <Route path="usuarios" element={<AdminUsers />} />
+                        <Route path="logs" element={<AdminLogs />} />
+                        <Route path="configuracoes" element={<AdminConfiguracoes />} />
+                        <Route path="partnerships/zoop" element={<ZoopProposal />} />
+                      </Route>
+                    </Route>
+                  </Route>
+
+                  {/* CRM Routes */}
+                  <Route element={<AdminGuard />}>
+                    <Route path="/crm" element={<CrmLayout />}>
+                      <Route index element={<CrmDashboard />} />
+                      <Route path="leads" element={<CrmLeads />} />
+                      <Route path="pipeline" element={<CrmPipeline />} />
+                      <Route path="atividades" element={<CrmAtividades />} />
+                      <Route path="tarefas" element={<CrmTarefas />} />
+                      <Route path="propostas" element={<CrmPropostas />} />
+                      <Route path="relatorios" element={<CrmRelatorios />} />
+                      <Route path="fundadores" element={<CrmFundadores />} />
+                      <Route path="admin" element={<CrmAdmin />} />
+                    </Route>
+                  </Route>
+
+                  {/* Fashionista Public Routes */}
+                  <Route path="/fashionista/login" element={<FashionistaLogin />} />
+                  <Route path="/fashionista/signup" element={<FashionistaSignup />} />
+
+                  {/* Fashionista Protected Routes */}
+                  <Route element={<FashionistaGuard />}>
+                    <Route path="/fashionista" element={<FashionistaLayout />}>
+                      <Route index element={<FashionistaDashboard />} />
+                      <Route path="catalog" element={<FashionistaCatalog />} />
+                      <Route path="cart" element={<FashionistaCart />} />
+                      <Route path="wishlist" element={<FashionistaWishlist />} />
+                      <Route path="profile" element={<FashionistaProfile />} />
+                      <Route path="orders" element={<FashionistaOrders />} />
                     </Route>
                   </Route>
                 </Route>
 
-                {/* CRM Routes */}
-                <Route element={<AdminGuard />}>
-                  <Route path="/crm" element={<CrmLayout />}>
-                    <Route index element={<CrmDashboard />} />
-                    <Route path="leads" element={<CrmLeads />} />
-                    <Route path="pipeline" element={<CrmPipeline />} />
-                    <Route path="atividades" element={<CrmAtividades />} />
-                    <Route path="tarefas" element={<CrmTarefas />} />
-                    <Route path="propostas" element={<CrmPropostas />} />
-                    <Route path="relatorios" element={<CrmRelatorios />} />
-                    <Route path="fundadores" element={<CrmFundadores />} />
-                    <Route path="admin" element={<CrmAdmin />} />
-                  </Route>
-                </Route>
-
-                {/* Fashionista Public Routes */}
-                <Route path="/fashionista/login" element={<FashionistaLogin />} />
-                <Route path="/fashionista/signup" element={<FashionistaSignup />} />
-
-                {/* Fashionista Protected Routes */}
-                <Route element={<FashionistaGuard />}>
-                  <Route path="/fashionista" element={<FashionistaLayout />}>
-                    <Route index element={<FashionistaDashboard />} />
-                    <Route path="catalog" element={<FashionistaCatalog />} />
-                    <Route path="cart" element={<FashionistaCart />} />
-                    <Route path="wishlist" element={<FashionistaWishlist />} />
-                    <Route path="profile" element={<FashionistaProfile />} />
-                    <Route path="orders" element={<FashionistaOrders />} />
-                  </Route>
-                </Route>
-              </Route>
-
-              {/* Catch-all 404 — absolute last to avoid capturing valid routes */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </TooltipProvider>
-        </AiAssistantProvider>
+                {/* Catch-all 404 — absolute last to avoid capturing valid routes */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </TooltipProvider>
+          </AiAssistantProvider>
+        </GlobalAuthGate>
       </AuthProvider>
     </BrowserRouter>
   )
