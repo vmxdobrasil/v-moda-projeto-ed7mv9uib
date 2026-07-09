@@ -22,6 +22,8 @@ import {
   BarChart,
   Package,
   FileText,
+  Truck,
+  GitBranch,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -44,6 +46,7 @@ export default function AdminLayout() {
   const navigation = [
     { name: 'Painel de Gestão', href: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Painel Master', href: '/admin/master', icon: Activity },
+    { name: 'CRM Pipeline', href: '/crm', icon: GitBranch },
     { name: 'Top 60 Marcas', href: '/admin/top-marcas', icon: Star },
     { name: 'Fabricantes do Guia', href: '/admin/guia-de-marcas', icon: Store },
     { name: 'Clientes', href: '/admin/clientes', icon: Users },
@@ -52,10 +55,13 @@ export default function AdminLayout() {
     { name: 'Comissões', href: '/admin/comissoes', icon: CreditCard },
     { name: 'Insights', href: '/admin/insights', icon: TrendingUp },
     { name: 'V Club (Admin)', href: '/admin/v-club', icon: Award },
+    { name: 'Revista ModaAtual', href: '/admin/midia', icon: FileText },
     { name: 'Agentes & Parceiros', href: '/admin/agentes', icon: MapPin },
     { name: 'Influenciadores', href: '/admin/influencers', icon: Megaphone },
     { name: 'Gerenciar Produtos', href: '/admin/produtos', icon: ShoppingBag },
     { name: 'Pedidos', href: '/admin/pedidos', icon: Package },
+    { name: 'Logística', href: '/admin/logistica', icon: Truck },
+    { name: 'Financeiro', href: '/admin/financeiro', icon: Wallet },
     { name: 'Distribuição Geográfica', href: '/admin/geografico', icon: BarChart },
     { name: 'Lead Analytics', href: '/admin/lead-analytics', icon: BarChart },
     { name: 'Revendedoras', href: '/admin/revendedoras', icon: ShoppingBag },

@@ -1,38 +1,45 @@
 import { useState, useEffect } from 'react'
-import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DollarSign, ShoppingCart, Users, Wallet, TrendingUp, Activity } from 'lucide-react'
+import { DollarSign, Users, CreditCard, Package } from 'lucide-react'
+import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
 
 export function AdminMasterMetrics() {
-  const [orders, setOrders] = useState<any[]>([])
-  const [customerCount, setCustomerCount] = useState(0)
-  const [finAccounts, setFinAccounts] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [metrics, setMetrics] = useState({
+    totalSales: 0,
+    newLeads: 0,
+    activeCards: 0,
+    totalProducts: 0,
+  })
 
   const loadData = async () => {
     try {
-      const [ord, cust, finAcc] = await Promise.all([
+      const [orders, customers, cards, products] = await Promise.all([
         pb
           .collection('orders')
-          .getFullList({ sort: '-created' })
+          .getFullList({ filter: "status = 'paid'" })
           .catch(() => []),
         pb
           .collection('customers')
           .getList(1, 1)
           .catch(() => ({ totalItems: 0 })),
         pb
-          .collection('financial_accounts')
-          .getFullList()
-          .catch(() => []),
+          .collection('v_club_cards')
+          .getList(1, 1, { filter: "status = 'active'" })
+          .catch(() => ({ totalItems: 0 })),
+        pb
+          .collection('projects')
+          .getList(1, 1)
+          .catch(() => ({ totalItems: 0 })),
       ])
-      setOrders(ord as any[])
-      setCustomerCount((cust as any).totalItems || 0)
-      setFinAccounts(finAcc as any[])
+      setMetrics({
+        totalSales: (orders as any[]).reduce((s, o) => s + (o.total_amount || 0), 0),
+        newLeads: (customers as any).totalItems || 0,
+        activeCards: (cards as any).totalItems || 0,
+        totalProducts: (products as any).totalItems || 0,
+      })
     } catch (e) {
       console.error(e)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -41,82 +48,38 @@ export function AdminMasterMetrics() {
   }, [])
   useRealtime('orders', loadData)
   useRealtime('customers', loadData)
-  useRealtime('financial_accounts', loadData)
+  useRealtime('v_club_cards', loadData)
+  useRealtime('projects', loadData)
 
-  const totalRevenue = orders
-    .filter((o) => o.status === 'paid')
-    .reduce((s, o) => s + (o.total_amount || 0), 0)
-  const pendingOrders = orders.filter((o) => o.status === 'pending').length
-  const receivables = finAccounts
-    .filter((f) => f.type === 'receivable' && f.status !== 'paid')
-    .reduce((s, f) => s + (f.amount || 0), 0)
-  const payables = finAccounts
-    .filter((f) => f.type === 'payable' && f.status !== 'paid')
-    .reduce((s, f) => s + (f.amount || 0), 0)
-
-  const stats = [
+  const items = [
     {
-      label: 'Receita Total',
-      value: `R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      label: 'Vendas Totais',
+      value: `R$ ${metrics.totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
       icon: DollarSign,
       color: 'text-primary',
     },
+    { label: 'Novos Leads', value: metrics.newLeads, icon: Users, color: 'text-electric' },
     {
-      label: 'Pedidos Pendentes',
-      value: pendingOrders,
-      icon: ShoppingCart,
-      color: 'text-electric',
-    },
-    {
-      label: 'Clientes',
-      value: customerCount,
-      icon: Users,
-      color: 'text-navy',
-    },
-    {
-      label: 'A Receber',
-      value: `R$ ${receivables.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      icon: TrendingUp,
+      label: 'Cartões Ativos',
+      value: metrics.activeCards,
+      icon: CreditCard,
       color: 'text-emerald',
     },
-    {
-      label: 'A Pagar',
-      value: `R$ ${payables.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      icon: Wallet,
-      color: 'text-destructive',
-    },
-    {
-      label: 'Pedidos Totais',
-      value: orders.length,
-      icon: Activity,
-      color: 'text-azul',
-    },
+    { label: 'Produtos', value: metrics.totalProducts, icon: Package, color: 'text-navy' },
   ]
 
-  if (loading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {[...Array(6)].map((_, i) => (
-          <Card key={i} className="rounded-2xl shadow-soft border-primary/10 animate-pulse">
-            <CardContent className="p-6 h-24" />
-          </Card>
-        ))}
-      </div>
-    )
-  }
-
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {stats.map((s) => {
-        const Icon = s.icon
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {items.map((item) => {
+        const Icon = item.icon
         return (
-          <Card key={s.label} className="rounded-2xl shadow-soft hover-depth border-primary/10">
+          <Card key={item.label} className="rounded-2xl shadow-soft hover-depth border-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium font-display">{s.label}</CardTitle>
-              <Icon className={`h-5 w-5 ${s.color}`} />
+              <CardTitle className="text-sm font-medium font-display">{item.label}</CardTitle>
+              <Icon className={`h-5 w-5 ${item.color}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold font-display">{s.value}</div>
+              <div className="text-2xl font-bold font-display">{item.value}</div>
             </CardContent>
           </Card>
         )

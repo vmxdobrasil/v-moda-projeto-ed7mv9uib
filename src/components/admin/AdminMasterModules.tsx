@@ -2,143 +2,96 @@ import { Link } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   GitBranch,
+  CreditCard,
+  FileText,
   Package,
-  ShoppingBag,
-  Wallet,
+  ShoppingCart,
   Truck,
+  Wallet,
   Users,
-  Award,
-  BookOpen,
-  Settings,
-  BarChart,
-  Star,
 } from 'lucide-react'
 
-const MODULES = [
+const modules = [
   {
-    to: '/crm/pipeline',
+    title: 'CRM Pipeline',
+    desc: 'Gestão de leads e clientes',
+    href: '/crm',
     icon: GitBranch,
-    label: 'CRM Pipeline',
-    desc: 'Fluxo de conversão de leads',
-    bg: 'bg-primary/10',
-    text: 'text-primary',
+    color: 'text-primary',
   },
   {
-    to: '/admin/pedidos',
-    icon: Package,
-    label: 'Pedidos & Itens',
-    desc: 'Gestão de pedidos e rastreio',
-    bg: 'bg-navy/10',
-    text: 'text-navy',
-  },
-  {
-    to: '/admin/produtos',
-    icon: ShoppingBag,
-    label: 'Produtos & Estoque',
-    desc: 'Catálogo e movimentações',
-    bg: 'bg-primary/10',
-    text: 'text-primary',
-  },
-  {
-    to: '/admin/financeiro',
-    icon: Wallet,
-    label: 'Financeiro',
-    desc: 'Contas a pagar e receber',
-    bg: 'bg-emerald/10',
-    text: 'text-emerald',
-  },
-  {
-    to: '/admin/logistica',
-    icon: Truck,
-    label: 'Logística',
-    desc: 'Excursões e cargas',
-    bg: 'bg-navy/10',
-    text: 'text-navy',
-  },
-  {
-    to: '/admin/clientes',
-    icon: Users,
-    label: 'CRM / Clientes',
-    desc: 'Leads, status e ranking',
-    bg: 'bg-primary/10',
-    text: 'text-primary',
-  },
-  {
-    to: '/admin/v-club',
-    icon: Award,
-    label: 'V Club Card',
+    title: 'V Club Card',
     desc: 'Cartões e cashback',
-    bg: 'bg-emerald/10',
-    text: 'text-emerald',
+    href: '/admin/v-club',
+    icon: CreditCard,
+    color: 'text-electric',
   },
   {
-    to: '/resources',
-    icon: BookOpen,
-    label: 'Revista ModaAtual',
-    desc: 'Conteúdo digital',
-    bg: 'bg-navy/10',
-    text: 'text-navy',
+    title: 'Revista ModaAtual',
+    desc: 'Conteúdo editorial',
+    href: '/admin/midia',
+    icon: FileText,
+    color: 'text-emerald',
   },
   {
-    to: '/admin/top-marcas',
-    icon: Star,
-    label: 'Top Marcas',
-    desc: 'Ranking de fabricantes',
-    bg: 'bg-primary/10',
-    text: 'text-primary',
+    title: 'Produtos',
+    desc: 'Catálogo e estoque',
+    href: '/admin/produtos',
+    icon: Package,
+    color: 'text-navy',
   },
   {
-    to: '/admin/geografico',
-    icon: BarChart,
-    label: 'Distribuição Geográfica',
-    desc: 'Análise por região',
-    bg: 'bg-navy/10',
-    text: 'text-navy',
+    title: 'Pedidos',
+    desc: 'Vendas e entregas',
+    href: '/admin/pedidos',
+    icon: ShoppingCart,
+    color: 'text-primary',
   },
   {
-    to: '/admin/usuarios',
-    icon: Settings,
-    label: 'Usuários',
-    desc: 'Gestão de usuários',
-    bg: 'bg-primary/10',
-    text: 'text-primary',
+    title: 'Logística',
+    desc: 'Excursões e cargas',
+    href: '/admin/logistica',
+    icon: Truck,
+    color: 'text-electric',
   },
   {
-    to: '/admin/relatorios',
-    icon: BarChart,
-    label: 'Relatórios',
-    desc: 'Relatórios e análises',
-    bg: 'bg-navy/10',
-    text: 'text-navy',
+    title: 'Financeiro',
+    desc: 'Transações e contas',
+    href: '/admin/financeiro',
+    icon: Wallet,
+    color: 'text-emerald',
+  },
+  {
+    title: 'Clientes',
+    desc: 'Base de clientes',
+    href: '/admin/clientes',
+    icon: Users,
+    color: 'text-navy',
   },
 ]
 
 export function AdminMasterModules() {
   return (
-    <div>
-      <h3 className="text-lg font-display font-semibold mb-4">Módulos de Gestão</h3>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {MODULES.map((mod) => {
-          const Icon = mod.icon
-          return (
-            <Link key={mod.to} to={mod.to}>
-              <Card className="rounded-2xl shadow-soft hover-depth border-primary/10 cursor-pointer h-full">
-                <CardContent className="p-6 flex items-center gap-4">
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center ${mod.bg}`}
-                  >
-                    <Icon className={`w-6 h-6 ${mod.text}`} />
-                  </div>
-                  <div>
-                    <p className="font-display font-semibold">{mod.label}</p>
-                    <p className="text-sm text-muted-foreground">{mod.desc}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          )
-        })}
-      </div>
-    </div>
+    <Card className="rounded-2xl shadow-soft border-primary/10">
+      <CardContent className="p-6">
+        <h3 className="text-lg font-bold font-display mb-4">Módulos da Plataforma</h3>
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+          {modules.map((mod) => {
+            const Icon = mod.icon
+            return (
+              <Link key={mod.title} to={mod.href}>
+                <div className="rounded-xl border border-border/50 p-4 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 group cursor-pointer">
+                  <Icon
+                    className={`w-6 h-6 ${mod.color} mb-2 group-hover:scale-110 transition-transform`}
+                  />
+                  <p className="text-sm font-semibold font-display">{mod.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{mod.desc}</p>
+                </div>
+              </Link>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
