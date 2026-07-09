@@ -1,19 +1,16 @@
 import { Link, useLocation } from 'react-router-dom'
 import {
-  Users,
-  CreditCard,
   LayoutDashboard,
   ShoppingBag,
   Store,
-  MapPin,
   Truck,
   Settings,
-  Activity,
   Wallet,
   Star,
-  Award,
   BarChart,
-  Megaphone,
+  CreditCard,
+  Users,
+  Award,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -26,6 +23,56 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { useAuth } from '@/hooks/use-auth'
+import {
+  ADMIN_NAV_SECTIONS,
+  AGENT_NAV_SECTIONS,
+  type NavItem,
+  type NavSection,
+} from '@/lib/navigation-config'
+
+const MANUFACTURER_ITEMS: NavItem[] = [
+  { name: 'Painel de Gestão', href: '/manufacturer', icon: LayoutDashboard },
+  { name: 'Catálogo', href: '/manufacturer/catalog', icon: ShoppingBag },
+  { name: 'CRM & Leads', href: '/manufacturer/leads', icon: Users },
+  { name: 'Logística', href: '/manufacturer/logistics', icon: Truck },
+  { name: 'V Club', href: '/manufacturer/v-club', icon: Award },
+  { name: 'Configurações', href: '/manufacturer/settings', icon: Settings },
+  { name: 'Financeiro', href: '/financeiro', icon: CreditCard },
+  { name: 'Logística & Transporte', href: '/logistica-transportadoras', icon: Truck },
+]
+
+const AFFILIATE_ITEMS: NavItem[] = [
+  { name: 'Performance & Links', href: '/affiliates', icon: BarChart },
+  { name: 'Financeiro', href: '/financeiro', icon: CreditCard },
+]
+
+const RETAILER_ITEMS: NavItem[] = [
+  { name: 'Central de Pedidos', href: '/revenda', icon: ShoppingBag },
+  { name: 'Minha Revenda', href: '/revendedora-dashboard', icon: Wallet },
+  { name: 'Vitrine de Marcas', href: '/guia-de-moda', icon: Store },
+  { name: 'V Club Wallet', href: '/v-club', icon: Wallet },
+  { name: 'Meu Perfil', href: '/perfil', icon: Settings },
+  { name: 'Top 100 Marcas', href: '/top-marcas', icon: Star },
+  { name: 'Guia de Compras', href: '/guia-compras', icon: Store },
+  { name: 'Logística & Transporte', href: '/logistica-transportadoras', icon: Truck },
+  { name: 'Financeiro', href: '/financeiro', icon: CreditCard },
+]
+
+function isItemActive(href: string, pathname: string, search: string): boolean {
+  if (href.includes('?tab=')) {
+    const [path, tabQuery] = href.split('?tab=')
+    const currentTab = new URLSearchParams(search).get('tab') || 'overview'
+    return pathname === path && currentTab === tabQuery
+  }
+  if (href === '/agente') {
+    const currentTab = new URLSearchParams(search).get('tab')
+    return pathname === '/agente' && (!currentTab || currentTab === 'overview')
+  }
+  if (pathname === href) return true
+  const exactPaths = ['/', '/admin', '/AdminMaster', '/manufacturer', '/dashboard']
+  if (exactPaths.includes(href)) return false
+  return pathname.startsWith(href + '/')
+}
 
 export function AppSidebar() {
   const { user } = useAuth()
@@ -37,400 +84,51 @@ export function AppSidebar() {
   const isAffiliate = user?.role === 'affiliate'
   const isRetailer =
     user?.role === 'retailer' || (!isAdmin && !isManufacturer && !isAgent && !isAffiliate)
-
   const isManufacturerContext = location.pathname.startsWith('/manufacturer')
 
-  const getIsActive = (url: string) => {
-    return (
-      location.pathname === url ||
-      (url !== '/' &&
-        url !== '/admin' &&
-        url !== '/manufacturer' &&
-        url !== '/dashboard' &&
-        location.pathname.startsWith(url + '/'))
-    )
-  }
+  const renderItem = (item: NavItem) => (
+    <SidebarMenuItem key={item.href}>
+      <SidebarMenuButton
+        asChild
+        isActive={isItemActive(item.href, location.pathname, location.search)}
+      >
+        <Link to={item.href}>
+          <item.icon />
+          <span>{item.name}</span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+
+  const renderSection = (section: NavSection) => (
+    <SidebarGroup key={section.label}>
+      <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>{section.items.map(renderItem)}</SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+
+  const renderFlatGroup = (label: string, items: NavItem[]) => (
+    <SidebarGroup key={label}>
+      <SidebarGroupLabel>{label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>{items.map(renderItem)}</SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
 
   return (
     <Sidebar>
       <SidebarContent>
-        {isAdmin && !isManufacturerContext && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Administração</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin')}>
-                    <Link to="/admin">
-                      <LayoutDashboard />
-                      <span>Painel de Gestão</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin/fabricantes')}>
-                    <Link to="/admin/fabricantes">
-                      <Star />
-                      <span>Top 60 Marcas</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin/guia-marcas')}>
-                    <Link to="/admin/guia-marcas">
-                      <Store />
-                      <span>Fabricantes do Guia</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin/clientes')}>
-                    <Link to="/admin/clientes">
-                      <Users />
-                      <span>Clientes</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin/crm-global')}>
-                    <Link to="/admin/crm-global">
-                      <Activity />
-                      <span>CRM Global</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin/assinaturas')}>
-                    <Link to="/admin/assinaturas">
-                      <Wallet />
-                      <span>Assinaturas</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin/comissoes')}>
-                    <Link to="/admin/comissoes">
-                      <CreditCard />
-                      <span>Comissões</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin/insights')}>
-                    <Link to="/admin/insights">
-                      <Activity />
-                      <span>Insights</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin/v-club')}>
-                    <Link to="/admin/v-club">
-                      <Award />
-                      <span>V Club (Admin)</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin/agentes')}>
-                    <Link to="/admin/agentes">
-                      <MapPin />
-                      <span>Agentes & Parceiros</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin/influencers')}>
-                    <Link to="/admin/influencers">
-                      <Megaphone />
-                      <span>Influenciadores</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin/produtos')}>
-                    <Link to="/admin/produtos">
-                      <ShoppingBag />
-                      <span>Produtos</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin/geografico')}>
-                    <Link to="/admin/geografico">
-                      <BarChart />
-                      <span>Distribuição Geográfica</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/admin/revendedoras')}>
-                    <Link to="/admin/revendedoras">
-                      <ShoppingBag />
-                      <span>Revendedoras</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/crm')}>
-                    <Link to="/crm">
-                      <Activity />
-                      <span>CRM Hub</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/financeiro')}>
-                    <Link to="/financeiro">
-                      <CreditCard />
-                      <span>Financeiro</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/logistica-transportadoras')}>
-                    <Link to="/logistica-transportadoras">
-                      <Truck />
-                      <span>Logística & Transporte</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/top-marcas')}>
-                    <Link to="/top-marcas">
-                      <Star />
-                      <span>Top 100 Marcas</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/guia-compras')}>
-                    <Link to="/guia-compras">
-                      <Store />
-                      <span>Guia de Compras</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {(isManufacturer || isManufacturerContext) && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Portal do Fabricante</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/manufacturer')}>
-                    <Link to="/manufacturer">
-                      <LayoutDashboard />
-                      <span>Painel de Gestão</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/manufacturer/catalog')}>
-                    <Link to="/manufacturer/catalog">
-                      <ShoppingBag />
-                      <span>Catálogo</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/manufacturer/leads')}>
-                    <Link to="/manufacturer/leads">
-                      <Users />
-                      <span>CRM & Leads</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/manufacturer/logistics')}>
-                    <Link to="/manufacturer/logistics">
-                      <Truck />
-                      <span>Logística</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/manufacturer/v-club')}>
-                    <Link to="/manufacturer/v-club">
-                      <Award />
-                      <span>V Club</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/manufacturer/settings')}>
-                    <Link to="/manufacturer/settings">
-                      <Settings />
-                      <span>Configurações</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/financeiro')}>
-                    <Link to="/financeiro">
-                      <CreditCard />
-                      <span>Financeiro</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/logistica-transportadoras')}>
-                    <Link to="/logistica-transportadoras">
-                      <Truck />
-                      <span>Logística & Transporte</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {isAgent && !isManufacturerContext && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Portal do Agente</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/agente')}>
-                    <Link to="/agente">
-                      <MapPin />
-                      <span>Minhas Regiões & Clientes</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/logistica-transportadoras')}>
-                    <Link to="/logistica-transportadoras">
-                      <Truck />
-                      <span>Logística & Transporte</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/financeiro')}>
-                    <Link to="/financeiro">
-                      <CreditCard />
-                      <span>Financeiro</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {isAffiliate && !isManufacturerContext && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Portal do Afiliado</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/affiliates')}>
-                    <Link to="/affiliates">
-                      <BarChart />
-                      <span>Performance & Links</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/financeiro')}>
-                    <Link to="/financeiro">
-                      <CreditCard />
-                      <span>Financeiro</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {isRetailer && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Central de Abastecimento</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/revenda')}>
-                    <Link to="/revenda">
-                      <ShoppingBag />
-                      <span>Central de Pedidos</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/revendedora-dashboard')}>
-                    <Link to="/revendedora-dashboard">
-                      <Wallet />
-                      <span>Minha Revenda</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/guia-de-moda')}>
-                    <Link to="/guia-de-moda">
-                      <Store />
-                      <span>Vitrine de Marcas</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/v-club')}>
-                    <Link to="/v-club">
-                      <Wallet />
-                      <span>V Club Wallet</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/perfil')}>
-                    <Link to="/perfil">
-                      <Settings />
-                      <span>Meu Perfil</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/top-marcas')}>
-                    <Link to="/top-marcas">
-                      <Star />
-                      <span>Top 100 Marcas</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/guia-compras')}>
-                    <Link to="/guia-compras">
-                      <Store />
-                      <span>Guia de Compras</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/logistica-transportadoras')}>
-                    <Link to="/logistica-transportadoras">
-                      <Truck />
-                      <span>Logística & Transporte</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={getIsActive('/financeiro')}>
-                    <Link to="/financeiro">
-                      <CreditCard />
-                      <span>Financeiro</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        {isAdmin && !isManufacturerContext && ADMIN_NAV_SECTIONS.map(renderSection)}
+        {(isManufacturer || isManufacturerContext) &&
+          renderFlatGroup('Portal do Fabricante', MANUFACTURER_ITEMS)}
+        {isAgent && !isManufacturerContext && AGENT_NAV_SECTIONS.map(renderSection)}
+        {isAffiliate &&
+          !isManufacturerContext &&
+          renderFlatGroup('Portal do Afiliado', AFFILIATE_ITEMS)}
+        {isRetailer && renderFlatGroup('Central de Abastecimento', RETAILER_ITEMS)}
       </SidebarContent>
     </Sidebar>
   )

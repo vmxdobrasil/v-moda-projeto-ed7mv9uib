@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -13,9 +14,21 @@ import { AgentQrScanner } from '@/components/agent/AgentQrScanner'
 
 export default function AgentDashboard() {
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [customers, setCustomers] = useState<any[]>([])
   const [referrals, setReferrals] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  const activeTab = searchParams.get('tab') || 'overview'
+
+  const handleTabChange = (value: string) => {
+    if (value === 'overview') {
+      searchParams.delete('tab')
+    } else {
+      searchParams.set('tab', value)
+    }
+    setSearchParams(searchParams, { replace: true })
+  }
 
   useEffect(() => {
     if (!user?.id) return
@@ -46,11 +59,11 @@ export default function AgentDashboard() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Portal do Agente</h2>
       </div>
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="clients">Clientes</TabsTrigger>
-          <TabsTrigger value="excursions">Excursoes</TabsTrigger>
+          <TabsTrigger value="excursions">Excursões</TabsTrigger>
           <TabsTrigger value="cargo">Cargas</TabsTrigger>
           <TabsTrigger value="links">Links</TabsTrigger>
           <TabsTrigger value="qr">QR Entrega</TabsTrigger>
