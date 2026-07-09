@@ -38,6 +38,8 @@ export function AppSidebar() {
   const isRetailer =
     user?.role === 'retailer' || (!isAdmin && !isManufacturer && !isAgent && !isAffiliate)
 
+  const isManufacturerContext = location.pathname.startsWith('/manufacturer')
+
   const getIsActive = (url: string) => {
     return (
       location.pathname === url ||
@@ -52,7 +54,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarContent>
-        {isAdmin && (
+        {isAdmin && !isManufacturerContext && (
           <SidebarGroup>
             <SidebarGroupLabel>Administração</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -214,7 +216,7 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {isManufacturer && (
+        {(isManufacturer || isManufacturerContext) && (
           <SidebarGroup>
             <SidebarGroupLabel>Portal do Fabricante</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -288,7 +290,7 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {isAgent && (
+        {isAgent && !isManufacturerContext && (
           <SidebarGroup>
             <SidebarGroupLabel>Portal do Agente</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -322,7 +324,7 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {isAffiliate && (
+        {isAffiliate && !isManufacturerContext && (
           <SidebarGroup>
             <SidebarGroupLabel>Portal do Afiliado</SidebarGroupLabel>
             <SidebarGroupContent>

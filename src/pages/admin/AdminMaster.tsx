@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Button } from '@/components/ui/button'
+import { AdminMasterTools } from '@/components/admin/AdminMasterTools'
 
 export default function AdminMaster() {
   const [orders, setOrders] = useState<any[]>([])
@@ -246,47 +247,7 @@ export default function AdminMaster() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <Link to="/admin/top-marcas">
-              <Card className="rounded-2xl shadow-soft hover-depth border-primary/10 cursor-pointer h-full">
-                <CardContent className="p-6 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Award className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-display font-semibold">Top Marcas</p>
-                    <p className="text-sm text-muted-foreground">Gerenciar fabricantes</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link to="/admin/clientes">
-              <Card className="rounded-2xl shadow-soft hover-depth border-primary/10 cursor-pointer h-full">
-                <CardContent className="p-6 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-navy/10 flex items-center justify-center">
-                    <Users className="w-6 h-6 text-navy" />
-                  </div>
-                  <div>
-                    <p className="font-display font-semibold">Clientes</p>
-                    <p className="text-sm text-muted-foreground">Base de clientes</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link to="/admin/financeiro">
-              <Card className="rounded-2xl shadow-soft hover-depth border-primary/10 cursor-pointer h-full">
-                <CardContent className="p-6 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-emerald/10 flex items-center justify-center">
-                    <DollarSign className="w-6 h-6 text-emerald" />
-                  </div>
-                  <div>
-                    <p className="font-display font-semibold">Financeiro</p>
-                    <p className="text-sm text-muted-foreground">Gestão financeira</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
+          <AdminMasterTools />
         </>
       )}
     </div>
