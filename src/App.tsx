@@ -1,7 +1,7 @@
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { AuthProvider } from '@/hooks/use-auth'
+import { AuthProvider, useAuth } from '@/hooks/use-auth'
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom'
 import {
@@ -175,6 +175,13 @@ function FloatingCart() {
   )
 }
 
+function ManufacturerRouteIndex() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
+  if (isAdmin) return <Navigate to="/guia-compras" replace />
+  return <ManufacturerDashboard />
+}
+
 import Conhecimento from '@/pages/Conhecimento'
 import SobreNos from '@/pages/SobreNos'
 import ContatoPage from '@/pages/ContatoPage'
@@ -287,7 +294,7 @@ export default function App() {
                 {/* Manufacturer Routes */}
                 <Route element={<ManufacturerGuard />}>
                   <Route path="/manufacturer" element={<ManufacturerLayout />}>
-                    <Route index element={<ManufacturerDashboard />} />
+                    <Route index element={<ManufacturerRouteIndex />} />
                     <Route path="catalog" element={<ManufacturerCatalog />} />
                     <Route path="stores" element={<StoreManagement />} />
                     <Route path="leads" element={<ManufacturerLeads />} />

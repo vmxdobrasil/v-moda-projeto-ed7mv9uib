@@ -1,4 +1,4 @@
-import { Outlet, NavLink, Link } from 'react-router-dom'
+import { Outlet, NavLink, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import {
   LayoutDashboard,
@@ -37,23 +37,44 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { BreadcrumbNav } from '@/components/dashboard/BreadcrumbNav'
 import { useState } from 'react'
 
+const ADMIN_MASTER_PATHS = new Set([
+  '/admin/master',
+  '/admin/guia-de-marcas',
+  '/admin/crm-global',
+  '/admin/assinaturas',
+  '/admin/comissoes',
+  '/admin/v-club',
+  '/admin/agentes',
+  '/admin/influencers',
+])
+
 export default function AdminLayout() {
   const { signOut, user } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  const navigation = [
-    { name: 'Painel de Gestão', href: '/admin/dashboard', icon: LayoutDashboard },
+  const location = useLocation()
+  const isAdminMasterContext = ADMIN_MASTER_PATHS.has(location.pathname)
+
+  const adminMasterNav = [
     { name: 'Painel Master', href: '/admin/master', icon: Activity },
-    { name: 'Top 60 Marcas', href: '/admin/top-marcas', icon: Star },
+    { name: 'Voltar ao Painel', href: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Fabricantes do Guia', href: '/admin/guia-de-marcas', icon: Store },
-    { name: 'Clientes', href: '/admin/clientes', icon: Users },
     { name: 'CRM Global', href: '/admin/crm-global', icon: Activity },
     { name: 'Assinaturas', href: '/admin/assinaturas', icon: Wallet },
     { name: 'Comissões', href: '/admin/comissoes', icon: CreditCard },
-    { name: 'Insights', href: '/admin/insights', icon: TrendingUp },
     { name: 'V Club (Admin)', href: '/admin/v-club', icon: Award },
     { name: 'Agentes & Parceiros', href: '/admin/agentes', icon: MapPin },
     { name: 'Influenciadores', href: '/admin/influencers', icon: Megaphone },
+    { name: 'Top 100 Marcas', href: '/top-marcas', icon: Star },
+    { name: 'Guia de Compras', href: '/guia-compras', icon: Store },
+  ]
+
+  const regularAdminNav = [
+    { name: 'Painel de Gestão', href: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Painel Master', href: '/admin/master', icon: Activity },
+    { name: 'Top 60 Marcas', href: '/admin/top-marcas', icon: Star },
+    { name: 'Clientes', href: '/admin/clientes', icon: Users },
+    { name: 'Insights', href: '/admin/insights', icon: TrendingUp },
     { name: 'Gerenciar Produtos', href: '/admin/produtos', icon: ShoppingBag },
     { name: 'Pedidos', href: '/admin/pedidos', icon: Package },
     { name: 'Distribuição Geográfica', href: '/admin/geografico', icon: BarChart },
@@ -64,10 +85,13 @@ export default function AdminLayout() {
     { name: 'Relatórios', href: '/admin/relatorios', icon: FileText },
   ]
 
+  const navigation = isAdminMasterContext ? adminMasterNav : regularAdminNav
+  const sectionLabel = isAdminMasterContext ? 'Admin Master' : 'Administração'
+
   const NavItems = () => (
     <>
       <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        Administração
+        {sectionLabel}
       </div>
       <nav className="flex flex-col gap-1 flex-1 overflow-y-auto pr-2">
         {navigation.map((item) => {

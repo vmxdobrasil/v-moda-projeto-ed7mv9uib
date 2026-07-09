@@ -71,6 +71,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/crm/propostas': 'Propostas',
   '/crm/relatorios': 'Relatórios',
   '/crm/fundadores': 'Fundadores',
+  '/guia-compras': 'Guia de Compras',
 }
 
 function capitalize(s: string): string {
