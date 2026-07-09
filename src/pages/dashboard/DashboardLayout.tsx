@@ -40,8 +40,7 @@ export default function DashboardLayout() {
     )
   }
 
-  // Handle empty index route by redirecting to customers CRM view
-  if (location.pathname === '/' || location.pathname === '/dashboard') {
+  if (location.pathname === '/') {
     return <Navigate to="/customers" replace />
   }
 

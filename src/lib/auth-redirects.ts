@@ -19,13 +19,13 @@ export function getRoleBasedRedirect(user: any): string {
   if (user?.collectionName === '_superusers') return '/crm'
   if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com') return '/crm'
   if (user?.role === 'manufacturer') return '/manufacturer'
-  if (user?.role === 'retailer') return '/dashboard'
+  if (user?.role === 'retailer') return '/customers'
   if (user?.role === 'agent') return '/agente'
   if (user?.role === 'fashionista') return '/fashionista'
   if (user?.role === 'affiliate') return '/affiliates'
   if (user?.is_transporter === true) return '/logistica-transportadoras'
 
-  return '/dashboard'
+  return '/customers'
 }
 
 export function isSuperuserOrAdmin(user: any): boolean {

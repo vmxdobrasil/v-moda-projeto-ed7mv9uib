@@ -245,15 +245,17 @@ export default function App() {
             <Routes>
               {/* Routes with LiveChat */}
               <Route element={<AppRoot />}>
-                {/* Public Auth Routes */}
+                {/* Public Auth Routes — redirects logged-in users away from login/signup */}
                 <Route element={<PublicRoute />}>
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
-                  <Route path="/join/guide" element={<JoinGuide />} />
-                  <Route path="/join/influencer" element={<JoinInfluencer />} />
-                  <Route path="/join/agent" element={<JoinAgent />} />
                   <Route path="/admin/login" element={<AdminLogin />} />
                 </Route>
+
+                {/* Join landing pages — accessible to everyone regardless of auth state */}
+                <Route path="/join/guide" element={<JoinGuide />} />
+                <Route path="/join/influencer" element={<JoinInfluencer />} />
+                <Route path="/join/agent" element={<JoinAgent />} />
 
                 {/* Public Marketing Pages */}
                 <Route element={<PublicLayout />}>
