@@ -325,7 +325,13 @@ export default function App() {
                       <Route path="messages" element={<MessagesPage />} />
                       <Route path="manufacturers" element={<ManufacturersHub />} />
                       <Route path="affiliates" element={<AffiliateDashboard />} />
-                      <Route path="agente" element={<AgentDashboard />} />
+                      <Route element={<AgentGuard />}>
+                        <Route path="Agente Credenciado" element={<AgentDashboard />} />
+                      </Route>
+                      <Route
+                        path="agente"
+                        element={<Navigate to="/Agente Credenciado" replace />}
+                      />
                       <Route path="resources" element={<Resources />} />
                       <Route path="analytics" element={<DashboardAnalytics />} />
                       <Route path="v-club" element={<VClubWallet />} />
@@ -368,7 +374,10 @@ export default function App() {
                       />
 
                       <Route element={<AgentGuard />}>
-                        <Route path="agentes" element={<Navigate to="/agente" replace />} />
+                        <Route
+                          path="agentes"
+                          element={<Navigate to="/Agente Credenciado" replace />}
+                        />
                       </Route>
 
                       {/* Protected Manufacturer specifics inside DashboardLayout */}

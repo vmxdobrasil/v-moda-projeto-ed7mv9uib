@@ -20,7 +20,7 @@ export function getRoleBasedRedirect(user: any): string {
   if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com') return '/AdminMaster'
   if (user?.role === 'manufacturer') return '/manufacturer'
   if (user?.role === 'retailer') return '/customers'
-  if (user?.role === 'agent') return '/agente'
+  if (user?.role === 'agent') return '/Agente Credenciado'
   if (user?.role === 'fashionista') return '/fashionista'
   if (user?.role === 'affiliate') return '/affiliates'
   if (user?.is_transporter === true) return '/logistica-transportadoras'

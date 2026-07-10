@@ -37,7 +37,6 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
   {
     label: 'ADMINISTRAÇÃO',
     items: [
-      { name: 'Painel Master', href: '/AdminMaster', icon: Activity },
       { name: 'Painel de Gestão', href: '/admin/dashboard', icon: LayoutDashboard },
       { name: 'Assinaturas', href: '/admin/assinaturas', icon: Wallet },
       { name: 'Insights', href: '/admin/insights', icon: TrendingUp },
@@ -85,11 +84,11 @@ export const AGENT_NAV_SECTIONS: NavSection[] = [
   {
     label: 'MINHAS ATIVIDADES',
     items: [
-      { name: 'Painel do Agente', href: '/agente', icon: LayoutDashboard },
-      { name: 'Minhas Excursões', href: '/agente?tab=excursions', icon: Calendar },
-      { name: 'Meus Clientes', href: '/agente?tab=clients', icon: Users },
-      { name: 'Minhas Comissões', href: '/agente?tab=finances', icon: DollarSign },
-      { name: 'Logística de Cargas', href: '/agente?tab=cargo', icon: Package },
+      { name: 'Painel do Agente', href: '/Agente Credenciado', icon: LayoutDashboard },
+      { name: 'Minhas Excursões', href: '/Agente Credenciado?tab=excursions', icon: Calendar },
+      { name: 'Meus Clientes', href: '/Agente Credenciado?tab=clients', icon: Users },
+      { name: 'Minhas Comissões', href: '/Agente Credenciado?tab=finances', icon: DollarSign },
+      { name: 'Logística de Cargas', href: '/Agente Credenciado?tab=cargo', icon: Package },
       { name: 'Financeiro', href: '/financeiro', icon: Wallet },
     ],
   },

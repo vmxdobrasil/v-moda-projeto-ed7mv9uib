@@ -64,12 +64,19 @@ function isItemActive(href: string, pathname: string, search: string): boolean {
     const currentTab = new URLSearchParams(search).get('tab') || 'overview'
     return pathname === path && currentTab === tabQuery
   }
-  if (href === '/agente') {
+  if (href === '/Agente Credenciado') {
     const currentTab = new URLSearchParams(search).get('tab')
-    return pathname === '/agente' && (!currentTab || currentTab === 'overview')
+    return pathname === '/Agente Credenciado' && (!currentTab || currentTab === 'overview')
   }
   if (pathname === href) return true
-  const exactPaths = ['/', '/admin', '/AdminMaster', '/manufacturer', '/dashboard']
+  const exactPaths = [
+    '/',
+    '/admin',
+    '/AdminMaster',
+    '/manufacturer',
+    '/dashboard',
+    '/Agente Credenciado',
+  ]
   if (exactPaths.includes(href)) return false
   return pathname.startsWith(href + '/')
 }
@@ -85,6 +92,7 @@ export function AppSidebar() {
   const isRetailer =
     user?.role === 'retailer' || (!isAdmin && !isManufacturer && !isAgent && !isAffiliate)
   const isManufacturerContext = location.pathname.startsWith('/manufacturer')
+  const isAgentContext = location.pathname.startsWith('/Agente Credenciado')
 
   const renderItem = (item: NavItem) => (
     <SidebarMenuItem key={item.href}>
@@ -121,14 +129,23 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarContent>
-        {isAdmin && !isManufacturerContext && ADMIN_NAV_SECTIONS.map(renderSection)}
+        {isAdmin &&
+          !isManufacturerContext &&
+          !isAgentContext &&
+          ADMIN_NAV_SECTIONS.map(renderSection)}
         {(isManufacturer || isManufacturerContext) &&
+          !isAgentContext &&
           renderFlatGroup('Portal do Fabricante', MANUFACTURER_ITEMS)}
-        {isAgent && !isManufacturerContext && AGENT_NAV_SECTIONS.map(renderSection)}
+        {(isAgent || isAgentContext) &&
+          !isManufacturerContext &&
+          AGENT_NAV_SECTIONS.map(renderSection)}
         {isAffiliate &&
           !isManufacturerContext &&
+          !isAgentContext &&
           renderFlatGroup('Portal do Afiliado', AFFILIATE_ITEMS)}
-        {isRetailer && renderFlatGroup('Central de Abastecimento', RETAILER_ITEMS)}
+        {isRetailer &&
+          !isAgentContext &&
+          renderFlatGroup('Central de Abastecimento', RETAILER_ITEMS)}
       </SidebarContent>
     </Sidebar>
   )
