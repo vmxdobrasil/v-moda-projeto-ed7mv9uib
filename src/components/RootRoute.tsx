@@ -4,25 +4,10 @@ import Index from '@/pages/Index'
 import { Loader2 } from 'lucide-react'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 import { getRoleBasedRedirect, getIntendedRoute, setIntendedRoute } from '@/lib/auth-redirects'
-import { logAuthEvent } from '@/lib/auth-diagnostics'
-import pb from '@/lib/pocketbase/client'
 
 export function RootRoute() {
   const { isAuthenticated, user, loading, isHydrating } = useAuth()
   const location = useLocation()
-
-  logAuthEvent(
-    'RootRoute_render',
-    {
-      loading,
-      isAuthenticated,
-      isHydrating,
-      hasToken: !!pb.authStore.token,
-      hasRecord: !!user,
-      pathname: location.pathname,
-    },
-    { role: user?.role },
-  )
 
   if (loading || isHydrating) {
     setIntendedRoute(location.pathname + location.search)

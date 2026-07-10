@@ -91,11 +91,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshInProgressRef = useRef(false)
   const lastRefreshRef = useRef<number>(0)
   const isInitializingRef = useRef<boolean>(true)
+  const lastCommittedRef = useRef<{ auth: boolean; recordId: string | null; hydrating: boolean }>({
+    auth: false,
+    recordId: null,
+    hydrating: true,
+  })
 
   const commitAuthState = useCallback((authenticated: boolean, record: any, hydrating: boolean) => {
     if (commitLockRef.current) return
+    const recordId = record?.id ?? null
+    const last = lastCommittedRef.current
+    if (last.auth === authenticated && last.recordId === recordId && last.hydrating === hydrating) {
+      return
+    }
     commitLockRef.current = true
     try {
+      lastCommittedRef.current = { auth: authenticated, recordId, hydrating }
       setUser(authenticated ? record : null)
       setIsAuthenticated(authenticated)
       setIsHydrating(hydrating)

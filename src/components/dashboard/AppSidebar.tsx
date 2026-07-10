@@ -81,9 +81,17 @@ function isItemActive(href: string, pathname: string, search: string): boolean {
   return pathname.startsWith(href + '/')
 }
 
-export function AppSidebar() {
-  const { user } = useAuth()
-  const location = useLocation()
+function computeSections(user: any, pathname: string): NavSection[] {
+  const isAgentContext = pathname.startsWith('/Agente Credenciado')
+  const isManufacturerContext = pathname.startsWith('/manufacturer')
+
+  if (isAgentContext) {
+    return AGENT_NAV_SECTIONS
+  }
+
+  if (isManufacturerContext) {
+    return [{ label: 'Portal do Fabricante', items: MANUFACTURER_ITEMS }]
+  }
 
   const isAdmin = user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
   const isManufacturer = user?.role === 'manufacturer'
@@ -91,8 +99,19 @@ export function AppSidebar() {
   const isAffiliate = user?.role === 'affiliate'
   const isRetailer =
     user?.role === 'retailer' || (!isAdmin && !isManufacturer && !isAgent && !isAffiliate)
-  const isManufacturerContext = location.pathname.startsWith('/manufacturer')
-  const isAgentContext = location.pathname.startsWith('/Agente Credenciado')
+
+  if (isAdmin) return ADMIN_NAV_SECTIONS
+  if (isAffiliate) return [{ label: 'Portal do Afiliado', items: AFFILIATE_ITEMS }]
+  if (isRetailer) return [{ label: 'Central de Abastecimento', items: RETAILER_ITEMS }]
+
+  return []
+}
+
+export function AppSidebar() {
+  const { user } = useAuth()
+  const location = useLocation()
+
+  const sections = computeSections(user, location.pathname)
 
   const renderItem = (item: NavItem) => (
     <SidebarMenuItem key={item.href}>
@@ -117,36 +136,9 @@ export function AppSidebar() {
     </SidebarGroup>
   )
 
-  const renderFlatGroup = (label: string, items: NavItem[]) => (
-    <SidebarGroup key={label}>
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>{items.map(renderItem)}</SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  )
-
   return (
     <Sidebar>
-      <SidebarContent>
-        {isAdmin &&
-          !isManufacturerContext &&
-          !isAgentContext &&
-          ADMIN_NAV_SECTIONS.map(renderSection)}
-        {(isManufacturer || isManufacturerContext) &&
-          !isAgentContext &&
-          renderFlatGroup('Portal do Fabricante', MANUFACTURER_ITEMS)}
-        {(isAgent || isAgentContext) &&
-          !isManufacturerContext &&
-          AGENT_NAV_SECTIONS.map(renderSection)}
-        {isAffiliate &&
-          !isManufacturerContext &&
-          !isAgentContext &&
-          renderFlatGroup('Portal do Afiliado', AFFILIATE_ITEMS)}
-        {isRetailer &&
-          !isAgentContext &&
-          renderFlatGroup('Central de Abastecimento', RETAILER_ITEMS)}
-      </SidebarContent>
+      <SidebarContent>{sections.map(renderSection)}</SidebarContent>
     </Sidebar>
   )
 }

@@ -17,6 +17,7 @@ export function logAuthEvent(
   state: AuthStateLog,
   extras?: Record<string, unknown>,
 ): void {
+  if (import.meta.env.PROD) return
   console.log(PREFIX, event, {
     ...state,
     ...extras,

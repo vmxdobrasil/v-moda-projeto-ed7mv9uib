@@ -2,8 +2,6 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 import { getRoleBasedRedirect, isSuperuserOrAdmin, setIntendedRoute } from '@/lib/auth-redirects'
-import { logAuthEvent } from '@/lib/auth-diagnostics'
-import pb from '@/lib/pocketbase/client'
 
 type GuardState =
   | { status: 'loading' }
@@ -15,46 +13,14 @@ function useGuardBase(): GuardState {
   const location = useLocation()
 
   if (loading || isHydrating) {
-    logAuthEvent('guard_loading', {
-      loading,
-      isAuthenticated,
-      isHydrating,
-      hasToken: !!pb.authStore.token,
-      hasRecord: !!user,
-      pathname: location.pathname,
-    })
     setIntendedRoute(location.pathname + location.search)
     return { status: 'loading' }
   }
 
   if (!isAuthenticated) {
-    logAuthEvent(
-      'guard_redirect_to_login',
-      {
-        loading: false,
-        isAuthenticated: false,
-        isHydrating: false,
-        hasToken: false,
-        hasRecord: !!user,
-        pathname: location.pathname,
-      },
-      { from: location.pathname + location.search },
-    )
     return { status: 'unauthenticated', from: location.pathname + location.search }
   }
 
-  logAuthEvent(
-    'guard_authenticated',
-    {
-      loading: false,
-      isAuthenticated: true,
-      isHydrating: false,
-      hasToken: true,
-      hasRecord: !!user,
-      pathname: location.pathname,
-    },
-    { role: user?.role, userId: user?.id },
-  )
   return { status: 'authenticated', user }
 }
 
