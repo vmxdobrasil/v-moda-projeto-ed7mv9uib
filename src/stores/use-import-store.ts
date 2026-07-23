@@ -75,7 +75,7 @@ const useImportStore = create<ImportStore>((set, get) => ({
     }
 
     try {
-      const BATCH_SIZE = 50 // Smaller chunks to prevent browser crashes and 922 request errors
+      const BATCH_SIZE = 500 // Process in chunks of 500 matching export block size
 
       for (let i = 0; i < rows.length; i += BATCH_SIZE) {
         const batch = rows.slice(i, i + BATCH_SIZE)
@@ -100,7 +100,14 @@ const useImportStore = create<ImportStore>((set, get) => ({
                 val = digits
               }
 
-              mapped[key] = val
+              if (key === 'tags' && val) {
+                mapped.tags = val
+                  .split(',')
+                  .map((t) => t.trim())
+                  .filter(Boolean)
+              } else {
+                mapped[key] = val
+              }
             }
           }
           if (user?.role === 'affiliate' || user?.role === 'agent') {

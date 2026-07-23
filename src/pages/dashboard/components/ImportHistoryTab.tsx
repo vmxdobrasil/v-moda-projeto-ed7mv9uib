@@ -12,12 +12,29 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { FileSpreadsheet, Loader2, AlertCircle } from 'lucide-react'
+import { FileSpreadsheet, Loader2, AlertCircle, Download } from 'lucide-react'
 
 export default function ImportHistoryTab() {
   const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedLog, setSelectedLog] = useState<any>(null)
+
+  const downloadErrorCsv = (log: any) => {
+    if (!log.error_details || !Array.isArray(log.error_details) || log.error_details.length === 0)
+      return
+    const headers = 'Linha,Motivo\n'
+    const rows = log.error_details
+      .map((e: any) => `${e.row},"${(e.reason || '').replace(/"/g, '""')}"`)
+      .join('\n')
+    const csv = '\uFEFF' + headers + rows
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `erros_${log.filename || 'importacao'}.csv`
+    a.click()
+    window.URL.revokeObjectURL(url)
+  }
 
   const loadLogs = async () => {
     try {
@@ -172,6 +189,16 @@ export default function ImportHistoryTab() {
               </p>
             )}
           </div>
+          {selectedLog?.error_details &&
+            Array.isArray(selectedLog.error_details) &&
+            selectedLog.error_details.length > 0 && (
+              <div className="flex justify-end pt-2">
+                <Button variant="outline" size="sm" onClick={() => downloadErrorCsv(selectedLog)}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Baixar Erros em CSV
+                </Button>
+              </div>
+            )}
         </DialogContent>
       </Dialog>
     </div>

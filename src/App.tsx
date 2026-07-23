@@ -88,6 +88,7 @@ import AdminInsights from '@/pages/admin/AdminInsights'
 import AdminPartners from '@/pages/admin/Partners'
 import ZoopProposal from '@/pages/admin/ZoopProposal'
 import DashboardHub from '@/pages/dashboard/DashboardHub'
+import ImportsPage from '@/pages/imports/ImportsPage'
 import DashboardLogistics from '@/pages/dashboard/Logistics'
 import DashboardCustomers from '@/pages/dashboard/Customers'
 import DashboardAnalytics from '@/pages/dashboard/Analytics'
@@ -345,6 +346,7 @@ export default function App() {
                       <Route path="consultant-crm" element={<ConsultantCRM />} />
                       <Route path="inventory" element={<InventoryManagement />} />
                       <Route path="seller-orders" element={<SellerOrders />} />
+                      <Route path="imports" element={<ImportsPage />} />
                       <Route path="pickup-validation" element={<RetailerPickupValidation />} />
 
                       <Route element={<AgentOrTransporterGuard />}>

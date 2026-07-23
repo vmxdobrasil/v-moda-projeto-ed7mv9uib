@@ -114,6 +114,9 @@ export default function ImportLeadsDialog({
         if (n.includes('zona') || n.includes('exclusividade')) autoMap.exclusivity_zone = h
         if (n.includes('origem') && !n.includes('loja')) autoMap.source = h
         if (n.includes('obs') || n.includes('nota') || n.includes('note')) autoMap.notes = h
+        if (n === 'ddd' || n.includes('ddd')) autoMap.ddd = h
+        if (n === 'status' || n.includes('status')) autoMap.status = h
+        if (n.includes('tag') || n.includes('etiqueta')) autoMap.tags = h
       })
       setMapping(autoMap)
       setStep(2)
@@ -294,6 +297,9 @@ export default function ImportLeadsDialog({
               {renderMappingRow('exclusivity_zone', 'Zona de Exclusividade')}
               {renderMappingRow('source', 'Origem')}
               {renderMappingRow('notes', 'Observações / Notas')}
+              {renderMappingRow('ddd', 'DDD')}
+              {renderMappingRow('status', 'Status do Lead')}
+              {renderMappingRow('tags', 'Tags (separadas por vírgula)')}
             </div>
             <div className="flex gap-2 mt-4">
               <Button variant="outline" className="w-full" onClick={() => setStep(1)}>

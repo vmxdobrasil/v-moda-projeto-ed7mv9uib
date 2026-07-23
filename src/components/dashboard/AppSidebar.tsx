@@ -11,6 +11,7 @@ import {
   CreditCard,
   Users,
   Award,
+  Upload,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -34,6 +35,7 @@ const MANUFACTURER_ITEMS: NavItem[] = [
   { name: 'Painel de Gestão', href: '/manufacturer', icon: LayoutDashboard },
   { name: 'Catálogo', href: '/manufacturer/catalog', icon: ShoppingBag },
   { name: 'CRM & Leads', href: '/manufacturer/leads', icon: Users },
+  { name: 'Importar Dados', href: '/imports', icon: Upload },
   { name: 'Logística', href: '/manufacturer/logistics', icon: Truck },
   { name: 'V Club', href: '/manufacturer/v-club', icon: Award },
   { name: 'Configurações', href: '/manufacturer/settings', icon: Settings },
@@ -54,6 +56,7 @@ const RETAILER_ITEMS: NavItem[] = [
   { name: 'Meu Perfil', href: '/perfil', icon: Settings },
   { name: 'Top 100 Marcas', href: '/top-marcas', icon: Star },
   { name: 'Guia de Compras', href: '/guia-compras', icon: Store },
+  { name: 'Importar Dados', href: '/imports', icon: Upload },
   { name: 'Logística & Transporte', href: '/logistica-transportadoras', icon: Truck },
   { name: 'Financeiro', href: '/financeiro', icon: CreditCard },
 ]
@@ -100,7 +103,12 @@ function computeSections(user: any, pathname: string): NavSection[] {
   const isRetailer =
     user?.role === 'retailer' || (!isAdmin && !isManufacturer && !isAgent && !isAffiliate)
 
-  if (isAdmin) return ADMIN_NAV_SECTIONS
+  if (isAdmin) {
+    return [
+      ...ADMIN_NAV_SECTIONS,
+      { label: 'Ferramentas', items: [{ name: 'Importar Dados', href: '/imports', icon: Upload }] },
+    ]
+  }
   if (isAffiliate) return [{ label: 'Portal do Afiliado', items: AFFILIATE_ITEMS }]
   if (isRetailer) return [{ label: 'Central de Abastecimento', items: RETAILER_ITEMS }]
 

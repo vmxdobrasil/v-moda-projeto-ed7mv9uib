@@ -54,10 +54,40 @@ routerAdd(
           if (data.ranking_category) record.set('ranking_category', data.ranking_category)
           if (data.exclusivity_zone) record.set('exclusivity_zone', data.exclusivity_zone)
           if (data.notes) record.set('notes', data.notes)
+          if (data.ddd) record.set('ddd', data.ddd)
+          if (data.tags) {
+            var tagsVal = data.tags
+            if (typeof tagsVal === 'string') {
+              tagsVal = tagsVal
+                .split(',')
+                .map(function (t) {
+                  return t.trim()
+                })
+                .filter(Boolean)
+            }
+            record.set('tags', tagsVal)
+          }
           if (data.manufacturer) record.set('manufacturer', data.manufacturer)
           if (data.affiliate_referrer) record.set('affiliate_referrer', data.affiliate_referrer)
 
-          record.set('status', 'new')
+          var validStatuses = [
+            'new',
+            'interested',
+            'negotiating',
+            'converted',
+            'inactive',
+            'proposal',
+            'lead',
+            'contact',
+            'qualified',
+            'negotiation',
+            'closed',
+          ]
+          if (data.status && validStatuses.indexOf(data.status) !== -1) {
+            record.set('status', data.status)
+          } else {
+            record.set('status', 'new')
+          }
 
           txApp.save(record)
           result.success++
