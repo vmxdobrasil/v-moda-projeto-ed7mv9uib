@@ -35,6 +35,9 @@ export interface ExportResult {
 }
 
 export async function exportCustomersBatch(params: ExportBatchParams): Promise<ExportBatchResult> {
+  if (!pb.authStore.isValid || !pb.authStore.model) {
+    throw { message: 'Sessão expirada. Faça login novamente.', code: 401 }
+  }
   const result = await pb.send('/backend/v1/export-customers-csv', {
     method: 'POST',
     body: JSON.stringify(params),

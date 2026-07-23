@@ -63,7 +63,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
-  const { user } = useAuth()
+  const { user, isAuthenticated } = useAuth()
   const [data, setData] = useState<any>({ items: [], totalItems: 0, totalPages: 0 })
   const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -176,6 +176,14 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
     setSelectAllMatching(false)
   }, [debouncedSearch, statusFilter, shippingFilter, categoryFilter, inactivityFilter])
 
+  // Cancel any pending export when component unmounts (e.g., redirect to login)
+  useEffect(() => {
+    return () => {
+      cancelExport()
+      resetProgress()
+    }
+  }, [cancelExport, resetProgress])
+
   const openDetails = (lead: any) => {
     setSelectedLead(lead)
     setIsDrawerOpen(true)
@@ -221,10 +229,15 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
   }
 
   const canExport = useMemo(() => {
-    return user?.role === 'manufacturer' || user?.role === 'admin'
-  }, [user])
+    return isAuthenticated && (user?.role === 'manufacturer' || user?.role === 'admin')
+  }, [user, isAuthenticated])
 
   const handleExport = async () => {
+    if (!isAuthenticated) {
+      toast.error('Sua sessão expirou. Faça login novamente para continuar a exportação.')
+      navigate('/login')
+      return
+    }
     const result = await exportLeads({
       search: debouncedSearch,
       status: statusFilter,
@@ -236,7 +249,7 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
       toast.success('Exportação concluída com sucesso!')
       navigate('/crm/exportacoes')
     } else if (result.sessionExpired) {
-      toast.error('Sua sessão expirou. Faça login novamente.')
+      toast.error('Sua sessão expirou. Faça login novamente para continuar a exportação.')
       navigate('/login')
     } else if (result.cancelled) {
       toast.info('Exportação cancelada.')
@@ -244,13 +257,20 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
   }
 
   const handleRetryExport = async () => {
+    if (!isAuthenticated) {
+      toast.error('Sua sessão expirou. Faça login novamente para continuar a exportação.')
+      navigate('/login')
+      return
+    }
     const result = await retryExport()
     if (result.success) {
       toast.success('Exportação concluída com sucesso!')
       navigate('/crm/exportacoes')
     } else if (result.sessionExpired) {
-      toast.error('Sua sessão expirou. Faça login novamente.')
+      toast.error('Sua sessão expirou. Faça login novamente para continuar a exportação.')
       navigate('/login')
+    } else if (result.error) {
+      toast.error(result.error)
     }
   }
 

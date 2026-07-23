@@ -55,6 +55,9 @@ export function useCustomerExport() {
     if (err instanceof ClientResponseError) {
       return err.status === 401 || err.status === 403
     }
+    if (err && typeof err === 'object' && 'code' in err && (err as any).code === 401) {
+      return true
+    }
     return false
   }, [])
 
@@ -129,11 +132,11 @@ export function useCustomerExport() {
                 processed,
                 total: totalRecords,
                 status: 'session_expired',
-                error: 'Sua sessão expirou. Faça login novamente.',
+                error: 'Sua sessão expirou. Faça login novamente para continuar a exportação.',
               })
               return {
                 success: false,
-                error: 'Sua sessão expirou. Faça login novamente.',
+                error: 'Sua sessão expirou. Faça login novamente para continuar a exportação.',
                 sessionExpired: true,
               }
             }
