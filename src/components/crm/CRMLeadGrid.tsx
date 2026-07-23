@@ -95,6 +95,7 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
     cancelExport,
     isExporting: exportLoading,
     resetProgress,
+    clearAllExportState,
   } = useCustomerExport()
   const navigate = useNavigate()
 
@@ -178,19 +179,18 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
 
   // Reset export state when session expires while on the page
   useEffect(() => {
-    if (!isAuthenticated) {
-      cancelExport()
-      resetProgress()
+    if (!hasValidAuth) {
+      clearAllExportState()
     }
-  }, [isAuthenticated, cancelExport, resetProgress])
+  }, [hasValidAuth, clearAllExportState])
 
   // Cancel any pending export when component unmounts (e.g., redirect to login)
   useEffect(() => {
     return () => {
       cancelExport()
-      resetProgress()
+      clearAllExportState()
     }
-  }, [cancelExport, resetProgress])
+  }, [cancelExport, clearAllExportState])
 
   const openDetails = (lead: any) => {
     setSelectedLead(lead)
@@ -240,10 +240,12 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
     return user?.role === 'manufacturer' || user?.role === 'admin'
   }, [user])
 
-  const exportDisabled = !isAuthenticated || exportLoading
+  const hasValidAuth = isAuthenticated && !!pb.authStore.isValid && !!pb.authStore.record
+  const exportDisabled = !hasValidAuth || exportLoading
 
   const handleExport = async () => {
-    if (!isAuthenticated) {
+    if (!hasValidAuth) {
+      clearAllExportState()
       toast.error('Sua sessão expirou. Faça login novamente para continuar.')
       navigate('/login')
       return
@@ -269,7 +271,8 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
   }
 
   const handleRetryExport = async () => {
-    if (!isAuthenticated) {
+    if (!hasValidAuth) {
+      clearAllExportState()
       toast.error('Sua sessão expirou. Faça login novamente para continuar.')
       navigate('/login')
       return
@@ -395,12 +398,12 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
               </Link>
             </span>
           )}
-          {canExport && (
+          {canExport && hasValidAuth && (
             <Button
               size="sm"
               onClick={handleExport}
               disabled={exportDisabled}
-              title={!isAuthenticated ? 'Faça login para exportar leads.' : undefined}
+              title={!hasValidAuth ? 'Faça login para exportar leads.' : undefined}
             >
               {exportLoading ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

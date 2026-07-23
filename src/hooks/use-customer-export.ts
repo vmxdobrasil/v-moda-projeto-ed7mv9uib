@@ -246,6 +246,22 @@ export function useCustomerExport() {
         }
       }
       if (isExportingRef.current) return { success: false }
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
+      if (currentPath === '/login' || currentPath === '/signup' || currentPath === '/admin/login') {
+        setProgress({
+          currentBatch: 0,
+          totalBatches: 0,
+          processed: 0,
+          total: 0,
+          status: 'session_expired',
+          error: 'Sua sessão expirou. Faça login novamente para continuar.',
+        })
+        return {
+          success: false,
+          error: 'Sua sessão expirou. Faça login novamente para continuar.',
+          sessionExpired: true,
+        }
+      }
       isExportingRef.current = true
       cancelRef.current = false
       setIsExporting(true)
@@ -263,6 +279,14 @@ export function useCustomerExport() {
   )
 
   const retryExport = useCallback(async (): Promise<ExportResult> => {
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
+    if (currentPath === '/login' || currentPath === '/signup' || currentPath === '/admin/login') {
+      return {
+        success: false,
+        error: 'Sua sessão expirou. Faça login novamente para continuar.',
+        sessionExpired: true,
+      }
+    }
     if (!pb.authStore.isValid || !pb.authStore.record) {
       setProgress({
         currentBatch: 0,
@@ -309,5 +333,27 @@ export function useCustomerExport() {
     retryStateRef.current = null
   }, [])
 
-  return { progress, exportLeads, retryExport, cancelExport, isExporting, resetProgress }
+  const clearAllExportState = useCallback(() => {
+    cancelRef.current = true
+    retryStateRef.current = null
+    isExportingRef.current = false
+    setIsExporting(false)
+    setProgress({
+      currentBatch: 0,
+      totalBatches: 0,
+      processed: 0,
+      total: 0,
+      status: 'idle',
+    })
+  }, [])
+
+  return {
+    progress,
+    exportLeads,
+    retryExport,
+    cancelExport,
+    isExporting,
+    resetProgress,
+    clearAllExportState,
+  }
 }

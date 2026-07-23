@@ -35,7 +35,14 @@ export interface ExportResult {
 }
 
 export async function exportCustomersBatch(params: ExportBatchParams): Promise<ExportBatchResult> {
-  if (!pb.authStore.isValid || !pb.authStore.record) {
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
+  if (
+    currentPath === '/login' ||
+    currentPath === '/signup' ||
+    currentPath === '/admin/login' ||
+    !pb.authStore.isValid ||
+    !pb.authStore.record
+  ) {
     const error = new Error('Sua sessão expirou. Faça login novamente para continuar.')
     ;(error as any).status = 401
     throw error

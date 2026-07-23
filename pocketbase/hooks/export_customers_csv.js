@@ -2,7 +2,6 @@ routerAdd(
   'POST',
   '/backend/v1/export-customers-csv',
   (e) => {
-    var body = e.requestInfo().body || {}
     var userId = e.auth && e.auth.id
     if (!userId) {
       return e.json(401, {
@@ -10,6 +9,7 @@ routerAdd(
         status: 401,
       })
     }
+    var body = e.requestInfo().body || {}
 
     try {
       var role = e.auth ? e.auth.get('role') : ''
