@@ -31,7 +31,7 @@ import {
 import { SendWhatsAppModal } from '@/components/crm/SendWhatsAppModal'
 import { BulkReactivationModal } from '@/components/crm/BulkReactivationModal'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import {
   Search,
@@ -49,12 +49,7 @@ import {
   Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import {
-  exportCustomersCsv,
-  downloadExportFile,
-  getExports,
-  type ExportRecord,
-} from '@/services/exports'
+import { exportCustomersCsv } from '@/services/exports'
 import { format } from 'date-fns'
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -93,7 +88,7 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
   const [isReactivationModalOpen, setIsReactivationModalOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [exportLoading, setExportLoading] = useState(false)
-  const [exportResults, setExportResults] = useState<ExportRecord[]>([])
+  const navigate = useNavigate()
 
   useEffect(() => {
     pb.collection('categories')
@@ -167,20 +162,6 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
     loadData()
   })
 
-  const loadExports = useCallback(() => {
-    getExports()
-      .then((records) => setExportResults(records))
-      .catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    loadExports()
-  }, [loadExports])
-
-  useRealtime('exports', () => {
-    loadExports()
-  })
-
   // Reset selections when filters change
   useEffect(() => {
     setSelectedIds(new Set())
@@ -237,25 +218,16 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
 
   const handleExport = async () => {
     setExportLoading(true)
-    setExportResults([])
     try {
       const result = await exportCustomersCsv()
-      setExportResults(result.exports || [])
       toast.success(
         `Exportação concluída! ${result.total_parts} arquivo(s) gerado(s) com ${result.total_records} leads.`,
       )
+      navigate('/crm/exportacoes')
     } catch (err: any) {
       toast.error(err?.message || 'Falha ao exportar leads. Tente novamente.')
     } finally {
       setExportLoading(false)
-    }
-  }
-
-  const handleDownload = async (exp: ExportRecord) => {
-    try {
-      await downloadExportFile(exp)
-    } catch {
-      toast.error('Falha ao baixar arquivo.')
     }
   }
 
@@ -375,7 +347,7 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
               ) : (
                 <Download className="w-4 h-4 mr-2" />
               )}
-              Exportar Leads
+              {exportLoading ? 'Exportando...' : 'Exportar Leads'}
             </Button>
           )}
         </div>
@@ -638,47 +610,6 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
         filterString={buildFiltersString()}
         onSuccess={handleReactivationSuccess}
       />
-
-      {exportResults.length > 0 && (
-        <div className="bg-card border rounded-lg p-4 space-y-3 animate-fade-in shadow-sm">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold flex items-center">
-              <Download className="w-4 h-4 mr-2" />
-              Arquivos de Exportação ({exportResults.length})
-            </h3>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" asChild className="h-auto p-1 text-primary">
-                <Link to="/crm/exportacoes">Ver Histórico</Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setExportResults([])}
-                className="h-auto p-1 text-muted-foreground"
-              >
-                Limpar
-              </Button>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            {exportResults.map((exp) => (
-              <Button
-                key={exp.id}
-                variant="outline"
-                size="sm"
-                onClick={() => handleDownload(exp)}
-                className="justify-start"
-              >
-                <Download className="w-4 h-4 mr-2 shrink-0" />
-                <span className="truncate">{exp.filename}</span>
-                <span className="text-muted-foreground ml-2 shrink-0">
-                  ({exp.record_count} registros)
-                </span>
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
