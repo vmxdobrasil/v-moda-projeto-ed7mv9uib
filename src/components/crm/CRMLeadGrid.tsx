@@ -88,7 +88,14 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
   const [waConfig, setWaConfig] = useState<any>(null)
   const [isReactivationModalOpen, setIsReactivationModalOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { progress: exportProgress, exportLeads, isExporting: exportLoading } = useCustomerExport()
+  const {
+    progress: exportProgress,
+    exportLeads,
+    retryExport,
+    cancelExport,
+    isExporting: exportLoading,
+    resetProgress,
+  } = useCustomerExport()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -228,8 +235,22 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
     if (result.success) {
       toast.success('Exportação concluída com sucesso!')
       navigate('/crm/exportacoes')
-    } else {
-      toast.error(result.error || 'Falha ao exportar leads. Tente novamente.')
+    } else if (result.sessionExpired) {
+      toast.error('Sua sessão expirou. Faça login novamente.')
+      navigate('/login')
+    } else if (result.cancelled) {
+      toast.info('Exportação cancelada.')
+    }
+  }
+
+  const handleRetryExport = async () => {
+    const result = await retryExport()
+    if (result.success) {
+      toast.success('Exportação concluída com sucesso!')
+      navigate('/crm/exportacoes')
+    } else if (result.sessionExpired) {
+      toast.error('Sua sessão expirou. Faça login novamente.')
+      navigate('/login')
     }
   }
 
@@ -358,20 +379,55 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
       {exportProgress.status === 'processing' && (
         <div className="bg-primary/5 border border-primary/20 rounded-md p-3 space-y-2 animate-fade-in shadow-sm">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">Exportando leads...</span>
+            <span className="font-medium">
+              Exportando lote {exportProgress.currentBatch} de{' '}
+              {exportProgress.totalBatches || '...'}
+            </span>
             <span className="text-muted-foreground">
-              {exportProgress.processed} / {exportProgress.total} leads exportados
+              {exportProgress.totalBatches > 0
+                ? `${Math.round((exportProgress.currentBatch / exportProgress.totalBatches) * 100)}%`
+                : '0%'}
             </span>
           </div>
           <Progress
             value={
-              exportProgress.total > 0 ? (exportProgress.processed / exportProgress.total) * 100 : 0
+              exportProgress.totalBatches > 0
+                ? (exportProgress.currentBatch / exportProgress.totalBatches) * 100
+                : 0
             }
           />
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {exportProgress.processed} de {exportProgress.total} leads processados
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={cancelExport}
+              className="h-6 text-xs"
+              disabled={exportLoading}
+            >
+              Cancelar
+            </Button>
+          </div>
         </div>
       )}
 
       {exportProgress.status === 'error' && (
+        <div className="bg-destructive/5 border border-destructive/20 rounded-md p-3 animate-fade-in space-y-3">
+          <p className="text-sm text-destructive font-medium">{exportProgress.error}</p>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="default" onClick={handleRetryExport}>
+              <RefreshCw className="w-4 h-4 mr-2" /> Tentar novamente
+            </Button>
+            <Button size="sm" variant="outline" onClick={resetProgress}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {exportProgress.status === 'session_expired' && (
         <div className="bg-destructive/5 border border-destructive/20 rounded-md p-3 animate-fade-in">
           <p className="text-sm text-destructive font-medium">{exportProgress.error}</p>
         </div>
