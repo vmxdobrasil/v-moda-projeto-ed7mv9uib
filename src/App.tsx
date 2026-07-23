@@ -197,6 +197,7 @@ import CrmTarefas from '@/pages/crm/CrmTarefas'
 import CrmPropostas from '@/pages/crm/CrmPropostas'
 import CrmRelatorios from '@/pages/crm/CrmRelatorios'
 import CrmFundadores from '@/pages/crm/CrmFundadores'
+import CrmExportacoes from '@/pages/crm/CrmExportacoes'
 
 function AppRoot() {
   return (
@@ -464,6 +465,7 @@ export default function App() {
                       <Route path="propostas" element={<CrmPropostas />} />
                       <Route path="relatorios" element={<CrmRelatorios />} />
                       <Route path="fundadores" element={<CrmFundadores />} />
+                      <Route path="exportacoes" element={<CrmExportacoes />} />
                       <Route path="admin" element={<CrmAdmin />} />
                     </Route>
                   </Route>

@@ -7,6 +7,7 @@ export interface ExportRecord {
   record_count: number
   part_number: number
   total_parts: number
+  created: string
 }
 
 export interface ExportResult {
@@ -23,6 +24,13 @@ export async function exportCustomersCsv(): Promise<ExportResult> {
     throw new Error(result.error)
   }
   return result as ExportResult
+}
+
+export async function getExports(): Promise<ExportRecord[]> {
+  const result = await pb.collection('exports').getFullList({
+    sort: '-created',
+  })
+  return result as unknown as ExportRecord[]
 }
 
 export async function downloadExportFile(record: ExportRecord): Promise<void> {

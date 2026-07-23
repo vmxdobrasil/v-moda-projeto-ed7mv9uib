@@ -49,7 +49,12 @@ import {
   Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { exportCustomersCsv, downloadExportFile, type ExportRecord } from '@/services/exports'
+import {
+  exportCustomersCsv,
+  downloadExportFile,
+  getExports,
+  type ExportRecord,
+} from '@/services/exports'
 import { format } from 'date-fns'
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -162,6 +167,20 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
     loadData()
   })
 
+  const loadExports = useCallback(() => {
+    getExports()
+      .then((records) => setExportResults(records))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    loadExports()
+  }, [loadExports])
+
+  useRealtime('exports', () => {
+    loadExports()
+  })
+
   // Reset selections when filters change
   useEffect(() => {
     setSelectedIds(new Set())
@@ -222,7 +241,9 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
     try {
       const result = await exportCustomersCsv()
       setExportResults(result.exports || [])
-      toast.success(`${result.total_parts} arquivo(s) gerado(s) com ${result.total_records} leads.`)
+      toast.success(
+        `Exportação concluída! ${result.total_parts} arquivo(s) gerado(s) com ${result.total_records} leads.`,
+      )
     } catch (err: any) {
       toast.error(err?.message || 'Falha ao exportar leads. Tente novamente.')
     } finally {
@@ -625,14 +646,19 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
               <Download className="w-4 h-4 mr-2" />
               Arquivos de Exportação ({exportResults.length})
             </h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setExportResults([])}
-              className="h-auto p-1 text-muted-foreground"
-            >
-              Limpar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" asChild className="h-auto p-1 text-primary">
+                <Link to="/crm/exportacoes">Ver Histórico</Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setExportResults([])}
+                className="h-auto p-1 text-muted-foreground"
+              >
+                Limpar
+              </Button>
+            </div>
           </div>
           <div className="flex flex-col gap-2">
             {exportResults.map((exp) => (

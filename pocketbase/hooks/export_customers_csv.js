@@ -139,7 +139,7 @@ routerAdd(
       return s
     }
 
-    var sql = 'SELECT phone, whatsapp_group_name, city, ddd FROM customers'
+    var sql = 'SELECT phone, whatsapp_group_name, city, state, ddd FROM customers'
     var params = {}
     if (!isAdmin) {
       sql += ' WHERE manufacturer = {:userId}'
@@ -169,7 +169,7 @@ routerAdd(
         var groupName = row.whatsapp_group_name || ''
         var city = row.city || ''
         var ddd = extractDdd(row.phone, row.ddd)
-        var state = dddToUf[ddd] || ''
+        var state = row.state || dddToUf[ddd] || ''
         csv +=
           csvEscape(phone) +
           ',' +
@@ -182,7 +182,7 @@ routerAdd(
       }
 
       var partNum = part + 1
-      var filename = 'leads_' + pad3(partNum) + '.csv'
+      var filename = 'leads_export_' + partNum + '_de_' + totalParts + '.csv'
       var fileBytes = stringToUtf8Bytes(csv)
       var file = $filesystem.fileFromBytes(fileBytes, filename)
 
