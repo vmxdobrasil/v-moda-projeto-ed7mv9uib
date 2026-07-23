@@ -171,6 +171,9 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
     loadData()
   })
 
+  const hasValidAuth = isAuthenticated && !!pb.authStore.isValid && !!pb.authStore.record
+  const exportDisabled = !hasValidAuth || exportLoading
+
   // Reset selections when filters change
   useEffect(() => {
     setSelectedIds(new Set())
@@ -239,9 +242,6 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
   const canExport = useMemo(() => {
     return user?.role === 'manufacturer' || user?.role === 'admin'
   }, [user])
-
-  const hasValidAuth = isAuthenticated && !!pb.authStore.isValid && !!pb.authStore.record
-  const exportDisabled = !hasValidAuth || exportLoading
 
   const handleExport = async () => {
     if (!hasValidAuth) {
