@@ -10,20 +10,92 @@ export interface ExportRecord {
   created: string
 }
 
+export interface ExportBatchParams {
+  page: number
+  perPage: number
+  search?: string
+  status?: string
+  shippingMethod?: string
+  categoryId?: string
+  inactivityDays?: string
+}
+
+export interface ExportBatchResult {
+  csvChunk: string
+  totalRecords: number
+  page: number
+  totalPages: number
+  hasMore: boolean
+}
+
 export interface ExportResult {
-  exports: ExportRecord[]
-  total_parts: number
+  success: boolean
   total_records: number
+  error?: string
+}
+
+export async function exportCustomersBatch(params: ExportBatchParams): Promise<ExportBatchResult> {
+  const result = await pb.send('/backend/v1/export-customers-csv', {
+    method: 'POST',
+    body: JSON.stringify(params),
+    headers: { 'Content-Type': 'application/json' },
+  })
+  return result as ExportBatchResult
+}
+
+export async function createExportRecord(
+  csvContent: string,
+  filename: string,
+  recordCount: number,
+): Promise<ExportRecord> {
+  const userId = pb.authStore.record?.id
+  if (!userId) throw new Error('Usuário não autenticado')
+
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' })
+  const formData = new FormData()
+  formData.append('user', userId)
+  formData.append('filename', filename)
+  formData.append('file', blob, filename)
+  formData.append('record_count', String(recordCount))
+  formData.append('part_number', '1')
+  formData.append('total_parts', '1')
+
+  const record = await pb.collection('exports').create(formData)
+  return record as unknown as ExportRecord
 }
 
 export async function exportCustomersCsv(): Promise<ExportResult> {
-  const result = await pb.send('/backend/v1/export-customers-csv', {
-    method: 'POST',
-  })
-  if (result.error) {
-    throw new Error(result.error)
+  try {
+    const csvParts: string[] = []
+    let currentPage = 1
+    let totalRecords = 0
+
+    while (true) {
+      const batch = await exportCustomersBatch({
+        page: currentPage,
+        perPage: 500,
+      })
+      totalRecords = batch.totalRecords
+      if (batch.csvChunk) csvParts.push(batch.csvChunk)
+      if (!batch.hasMore) break
+      currentPage++
+    }
+
+    if (totalRecords === 0) {
+      return { success: false, total_records: 0, error: 'Nenhum lead encontrado para exportação.' }
+    }
+
+    const csvContent = 'phone,whatsapp_group_name,city,state\n' + csvParts.join('')
+    const filename = `leads_export_${new Date().toISOString().split('T')[0]}.csv`
+    await createExportRecord(csvContent, filename, totalRecords)
+    return { success: true, total_records: totalRecords }
+  } catch (err: any) {
+    return {
+      success: false,
+      total_records: 0,
+      error: err?.message || 'Erro ao exportar leads. Tente novamente.',
+    }
   }
-  return result as ExportResult
 }
 
 export async function getExports(): Promise<ExportRecord[]> {

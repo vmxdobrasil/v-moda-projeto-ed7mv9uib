@@ -5,14 +5,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
-import { exportCustomersCsv, downloadExportFile, type ExportRecord } from '@/services/exports'
-import { Download, Loader2, FileDown, AlertCircle } from 'lucide-react'
+import { exportCustomersCsv } from '@/services/exports'
+import { Download, Loader2, AlertCircle } from 'lucide-react'
 
 export default function Index() {
   const { user, isAuthenticated } = useAuth()
   const [topBrands, setTopBrands] = useState<Record<string, any[]>>({})
   const [exporting, setExporting] = useState(false)
-  const [exportResult, setExportResult] = useState<ExportRecord | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -22,24 +21,15 @@ export default function Index() {
   async function handleExport() {
     setExporting(true)
     setExportError(null)
-    setExportResult(null)
     try {
       const result = await exportCustomersCsv()
-      if (result.exports && result.exports.length > 0) {
-        setExportResult(result.exports[0])
+      if (!result.success) {
+        setExportError(result.error || 'Erro ao exportar. Tente novamente.')
       }
     } catch (err: any) {
       setExportError(err?.message || 'Erro ao exportar. Tente novamente.')
     } finally {
       setExporting(false)
-    }
-  }
-
-  async function handleDownload(record: ExportRecord) {
-    try {
-      await downloadExportFile(record)
-    } catch {
-      setExportError('Erro ao baixar arquivo. Tente novamente.')
     }
   }
 
@@ -112,17 +102,6 @@ export default function Index() {
                 </>
               )}
             </Button>
-            {exportResult && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDownload(exportResult)}
-                className="gap-2 bg-white/10 border-white/30 text-white hover:bg-white/20"
-              >
-                <FileDown className="w-4 h-4" />
-                Baixar {exportResult.filename}
-              </Button>
-            )}
             {exportError && (
               <span className="flex items-center gap-1 text-sm text-red-200">
                 <AlertCircle className="w-4 h-4" />

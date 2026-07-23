@@ -49,7 +49,8 @@ import {
   Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { exportCustomersCsv } from '@/services/exports'
+import { useCustomerExport } from '@/hooks/use-customer-export'
+import { Progress } from '@/components/ui/progress'
 import { format } from 'date-fns'
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -87,7 +88,7 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
   const [waConfig, setWaConfig] = useState<any>(null)
   const [isReactivationModalOpen, setIsReactivationModalOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [exportLoading, setExportLoading] = useState(false)
+  const { progress: exportProgress, exportLeads, isExporting: exportLoading } = useCustomerExport()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -217,17 +218,18 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
   }, [user])
 
   const handleExport = async () => {
-    setExportLoading(true)
-    try {
-      const result = await exportCustomersCsv()
-      toast.success(
-        `Exportação concluída! ${result.total_parts} arquivo(s) gerado(s) com ${result.total_records} leads.`,
-      )
+    const result = await exportLeads({
+      search: debouncedSearch,
+      status: statusFilter,
+      shippingMethod: shippingFilter,
+      categoryId: categoryFilter,
+      inactivityDays: inactivityFilter,
+    })
+    if (result.success) {
+      toast.success('Exportação concluída com sucesso!')
       navigate('/crm/exportacoes')
-    } catch (err: any) {
-      toast.error(err?.message || 'Falha ao exportar leads. Tente novamente.')
-    } finally {
-      setExportLoading(false)
+    } else {
+      toast.error(result.error || 'Falha ao exportar leads. Tente novamente.')
     }
   }
 
@@ -352,6 +354,28 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
           )}
         </div>
       </div>
+
+      {exportProgress.status === 'processing' && (
+        <div className="bg-primary/5 border border-primary/20 rounded-md p-3 space-y-2 animate-fade-in shadow-sm">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium">Exportando leads...</span>
+            <span className="text-muted-foreground">
+              {exportProgress.processed} / {exportProgress.total} leads exportados
+            </span>
+          </div>
+          <Progress
+            value={
+              exportProgress.total > 0 ? (exportProgress.processed / exportProgress.total) * 100 : 0
+            }
+          />
+        </div>
+      )}
+
+      {exportProgress.status === 'error' && (
+        <div className="bg-destructive/5 border border-destructive/20 rounded-md p-3 animate-fade-in">
+          <p className="text-sm text-destructive font-medium">{exportProgress.error}</p>
+        </div>
+      )}
 
       {(selectedIds.size > 0 || selectAllMatching) && (
         <div className="bg-primary/5 border border-primary/20 rounded-md p-3 flex flex-wrap gap-4 items-center justify-between animate-fade-in shadow-sm">

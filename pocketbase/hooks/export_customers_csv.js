@@ -2,12 +2,17 @@ routerAdd(
   'POST',
   '/backend/v1/export-customers-csv',
   (e) => {
+    var body = e.requestInfo().body || {}
     var userId = e.auth && e.auth.id
     if (!userId) return e.unauthorizedError('auth required')
 
     var role = e.auth ? e.auth.get('role') : ''
     var email = e.auth ? e.auth.get('email') : ''
     var isAdmin = role === 'admin' || email === 'valterpmendonca@gmail.com'
+
+    var page = Math.max(1, parseInt(body.page || '1', 10) || 1)
+    var perPage = Math.min(500, Math.max(1, parseInt(body.perPage || '500', 10) || 500))
+    var offset = (page - 1) * perPage
 
     var dddToUf = {
       11: 'SP',
@@ -115,100 +120,104 @@ routerAdd(
       return str
     }
 
-    function stringToUtf8Bytes(str) {
-      var bytes = []
-      for (var i = 0; i < str.length; i++) {
-        var charCode = str.charCodeAt(i)
-        if (charCode < 0x80) {
-          bytes.push(charCode)
-        } else if (charCode < 0x800) {
-          bytes.push(0xc0 | (charCode >> 6))
-          bytes.push(0x80 | (charCode & 0x3f))
-        } else {
-          bytes.push(0xe0 | (charCode >> 12))
-          bytes.push(0x80 | ((charCode >> 6) & 0x3f))
-          bytes.push(0x80 | (charCode & 0x3f))
-        }
-      }
-      return new Uint8Array(bytes)
-    }
-
-    function pad3(n) {
-      var s = String(n)
-      while (s.length < 3) s = '0' + s
-      return s
-    }
-
-    var sql = 'SELECT phone, whatsapp_group_name, city, state, ddd FROM customers'
+    var conditions = []
     var params = {}
+
     if (!isAdmin) {
-      sql += ' WHERE manufacturer = {:userId}'
-      params = { userId: userId }
+      conditions.push('manufacturer = {:userId}')
+      params.userId = userId
     }
 
+    if (body.search && typeof body.search === 'string' && body.search.trim()) {
+      params.search = '%' + body.search.trim() + '%'
+      conditions.push('(name LIKE {:search} OR phone LIKE {:search})')
+    }
+
+    if (body.status && body.status !== 'all') {
+      params.status = body.status
+      conditions.push('status = {:status}')
+    }
+
+    if (body.shippingMethod && body.shippingMethod !== 'all') {
+      params.shippingMethod = body.shippingMethod
+      conditions.push('shipping_method = {:shippingMethod}')
+    }
+
+    if (body.categoryId && body.categoryId !== 'all') {
+      params.categoryId = body.categoryId
+      conditions.push('category_id = {:categoryId}')
+    }
+
+    if (body.inactivityDays && body.inactivityDays !== 'all') {
+      var days = parseInt(String(body.inactivityDays), 10)
+      if (days > 0) {
+        var cutoff = new Date()
+        cutoff.setDate(cutoff.getDate() - days)
+        var cutoffStr = cutoff.toISOString().split('T')[0]
+        params.cutoffDate = cutoffStr
+        conditions.push(
+          "(last_contacted_at < {:cutoffDate} OR last_contacted_at = '' OR last_contacted_at IS NULL)",
+        )
+      }
+    }
+
+    var whereClause = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''
+
+    var countRows = []
+    $app
+      .db()
+      .newQuery('SELECT COUNT(*) as total FROM customers' + whereClause)
+      .bind(params)
+      .all(countRows)
+    var totalRecords = countRows.length > 0 ? countRows[0].total : 0
+
+    if (totalRecords === 0) {
+      return e.json(200, {
+        csvChunk: '',
+        totalRecords: 0,
+        page: page,
+        totalPages: 0,
+        hasMore: false,
+      })
+    }
+
+    var dataSql =
+      'SELECT phone, whatsapp_group_name, city, state, ddd FROM customers' +
+      whereClause +
+      ' ORDER BY created DESC LIMIT ' +
+      perPage +
+      ' OFFSET ' +
+      offset
     var rows = []
-    $app.db().newQuery(sql).bind(params).all(rows)
+    $app.db().newQuery(dataSql).bind(params).all(rows)
 
-    if (rows.length === 0) {
-      return e.json(400, { error: 'Nenhum cliente encontrado para exportação.' })
-    }
-
-    var batchSize = 500
-    var totalParts = Math.ceil(rows.length / batchSize)
-    var exportsArr = []
-    var exportsCol = $app.findCollectionByNameOrId('exports')
-
-    for (var part = 0; part < totalParts; part++) {
-      var start = part * batchSize
-      var end = Math.min(start + batchSize, rows.length)
-
-      var csv = '\uFEFFphone,whatsapp_group_name,city,state\n'
-      for (var i = start; i < end; i++) {
-        var row = rows[i]
-        var phone = normalizePhone(row.phone)
-        var groupName = row.whatsapp_group_name || ''
-        var city = row.city || ''
-        var ddd = extractDdd(row.phone, row.ddd)
-        var state = row.state || dddToUf[ddd] || ''
-        csv +=
-          csvEscape(phone) +
+    var csvLines = []
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i]
+      var phone = normalizePhone(row.phone)
+      var groupName = row.whatsapp_group_name || ''
+      var city = row.city || ''
+      var ddd = extractDdd(row.phone, row.ddd)
+      var state = row.state || dddToUf[ddd] || ''
+      csvLines.push(
+        csvEscape(phone) +
           ',' +
           csvEscape(groupName) +
           ',' +
           csvEscape(city) +
           ',' +
-          csvEscape(state) +
-          '\n'
-      }
-
-      var partNum = part + 1
-      var filename = 'leads_export_' + partNum + '_de_' + totalParts + '.csv'
-      var fileBytes = stringToUtf8Bytes(csv)
-      var file = $filesystem.fileFromBytes(fileBytes, filename)
-
-      var record = new Record(exportsCol)
-      record.set('user', userId)
-      record.set('filename', filename)
-      record.set('file', file)
-      record.set('record_count', end - start)
-      record.set('part_number', partNum)
-      record.set('total_parts', totalParts)
-      $app.save(record)
-
-      exportsArr.push({
-        id: record.id,
-        filename: filename,
-        file: record.getString('file'),
-        record_count: end - start,
-        part_number: partNum,
-        total_parts: totalParts,
-      })
+          csvEscape(state),
+      )
     }
 
+    var totalPages = Math.ceil(totalRecords / perPage)
+
     return e.json(200, {
-      exports: exportsArr,
-      total_parts: totalParts,
-      total_records: rows.length,
+      csvChunk: csvLines.length > 0 ? csvLines.join('\n') + '\n' : '',
+      totalRecords: totalRecords,
+      page: page,
+      totalPages: totalPages,
+      hasMore: page < totalPages,
     })
   },
   $apis.requireAuth(),
