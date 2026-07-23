@@ -46,7 +46,10 @@ import {
   AlertCircle,
   Megaphone,
   RefreshCw,
+  Download,
 } from 'lucide-react'
+import { toast } from 'sonner'
+import { exportCustomersCsv, downloadExportFile, type ExportRecord } from '@/services/exports'
 import { format } from 'date-fns'
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -84,6 +87,8 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
   const [waConfig, setWaConfig] = useState<any>(null)
   const [isReactivationModalOpen, setIsReactivationModalOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [exportLoading, setExportLoading] = useState(false)
+  const [exportResults, setExportResults] = useState<ExportRecord[]>([])
 
   useEffect(() => {
     pb.collection('categories')
@@ -207,6 +212,32 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
     loadData()
   }
 
+  const canExport = useMemo(() => {
+    return user?.role === 'manufacturer' || user?.role === 'admin'
+  }, [user])
+
+  const handleExport = async () => {
+    setExportLoading(true)
+    setExportResults([])
+    try {
+      const result = await exportCustomersCsv()
+      setExportResults(result.exports || [])
+      toast.success(`${result.total_parts} arquivo(s) gerado(s) com ${result.total_records} leads.`)
+    } catch (err: any) {
+      toast.error(err?.message || 'Falha ao exportar leads. Tente novamente.')
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
+  const handleDownload = async (exp: ExportRecord) => {
+    try {
+      await downloadExportFile(exp)
+    } catch {
+      toast.error('Falha ao baixar arquivo.')
+    }
+  }
+
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex flex-col lg:flex-row gap-4 items-center justify-between bg-card p-4 rounded-lg border shadow-sm">
@@ -303,7 +334,7 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
           </Select>
         </div>
 
-        <div className="w-full lg:w-auto flex items-center justify-end text-xs whitespace-nowrap">
+        <div className="w-full lg:w-auto flex items-center justify-end gap-3 text-xs whitespace-nowrap">
           {isWaConnected ? (
             <span className="flex items-center text-green-600">
               <CheckCircle2 className="w-4 h-4 mr-1" /> WA Conectado
@@ -315,6 +346,16 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
                 Configurar
               </Link>
             </span>
+          )}
+          {canExport && (
+            <Button size="sm" onClick={handleExport} disabled={exportLoading}>
+              {exportLoading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              Exportar Leads
+            </Button>
           )}
         </div>
       </div>
@@ -576,6 +617,42 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
         filterString={buildFiltersString()}
         onSuccess={handleReactivationSuccess}
       />
+
+      {exportResults.length > 0 && (
+        <div className="bg-card border rounded-lg p-4 space-y-3 animate-fade-in shadow-sm">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold flex items-center">
+              <Download className="w-4 h-4 mr-2" />
+              Arquivos de Exportação ({exportResults.length})
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setExportResults([])}
+              className="h-auto p-1 text-muted-foreground"
+            >
+              Limpar
+            </Button>
+          </div>
+          <div className="flex flex-col gap-2">
+            {exportResults.map((exp) => (
+              <Button
+                key={exp.id}
+                variant="outline"
+                size="sm"
+                onClick={() => handleDownload(exp)}
+                className="justify-start"
+              >
+                <Download className="w-4 h-4 mr-2 shrink-0" />
+                <span className="truncate">{exp.filename}</span>
+                <span className="text-muted-foreground ml-2 shrink-0">
+                  ({exp.record_count} registros)
+                </span>
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
