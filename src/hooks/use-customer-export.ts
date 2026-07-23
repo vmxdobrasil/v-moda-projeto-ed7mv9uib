@@ -55,8 +55,9 @@ export function useCustomerExport() {
     if (err instanceof ClientResponseError) {
       return err.status === 401 || err.status === 403
     }
-    if (err && typeof err === 'object' && 'code' in err && (err as any).code === 401) {
-      return true
+    if (err && typeof err === 'object') {
+      const e = err as any
+      if (e.code === 401 || e.status === 401 || e.status === 403) return true
     }
     return false
   }, [])
@@ -124,6 +125,7 @@ export function useCustomerExport() {
             })
           } catch (err: unknown) {
             if (isSessionExpiredError(err)) {
+              retryStateRef.current = null
               await savePartialResults(csvParts, totalRecords, 'parcial')
               const processed = (currentPage - 1) * BATCH_SIZE
               setProgress({
@@ -149,7 +151,13 @@ export function useCustomerExport() {
               filters,
             }
 
-            const reason = err instanceof Error ? err.message : 'erro desconhecido'
+            const errStatus = (err as any)?.status ?? 0
+            const isTransient = errStatus === 0 || errStatus === 500
+            const reason = isTransient
+              ? 'Não foi possível completar a exportação. Verifique sua conexão e tente novamente.'
+              : err instanceof Error
+                ? err.message
+                : 'Não foi possível completar a exportação. Tente novamente.'
             const processed = (currentPage - 1) * BATCH_SIZE
             const batchTotal = totalBatches || '?'
             setProgress({
@@ -158,12 +166,12 @@ export function useCustomerExport() {
               processed,
               total: totalRecords,
               status: 'error',
-              error: `Falha ao exportar lote ${currentPage} de ${batchTotal}. ${reason} Tente novamente.`,
+              error: `Falha ao exportar lote ${currentPage} de ${batchTotal}. ${reason}`,
               failedBatch: currentPage,
             })
             return {
               success: false,
-              error: `Falha ao exportar lote ${currentPage} de ${batchTotal}. ${reason} Tente novamente.`,
+              error: `Falha ao exportar lote ${currentPage} de ${batchTotal}. ${reason}`,
             }
           }
 
@@ -222,6 +230,21 @@ export function useCustomerExport() {
 
   const exportLeads = useCallback(
     async (filters: ExportFilters): Promise<ExportResult> => {
+      if (!pb.authStore.isValid || !pb.authStore.record) {
+        setProgress({
+          currentBatch: 0,
+          totalBatches: 0,
+          processed: 0,
+          total: 0,
+          status: 'session_expired',
+          error: 'Sua sessão expirou. Faça login novamente para continuar.',
+        })
+        return {
+          success: false,
+          error: 'Sua sessão expirou. Faça login novamente para continuar.',
+          sessionExpired: true,
+        }
+      }
       if (isExportingRef.current) return { success: false }
       isExportingRef.current = true
       cancelRef.current = false
@@ -240,6 +263,21 @@ export function useCustomerExport() {
   )
 
   const retryExport = useCallback(async (): Promise<ExportResult> => {
+    if (!pb.authStore.isValid || !pb.authStore.record) {
+      setProgress({
+        currentBatch: 0,
+        totalBatches: 0,
+        processed: 0,
+        total: 0,
+        status: 'session_expired',
+        error: 'Sua sessão expirou. Faça login novamente para continuar.',
+      })
+      return {
+        success: false,
+        error: 'Sua sessão expirou. Faça login novamente para continuar.',
+        sessionExpired: true,
+      }
+    }
     if (isExportingRef.current) return { success: false }
     const state = retryStateRef.current
     if (!state) return { success: false, error: 'Nenhuma exportação para retomar.' }

@@ -35,15 +35,26 @@ export interface ExportResult {
 }
 
 export async function exportCustomersBatch(params: ExportBatchParams): Promise<ExportBatchResult> {
-  if (!pb.authStore.isValid || !pb.authStore.model) {
-    throw { message: 'Sessão expirada. Faça login novamente.', code: 401 }
+  if (!pb.authStore.isValid || !pb.authStore.record) {
+    const error = new Error('Sua sessão expirou. Faça login novamente para continuar.')
+    ;(error as any).status = 401
+    throw error
   }
-  const result = await pb.send('/backend/v1/export-customers-csv', {
-    method: 'POST',
-    body: JSON.stringify(params),
-    headers: { 'Content-Type': 'application/json' },
-  })
-  return result as ExportBatchResult
+  try {
+    const result = await pb.send('/backend/v1/export-customers-csv', {
+      method: 'POST',
+      body: JSON.stringify(params),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    return result as ExportBatchResult
+  } catch (err: any) {
+    if (err?.status === 401 || err?.status === 403) {
+      const error = new Error('Sua sessão expirou. Faça login novamente para continuar.')
+      ;(error as any).status = 401
+      throw error
+    }
+    throw err
+  }
 }
 
 export async function createExportRecord(

@@ -226,10 +226,12 @@ routerAdd(
         hasMore: page < totalPages,
       })
     } catch (err) {
+      $app
+        .logger()
+        .error('export_customers_csv_failed', 'error', err && err.message ? err.message : 'unknown')
       return e.json(500, {
         message:
-          'Falha ao processar a exportação: ' +
-          (err && err.message ? err.message : 'erro desconhecido'),
+          'Não foi possível completar a exportação. Verifique sua conexão e tente novamente.',
         status: 500,
       })
     }
