@@ -22,16 +22,21 @@ export default function ImportHistoryTab() {
   const downloadErrorCsv = (log: any) => {
     if (!log.error_details || !Array.isArray(log.error_details) || log.error_details.length === 0)
       return
-    const headers = 'Linha,Motivo\n'
+    const headers = 'row_index,phone,error_message\n'
     const rows = log.error_details
-      .map((e: any) => `${e.row},"${(e.reason || '').replace(/"/g, '""')}"`)
+      .map((e: any) => {
+        const rowIdx = e.row_index || e.row || ''
+        const phone = e.phone || ''
+        const errorMsg = e.error_message || e.reason || ''
+        return `${rowIdx},"${phone}","${errorMsg.replace(/"/g, '""')}"`
+      })
       .join('\n')
     const csv = '\uFEFF' + headers + rows
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `erros_${log.filename || 'importacao'}.csv`
+    a.download = `import_errors_${log.id}.csv`
     a.click()
     window.URL.revokeObjectURL(url)
   }
@@ -124,20 +129,31 @@ export default function ImportHistoryTab() {
                     {log.total_records || 0} registros
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!log.error_details || log.error_details.length === 0}
-                      onClick={() => setSelectedLog(log)}
-                      className={
-                        log.error_details?.length > 0
-                          ? 'text-red-600 border-red-200 hover:bg-red-50'
-                          : ''
-                      }
-                    >
-                      <AlertCircle className="w-4 h-4 mr-2" />
-                      Ver Erros
-                    </Button>
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!log.error_details || log.error_details.length === 0}
+                        onClick={() => setSelectedLog(log)}
+                        className={
+                          log.error_details?.length > 0
+                            ? 'text-red-600 border-red-200 hover:bg-red-50'
+                            : ''
+                        }
+                      >
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        Ver Erros
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!log.error_details || log.error_details.length === 0}
+                        onClick={() => downloadErrorCsv(log)}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Baixar Erros
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

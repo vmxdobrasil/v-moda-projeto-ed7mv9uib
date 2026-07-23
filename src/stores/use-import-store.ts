@@ -4,8 +4,9 @@ import pb from '@/lib/pocketbase/client'
 export type ImportStats = {
   success: number
   skipped: number
+  updated: number
   error: number
-  errorDetails?: Array<{ row: number; reason: string }>
+  errorDetails?: Array<{ row: number; phone?: string; reason: string }>
 }
 
 interface ImportStore {
@@ -19,6 +20,7 @@ interface ImportStore {
     mapping: Record<string, string>,
     defaultSource?: string,
     filename?: string,
+    duplicateAction?: string,
   ) => Promise<void>
   reset: () => void
 }
@@ -30,18 +32,13 @@ const useImportStore = create<ImportStore>((set, get) => ({
   isImporting: false,
   stats: null,
   reset: () =>
-    set({
-      progress: 0,
-      processedCount: 0,
-      totalCount: 0,
-      isImporting: false,
-      stats: null,
-    }),
+    set({ progress: 0, processedCount: 0, totalCount: 0, isImporting: false, stats: null }),
   startImport: async (
     rows,
     mapping,
     defaultSource = 'whatsapp_group',
     filename = 'importacao_leads.csv',
+    duplicateAction = 'ignore',
   ) => {
     if (get().isImporting) return
 
@@ -55,8 +52,9 @@ const useImportStore = create<ImportStore>((set, get) => ({
 
     let totalSuccess = 0
     let totalSkipped = 0
+    let totalUpdated = 0
     let totalError = 0
-    let allErrors: Array<{ row: number; reason: string }> = []
+    let allErrors: Array<{ row: number; phone?: string; reason: string }> = []
 
     let logId = ''
     try {
@@ -75,23 +73,20 @@ const useImportStore = create<ImportStore>((set, get) => ({
     }
 
     try {
-      const BATCH_SIZE = 500 // Process in chunks of 500 matching export block size
+      const BATCH_SIZE = 500
 
       for (let i = 0; i < rows.length; i += BATCH_SIZE) {
         const batch = rows.slice(i, i + BATCH_SIZE)
-
         const user = pb.authStore.record
+
         const mappedRecords = batch.map((row) => {
           const mapped: any = {}
           for (const [key, colName] of Object.entries(mapping)) {
             if (colName && row[colName] !== undefined) {
               let val = String(row[colName])
-
               if (key === 'phone' && val) {
                 let digits = val.replace(/\D/g, '')
-                if (digits.length === 10 || digits.length === 11) {
-                  digits = '55' + digits
-                }
+                if (digits.length === 10 || digits.length === 11) digits = '55' + digits
                 if (digits.startsWith('55') && digits.length === 12) {
                   const ddd = digits.substring(2, 4)
                   const num = digits.substring(4)
@@ -99,7 +94,6 @@ const useImportStore = create<ImportStore>((set, get) => ({
                 }
                 val = digits
               }
-
               if (key === 'tags' && val) {
                 mapped.tags = val
                   .split(',')
@@ -125,25 +119,27 @@ const useImportStore = create<ImportStore>((set, get) => ({
           try {
             const res = await pb.send('/backend/v1/customers/bulk-import', {
               method: 'POST',
-              body: JSON.stringify({ records: mappedRecords, defaultSource }),
+              body: JSON.stringify({
+                records: mappedRecords,
+                defaultSource,
+                duplicate_action: duplicateAction,
+              }),
               headers: { 'Content-Type': 'application/json' },
-              requestKey: null, // prevent auto-cancellation for long running loops
             })
 
             totalSuccess += res.success || 0
             totalSkipped += res.skipped || 0
+            totalUpdated += res.updated || 0
             totalError += res.error || 0
 
             if (res.errorDetails && Array.isArray(res.errorDetails)) {
               allErrors = [
                 ...allErrors,
-                ...res.errorDetails.map((e: any) => {
-                  const failedRecord = mappedRecords[e.index]
-                  return {
-                    row: i + e.index + 2,
-                    reason: `${e.reason} (Telefone: ${failedRecord?.phone || 'Desconhecido'})`,
-                  }
-                }),
+                ...res.errorDetails.map((e: any) => ({
+                  row: e.row_index || i + (e.index || 0) + 2,
+                  phone: e.phone || '',
+                  reason: e.error_message || e.reason || 'Erro desconhecido',
+                })),
               ]
             }
             successBatch = true
@@ -157,16 +153,13 @@ const useImportStore = create<ImportStore>((set, get) => ({
                 reason: err.message || 'Erro de comunicação no lote (Timeout/922).',
               })
             } else {
-              // Exponential backoff
               await new Promise((r) => setTimeout(r, (6 - retries) * 1000))
             }
           }
         }
 
-        // Small delay between successful batches to avoid overwhelming the server
         await new Promise((r) => setTimeout(r, 200))
-
-        const currentProcessed = totalSuccess + totalSkipped + totalError
+        const currentProcessed = totalSuccess + totalSkipped + totalUpdated + totalError
 
         if (logId) {
           try {
@@ -178,21 +171,16 @@ const useImportStore = create<ImportStore>((set, get) => ({
           }
         }
 
-        const newProcessedCount = Math.min(currentProcessed, rows.length)
-        const newProgress = Math.min(100, Math.round(((i + BATCH_SIZE) / rows.length) * 100))
-
         set({
-          processedCount: newProcessedCount,
-          progress: newProgress,
+          processedCount: Math.min(currentProcessed, rows.length),
+          progress: Math.min(100, Math.round(((i + BATCH_SIZE) / rows.length) * 100)),
         })
-
-        await new Promise((r) => setTimeout(r, 100)) // yield to UI thread
+        await new Promise((r) => setTimeout(r, 100))
       }
     } catch (err) {
       console.error('Bulk import error', err)
     } finally {
       try {
-        // Trigger the normalize logic at the end of import just in case
         await pb.send('/backend/v1/customers/normalize', { method: 'POST' })
       } catch (e) {
         console.error('Failed to trigger normalize after import', e)
@@ -201,12 +189,12 @@ const useImportStore = create<ImportStore>((set, get) => ({
       if (logId) {
         let finalStatus = 'success'
         if (totalError > 0 && totalSuccess > 0) finalStatus = 'partial_success'
-        if (totalError > 0 && totalSuccess === 0) finalStatus = 'failed'
+        if (totalError > 0 && totalSuccess === 0 && totalUpdated === 0) finalStatus = 'failed'
 
         try {
           await pb.collection('import_logs').update(logId, {
             status: finalStatus,
-            processed_records: totalSuccess + totalSkipped + totalError,
+            processed_records: totalSuccess + totalSkipped + totalUpdated + totalError,
             error_summary: totalError > 0 ? `${totalError} registros com erro.` : '',
             error_details: allErrors.length > 0 ? allErrors : null,
           })
@@ -222,6 +210,7 @@ const useImportStore = create<ImportStore>((set, get) => ({
         stats: {
           success: totalSuccess,
           skipped: totalSkipped,
+          updated: totalUpdated,
           error: totalError,
           errorDetails: allErrors,
         },

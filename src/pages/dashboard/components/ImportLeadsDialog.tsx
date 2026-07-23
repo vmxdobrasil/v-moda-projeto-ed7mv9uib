@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { AlertTriangle, Info } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -21,7 +23,8 @@ import {
 import { toast } from 'sonner'
 import { parseCSV } from '@/lib/csv-parser'
 import useImportStore from '@/stores/use-import-store'
-import { UploadCloud, CheckCircle2, FileSpreadsheet, DownloadCloud } from 'lucide-react'
+import { analyzeDuplicates, checkReimport, normalizePhoneBR } from '@/services/import-tools'
+import { UploadCloud, CheckCircle2, FileSpreadsheet, DownloadCloud, Loader2 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 
 export default function ImportLeadsDialog({
@@ -39,11 +42,17 @@ export default function ImportLeadsDialog({
   subscription: any
   customerCount: number
 }) {
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1)
   const [headers, setHeaders] = useState<string[]>([])
   const [rows, setRows] = useState<any[]>([])
   const [mapping, setMapping] = useState<Record<string, string>>({})
-  const [defaultSource, setDefaultSource] = useState<string>('whatsapp_group')
+  const [defaultSource, setDefaultSource] = useState('whatsapp_group')
+  const [filename, setFilename] = useState('importacao_leads.csv')
+  const [duplicateAnalysis, setDuplicateAnalysis] = useState<any>(null)
+  const [duplicateAction, setDuplicateAction] = useState('ignore')
+  const [isReimport, setIsReimport] = useState(false)
+  const [reimportInfo, setReimportInfo] = useState<any>(null)
+  const [analyzing, setAnalyzing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
@@ -58,8 +67,8 @@ export default function ImportLeadsDialog({
 
   useEffect(() => {
     onImportStateChange(isImporting)
-    if (isImporting && open) setStep(3)
-    if (stats && open) setStep(4)
+    if (isImporting && open) setStep(4)
+    if (stats && open) setStep(5)
   }, [isImporting, stats, open, onImportStateChange])
 
   const reset = () => {
@@ -68,6 +77,11 @@ export default function ImportLeadsDialog({
       setHeaders([])
       setRows([])
       setMapping({})
+      setDuplicateAnalysis(null)
+      setDuplicateAction('ignore')
+      setIsReimport(false)
+      setReimportInfo(null)
+      setFilename('importacao_leads.csv')
     }
     if (stats) {
       onImportComplete()
@@ -79,13 +93,17 @@ export default function ImportLeadsDialog({
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0]
     if (!selected) return
-
-    if (selected.name.endsWith('.xlsx')) {
-      toast.warning(
-        'Arquivo XLSX detectado. Recomendamos usar formato .csv se houver erros na leitura.',
-      )
+    setFilename(selected.name)
+    try {
+      const reimportResult = await checkReimport(selected.name)
+      setIsReimport(reimportResult.isReimport)
+      setReimportInfo(reimportResult.previousImport || null)
+    } catch {
+      setIsReimport(false)
     }
-
+    if (selected.name.endsWith('.xlsx')) {
+      toast.warning('Arquivo XLSX detectado. Recomendamos usar formato .csv.')
+    }
     try {
       const data = await parseCSV(selected)
       setHeaders(data.headers)
@@ -112,7 +130,6 @@ export default function ImportLeadsDialog({
         if (n === 'uf' || n === 'estado' || n === 'state') autoMap.state = h
         if (n.includes('categoria') || n.includes('ranking')) autoMap.ranking_category = h
         if (n.includes('zona') || n.includes('exclusividade')) autoMap.exclusivity_zone = h
-        if (n.includes('origem') && !n.includes('loja')) autoMap.source = h
         if (n.includes('obs') || n.includes('nota') || n.includes('note')) autoMap.notes = h
         if (n === 'ddd' || n.includes('ddd')) autoMap.ddd = h
         if (n === 'status' || n.includes('status')) autoMap.status = h
@@ -121,17 +138,16 @@ export default function ImportLeadsDialog({
       setMapping(autoMap)
       setStep(2)
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao ler arquivo. Verifique se é um CSV válido.')
+      toast.error(err.message || 'Erro ao ler arquivo.')
     }
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const handleStart = async () => {
+  const handleAnalyze = async () => {
     if (!mapping.phone) {
       toast.error('É obrigatório mapear a coluna de Telefone/WhatsApp.')
       return
     }
-
     const isAdmin =
       pb.authStore.record?.email === 'valterpmendonca@gmail.com' ||
       pb.authStore.record?.role === 'admin' ||
@@ -140,26 +156,52 @@ export default function ImportLeadsDialog({
       ? Infinity
       : (subscription?.import_limit ??
         (subscription?.plan_tier === 'free' ? 50 : subscription?.plan_tier ? 10000 : 50))
-
     if (customerCount + rows.length > limit && limit !== Infinity) {
       toast.error(
-        `Limite Excedido: Você atingiu o limite de ${limit} leads para o plano ${subscription?.plan_tier || 'Free'}. Faça upgrade para importar mais.`,
+        `Limite Excedido: Você atingiu o limite de ${limit} leads para o plano ${subscription?.plan_tier || 'Free'}.`,
       )
       return
     }
+    setAnalyzing(true)
+    try {
+      const phones = rows
+        .map((row) => {
+          const colName = mapping.phone
+          if (!colName) return ''
+          return normalizePhoneBR(String(row[colName] || ''))
+        })
+        .filter(Boolean)
+      const analysis = await analyzeDuplicates(phones)
+      setDuplicateAnalysis(analysis)
+      if (isReimport) setDuplicateAction('ignore')
+      setStep(3)
+    } catch {
+      toast.error('Erro ao analisar duplicatas. Tente novamente.')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
 
-    setStep(3)
-    await startImport(rows, mapping, defaultSource)
+  const handleConfirmImport = async () => {
     setStep(4)
+    await startImport(
+      rows,
+      mapping,
+      defaultSource,
+      filename,
+      isReimport ? 'ignore' : duplicateAction,
+    )
+    setStep(5)
   }
 
   useEffect(() => {
-    if (step === 4 && stats) {
-      toast.success(
-        `Importação concluída! ${stats.success} importados, ${stats.skipped} duplicados/ignorados, ${stats.error} erros.`,
-      )
+    if (step === 5 && stats) {
+      const msg = isReimport
+        ? `Importação concluída: ${stats.success} novos registros adicionados, ${stats.skipped} duplicatas ignoradas.`
+        : `Importação concluída! ${stats.success} importados, ${stats.updated} atualizados, ${stats.skipped} duplicados/ignorados, ${stats.error} erros.`
+      toast.success(msg)
     }
-  }, [step, stats])
+  }, [step, stats, isReimport])
 
   const renderMappingRow = (field: string, label: string, required = false) => (
     <div className="flex items-center justify-between p-3 border rounded-lg bg-card">
@@ -199,7 +241,7 @@ export default function ImportLeadsDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={(v) => (v ? setStep(isImporting ? 3 : stats ? 4 : 1) : reset())}
+      onOpenChange={(v) => (v ? setStep(isImporting ? 4 : stats ? 5 : 1) : reset())}
     >
       <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
@@ -210,10 +252,23 @@ export default function ImportLeadsDialog({
           <div className="space-y-4">
             <div className="flex justify-end">
               <Button variant="outline" size="sm" onClick={downloadTemplate}>
-                <DownloadCloud className="w-4 h-4 mr-2" />
-                Baixar Template CSV
+                <DownloadCloud className="w-4 h-4 mr-2" /> Baixar Template CSV
               </Button>
             </div>
+            {isReimport && reimportInfo && (
+              <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-800">
+                    Este arquivo já foi importado anteriormente.
+                  </p>
+                  <p className="text-amber-700 mt-1">
+                    Duplicatas serão automaticamente ignoradas e apenas novos registros serão
+                    adicionados.
+                  </p>
+                </div>
+              </div>
+            )}
             <div
               className="flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => fileInputRef.current?.click()}
@@ -234,11 +289,16 @@ export default function ImportLeadsDialog({
 
         {step === 2 && (
           <div className="space-y-4">
+            {isReimport && (
+              <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
+                <Info className="w-4 h-4" /> Reimportação detectada — duplicatas serão ignoradas
+                automaticamente.
+              </div>
+            )}
             <div className="text-sm text-muted-foreground mb-4 flex items-center gap-2 bg-muted p-2 rounded">
               <FileSpreadsheet className="w-4 h-4" /> {rows.length} registros encontrados. Mapeie as
               colunas:
             </div>
-
             {rows.length > 0 && (
               <div className="border rounded-md overflow-x-auto mb-4 max-h-[150px]">
                 <Table>
@@ -268,7 +328,6 @@ export default function ImportLeadsDialog({
                 </Table>
               </div>
             )}
-
             <div className="flex flex-col gap-2 p-3 border rounded-lg bg-card">
               <Label className="font-medium text-primary">Origem Padrão dos Leads</Label>
               <Select value={defaultSource} onValueChange={setDefaultSource}>
@@ -284,7 +343,6 @@ export default function ImportLeadsDialog({
                 </SelectContent>
               </Select>
             </div>
-
             <div className="max-h-[250px] overflow-y-auto space-y-2 pr-2 mt-4">
               {renderMappingRow('phone', 'WhatsApp / Telefone', true)}
               {renderMappingRow('name', 'Nome do Lead')}
@@ -295,7 +353,6 @@ export default function ImportLeadsDialog({
               {renderMappingRow('state', 'Estado (UF)')}
               {renderMappingRow('ranking_category', 'Categoria de Ranking')}
               {renderMappingRow('exclusivity_zone', 'Zona de Exclusividade')}
-              {renderMappingRow('source', 'Origem')}
               {renderMappingRow('notes', 'Observações / Notas')}
               {renderMappingRow('ddd', 'DDD')}
               {renderMappingRow('status', 'Status do Lead')}
@@ -305,14 +362,85 @@ export default function ImportLeadsDialog({
               <Button variant="outline" className="w-full" onClick={() => setStep(1)}>
                 Voltar
               </Button>
-              <Button className="w-full" onClick={handleStart}>
-                Iniciar Importação
+              <Button className="w-full" onClick={handleAnalyze} disabled={analyzing}>
+                {analyzing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                {analyzing ? 'Analisando...' : 'Avançar'}
               </Button>
             </div>
           </div>
         )}
 
-        {step === 3 && (
+        {step === 3 && duplicateAnalysis && (
+          <div className="space-y-6 py-4">
+            <div className="text-center">
+              <h3 className="text-lg font-bold">Análise de Duplicatas</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Revise os dados antes de confirmar a importação
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <p className="text-3xl font-bold text-blue-700">{duplicateAnalysis.total}</p>
+                <p className="text-sm font-medium text-blue-600 mt-1">Total no Arquivo</p>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <p className="text-3xl font-bold text-green-700">{duplicateAnalysis.newRecords}</p>
+                <p className="text-sm font-medium text-green-600 mt-1">Novos Registros</p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <p className="text-3xl font-bold text-yellow-700">{duplicateAnalysis.duplicates}</p>
+                <p className="text-sm font-medium text-yellow-600 mt-1">Duplicatas</p>
+              </div>
+            </div>
+            {isReimport ? (
+              <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-800">
+                  Este arquivo já foi importado antes. As duplicatas serão automaticamente ignoradas
+                  e apenas novos registros serão adicionados.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Label className="font-medium">Como tratar duplicatas?</Label>
+                <RadioGroup
+                  value={duplicateAction}
+                  onValueChange={setDuplicateAction}
+                  className="space-y-2"
+                >
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg bg-card">
+                    <RadioGroupItem value="ignore" id="ignore" />
+                    <Label htmlFor="ignore" className="cursor-pointer">
+                      <span className="font-medium">Ignorar duplicatas</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Pula registros com telefone já existente (padrão)
+                      </p>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg bg-card">
+                    <RadioGroupItem value="overwrite" id="overwrite" />
+                    <Label htmlFor="overwrite" className="cursor-pointer">
+                      <span className="font-medium">Sobrescrever existentes</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Atualiza registros existentes com os novos dados
+                      </p>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
+            <div className="flex gap-2 mt-4">
+              <Button variant="outline" className="w-full" onClick={() => setStep(2)}>
+                Voltar
+              </Button>
+              <Button className="w-full" onClick={handleConfirmImport}>
+                Confirmar Importação
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
           <div className="flex flex-col items-center justify-center py-10 space-y-6">
             <p className="text-base font-medium">Processando importação... ({progress}%)</p>
             <Progress value={progress} className="w-full h-3" />
@@ -320,39 +448,36 @@ export default function ImportLeadsDialog({
               {processedCount} / {totalCount} registros processados
             </p>
             <p className="text-sm text-muted-foreground text-center">
-              Você pode fechar esta janela e continuar usando o sistema. <br /> A importação
-              continuará em segundo plano.
+              Você pode fechar esta janela e continuar usando o sistema.
+              <br />A importação continuará em segundo plano.
             </p>
             <Button variant="outline" className="mt-2" onClick={() => onOpenChange(false)}>
               Minimizar para o fundo
             </Button>
-            <div className="bg-primary/10 text-primary p-3 rounded-md text-sm text-center flex flex-col items-center gap-2 max-w-sm mt-4">
-              <CheckCircle2 className="w-5 h-5" />
-              <span>
-                <strong>Validação Inteligente Ativa:</strong>
-                <br />
-                Os números de telefone estão sendo formatados automaticamente com DDI (55) e 9º
-                dígito.
-              </span>
-            </div>
           </div>
         )}
 
-        {step === 4 && stats && (
+        {step === 5 && stats && (
           <div className="space-y-6 py-4">
             <div className="flex flex-col items-center justify-center mb-4 text-center">
               <CheckCircle2 className="w-16 h-16 text-green-500 mb-2" />
               <h3 className="text-xl font-bold">Importação Concluída</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Total records: {totalCount} | Successfully imported: {stats.success} |
-                Skipped/Duplicates: {stats.skipped} | Errors: {stats.error}
+                Total: {totalCount} | Novos: {stats.success} | Atualizados: {stats.updated} |
+                Ignorados: {stats.skipped} | Erros: {stats.error}
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-4 text-center">
+            <div className={`grid grid-cols-${stats.updated > 0 ? '4' : '3'} gap-4 text-center`}>
               <div className="bg-green-50 p-4 rounded-lg">
                 <p className="text-3xl font-bold text-green-700">{stats.success}</p>
                 <p className="text-sm font-medium text-green-600 mt-1">Importados</p>
               </div>
+              {stats.updated > 0 && (
+                <div className="bg-indigo-50 p-4 rounded-lg">
+                  <p className="text-3xl font-bold text-indigo-700">{stats.updated}</p>
+                  <p className="text-sm font-medium text-indigo-600 mt-1">Atualizados</p>
+                </div>
+              )}
               <div className="bg-yellow-50 p-4 rounded-lg">
                 <p className="text-3xl font-bold text-yellow-700">{stats.skipped}</p>
                 <p className="text-sm font-medium text-yellow-600 mt-1">Duplicados</p>
@@ -362,30 +487,27 @@ export default function ImportLeadsDialog({
                 <p className="text-sm font-medium text-red-600 mt-1">Erros</p>
               </div>
             </div>
-
             {stats.errorDetails && stats.errorDetails.length > 0 && (
               <div className="mt-4">
-                <h4 className="text-sm font-bold mb-2 text-red-600">
-                  Detalhes dos Erros (amostra com telefones):
-                </h4>
-                <div className="max-h-[180px] overflow-y-auto text-xs bg-red-50 p-3 rounded border border-red-100 custom-scrollbar">
+                <h4 className="text-sm font-bold mb-2 text-red-600">Detalhes dos Erros:</h4>
+                <div className="max-h-[180px] overflow-y-auto text-xs bg-red-50 p-3 rounded border border-red-100">
                   <ul className="list-disc pl-4 space-y-1">
                     {stats.errorDetails.slice(0, 100).map((err, idx) => (
                       <li key={idx} className="text-red-700">
                         <span className="font-semibold text-foreground">Linha {err.row}:</span>{' '}
                         {err.reason}
+                        {err.phone && ` (Tel: ${err.phone})`}
                       </li>
                     ))}
                     {stats.errorDetails.length > 100 && (
                       <li className="text-red-500 font-medium mt-2">
-                        ...e mais {stats.errorDetails.length - 100} erros documentados nos logs.
+                        ...e mais {stats.errorDetails.length - 100} erros.
                       </li>
                     )}
                   </ul>
                 </div>
               </div>
             )}
-
             <Button className="w-full mt-4" variant="outline" onClick={reset}>
               Fechar
             </Button>
