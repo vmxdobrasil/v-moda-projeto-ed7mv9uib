@@ -20,6 +20,7 @@ interface AuthContextType {
   user: any
   isAuthenticated: boolean
   isHydrating: boolean
+  isRefreshing: boolean
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => void
@@ -86,9 +87,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(hasToken)
   const [loading, setLoading] = useState(true)
   const [isHydrating, setIsHydrating] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
   const commitLockRef = useRef(false)
   const refreshInProgressRef = useRef(false)
+  const isRefreshingRef = useRef(false)
   const lastRefreshRef = useRef<number>(0)
   const isInitializingRef = useRef<boolean>(true)
   const lastCommittedRef = useRef<{ auth: boolean; recordId: string | null; hydrating: boolean }>({
@@ -136,6 +139,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (now - lastRefreshRef.current < MIN_REFRESH_INTERVAL_MS) return
 
     refreshInProgressRef.current = true
+    isRefreshingRef.current = true
+    setIsRefreshing(true)
     try {
       const record = pb.authStore.record
       const collectionName = record?.collectionName || 'users'
@@ -184,8 +189,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           } catch (retryErr: any) {
             const retryStatus = retryErr?.status ?? 0
             if (retryStatus === 401 || retryStatus === 403) {
-              pb.authStore.clear()
-              commitAuthState(false, null, false)
               setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
             }
           }
@@ -206,6 +209,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } finally {
       refreshInProgressRef.current = false
+      isRefreshingRef.current = false
+      setIsRefreshing(false)
     }
   }, [commitAuthState])
 
@@ -236,7 +241,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       if (cancelled) return
       if (!pb.authStore.token && !record) {
-        if (isInitializingRef.current || refreshInProgressRef.current) {
+        if (isInitializingRef.current || refreshInProgressRef.current || isRefreshingRef.current) {
           logAuthEvent('authStore_change_skipped_during_init', {
             loading: true,
             isAuthenticated: false,
@@ -324,16 +329,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               if (pb.authStore.isValid && pb.authStore.record) {
                 commitAuthState(true, pb.authStore.record, false)
               } else {
-                pb.authStore.clear()
-                commitAuthState(false, null, false)
                 setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
               }
             } catch (retryErr: any) {
               if (cancelled) return
               const retryStatus = retryErr?.status ?? 0
               if (retryStatus === 401 || retryStatus === 403) {
-                pb.authStore.clear()
-                commitAuthState(false, null, false)
                 setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
               }
             }
@@ -542,6 +543,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         isAuthenticated,
         isHydrating,
+        isRefreshing,
         signUp,
         signIn,
         signOut,

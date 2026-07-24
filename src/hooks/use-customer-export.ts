@@ -113,17 +113,46 @@ export function useCustomerExport() {
           }))
 
           let batch
-          try {
-            batch = await exportCustomersBatch({
-              page: currentPage,
-              perPage: BATCH_SIZE,
-              search: filters.search,
-              status: filters.status,
-              shippingMethod: filters.shippingMethod,
-              categoryId: filters.categoryId,
-              inactivityDays: filters.inactivityDays,
-            })
-          } catch (err: unknown) {
+          let lastBatchError: unknown = null
+          const MAX_BATCH_RETRIES = 3
+
+          for (let batchAttempt = 0; batchAttempt <= MAX_BATCH_RETRIES; batchAttempt++) {
+            if (cancelRef.current) break
+            try {
+              batch = await exportCustomersBatch({
+                page: currentPage,
+                perPage: BATCH_SIZE,
+                search: filters.search,
+                status: filters.status,
+                shippingMethod: filters.shippingMethod,
+                categoryId: filters.categoryId,
+                inactivityDays: filters.inactivityDays,
+              })
+              lastBatchError = null
+              break
+            } catch (err: unknown) {
+              lastBatchError = err
+              const errStatus = (err as any)?.status ?? 0
+              const isRetryable =
+                errStatus === 0 || errStatus === 401 || errStatus === 403 || errStatus === 500
+              if (batchAttempt < MAX_BATCH_RETRIES && isRetryable) {
+                const backoffDelay = 1000 * Math.pow(2, batchAttempt)
+                setProgress((prev) => ({
+                  ...prev,
+                  currentBatch: currentPage,
+                  totalBatches: totalBatches || prev.totalBatches,
+                  status: 'processing',
+                  error: `Retentando lote ${currentPage} (tentativa ${batchAttempt + 2} de ${MAX_BATCH_RETRIES + 1})...`,
+                }))
+                await new Promise((resolve) => setTimeout(resolve, backoffDelay))
+              } else {
+                break
+              }
+            }
+          }
+
+          if (lastBatchError) {
+            const err = lastBatchError
             if (isSessionExpiredError(err)) {
               retryStateRef.current = null
               await savePartialResults(csvParts, totalRecords, 'parcial')
@@ -154,10 +183,10 @@ export function useCustomerExport() {
             const errStatus = (err as any)?.status ?? 0
             const isTransient = errStatus === 0 || errStatus === 500
             const reason = isTransient
-              ? 'Não foi possível completar a exportação. Verifique sua conexão e tente novamente.'
+              ? 'Não foi possível completar a exportação após várias tentativas. Verifique sua conexão e tente novamente.'
               : err instanceof Error
                 ? err.message
-                : 'Não foi possível completar a exportação. Tente novamente.'
+                : 'Não foi possível completar a exportação após várias tentativas. Tente novamente.'
             const processed = (currentPage - 1) * BATCH_SIZE
             const batchTotal = totalBatches || '?'
             setProgress({
@@ -166,14 +195,16 @@ export function useCustomerExport() {
               processed,
               total: totalRecords,
               status: 'error',
-              error: `Falha ao exportar lote ${currentPage} de ${batchTotal}. ${reason}`,
+              error: `Falha ao exportar lote ${currentPage} de ${batchTotal} após ${MAX_BATCH_RETRIES + 1} tentativas. ${reason}`,
               failedBatch: currentPage,
             })
             return {
               success: false,
-              error: `Falha ao exportar lote ${currentPage} de ${batchTotal}. ${reason}`,
+              error: `Falha ao exportar lote ${currentPage} de ${batchTotal} após ${MAX_BATCH_RETRIES + 1} tentativas. ${reason}`,
             }
           }
+
+          if (!batch) break
 
           totalRecords = batch.totalRecords
           totalBatches = batch.totalPages
