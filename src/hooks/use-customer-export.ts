@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { ClientResponseError } from 'pocketbase'
 import { exportCustomersBatch, createExportRecord } from '@/services/exports'
+import { startBackgroundOperation, endBackgroundOperation } from '@/lib/background-operations'
 
 export interface ExportFilters {
   search: string
@@ -132,6 +133,13 @@ export function useCustomerExport() {
               break
             } catch (err: unknown) {
               lastBatchError = err
+              console.error('[Customer Export] Batch request failed:', {
+                page: currentPage,
+                attempt: batchAttempt + 1,
+                status: (err as any)?.status ?? 0,
+                message: err instanceof Error ? err.message : String(err),
+                error: err,
+              })
               const errStatus = (err as any)?.status ?? 0
               const isRetryable =
                 errStatus === 0 || errStatus === 401 || errStatus === 403 || errStatus === 500
@@ -154,24 +162,44 @@ export function useCustomerExport() {
           if (lastBatchError) {
             const err = lastBatchError
             if (isSessionExpiredError(err)) {
-              retryStateRef.current = null
+              console.error('[Customer Export] Authentication failure after all retries:', {
+                batch: currentPage,
+                error: err,
+                errorStatus: (err as any)?.status ?? 0,
+              })
+              retryStateRef.current = {
+                lastBatch: currentPage,
+                csvParts,
+                totalRecords,
+                totalBatches,
+                filters,
+              }
               await savePartialResults(csvParts, totalRecords, 'parcial')
               const processed = (currentPage - 1) * BATCH_SIZE
+              const batchTotal = totalBatches || '?'
               setProgress({
                 currentBatch: currentPage,
                 totalBatches,
                 processed,
                 total: totalRecords,
-                status: 'session_expired',
-                error: 'Sua sessão expirou. Faça login novamente para continuar a exportação.',
+                status: 'error',
+                error: `Falha ao exportar lote ${currentPage} de ${batchTotal} após ${MAX_BATCH_RETRIES + 1} tentativas. Falha de autenticação: sua sessão pode ter expirado. Tente novamente.`,
+                failedBatch: currentPage,
               })
               return {
                 success: false,
-                error: 'Sua sessão expirou. Faça login novamente para continuar a exportação.',
-                sessionExpired: true,
+                error: `Falha ao exportar lote ${currentPage} de ${batchTotal} após ${MAX_BATCH_RETRIES + 1} tentativas. Falha de autenticação: sua sessão pode ter expirado. Tente novamente.`,
               }
             }
 
+            console.error('[Customer Export] All retries exhausted for batch:', {
+              batch: currentPage,
+              totalBatches: totalBatches || 'unknown',
+              totalRecords,
+              error: err,
+              errorStatus: (err as any)?.status ?? 0,
+              errorMessage: err instanceof Error ? err.message : String(err),
+            })
             retryStateRef.current = {
               lastBatch: currentPage,
               csvParts,
@@ -254,6 +282,7 @@ export function useCustomerExport() {
       } finally {
         isExportingRef.current = false
         setIsExporting(false)
+        endBackgroundOperation()
       }
     },
     [isSessionExpiredError, savePartialResults],
@@ -296,6 +325,7 @@ export function useCustomerExport() {
       isExportingRef.current = true
       cancelRef.current = false
       setIsExporting(true)
+      startBackgroundOperation()
       retryStateRef.current = null
       setProgress({
         currentBatch: 1,
@@ -339,6 +369,7 @@ export function useCustomerExport() {
     isExportingRef.current = true
     cancelRef.current = false
     setIsExporting(true)
+    startBackgroundOperation()
     setProgress((prev) => ({ ...prev, status: 'processing', error: undefined }))
     return runExport(
       state.filters,

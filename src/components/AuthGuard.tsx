@@ -1,5 +1,10 @@
+import { useState, useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
+import {
+  hasActiveBackgroundOperations,
+  onBackgroundOperationsChange,
+} from '@/lib/background-operations'
 import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 import { getRoleBasedRedirect, isSuperuserOrAdmin, setIntendedRoute } from '@/lib/auth-redirects'
 
@@ -11,9 +16,18 @@ type GuardState =
 function useGuardBase(): GuardState {
   const { isAuthenticated, user, loading, isHydrating, isRefreshing } = useAuth()
   const location = useLocation()
+  const [bgOpsActive, setBgOpsActive] = useState(hasActiveBackgroundOperations())
+
+  useEffect(() => {
+    return onBackgroundOperationsChange(() => setBgOpsActive(hasActiveBackgroundOperations()))
+  }, [])
 
   if (loading || isHydrating || isRefreshing) {
     setIntendedRoute(location.pathname + location.search)
+    return { status: 'loading' }
+  }
+
+  if (!isAuthenticated && bgOpsActive) {
     return { status: 'loading' }
   }
 
@@ -106,7 +120,14 @@ export function MasterAdminGuard() {
 
 export function PublicRoute() {
   const { loading, isHydrating, isRefreshing, isAuthenticated, user } = useAuth()
+  const [bgOpsActive, setBgOpsActive] = useState(hasActiveBackgroundOperations())
+
+  useEffect(() => {
+    return onBackgroundOperationsChange(() => setBgOpsActive(hasActiveBackgroundOperations()))
+  }, [])
+
   if (loading || isHydrating || isRefreshing) return <AuthLoadingScreen />
+  if (bgOpsActive && !isAuthenticated) return <AuthLoadingScreen />
   if (isAuthenticated && user) return <Navigate to={getRoleBasedRedirect(user)} replace />
   return <Outlet />
 }

@@ -36,7 +36,10 @@ export interface ExportResult {
 
 export async function exportCustomersBatch(params: ExportBatchParams): Promise<ExportBatchResult> {
   if (!pb.authStore.isValid || !pb.authStore.record) {
-    const error = new Error('Sua sessão expirou. Faça login novamente para continuar.')
+    console.error('[Export Service] Auth check failed: authStore invalid or no record')
+    const error = new Error(
+      'Falha de autenticação ao exportar leads. Sua sessão pode ter expirado.',
+    )
     ;(error as any).status = 401
     throw error
   }
@@ -48,9 +51,18 @@ export async function exportCustomersBatch(params: ExportBatchParams): Promise<E
     })
     return result as ExportBatchResult
   } catch (err: any) {
+    console.error('[Export Service] exportCustomersBatch failed:', {
+      status: err?.status ?? 0,
+      message: err?.message ?? 'Unknown error',
+      url: err?.url ?? '',
+      response: err?.response ?? null,
+      error: err,
+    })
     if (err?.status === 401 || err?.status === 403) {
-      const error = new Error('Sua sessão expirou. Faça login novamente para continuar.')
-      ;(error as any).status = 401
+      const error = new Error(
+        'Falha de autenticação ao exportar leads. Sua sessão pode ter expirado.',
+      )
+      ;(error as any).status = err?.status
       throw error
     }
     throw err
@@ -104,6 +116,11 @@ export async function exportCustomersCsv(): Promise<ExportResult> {
     await createExportRecord(csvContent, filename, totalRecords)
     return { success: true, total_records: totalRecords }
   } catch (err: any) {
+    console.error('[Export Service] exportCustomersCsv failed:', {
+      status: err?.status ?? 0,
+      message: err?.message ?? 'Unknown error',
+      error: err,
+    })
     return {
       success: false,
       total_records: 0,
@@ -128,6 +145,11 @@ export async function downloadExportFile(record: ExportRecord): Promise<void> {
     },
   })
   if (!res.ok) {
+    console.error('[Export Service] downloadExportFile failed:', {
+      status: res.status,
+      statusText: res.statusText,
+      url,
+    })
     throw new Error('Falha ao baixar arquivo')
   }
   const blob = await res.blob()

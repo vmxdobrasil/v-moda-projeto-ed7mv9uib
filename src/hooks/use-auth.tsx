@@ -15,6 +15,10 @@ import {
   clearStaleAuthKeys,
   hasAuthInLocalStorage,
 } from '@/lib/auth-diagnostics'
+import {
+  hasActiveBackgroundOperations,
+  onBackgroundOperationsChange,
+} from '@/lib/background-operations'
 
 interface AuthContextType {
   user: any
@@ -29,6 +33,7 @@ interface AuthContextType {
   clearAuthError: () => void
   handleAuthFailure: (message?: string) => void
   refreshUser: () => Promise<void>
+  hasBackgroundOperations: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -89,6 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isHydrating, setIsHydrating] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
+  const [hasBackgroundOperations, setHasBackgroundOperations] = useState(false)
   const commitLockRef = useRef(false)
   const refreshInProgressRef = useRef(false)
   const isRefreshingRef = useRef(false)
@@ -246,6 +252,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             loading: true,
             isAuthenticated: false,
             isHydrating: true,
+            hasToken: false,
+            hasRecord: false,
+            pathname: window.location.pathname,
+          })
+          return
+        }
+        if (hasActiveBackgroundOperations()) {
+          logAuthEvent('authStore_change_skipped_background_op', {
+            loading: false,
+            isAuthenticated: true,
+            isHydrating: false,
             hasToken: false,
             hasRecord: false,
             pathname: window.location.pathname,
@@ -445,6 +462,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [commitAuthState, silentRefresh])
 
+  useEffect(() => {
+    const update = () => setHasBackgroundOperations(hasActiveBackgroundOperations())
+    update()
+    return onBackgroundOperationsChange(update)
+  }, [])
+
   const signUp = async (email: string, password: string) => {
     try {
       setAuthError(null)
@@ -517,6 +540,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const clearAuthError = () => setAuthError(null)
 
   const handleAuthFailure = (message?: string) => {
+    if (hasActiveBackgroundOperations()) {
+      logAuthEvent('handleAuthFailure_skipped_background_op', {
+        loading: false,
+        isAuthenticated: true,
+        isHydrating: false,
+        hasToken: !!pb.authStore.token,
+        hasRecord: !!pb.authStore.record,
+        pathname: window.location.pathname,
+      })
+      return
+    }
     pb.authStore.clear()
     commitAuthState(false, null, false)
     setAuthError(message || 'Sua sessão expirou. Por favor, faça login novamente.')
@@ -552,6 +586,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         clearAuthError,
         handleAuthFailure,
         refreshUser,
+        hasBackgroundOperations,
       }}
     >
       {children}
