@@ -56,6 +56,7 @@ export async function exportCustomersBatch(params: ExportBatchParams): Promise<E
       message: err?.message ?? 'Unknown error',
       url: err?.url ?? '',
       response: err?.response ?? null,
+      responseBody: err?.response?.data ?? null,
       error: err,
     })
     if (err?.status === 401 || err?.status === 403) {
@@ -63,6 +64,7 @@ export async function exportCustomersBatch(params: ExportBatchParams): Promise<E
         'Falha de autenticação ao exportar leads. Sua sessão pode ter expirado.',
       )
       ;(error as any).status = err?.status
+      ;(error as any).response = err?.response
       throw error
     }
     throw err

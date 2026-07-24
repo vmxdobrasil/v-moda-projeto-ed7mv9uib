@@ -3,6 +3,7 @@ import pb from '@/lib/pocketbase/client'
 import { ClientResponseError } from 'pocketbase'
 import { exportCustomersBatch, createExportRecord } from '@/services/exports'
 import { startBackgroundOperation, endBackgroundOperation } from '@/lib/background-operations'
+import { ensureValidToken, refreshAuthToken } from '@/lib/token-refresh'
 
 export interface ExportFilters {
   search: string
@@ -133,26 +134,46 @@ export function useCustomerExport() {
               break
             } catch (err: unknown) {
               lastBatchError = err
+              const errStatus = (err as any)?.status ?? 0
+              const isAuthError = errStatus === 401 || errStatus === 403
+              const isTransient = errStatus === 0 || errStatus === 500
               console.error('[Customer Export] Batch request failed:', {
                 page: currentPage,
                 attempt: batchAttempt + 1,
-                status: (err as any)?.status ?? 0,
+                status: errStatus,
                 message: err instanceof Error ? err.message : String(err),
+                errorType: isAuthError ? 'auth' : isTransient ? 'transient' : 'fatal',
+                responseBody: (err as any)?.response ?? null,
                 error: err,
               })
-              const errStatus = (err as any)?.status ?? 0
-              const isRetryable =
-                errStatus === 0 || errStatus === 401 || errStatus === 403 || errStatus === 500
-              if (batchAttempt < MAX_BATCH_RETRIES && isRetryable) {
-                const backoffDelay = 1000 * Math.pow(2, batchAttempt)
-                setProgress((prev) => ({
-                  ...prev,
-                  currentBatch: currentPage,
-                  totalBatches: totalBatches || prev.totalBatches,
-                  status: 'processing',
-                  error: `Retentando lote ${currentPage} (tentativa ${batchAttempt + 2} de ${MAX_BATCH_RETRIES + 1})...`,
-                }))
-                await new Promise((resolve) => setTimeout(resolve, backoffDelay))
+              if (batchAttempt < MAX_BATCH_RETRIES && (isAuthError || isTransient)) {
+                if (isAuthError) {
+                  setProgress((prev) => ({
+                    ...prev,
+                    currentBatch: currentPage,
+                    totalBatches: totalBatches || prev.totalBatches,
+                    status: 'processing',
+                    error: `Renovando sessão e retentando lote ${currentPage} (tentativa ${batchAttempt + 2} de ${MAX_BATCH_RETRIES + 1})...`,
+                  }))
+                  const refreshed = await refreshAuthToken()
+                  if (!refreshed) {
+                    console.error('[Customer Export] Token refresh failed during retry', {
+                      batch: currentPage,
+                      attempt: batchAttempt + 1,
+                    })
+                    break
+                  }
+                } else {
+                  const backoffDelay = 1000 * Math.pow(2, batchAttempt)
+                  setProgress((prev) => ({
+                    ...prev,
+                    currentBatch: currentPage,
+                    totalBatches: totalBatches || prev.totalBatches,
+                    status: 'processing',
+                    error: `Retentando lote ${currentPage} (tentativa ${batchAttempt + 2} de ${MAX_BATCH_RETRIES + 1})...`,
+                  }))
+                  await new Promise((resolve) => setTimeout(resolve, backoffDelay))
+                }
               } else {
                 break
               }
@@ -166,6 +187,7 @@ export function useCustomerExport() {
                 batch: currentPage,
                 error: err,
                 errorStatus: (err as any)?.status ?? 0,
+                responseBody: (err as any)?.response ?? null,
               })
               retryStateRef.current = {
                 lastBatch: currentPage,
@@ -177,18 +199,19 @@ export function useCustomerExport() {
               await savePartialResults(csvParts, totalRecords, 'parcial')
               const processed = (currentPage - 1) * BATCH_SIZE
               const batchTotal = totalBatches || '?'
+              const errorMsg = `Falha ao exportar lote ${currentPage} de ${batchTotal} após ${MAX_BATCH_RETRIES + 1} tentativas. Falha de autenticação: sua sessão expirou e não foi possível renová-la automaticamente. Faça logout e login novamente, depois retome a exportação.`
               setProgress({
                 currentBatch: currentPage,
                 totalBatches,
                 processed,
                 total: totalRecords,
                 status: 'error',
-                error: `Falha ao exportar lote ${currentPage} de ${batchTotal} após ${MAX_BATCH_RETRIES + 1} tentativas. Falha de autenticação: sua sessão pode ter expirado. Tente novamente.`,
+                error: errorMsg,
                 failedBatch: currentPage,
               })
               return {
                 success: false,
-                error: `Falha ao exportar lote ${currentPage} de ${batchTotal} após ${MAX_BATCH_RETRIES + 1} tentativas. Falha de autenticação: sua sessão pode ter expirado. Tente novamente.`,
+                error: errorMsg,
               }
             }
 
@@ -199,6 +222,7 @@ export function useCustomerExport() {
               error: err,
               errorStatus: (err as any)?.status ?? 0,
               errorMessage: err instanceof Error ? err.message : String(err),
+              responseBody: (err as any)?.response ?? null,
             })
             retryStateRef.current = {
               lastBatch: currentPage,
@@ -290,36 +314,12 @@ export function useCustomerExport() {
 
   const exportLeads = useCallback(
     async (filters: ExportFilters): Promise<ExportResult> => {
-      if (!pb.authStore.isValid || !pb.authStore.record) {
-        setProgress({
-          currentBatch: 0,
-          totalBatches: 0,
-          processed: 0,
-          total: 0,
-          status: 'session_expired',
-          error: 'Sua sessão expirou. Faça login novamente para continuar.',
-        })
-        return {
-          success: false,
-          error: 'Sua sessão expirou. Faça login novamente para continuar.',
-          sessionExpired: true,
-        }
-      }
       if (isExportingRef.current) return { success: false }
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
       if (currentPath === '/login' || currentPath === '/signup' || currentPath === '/admin/login') {
-        setProgress({
-          currentBatch: 0,
-          totalBatches: 0,
-          processed: 0,
-          total: 0,
-          status: 'session_expired',
-          error: 'Sua sessão expirou. Faça login novamente para continuar.',
-        })
         return {
           success: false,
-          error: 'Sua sessão expirou. Faça login novamente para continuar.',
-          sessionExpired: true,
+          error: 'Não é possível exportar dados na página de login.',
         }
       }
       isExportingRef.current = true
@@ -334,6 +334,28 @@ export function useCustomerExport() {
         total: 0,
         status: 'processing',
       })
+
+      const tokenValid = await ensureValidToken()
+      if (!tokenValid) {
+        setProgress({
+          currentBatch: 0,
+          totalBatches: 0,
+          processed: 0,
+          total: 0,
+          status: 'error',
+          error:
+            'Não foi possível validar sua sessão. Faça logout e login novamente, depois tente exportar.',
+        })
+        isExportingRef.current = false
+        setIsExporting(false)
+        endBackgroundOperation()
+        return {
+          success: false,
+          error:
+            'Não foi possível validar sua sessão. Faça logout e login novamente, depois tente exportar.',
+        }
+      }
+
       return runExport(filters, 1, [], 0, 0)
     },
     [runExport],
@@ -344,23 +366,7 @@ export function useCustomerExport() {
     if (currentPath === '/login' || currentPath === '/signup' || currentPath === '/admin/login') {
       return {
         success: false,
-        error: 'Sua sessão expirou. Faça login novamente para continuar.',
-        sessionExpired: true,
-      }
-    }
-    if (!pb.authStore.isValid || !pb.authStore.record) {
-      setProgress({
-        currentBatch: 0,
-        totalBatches: 0,
-        processed: 0,
-        total: 0,
-        status: 'session_expired',
-        error: 'Sua sessão expirou. Faça login novamente para continuar.',
-      })
-      return {
-        success: false,
-        error: 'Sua sessão expirou. Faça login novamente para continuar.',
-        sessionExpired: true,
+        error: 'Não é possível retomar a exportação na página de login.',
       }
     }
     if (isExportingRef.current) return { success: false }
@@ -371,6 +377,25 @@ export function useCustomerExport() {
     setIsExporting(true)
     startBackgroundOperation()
     setProgress((prev) => ({ ...prev, status: 'processing', error: undefined }))
+
+    const tokenValid = await ensureValidToken()
+    if (!tokenValid) {
+      setProgress((prev) => ({
+        ...prev,
+        status: 'error',
+        error:
+          'Não foi possível validar sua sessão. Faça logout e login novamente, depois tente exportar.',
+      }))
+      isExportingRef.current = false
+      setIsExporting(false)
+      endBackgroundOperation()
+      return {
+        success: false,
+        error:
+          'Não foi possível validar sua sessão. Faça logout e login novamente, depois tente exportar.',
+      }
+    }
+
     return runExport(
       state.filters,
       state.lastBatch,

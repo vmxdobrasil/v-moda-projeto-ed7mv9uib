@@ -564,6 +564,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (err: any) {
       const status = err?.status ?? 0
       if (status === 401 || status === 403) {
+        if (hasActiveBackgroundOperations()) return
         pb.authStore.clear()
         commitAuthState(false, null, false)
         setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
