@@ -280,6 +280,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           pathname: window.location.pathname,
         })
         commitAuthState(false, null, false)
+      } else if (pb.authStore.token && record && pb.authStore.isValid) {
+        if (!isInitializingRef.current && !refreshInProgressRef.current) {
+          logAuthEvent('authStore_change_refreshed', {
+            loading: false,
+            isAuthenticated: true,
+            isHydrating: false,
+            hasToken: true,
+            hasRecord: true,
+            pathname: window.location.pathname,
+          })
+          commitAuthState(true, record, false)
+        }
       }
     })
 

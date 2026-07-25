@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
+import pb from '@/lib/pocketbase/client'
 import {
   hasActiveBackgroundOperations,
   onBackgroundOperationsChange,
@@ -8,6 +9,9 @@ import {
 import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 import { getRoleBasedRedirect, isSuperuserOrAdmin, setIntendedRoute } from '@/lib/auth-redirects'
 import { isPublicRoute } from '@/lib/public-routes'
+import { waitForTokenRenewal } from '@/lib/token-refresh'
+
+const GRACE_PERIOD_MS = 120_000
 
 type GuardState =
   | { status: 'loading' }
@@ -18,10 +22,32 @@ function useGuardBase(): GuardState {
   const { isAuthenticated, user, loading, isHydrating } = useAuth()
   const location = useLocation()
   const [bgOpsActive, setBgOpsActive] = useState(hasActiveBackgroundOperations())
+  const [inGracePeriod, setInGracePeriod] = useState(false)
+  const graceAttemptedRef = useRef(false)
 
   useEffect(() => {
     return onBackgroundOperationsChange(() => setBgOpsActive(hasActiveBackgroundOperations()))
   }, [])
+
+  useEffect(() => {
+    if (isPublicRoute(location.pathname)) return
+    if (loading || isHydrating) return
+    if (isAuthenticated) {
+      setInGracePeriod(false)
+      graceAttemptedRef.current = false
+      return
+    }
+    if (bgOpsActive) return
+    if (!pb.authStore.token || !pb.authStore.record) return
+    if (graceAttemptedRef.current) return
+
+    graceAttemptedRef.current = true
+    setInGracePeriod(true)
+
+    waitForTokenRenewal(GRACE_PERIOD_MS).then(() => {
+      setInGracePeriod(false)
+    })
+  }, [isAuthenticated, loading, isHydrating, bgOpsActive, location.pathname])
 
   if (isPublicRoute(location.pathname)) {
     return { status: 'authenticated', user }
@@ -33,6 +59,11 @@ function useGuardBase(): GuardState {
   }
 
   if (!isAuthenticated && bgOpsActive) {
+    return { status: 'loading' }
+  }
+
+  if (!isAuthenticated && inGracePeriod) {
+    setIntendedRoute(location.pathname + location.search)
     return { status: 'loading' }
   }
 

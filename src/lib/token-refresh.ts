@@ -80,3 +80,22 @@ export async function ensureValidToken(): Promise<boolean> {
   if (!isJwtExpiredOrExpiring()) return true
   return refreshAuthToken()
 }
+
+export async function waitForTokenRenewal(timeoutMs: number = 120_000): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs
+  const retryInterval = 5_000
+
+  while (Date.now() < deadline) {
+    if (!pb.authStore.token || !pb.authStore.record) return false
+
+    const renewed = await ensureValidToken()
+    if (renewed) return true
+
+    const remaining = deadline - Date.now()
+    if (remaining <= 0) return false
+
+    await new Promise((resolve) => setTimeout(resolve, Math.min(retryInterval, remaining)))
+  }
+
+  return false
+}
