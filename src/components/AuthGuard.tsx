@@ -7,6 +7,7 @@ import {
 } from '@/lib/background-operations'
 import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 import { getRoleBasedRedirect, isSuperuserOrAdmin, setIntendedRoute } from '@/lib/auth-redirects'
+import { isPublicRoute } from '@/lib/public-routes'
 
 type GuardState =
   | { status: 'loading' }
@@ -21,6 +22,10 @@ function useGuardBase(): GuardState {
   useEffect(() => {
     return onBackgroundOperationsChange(() => setBgOpsActive(hasActiveBackgroundOperations()))
   }, [])
+
+  if (isPublicRoute(location.pathname)) {
+    return { status: 'authenticated', user }
+  }
 
   if (loading || isHydrating) {
     setIntendedRoute(location.pathname + location.search)
@@ -40,7 +45,8 @@ function useGuardBase(): GuardState {
 
 function toLogin(from: string) {
   setIntendedRoute(from)
-  return <Navigate to="/login" state={{ from }} replace />
+  const redirectParam = `?redirect=${encodeURIComponent(from)}`
+  return <Navigate to={`/login${redirectParam}`} state={{ from }} replace />
 }
 
 export function AuthGuard() {

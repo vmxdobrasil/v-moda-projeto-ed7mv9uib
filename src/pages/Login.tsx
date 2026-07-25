@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { getIntendedRoute } from '@/lib/auth-redirects'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,6 +28,7 @@ export default function Login() {
   const { signIn, authError, clearAuthError } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,8 +59,11 @@ export default function Login() {
       } else {
         const record = pb.authStore.record as any
         if (record) {
-          const from = (location.state as { from?: string })?.from
-          navigate(from || getRoleBasedRedirect(record), { replace: true })
+          const queryRedirect = searchParams.get('redirect')
+          const stateFrom = (location.state as { from?: string })?.from
+          const intended = getIntendedRoute()
+          const redirectTo = queryRedirect || stateFrom || intended || getRoleBasedRedirect(record)
+          navigate(redirectTo, { replace: true })
         }
       }
     } catch (err: any) {
