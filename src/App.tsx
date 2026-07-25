@@ -55,11 +55,7 @@ window.fetch = async (input, init) => {
   }
 
   let response
-  try {
-    response = await originalFetch(input, init)
-  } catch (err) {
-    throw err
-  }
+  response = await originalFetch(input, init)
 
   if (
     (response.status === 401 || response.status === 403) &&
