@@ -17,7 +17,29 @@ function isJwtExpiredOrExpiring(safetyMarginSeconds: number = 300): boolean {
   }
 }
 
-export async function refreshAuthToken(): Promise<boolean> {
+export function willTokenExpireSoon(minutes: number = 5): boolean {
+  return isJwtExpiredOrExpiring(minutes * 60)
+}
+
+export function getTokenExpiry(): number | null {
+  const token = pb.authStore.token
+  if (!token) return null
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    let payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    while (payloadB64.length % 4) payloadB64 += '='
+    const payload = JSON.parse(atob(payloadB64))
+    if (!payload.exp) return null
+    return payload.exp as number
+  } catch {
+    return null
+  }
+}
+
+let refreshLock: Promise<boolean> | null = null
+
+async function doRefreshAuthToken(): Promise<boolean> {
   if (!pb.authStore.token || !pb.authStore.record) return false
 
   const collectionName = pb.authStore.record?.collectionName || 'users'
@@ -41,6 +63,16 @@ export async function refreshAuthToken(): Promise<boolean> {
     }
   }
   return false
+}
+
+export async function refreshAuthToken(): Promise<boolean> {
+  if (refreshLock) return refreshLock
+  refreshLock = doRefreshAuthToken()
+  try {
+    return await refreshLock
+  } finally {
+    refreshLock = null
+  }
 }
 
 export async function ensureValidToken(): Promise<boolean> {

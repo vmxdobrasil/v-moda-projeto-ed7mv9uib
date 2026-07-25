@@ -106,6 +106,31 @@ export function useCustomerExport() {
             return { success: false, error: 'Exportação cancelada.', cancelled: true }
           }
 
+          const batchTokenValid = await ensureValidToken()
+          if (!batchTokenValid) {
+            retryStateRef.current = {
+              lastBatch: currentPage,
+              csvParts,
+              totalRecords,
+              totalBatches,
+              filters,
+            }
+            await savePartialResults(csvParts, totalRecords, 'parcial')
+            const processed = (currentPage - 1) * BATCH_SIZE
+            const batchTotal = totalBatches || '?'
+            const errorMsg = `Sua sessão expirou ao exportar o lote ${currentPage} de ${batchTotal}. Faça logout e login novamente, depois retome a exportação.`
+            setProgress({
+              currentBatch: currentPage,
+              totalBatches,
+              processed,
+              total: totalRecords,
+              status: 'error',
+              error: errorMsg,
+              failedBatch: currentPage,
+            })
+            return { success: false, error: errorMsg }
+          }
+
           setProgress((prev) => ({
             ...prev,
             currentBatch: currentPage,

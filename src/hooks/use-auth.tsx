@@ -144,6 +144,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const now = Date.now()
     if (now - lastRefreshRef.current < MIN_REFRESH_INTERVAL_MS) return
 
+    if (hasActiveBackgroundOperations()) return
+
     refreshInProgressRef.current = true
     isRefreshingRef.current = true
     try {
@@ -194,7 +196,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           } catch (retryErr: any) {
             const retryStatus = retryErr?.status ?? 0
             if (retryStatus === 401 || retryStatus === 403) {
-              setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
+              if (!hasActiveBackgroundOperations()) {
+                setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
+              }
             }
           }
         }
