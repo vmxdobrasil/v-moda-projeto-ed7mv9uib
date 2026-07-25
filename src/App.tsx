@@ -184,6 +184,8 @@ import CrmLeads from '@/pages/crm/CrmLeads'
 import CrmPipeline from '@/pages/crm/CrmPipeline'
 import CrmPlaceholder from '@/pages/crm/CrmPlaceholder'
 import CrmAdmin from '@/pages/crm/CrmAdmin'
+import LeadsDashboard from '@/pages/leads/LeadsDashboard'
+import LeadDetail from '@/pages/leads/LeadDetail'
 
 function FloatingCart() {
   const items = useCartStore((state) => state.items)
@@ -413,6 +415,10 @@ export default function App() {
                         <Route path="settings" element={<WhatsappSettings />} />
                       </Route>
                     </Route>
+
+                    {/* Leads Routes */}
+                    <Route path="/leads" element={<LeadsDashboard />} />
+                    <Route path="/leads/:collection/:id" element={<LeadDetail />} />
 
                     {/* Admin Routes */}
                     <Route element={<AdminGuard />}>

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-25T04:34:34.966Z",
+  "generatedAt": "2026-07-25T04:43:45.509Z",
   "collections": [
     {
       "name": "users",
@@ -2814,7 +2814,7 @@
         "list": "@request.auth.id != '' && (retailer = @request.auth.id || manufacturer = @request.auth.id || @request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com')",
         "view": "@request.auth.id != '' && (retailer = @request.auth.id || manufacturer = @request.auth.id || @request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com')",
         "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != '' && (manufacturer = @request.auth.id || @request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com')",
+        "update": "@request.auth.id != '' && (retailer = @request.auth.id || manufacturer = @request.auth.id || @request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com')",
         "delete": "@request.auth.role = 'admin' || @request.auth.email = 'valterpmendonca@gmail.com'"
       },
       "fields": [
@@ -2865,6 +2865,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -2965,6 +2971,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_leads_fab_status ON leads_fabricantes (status)"]
@@ -3225,6 +3237,12 @@
         },
         {
           "name": "ddd",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
           "type": "text",
           "required": false,
           "system": false
