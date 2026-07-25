@@ -15,18 +15,13 @@ routerAdd(
     const isAdmin = userRole === 'admin' || userEmail === 'valterpmendonca@gmail.com'
 
     const pbParts = []
-    const sqlParts = []
-    const sqlParams = {}
 
     if (!isAdmin) {
       pbParts.push("manufacturer = '" + userId.replace(/'/g, "\\'") + "'")
-      sqlParts.push('manufacturer = {:manufacturerId}')
-      sqlParams.manufacturerId = userId
     }
 
     if (body.search) {
       const s = String(body.search).replace(/'/g, "\\'")
-      const likePattern = '%' + String(body.search) + '%'
       pbParts.push(
         "(name ~ '" +
           s +
@@ -40,31 +35,21 @@ routerAdd(
           s +
           "')",
       )
-      sqlParts.push(
-        '(name LIKE {:search} OR phone LIKE {:search} OR whatsapp_group_name LIKE {:search} OR city LIKE {:search} OR state LIKE {:search})',
-      )
-      sqlParams.search = likePattern
     }
 
     if (body.status) {
       const s = String(body.status).replace(/'/g, "\\'")
       pbParts.push("status = '" + s + "'")
-      sqlParts.push('status = {:status}')
-      sqlParams.status = String(body.status)
     }
 
     if (body.shippingMethod) {
       const s = String(body.shippingMethod).replace(/'/g, "\\'")
       pbParts.push("shipping_method = '" + s + "'")
-      sqlParts.push('shipping_method = {:shippingMethod}')
-      sqlParams.shippingMethod = String(body.shippingMethod)
     }
 
     if (body.categoryId) {
       const s = String(body.categoryId).replace(/'/g, "\\'")
       pbParts.push("category_id = '" + s + "'")
-      sqlParts.push('category_id = {:categoryId}')
-      sqlParams.categoryId = String(body.categoryId)
     }
 
     if (body.inactivityDays) {
@@ -72,32 +57,17 @@ routerAdd(
       if (days > 0) {
         const cutoff = new Date(Date.now() - days * 86400000).toISOString().split('T')[0]
         pbParts.push("(last_contacted_at = '' || last_contacted_at <= '" + cutoff + "')")
-        sqlParts.push(
-          "(last_contacted_at IS NULL OR last_contacted_at = '' OR last_contacted_at <= {:cutoff})",
-        )
-        sqlParams.cutoff = cutoff
       }
     }
 
     const pbFilter = pbParts.join(' && ')
-    const sqlWhere = sqlParts.length > 0 ? ' WHERE ' + sqlParts.join(' AND ') : ''
 
     let totalRecords = 0
     try {
-      const countModel = new DynamicModel({ count: 0 })
-      let countQuery = $app.db().newQuery('SELECT COUNT(*) as count FROM customers' + sqlWhere)
-      if (Object.keys(sqlParams).length > 0) {
-        countQuery = countQuery.bind(sqlParams)
-      }
-      countQuery.one(countModel)
-      totalRecords = countModel.count
+      const allRecs = $app.findRecordsByFilter('customers', pbFilter, '-created', 0, 0)
+      totalRecords = allRecs.length
     } catch (_) {
-      try {
-        const allRecs = $app.findRecordsByFilter('customers', pbFilter, '-created', 0, 0)
-        totalRecords = allRecs.length
-      } catch (_) {
-        totalRecords = 0
-      }
+      totalRecords = 0
     }
 
     let records = []

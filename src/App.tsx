@@ -29,11 +29,11 @@ import AdminAgents from '@/pages/admin/AdminAgents'
 import AdminUsers from '@/pages/admin/AdminUsers'
 import AdminLogs from '@/pages/admin/AdminLogs'
 
-// Normalize backend API calls to use absolute URL and prevent returning HTML
+// Normalize backend API calls to use absolute URL and handle auth errors gracefully
 const originalFetch = window.fetch
 window.fetch = async (input, init) => {
+  let urlStr = ''
   try {
-    let urlStr = ''
     if (typeof input === 'string') {
       urlStr = input
     } else if (input instanceof URL) {
@@ -51,9 +51,31 @@ window.fetch = async (input, init) => {
       }
     }
   } catch {
-    // If URL rewriting fails, proceed with original input — do not break in-flight operations
+    // If URL rewriting fails, proceed with original input
   }
-  return originalFetch(input, init)
+
+  let response
+  try {
+    response = await originalFetch(input, init)
+  } catch (err) {
+    throw err
+  }
+
+  if (
+    (response.status === 401 || response.status === 403) &&
+    !urlStr.includes('/api/collections/users/auth-with-password') &&
+    !urlStr.includes('/api/collections/users/authRefresh')
+  ) {
+    try {
+      await ensureValidToken()
+    } catch {
+      // Silent failure — do not clear auth store or redirect.
+      // Background operations have their own retry logic that
+      // will call refreshAuthToken and handle errors gracefully.
+    }
+  }
+
+  return response
 }
 
 // Existing Pages
@@ -135,6 +157,8 @@ import ConsultantCRM from '@/pages/dashboard/ConsultantCRM'
 import InventoryManagement from '@/pages/dashboard/InventoryManagement'
 import { trackEvent } from '@/lib/tracking'
 import { captureAffiliateRef } from '@/lib/affiliate-tracking'
+import { ensureValidToken } from '@/lib/token-refresh'
+import { hasActiveBackgroundOperations } from '@/lib/background-operations'
 
 import Catalog from '@/pages/Catalog'
 import CartPage from '@/pages/Cart'

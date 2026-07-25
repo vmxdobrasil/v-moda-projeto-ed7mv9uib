@@ -363,22 +363,28 @@ export function useCustomerExport() {
 
       const tokenValid = await ensureValidToken()
       if (!tokenValid) {
+        retryStateRef.current = {
+          lastBatch: 1,
+          csvParts: [],
+          totalRecords: 0,
+          totalBatches: 0,
+          filters,
+        }
         setProgress({
           currentBatch: 0,
           totalBatches: 0,
           processed: 0,
           total: 0,
           status: 'error',
-          error:
-            'Não foi possível validar sua sessão. Faça logout e login novamente, depois tente exportar.',
+          error: 'Não foi possível validar sua sessão. Tente novamente em alguns instantes.',
+          failedBatch: 1,
         })
         isExportingRef.current = false
         setIsExporting(false)
         endBackgroundOperation()
         return {
           success: false,
-          error:
-            'Não foi possível validar sua sessão. Faça logout e login novamente, depois tente exportar.',
+          error: 'Não foi possível validar sua sessão. Tente novamente em alguns instantes.',
         }
       }
 
@@ -409,16 +415,15 @@ export function useCustomerExport() {
       setProgress((prev) => ({
         ...prev,
         status: 'error',
-        error:
-          'Não foi possível validar sua sessão. Faça logout e login novamente, depois tente exportar.',
+        error: 'Não foi possível renovar sua sessão. Tente novamente em alguns instantes.',
+        failedBatch: prev.currentBatch || 1,
       }))
       isExportingRef.current = false
       setIsExporting(false)
       endBackgroundOperation()
       return {
         success: false,
-        error:
-          'Não foi possível validar sua sessão. Faça logout e login novamente, depois tente exportar.',
+        error: 'Não foi possível renovar sua sessão. Tente novamente em alguns instantes.',
       }
     }
 
