@@ -32,22 +32,26 @@ import AdminLogs from '@/pages/admin/AdminLogs'
 // Normalize backend API calls to use absolute URL and prevent returning HTML
 const originalFetch = window.fetch
 window.fetch = async (input, init) => {
-  let urlStr = ''
-  if (typeof input === 'string') {
-    urlStr = input
-  } else if (input instanceof URL) {
-    urlStr = input.toString()
-  } else if (input instanceof Request) {
-    urlStr = input.url
-  }
-
-  if (urlStr.startsWith('/api/') || urlStr.startsWith('/backend/')) {
-    const absoluteUrl = `${import.meta.env.VITE_POCKETBASE_URL}${urlStr}`
-    if (typeof input === 'string' || input instanceof URL) {
-      input = absoluteUrl
+  try {
+    let urlStr = ''
+    if (typeof input === 'string') {
+      urlStr = input
+    } else if (input instanceof URL) {
+      urlStr = input.toString()
     } else if (input instanceof Request) {
-      input = new Request(absoluteUrl, input)
+      urlStr = input.url
     }
+
+    if (urlStr.startsWith('/api/') || urlStr.startsWith('/backend/')) {
+      const absoluteUrl = `${import.meta.env.VITE_POCKETBASE_URL}${urlStr}`
+      if (typeof input === 'string' || input instanceof URL) {
+        input = absoluteUrl
+      } else if (input instanceof Request) {
+        input = new Request(absoluteUrl, input)
+      }
+    }
+  } catch {
+    // If URL rewriting fails, proceed with original input — do not break in-flight operations
   }
   return originalFetch(input, init)
 }
