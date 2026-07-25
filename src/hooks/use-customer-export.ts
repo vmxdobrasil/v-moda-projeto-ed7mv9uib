@@ -234,8 +234,9 @@ export function useCustomerExport() {
 
             const errStatus = (err as any)?.status ?? 0
             const isTransient = errStatus === 0 || errStatus === 500
+            const errDetail = err instanceof Error ? err.message : String(err)
             const reason = isTransient
-              ? 'Não foi possível completar a exportação após várias tentativas. Verifique sua conexão e tente novamente.'
+              ? `Não foi possível completar a exportação após várias tentativas. Erro: ${errDetail} (status: ${errStatus}). Verifique sua conexão e tente novamente.`
               : err instanceof Error
                 ? err.message
                 : 'Não foi possível completar a exportação após várias tentativas. Tente novamente.'

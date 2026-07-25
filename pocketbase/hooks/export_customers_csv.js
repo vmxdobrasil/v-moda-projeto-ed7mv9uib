@@ -228,10 +228,24 @@ routerAdd(
     } catch (err) {
       $app
         .logger()
-        .error('export_customers_csv_failed', 'error', err && err.message ? err.message : 'unknown')
+        .error(
+          'export_customers_csv_failed',
+          'error',
+          err && err.message ? err.message : 'unknown',
+          'stack',
+          err && err.stack ? err.stack : '',
+          'page',
+          page,
+          'perPage',
+          perPage,
+          'userId',
+          userId,
+        )
       return e.json(500, {
         message:
-          'Não foi possível completar a exportação. Verifique sua conexão e tente novamente.',
+          'Não foi possível completar a exportação. Erro: ' +
+          (err && err.message ? err.message : 'unknown') +
+          '. Verifique sua conexão e tente novamente.',
         status: 500,
       })
     }

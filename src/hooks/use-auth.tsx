@@ -146,7 +146,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     refreshInProgressRef.current = true
     isRefreshingRef.current = true
-    setIsRefreshing(true)
     try {
       const record = pb.authStore.record
       const collectionName = record?.collectionName || 'users'
@@ -216,7 +215,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       refreshInProgressRef.current = false
       isRefreshingRef.current = false
-      setIsRefreshing(false)
     }
   }, [commitAuthState])
 

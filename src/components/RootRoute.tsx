@@ -6,10 +6,10 @@ import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 import { getRoleBasedRedirect, getIntendedRoute, setIntendedRoute } from '@/lib/auth-redirects'
 
 export function RootRoute() {
-  const { isAuthenticated, user, loading, isHydrating, isRefreshing } = useAuth()
+  const { isAuthenticated, user, loading, isHydrating } = useAuth()
   const location = useLocation()
 
-  if (loading || isHydrating || isRefreshing) {
+  if (loading || isHydrating) {
     setIntendedRoute(location.pathname + location.search)
     return (
       <div className="flex h-screen items-center justify-center bg-background animate-fade-transition">
