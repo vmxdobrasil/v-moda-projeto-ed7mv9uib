@@ -16,7 +16,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
-import { Search, Download, Upload, Loader2, ShieldAlert, RefreshCw } from 'lucide-react'
+import {
+  Search,
+  Download,
+  Upload,
+  Loader2,
+  ShieldAlert,
+  RefreshCw,
+  AlertCircle,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 const PER_PAGE = 25
@@ -36,6 +44,7 @@ export default function LeadsDashboard() {
   const [tab, setTab] = useState<'all' | LeadCollection>('all')
   const [items, setItems] = useState<UnifiedLead[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
   const [totalItems, setTotalItems] = useState(0)
@@ -52,6 +61,7 @@ export default function LeadsDashboard() {
   const loadData = useCallback(async () => {
     if (!canAccess) return
     setLoading(true)
+    setLoadError(null)
     try {
       const result = await fetchLeads(tab, page, PER_PAGE, {
         search: search || undefined,
@@ -63,7 +73,7 @@ export default function LeadsDashboard() {
       setTotalPages(result.totalPages)
     } catch (err) {
       console.error(err)
-      toast.error('Erro ao carregar leads')
+      setLoadError('Não foi possível carregar os leads. Verifique sua conexão e tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -72,9 +82,16 @@ export default function LeadsDashboard() {
   useEffect(() => {
     loadData()
   }, [loadData])
-  useRealtime('leads_venda', loadData)
-  useRealtime('leads_fabricantes', loadData)
-  useRealtime('leads_retailers', loadData)
+
+  useRealtime('leads_venda', () => {
+    if (!loadError) loadData()
+  })
+  useRealtime('leads_fabricantes', () => {
+    if (!loadError) loadData()
+  })
+  useRealtime('leads_retailers', () => {
+    if (!loadError) loadData()
+  })
 
   const handleExport = async () => {
     const cols = tab === 'all' ? ALL_COLLECTIONS : [tab]
@@ -193,6 +210,16 @@ export default function LeadsDashboard() {
         </Button>
       </div>
 
+      {loadError && (
+        <div className="bg-destructive/5 border border-destructive/20 rounded-md p-6 flex flex-col items-center gap-3">
+          <AlertCircle className="w-10 h-10 text-destructive" />
+          <p className="text-sm text-destructive text-center max-w-md">{loadError}</p>
+          <Button variant="outline" size="sm" onClick={loadData}>
+            <RefreshCw className="w-4 h-4 mr-2" /> Tentar novamente
+          </Button>
+        </div>
+      )}
+
       {progress.status === 'processing' && (
         <div className="bg-primary/5 border border-primary/20 rounded-md p-3 space-y-2">
           <div className="flex items-center justify-between text-sm">
@@ -233,33 +260,35 @@ export default function LeadsDashboard() {
         </div>
       )}
 
-      <LeadsTable items={items} loading={loading} />
+      {!loadError && <LeadsTable items={items} loading={loading} />}
 
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">
-          {totalItems > 0
-            ? `${(page - 1) * PER_PAGE + 1}-${Math.min(page * PER_PAGE, totalItems)} de ${totalItems}`
-            : '0 registros'}
-        </span>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1 || loading}
-          >
-            Anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages || loading}
-          >
-            Próximo
-          </Button>
+      {!loadError && (
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            {totalItems > 0
+              ? `${(page - 1) * PER_PAGE + 1}-${Math.min(page * PER_PAGE, totalItems)} de ${totalItems}`
+              : '0 registros'}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1 || loading}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages || loading}
+            >
+              Próximo
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       <ImportLeadsDialog open={showImport} onOpenChange={setShowImport} onImported={loadData} />
     </div>

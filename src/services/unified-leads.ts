@@ -59,14 +59,18 @@ export async function fetchLeads(
   filters: { search?: string; status?: string; source?: string },
 ): Promise<{ items: UnifiedLead[]; totalItems: number; totalPages: number }> {
   if (collection === 'all') {
-    const [venda, fab, ret] = await Promise.all([
+    const results = await Promise.allSettled([
       fetchSingle('leads_venda', 1, 100, filters),
       fetchSingle('leads_fabricantes', 1, 100, filters),
       fetchSingle('leads_retailers', 1, 100, filters),
     ])
-    const all = [...venda.items, ...fab.items, ...ret.items].sort(
-      (a, b) => new Date(b.created).getTime() - new Date(a.created).getTime(),
-    )
+    const all: UnifiedLead[] = []
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        all.push(...r.value.items)
+      }
+    }
+    all.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
     const start = (page - 1) * perPage
     return {
       items: all.slice(start, start + perPage),
