@@ -27,6 +27,35 @@ onRecordAfterUpdateSuccess((e) => {
         $app.save(notif)
       }
     } catch (err) {}
+
+    try {
+      const adminNotifCol = $app.findCollectionByNameOrId('notifications')
+      const adminNotif = new Record(adminNotifCol)
+      adminNotif.set('title', 'Atualização de Cliente')
+      if (oldStatus !== newStatus) {
+        adminNotif.set(
+          'message',
+          'O cliente ' +
+            (e.record.getString('name') || 'Sem nome') +
+            ' mudou para o status ' +
+            newStatus +
+            '.',
+        )
+      } else {
+        adminNotif.set(
+          'message',
+          'A logística do cliente ' +
+            (e.record.getString('name') || 'Sem nome') +
+            ' mudou para ' +
+            newLogistics +
+            '.',
+        )
+      }
+      adminNotif.set('read', false)
+      $app.save(adminNotif)
+    } catch (adminErr) {
+      $app.logger().error('Failed to create admin notification', 'error', adminErr.message)
+    }
   }
 
   e.next()

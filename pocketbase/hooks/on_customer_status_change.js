@@ -16,6 +16,24 @@ onRecordAfterUpdateSuccess((e) => {
   const trigger = triggerMap[newStatus]
   if (!trigger) return e.next()
 
+  try {
+    const adminNotifCol = $app.findCollectionByNameOrId('notifications')
+    const adminNotif = new Record(adminNotifCol)
+    adminNotif.set('title', 'Cliente mudou de status')
+    adminNotif.set(
+      'message',
+      'O cliente ' +
+        (e.record.getString('name') || 'Sem nome') +
+        ' mudou para o status ' +
+        newStatus +
+        '.',
+    )
+    adminNotif.set('read', false)
+    $app.save(adminNotif)
+  } catch (notifErr) {
+    $app.logger().error('Failed to create admin notification', 'error', notifErr.message)
+  }
+
   const manufacturerId = e.record.getString('manufacturer')
   if (!manufacturerId) return e.next()
 

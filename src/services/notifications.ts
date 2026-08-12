@@ -15,7 +15,6 @@ export async function getMyNotifications(limit: number = 20): Promise<Notificati
     const authRecord = pb.authStore.record
     if (!authRecord) return []
 
-    // Filter matching exactly what the collection's listRule specifies
     const filter = `user = "${authRecord.id}" || customer_email = "${authRecord.email}"`
 
     const records = await pb.collection('notifications').getList(1, limit, {
@@ -29,6 +28,18 @@ export async function getMyNotifications(limit: number = 20): Promise<Notificati
   }
 }
 
+export async function getAdminNotifications(limit: number = 100): Promise<Notification[]> {
+  const authRecord = pb.authStore.record
+  if (!authRecord) throw new Error('Not authenticated')
+
+  const filter = `user = "${authRecord.id}" || user = ""`
+  const records = await pb.collection('notifications').getList(1, limit, {
+    filter,
+    sort: '-created',
+  })
+  return records.items as unknown as Notification[]
+}
+
 export async function markNotificationRead(id: string) {
   try {
     return await pb.collection('notifications').update(id, { read: true })
@@ -36,4 +47,15 @@ export async function markNotificationRead(id: string) {
     console.error('Failed to mark notification as read:', error)
     throw error
   }
+}
+
+export async function markAllNotificationsRead(ids: string[]): Promise<void> {
+  await Promise.all(
+    ids.map((id) =>
+      pb
+        .collection('notifications')
+        .update(id, { read: true })
+        .catch(() => {}),
+    ),
+  )
 }

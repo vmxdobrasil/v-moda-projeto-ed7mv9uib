@@ -7,6 +7,23 @@ onRecordAfterUpdateSuccess((e) => {
   const isPickup = record.getBool('is_pickup')
 
   if (oldStatus !== 'paid' && newStatus === 'paid' && isPickup) {
+    try {
+      const adminNotifCol = $app.findCollectionByNameOrId('notifications')
+      const adminNotif = new Record(adminNotifCol)
+      adminNotif.set('title', 'Retirada local confirmada')
+      adminNotif.set(
+        'message',
+        'Split financeiro processado para o pedido de retirada ' +
+          record.id +
+          '. Valor: R$ ' +
+          record.getFloat('total_amount').toFixed(2),
+      )
+      adminNotif.set('read', false)
+      $app.save(adminNotif)
+    } catch (adminErr) {
+      $app.logger().error('Failed to create admin notification', 'error', adminErr.message)
+    }
+
     const totalAmount = record.getFloat('total_amount')
     const partnerId = record.getString('pickup_partner_id')
     const sellerId = record.getString('seller_id')

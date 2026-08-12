@@ -6,6 +6,23 @@ onRecordAfterUpdateSuccess((e) => {
   const newStatus = record.getString('status')
 
   if (oldStatus !== 'paid' && newStatus === 'paid') {
+    try {
+      const adminNotifCol = $app.findCollectionByNameOrId('notifications')
+      const adminNotif = new Record(adminNotifCol)
+      adminNotif.set('title', 'Novo pedido pago')
+      adminNotif.set(
+        'message',
+        'O pedido ' +
+          record.id +
+          ' foi pago. Valor: R$ ' +
+          record.getFloat('total_amount').toFixed(2),
+      )
+      adminNotif.set('read', false)
+      $app.save(adminNotif)
+    } catch (adminErr) {
+      $app.logger().error('Failed to create admin notification', 'error', adminErr.message)
+    }
+
     const customerId = record.getString('customer')
     if (!customerId) return e.next()
 

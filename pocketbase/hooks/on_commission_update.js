@@ -18,6 +18,20 @@ onRecordUpdateRequest((e) => {
         auditRecord.set('new_rate', newRate)
         $app.save(auditRecord)
       }
+
+      try {
+        const adminNotifCol = $app.findCollectionByNameOrId('notifications')
+        const adminNotif = new Record(adminNotifCol)
+        adminNotif.set('title', 'Comissão atualizada')
+        adminNotif.set(
+          'message',
+          'A comissão do parceiro foi alterada de ' + oldRate + '% para ' + newRate + '%.',
+        )
+        adminNotif.set('read', false)
+        $app.save(adminNotif)
+      } catch (adminErr) {
+        $app.logger().error('Failed to create admin notification', 'error', adminErr.message)
+      }
     }
   }
   e.next()

@@ -14,5 +14,16 @@ onRecordAfterCreateSuccess((e) => {
     }
   } catch (err) {}
 
+  try {
+    const adminNotifCol = $app.findCollectionByNameOrId('notifications')
+    const adminNotif = new Record(adminNotifCol)
+    adminNotif.set('title', 'Novo produto criado')
+    adminNotif.set('message', 'O produto ' + name + ' foi publicado no catálogo.')
+    adminNotif.set('read', false)
+    $app.save(adminNotif)
+  } catch (adminErr) {
+    $app.logger().error('Failed to create admin notification', 'error', adminErr.message)
+  }
+
   e.next()
 }, 'projects')

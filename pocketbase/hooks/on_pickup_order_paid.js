@@ -7,6 +7,23 @@ onRecordAfterUpdateSuccess((e) => {
   const isPickup = record.getBool('is_pickup')
 
   if (oldStatus !== 'paid' && newStatus === 'paid' && isPickup) {
+    try {
+      const adminNotifCol = $app.findCollectionByNameOrId('notifications')
+      const adminNotif = new Record(adminNotifCol)
+      adminNotif.set('title', 'Pedido de retirada processado')
+      adminNotif.set(
+        'message',
+        'Pedido de retirada ' +
+          record.id +
+          ' foi pago. Valor: R$ ' +
+          record.getFloat('total_amount').toFixed(2),
+      )
+      adminNotif.set('read', false)
+      $app.save(adminNotif)
+    } catch (adminErr) {
+      $app.logger().error('Failed to create admin notification', 'error', adminErr.message)
+    }
+
     if (record.getString('pickup_qr_code')) return e.next()
 
     const pickupCode = $security.randomString(12).toUpperCase()

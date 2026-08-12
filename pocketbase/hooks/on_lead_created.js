@@ -18,5 +18,19 @@ onRecordAfterCreateSuccess((e) => {
     console.log('Error creating notification: ', err)
   }
 
+  try {
+    const adminNotifCol = $app.findCollectionByNameOrId('notifications')
+    const adminNotif = new Record(adminNotifCol)
+    adminNotif.set('title', 'Novo Lead Capturado!')
+    adminNotif.set(
+      'message',
+      'Um novo cliente entrou no seu funil. Verifique os detalhes no CRM para iniciar o atendimento.',
+    )
+    adminNotif.set('read', false)
+    $app.save(adminNotif)
+  } catch (adminErr) {
+    $app.logger().error('Failed to create admin notification', 'error', adminErr.message)
+  }
+
   e.next()
 }, 'customers')

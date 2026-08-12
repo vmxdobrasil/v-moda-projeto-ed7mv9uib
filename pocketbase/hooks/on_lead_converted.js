@@ -47,6 +47,20 @@ onRecordUpdateRequest((e) => {
           referral.set('metadata', { commission_rate: commissionRate })
           $app.saveNoValidate(referral)
         }
+
+        try {
+          const adminNotifCol = $app.findCollectionByNameOrId('notifications')
+          const adminNotif = new Record(adminNotifCol)
+          adminNotif.set('title', 'Lead Convertido!')
+          adminNotif.set(
+            'message',
+            'O lead ' + (e.record.get('name') || 'Sem nome') + ' foi convertido com sucesso.',
+          )
+          adminNotif.set('read', false)
+          $app.save(adminNotif)
+        } catch (adminErr) {
+          $app.logger().error('Failed to create admin notification', 'error', adminErr.message)
+        }
       }
     } catch (err) {
       // Ignore if record doesn't exist yet
