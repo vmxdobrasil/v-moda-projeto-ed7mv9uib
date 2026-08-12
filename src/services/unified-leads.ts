@@ -21,6 +21,20 @@ const FIELD_MAP: Record<LeadCollection, { name: string; phone: string; source: s
   leads_retailers: { name: 'store_name', phone: 'phone', source: 'utm_source' },
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Timeout')), ms)
+    }),
+  ]).finally(() => clearTimeout(timer))
+}
+
+function escapeFilterValue(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
 export function normalizeLead(record: any, collection: LeadCollection): UnifiedLead {
   const f = FIELD_MAP[collection]
   if (collection === 'leads_venda') {
@@ -90,7 +104,7 @@ async function fetchSingle(
   const parts: string[] = []
   const f = FIELD_MAP[collection]
   if (filters.search) {
-    const s = filters.search
+    const s = escapeFilterValue(filters.search)
     const fields = [f.name, f.phone, 'email'].filter(Boolean)
     if (fields.length > 0) {
       parts.push(`(${fields.map((fld) => `${fld} ~ "${s}"`).join(' || ')})`)
@@ -103,11 +117,13 @@ async function fetchSingle(
     parts.push(`${f.source} = "${filters.source}"`)
   }
   const expand = collection === 'leads_venda' ? 'retailer,manufacturer,brand' : undefined
-  const result = await pb.collection(collection).getList(page, perPage, {
-    filter: parts.join(' && '),
-    sort: '-created',
-    ...(expand ? { expand } : {}),
-  })
+  const result = await withTimeout(
+    pb.collection(collection).getList(page, perPage, {
+      filter: parts.join(' && '),
+      sort: '-created',
+      ...(expand ? { expand } : {}),
+    }),
+  )
   return {
     items: result.items.map((r) => normalizeLead(r, collection)),
     totalItems: result.totalItems,

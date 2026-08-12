@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
 import { fetchLeads, type LeadCollection, type UnifiedLead } from '@/services/unified-leads'
@@ -49,6 +49,7 @@ export default function LeadsDashboard() {
   const [totalPages, setTotalPages] = useState(0)
   const [totalItems, setTotalItems] = useState(0)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [sourceFilter, setSourceFilter] = useState('all')
   const [showImport, setShowImport] = useState(false)
@@ -58,45 +59,81 @@ export default function LeadsDashboard() {
   const canAccess = !user || allowedRoles.includes(user.role)
   const isAdmin = user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
 
+  const fetchIdRef = useRef(0)
+  const loadingRef = useRef(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 400)
+    return () => clearTimeout(t)
+  }, [search])
+
   const loadData = useCallback(async () => {
-    if (!canAccess) return
+    if (!canAccess) {
+      setLoading(false)
+      return
+    }
+    const fetchId = ++fetchIdRef.current
+    loadingRef.current = true
     setLoading(true)
     setLoadError(null)
+
+    const timeoutId = setTimeout(() => {
+      if (fetchId === fetchIdRef.current) {
+        loadingRef.current = false
+        setLoading(false)
+        setLoadError('O carregamento demorou demais. Tente novamente.')
+      }
+    }, 30_000)
+
     try {
       const result = await fetchLeads(tab, page, PER_PAGE, {
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         status: statusFilter,
         source: sourceFilter,
       })
+      if (fetchId !== fetchIdRef.current) return
       setItems(result.items)
       setTotalItems(result.totalItems)
       setTotalPages(result.totalPages)
     } catch (err) {
+      if (fetchId !== fetchIdRef.current) return
       console.error(err)
       setLoadError('Não foi possível carregar os leads. Verifique sua conexão e tente novamente.')
     } finally {
-      setLoading(false)
+      clearTimeout(timeoutId)
+      if (fetchId === fetchIdRef.current) {
+        loadingRef.current = false
+        setLoading(false)
+      }
     }
-  }, [tab, page, search, statusFilter, sourceFilter, canAccess])
+  }, [tab, page, debouncedSearch, statusFilter, sourceFilter, canAccess])
 
   useEffect(() => {
     loadData()
   }, [loadData])
 
   useRealtime('leads_venda', () => {
-    if (!loadError) loadData()
+    if (!loadingRef.current) loadData()
   })
   useRealtime('leads_fabricantes', () => {
-    if (!loadError) loadData()
+    if (!loadingRef.current) loadData()
   })
   useRealtime('leads_retailers', () => {
-    if (!loadError) loadData()
+    if (!loadingRef.current) loadData()
   })
+
+  const handleRetry = useCallback(() => {
+    loadingRef.current = false
+    loadData()
+  }, [loadData])
 
   const handleExport = async () => {
     const cols = tab === 'all' ? ALL_COLLECTIONS : [tab]
     const result = await exportLeads(cols, {
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       status: statusFilter,
       source: sourceFilter,
     })
@@ -163,10 +200,7 @@ export default function LeadsDashboard() {
             placeholder="Buscar..."
             className="pl-9"
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(1)
-            }}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <Select
@@ -205,7 +239,7 @@ export default function LeadsDashboard() {
             <SelectItem value="google">Google</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="ghost" size="icon" onClick={loadData}>
+        <Button variant="ghost" size="icon" onClick={handleRetry}>
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
@@ -214,7 +248,7 @@ export default function LeadsDashboard() {
         <div className="bg-destructive/5 border border-destructive/20 rounded-md p-6 flex flex-col items-center gap-3">
           <AlertCircle className="w-10 h-10 text-destructive" />
           <p className="text-sm text-destructive text-center max-w-md">{loadError}</p>
-          <Button variant="outline" size="sm" onClick={loadData}>
+          <Button variant="outline" size="sm" onClick={handleRetry}>
             <RefreshCw className="w-4 h-4 mr-2" /> Tentar novamente
           </Button>
         </div>
@@ -290,7 +324,7 @@ export default function LeadsDashboard() {
         </div>
       )}
 
-      <ImportLeadsDialog open={showImport} onOpenChange={setShowImport} onImported={loadData} />
+      <ImportLeadsDialog open={showImport} onOpenChange={setShowImport} onImported={handleRetry} />
     </div>
   )
 }
