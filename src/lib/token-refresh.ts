@@ -76,16 +76,28 @@ async function doRefreshAuthToken(): Promise<boolean> {
     (typeof (pb.authStore.record as any)?.collectionId === 'string' &&
       (pb.authStore.record as any).collectionId) ||
     'users'
-  const collectionName = recordModel
+  const collectionName = recordModel || 'users'
+
+  // Preserve the current token + record so we can restore the authStore if
+  // authRefresh() blows up transiently. The PocketBase SDK clears
+  // `authStore.record` internally on failure, which previously made the
+  // optimistic fallback in use-auth.tsx a no-op and led to a /login redirect
+  // even though the server was still answering 200 on auth-refresh.
+  const savedToken = pb.authStore.token
+  const savedRecord = pb.authStore.record
+
+  const restoreAuthStore = () => {
+    try {
+      if (savedToken && savedRecord) {
+        pb.authStore.save(savedToken, savedRecord)
+      }
+    } catch {
+      /* intentionally ignored — best-effort restore */
+    }
+  }
 
   try {
     await pb.collection(collectionName).authRefresh()
-    if (pb.authStore.isValid && pb.authStore.record) {
-      return true
-    }
-    // Refresh "succeeded" HTTP-wise but the store is invalid — treat as fatal.
-    fatalAuthFailure = true
-    return false
   } catch (err: any) {
     const status = err?.status ?? 0
     if (status === 401 || status === 403) {
@@ -93,10 +105,23 @@ async function doRefreshAuthToken(): Promise<boolean> {
       fatalAuthFailure = true
       return false
     }
-    // Transient (network / 5xx) — leave fatalAuthFailure unchanged; caller may
-    // retry later when connectivity returns.
+    // Transient (network / 5xx) — restore the preserved session so callers
+    // can keep the user logged in optimistically. Leave fatalAuthFailure
+    // unchanged; caller may retry later when connectivity returns.
+    restoreAuthStore()
     return false
   }
+
+  if (pb.authStore.isValid && pb.authStore.token && pb.authStore.record) {
+    return true
+  }
+
+  // Refresh "succeeded" HTTP-wise but the store is invalid. Treat as fatal
+  // only when the SDK reports a permanent auth rejection; otherwise restore
+  // the preserved session and let the caller retry later.
+  fatalAuthFailure = true
+  restoreAuthStore()
+  return false
 }
 
 export async function refreshAuthToken(): Promise<boolean> {

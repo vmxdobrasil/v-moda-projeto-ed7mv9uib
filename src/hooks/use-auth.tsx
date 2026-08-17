@@ -309,7 +309,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return
       }
 
-      // JWT is expired — must refresh before rendering protected content
+      // JWT is expired — must refresh before rendering protected content.
+      // Preserve the current record/token/model BEFORE calling refreshAuthToken:
+      // the PocketBase SDK clears `pb.authStore.record` internally on failure,
+      // and without a snapshot we cannot restore an optimistic session when the
+      // refresh dies for a transient reason (network / 5xx) while the server
+      // is still answering 200 on auth-refresh.
+      const savedRecord = pb.authStore.record
+      const savedToken = pb.authStore.token
+      const savedModel = pb.authStore.model
+      const restoreSession = () => {
+        if (savedToken && savedRecord) {
+          try {
+            pb.authStore.save(savedToken, savedRecord)
+          } catch {
+            /* best-effort */
+          }
+        }
+      }
+
       logAuthEvent('validateSession_jwt_expired_refreshing', {
         loading: true,
         isAuthenticated: false,
@@ -348,6 +366,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Mirrors the graceful handling of the non-expired-JWT path: a
           // network blip or a momentary `collectionName` gap must not log the
           // user out when the refresh token is still alive on the server.
+          // Ensure the preserved session is back in the store before retrying,
+          // in case the SDK cleared it during the failed refresh.
+          restoreSession()
           logAuthEvent('validateSession_refresh_failed_transient_retrying', {
             loading: true,
             isAuthenticated: false,
@@ -367,41 +388,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           } else if (hasFatalAuthFailure()) {
             handleFatalAuthFailure()
           } else {
-            // Still transient — keep an optimistic session (if we still have a
-            // record) and let the grace period / background refresh sort it
-            // out. Do NOT call handleFatalAuthFailure(): the server refresh is
-            // returning 200 and the token may simply not have been committed
-            // to the store yet.
+            // Still transient — restore the preserved session and keep an
+            // optimistic auth state, letting the grace period / background
+            // refresh sort it out. Do NOT call handleFatalAuthFailure(): the
+            // server refresh is returning 200 and the token may simply not
+            // have been committed to the store yet.
+            restoreSession()
+            const restoredRecord = pb.authStore.record || savedRecord
             logAuthEvent('validateSession_transient_failure', {
               loading: false,
-              isAuthenticated: !!pb.authStore.record,
+              isAuthenticated: !!restoredRecord,
               isHydrating: false,
               hasToken: !!pb.authStore.token,
-              hasRecord: !!pb.authStore.record,
+              hasRecord: !!restoredRecord,
               pathname: window.location.pathname,
             })
-            if (pb.authStore.record) {
-              commitAuthState(true, pb.authStore.record, false)
+            if (restoredRecord) {
+              commitAuthState(true, restoredRecord, false)
             }
           }
         }
       } catch {
         if (cancelled) return
         // Unexpected error — only treat as fatal if the refresh token is
-        // actually dead; otherwise keep the optimistic session and let the
+        // actually dead; otherwise restore the preserved session and let the
         // background refresh retry.
         if (hasFatalAuthFailure()) {
           handleFatalAuthFailure()
-        } else if (pb.authStore.record) {
-          logAuthEvent('validateSession_unexpected_error_kept_session', {
-            loading: false,
-            isAuthenticated: true,
-            isHydrating: false,
-            hasToken: !!pb.authStore.token,
-            hasRecord: !!pb.authStore.record,
-            pathname: window.location.pathname,
-          })
-          commitAuthState(true, pb.authStore.record, false)
+        } else {
+          restoreSession()
+          const restoredRecord = pb.authStore.record || savedRecord
+          if (restoredRecord) {
+            logAuthEvent('validateSession_unexpected_error_kept_session', {
+              loading: false,
+              isAuthenticated: true,
+              isHydrating: false,
+              hasToken: !!pb.authStore.token,
+              hasRecord: !!restoredRecord,
+              pathname: window.location.pathname,
+            })
+            commitAuthState(true, restoredRecord, false)
+          }
         }
       } finally {
         if (!cancelled) setLoading(false)

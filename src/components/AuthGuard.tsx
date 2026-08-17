@@ -46,7 +46,15 @@ function useGuardBase(): GuardState {
       setInGracePeriod(false)
       return
     }
-    if (!pb.authStore.token || !pb.authStore.record) return
+    // Enter the grace period whenever there is ANY trace of an auth session —
+    // either in the in-memory store (token + record) or persisted in
+    // localStorage. The PocketBase SDK can briefly clear `authStore.record`
+    // during a transient refresh failure; if the store is empty but the
+    // session is still in localStorage, the grace period / token renewal can
+    // restore it instead of bouncing the user to /login.
+    const hasStoreAuth = !!(pb.authStore.token && pb.authStore.record)
+    const hasLocalAuth = hasAuthInLocalStorage()
+    if (!hasStoreAuth && !hasLocalAuth) return
     if (graceAttemptedRef.current) return
 
     graceAttemptedRef.current = true
