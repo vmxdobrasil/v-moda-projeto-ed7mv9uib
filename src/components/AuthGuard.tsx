@@ -13,6 +13,11 @@ import { waitForTokenRenewal, hasFatalAuthFailure } from '@/lib/token-refresh'
 import { hasAuthInLocalStorage } from '@/lib/auth-diagnostics'
 
 const GRACE_PERIOD_MS = 120_000
+// Janela síncrona de tolerância: se isAuthenticated acabou de virar false (há
+// menos de AUTH_FALSE_GRACE_MS) e não é falha fatal, o guard mantém o estado
+// de loading para dar tempo ao grace period / waitForTokenRenewal recuperar a
+// sessão — evita que o React Router navegue para /login antes do refresh.
+const AUTH_FALSE_GRACE_MS = 3_000
 
 type GuardState =
   | { status: 'loading' }
@@ -25,10 +30,42 @@ function useGuardBase(): GuardState {
   const [bgOpsActive, setBgOpsActive] = useState(hasActiveBackgroundOperations())
   const [inGracePeriod, setInGracePeriod] = useState(false)
   const graceAttemptedRef = useRef(false)
+  // Marca quando isAuthenticated transita de true -> false, para segurar o
+  // guard em loading durante a janela AUTH_FALSE_GRACE_MS (ver abaixo).
+  const prevAuthRef = useRef<boolean>(isAuthenticated)
+  const authFalseSinceRef = useRef<number | null>(null)
+  // Estado usado apenas para forçar uma re-renderização quando a janela de
+  // tolerância expira (caso contrário o guard ficaria em loading indefinidamente).
+  const [, setAuthFalseGraceTick] = useState(0)
+
+  // Rastreia a transição true -> false sincronamente durante o render, para
+  // que o guard abaixo já encontre o timestamp na própria renderização em que
+  // isAuthenticated vira false (um useEffect rodaria tarde demais e perderia
+  // a race condition que estamos corrigindo).
+  if (isAuthenticated !== prevAuthRef.current) {
+    if (!isAuthenticated && prevAuthRef.current) {
+      authFalseSinceRef.current = Date.now()
+    } else if (isAuthenticated) {
+      authFalseSinceRef.current = null
+    }
+    prevAuthRef.current = isAuthenticated
+  }
 
   useEffect(() => {
     return onBackgroundOperationsChange(() => setBgOpsActive(hasActiveBackgroundOperations()))
   }, [])
+
+  // Garante uma re-renderização ao fim da janela de tolerância para que o
+  // guard saia de loading e redirecione (ou autentique) caso a sessão não
+  // tenha sido recuperada a tempo.
+  useEffect(() => {
+    if (!isAuthenticated && !hasFatalAuthFailure() && authFalseSinceRef.current !== null) {
+      const elapsed = Date.now() - authFalseSinceRef.current
+      const remaining = Math.max(AUTH_FALSE_GRACE_MS - elapsed, 0)
+      const t = setTimeout(() => setAuthFalseGraceTick((n) => n + 1), remaining)
+      return () => clearTimeout(t)
+    }
+  }, [isAuthenticated])
 
   useEffect(() => {
     if (isPublicRoute(location.pathname)) return
@@ -88,6 +125,20 @@ function useGuardBase(): GuardState {
     // renovar o token antes de redirecionar para /login (evita race condition
     // onde o redirecionamento acontece antes do useEffect de grace period rodar).
     if (!hasFatalAuthFailure() && hasAuthInLocalStorage()) {
+      setIntendedRoute(location.pathname + location.search)
+      return { status: 'loading' }
+    }
+    // Segunda camada síncrona: se isAuthenticated acabou de virar false (há
+    // menos de AUTH_FALSE_GRACE_MS) e não é falha fatal, mantenha loading para
+    // dar tempo ao grace period / waitForTokenRenewal agir. Isto cobre o caso
+    // em que o estado React já está false mas o localStorage ainda pode ter a
+    // sessão (ou o refresh está em andamento) — sem isso o React Router
+    // navegaria para /login antes do useEffect de grace period rodar.
+    if (
+      !hasFatalAuthFailure() &&
+      authFalseSinceRef.current !== null &&
+      Date.now() - authFalseSinceRef.current < AUTH_FALSE_GRACE_MS
+    ) {
       setIntendedRoute(location.pathname + location.search)
       return { status: 'loading' }
     }

@@ -19,7 +19,12 @@ import {
   hasActiveBackgroundOperations,
   onBackgroundOperationsChange,
 } from '@/lib/background-operations'
-import { refreshAuthToken, hasFatalAuthFailure, resetFatalAuthFailure } from '@/lib/token-refresh'
+import {
+  refreshAuthToken,
+  hasFatalAuthFailure,
+  resetFatalAuthFailure,
+  waitForTokenRenewal,
+} from '@/lib/token-refresh'
 
 interface AuthContextType {
   user: any
@@ -63,6 +68,9 @@ function isJwtExpired(): boolean {
 
 const MIN_REFRESH_INTERVAL_MS = 60_000
 const BACKGROUND_REFRESH_INTERVAL_MS = 10 * 60_000
+const AUTH_GRACE_PERIOD_MS = 120_000
+const SHORT_GRACE_PERIOD_MS = 5_000
+const INIT_GRACE_WINDOW_MS = 10_000
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const hasToken = !!pb.authStore.token
@@ -78,6 +86,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isRefreshingRef = useRef(false)
   const lastRefreshRef = useRef<number>(0)
   const isInitializingRef = useRef<boolean>(true)
+  // Timestamp da montagem do AuthProvider — usado para impedir que o listener
+  // authStore.onChange apague uma sessão recuperável durante os primeiros
+  // INIT_GRACE_WINDOW_MS de inicialização, mesmo depois de isInitializingRef
+  // ter virado false.
+  const initStartedAtRef = useRef<number>(Date.now())
   const sessionClearedRef = useRef(false)
   const lastCommittedRef = useRef<{ auth: boolean; recordId: string | null; hydrating: boolean }>({
     auth: false,
@@ -220,6 +233,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           })
           return
         }
+        // If a session is still persisted in localStorage and the refresh
+        // token is not known to be dead, do NOT wipe the in-memory auth state
+        // here. The PocketBase SDK can transiently clear `authStore` during a
+        // non-fatal refresh failure; discarding the session now would log the
+        // user out even though the server still honours the refresh token.
+        // Keep the current state and let the grace period / validateSession
+        // retry recover it (or, if it truly fails, the fatalAuthFailure flag
+        // will drive the redirect).
+        if (hasAuthInLocalStorage() && !hasFatalAuthFailure()) {
+          logAuthEvent('authStore_change_skipped_local_storage_present', {
+            loading: true,
+            isAuthenticated: true,
+            isHydrating: false,
+            hasToken: false,
+            hasRecord: false,
+            pathname: window.location.pathname,
+          })
+          return
+        }
+        // Segunda camada: durante os primeiros INIT_GRACE_WINDOW_MS após a
+        // montagem, mesmo se isInitializingRef já foi virado para false, NÃO
+        // apague a sessão num clear do authStore quando o refresh token não
+        // está morto. O servidor pode ainda estar respondendo 200 no
+        // auth-refresh e o validateSession / grace period tomará a decisão
+        // final. Isto cobre edge cases em que hasAuthInLocalStorage() retorna
+        // false (chave/formato diferente) mas a sessão é recuperável.
+        if (
+          !hasFatalAuthFailure() &&
+          Date.now() - initStartedAtRef.current < INIT_GRACE_WINDOW_MS
+        ) {
+          logAuthEvent('authStore_change_skipped_init_window', {
+            loading: true,
+            isAuthenticated: true,
+            isHydrating: false,
+            hasToken: false,
+            hasRecord: false,
+            pathname: window.location.pathname,
+          })
+          return
+        }
         logAuthEvent('authStore_change_cleared', {
           loading: false,
           isAuthenticated: false,
@@ -248,7 +301,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const validateSession = async () => {
       if (!pb.authStore.token || !pb.authStore.record) {
-        if (hasAuthInLocalStorage() && !pb.authStore.token) {
+        // A persisted session exists in localStorage but the in-memory store
+        // is empty. If the refresh token is not known to be dead, the SDK may
+        // simply not have hydrated the store yet (or it was cleared during a
+        // transient refresh failure). Instead of immediately marking the user
+        // unauthenticated — which makes AuthGuard redirect to /login even
+        // though auth-refresh is returning 200 — keep `loading = true` and
+        // hand off to the grace period (waitForTokenRenewal), mirroring the
+        // fallback AuthGuard already does. Only give up if the grace period
+        // fails or the refresh token is permanently dead.
+        const hasLocalAuth = hasAuthInLocalStorage()
+        if (hasLocalAuth && !hasFatalAuthFailure()) {
           logAuthEvent('validateSession_token_in_storage_not_store', {
             loading: true,
             isAuthenticated: false,
@@ -257,21 +320,111 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             hasRecord: false,
             pathname: window.location.pathname,
           })
+          // Allow the onChange listener to operate, but its clear path is now
+          // guarded against wiping a recoverable session (see Frente 2).
+          isInitializingRef.current = false
+          try {
+            const renewed = await waitForTokenRenewal(AUTH_GRACE_PERIOD_MS)
+            if (cancelled) return
+            if (renewed && pb.authStore.isValid && pb.authStore.record) {
+              sessionClearedRef.current = false
+              commitAuthState(true, pb.authStore.record, false)
+            } else {
+              // Grace period exhausted without a valid token — the session is
+              // genuinely unrecoverable now.
+              if (pb.authStore.record) pb.authStore.clear()
+              logAuthEvent('validateSession_grace_period_exhausted', {
+                loading: false,
+                isAuthenticated: false,
+                isHydrating: false,
+                hasToken: !!pb.authStore.token,
+                hasRecord: !!pb.authStore.record,
+                pathname: window.location.pathname,
+              })
+              sessionClearedRef.current = true
+              commitAuthState(false, null, false)
+            }
+          } finally {
+            if (!cancelled) setLoading(false)
+          }
+          return
         }
+
         if (pb.authStore.record) pb.authStore.clear()
         if (cancelled) return
         isInitializingRef.current = false
-        logAuthEvent('validateSession_no_token', {
-          loading: false,
+
+        // Se o refresh token está permanentemente morto não há o que esperar —
+        // commita não-autenticado imediatamente.
+        if (hasFatalAuthFailure()) {
+          logAuthEvent('validateSession_no_token_fatal', {
+            loading: false,
+            isAuthenticated: false,
+            isHydrating: false,
+            hasToken: !!pb.authStore.token,
+            hasRecord: !!pb.authStore.record,
+            pathname: window.location.pathname,
+          })
+          sessionClearedRef.current = true
+          commitAuthState(false, null, false)
+          setLoading(false)
+          return
+        }
+
+        // Caso contrário, conceda um grace period curto
+        // (SHORT_GRACE_PERIOD_MS) para a sessão ser recuperada — por exemplo
+        // por um refresh concorrente disparado pelo authStore.onChange ou por
+        // um clear transitório do store — antes de commitar false. O servidor
+        // pode ainda estar respondendo 200 no auth-refresh; commitar false
+        // cedo demais faz o AuthGuard redirecionar para /login antes do
+        // refresh concluir.
+        logAuthEvent('validateSession_no_token_short_grace', {
+          loading: true,
           isAuthenticated: false,
-          isHydrating: false,
+          isHydrating: true,
           hasToken: !!pb.authStore.token,
           hasRecord: !!pb.authStore.record,
           pathname: window.location.pathname,
         })
-        sessionClearedRef.current = true
-        commitAuthState(false, null, false)
-        setLoading(false)
+        try {
+          const shortDeadline = Date.now() + SHORT_GRACE_PERIOD_MS
+          let recovered = false
+          while (Date.now() < shortDeadline) {
+            if (cancelled) return
+            if (pb.authStore.token && pb.authStore.record && pb.authStore.isValid) {
+              recovered = true
+              break
+            }
+            // Se houver qualquer material de token, tente um refresh explícito.
+            if (pb.authStore.token) {
+              await refreshAuthToken()
+              if (cancelled) return
+              if (pb.authStore.isValid && pb.authStore.record) {
+                recovered = true
+                break
+              }
+            }
+            await new Promise((r) => setTimeout(r, 500))
+          }
+          if (cancelled) return
+          if (recovered && pb.authStore.isValid && pb.authStore.record) {
+            sessionClearedRef.current = false
+            commitAuthState(true, pb.authStore.record, false)
+          } else {
+            logAuthEvent('validateSession_no_token_short_grace_exhausted', {
+              loading: false,
+              isAuthenticated: false,
+              isHydrating: false,
+              hasToken: !!pb.authStore.token,
+              hasRecord: !!pb.authStore.record,
+              pathname: window.location.pathname,
+            })
+            sessionClearedRef.current = true
+            commitAuthState(false, null, false)
+          }
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
         return
       }
 
