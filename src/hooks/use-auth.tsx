@@ -333,8 +333,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           })
           sessionClearedRef.current = false
           commitAuthState(true, pb.authStore.record, false)
-        } else {
-          logAuthEvent('validateSession_refresh_failed', {
+        } else if (hasFatalAuthFailure()) {
+          logAuthEvent('validateSession_refresh_failed_fatal', {
             loading: false,
             isAuthenticated: false,
             isHydrating: false,
@@ -343,11 +343,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             pathname: window.location.pathname,
           })
           handleFatalAuthFailure()
+        } else {
+          // Transient failure — retry once after a short delay before giving up.
+          // Mirrors the graceful handling of the non-expired-JWT path: a
+          // network blip or a momentary `collectionName` gap must not log the
+          // user out when the refresh token is still alive on the server.
+          logAuthEvent('validateSession_refresh_failed_transient_retrying', {
+            loading: true,
+            isAuthenticated: false,
+            isHydrating: true,
+            hasToken: !!pb.authStore.token,
+            hasRecord: !!pb.authStore.record,
+            pathname: window.location.pathname,
+          })
+          await new Promise((r) => setTimeout(r, 2000))
+          if (cancelled) return
+          const retrySuccess = await refreshAuthToken()
+          lastRefreshRef.current = Date.now()
+          if (cancelled) return
+          if (retrySuccess && pb.authStore.isValid && pb.authStore.record) {
+            sessionClearedRef.current = false
+            commitAuthState(true, pb.authStore.record, false)
+          } else if (hasFatalAuthFailure()) {
+            handleFatalAuthFailure()
+          } else {
+            // Still transient — keep an optimistic session (if we still have a
+            // record) and let the grace period / background refresh sort it
+            // out. Do NOT call handleFatalAuthFailure(): the server refresh is
+            // returning 200 and the token may simply not have been committed
+            // to the store yet.
+            logAuthEvent('validateSession_transient_failure', {
+              loading: false,
+              isAuthenticated: !!pb.authStore.record,
+              isHydrating: false,
+              hasToken: !!pb.authStore.token,
+              hasRecord: !!pb.authStore.record,
+              pathname: window.location.pathname,
+            })
+            if (pb.authStore.record) {
+              commitAuthState(true, pb.authStore.record, false)
+            }
+          }
         }
       } catch {
         if (cancelled) return
-        // Unexpected error — treat as fatal to avoid loops
-        handleFatalAuthFailure()
+        // Unexpected error — only treat as fatal if the refresh token is
+        // actually dead; otherwise keep the optimistic session and let the
+        // background refresh retry.
+        if (hasFatalAuthFailure()) {
+          handleFatalAuthFailure()
+        } else if (pb.authStore.record) {
+          logAuthEvent('validateSession_unexpected_error_kept_session', {
+            loading: false,
+            isAuthenticated: true,
+            isHydrating: false,
+            hasToken: !!pb.authStore.token,
+            hasRecord: !!pb.authStore.record,
+            pathname: window.location.pathname,
+          })
+          commitAuthState(true, pb.authStore.record, false)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }

@@ -64,7 +64,19 @@ async function doRefreshAuthToken(): Promise<boolean> {
   // hit 401 again and re-trigger the clear/redirect cycle.
   if (fatalAuthFailure) return false
 
-  const collectionName = pb.authStore.record?.collectionName || 'users'
+  // `collectionName` may be undefined on the record object (some PocketBase
+  // builds omit it after a store hydration from localStorage). Fall back to
+  // `pb.authStore.model` and finally to 'users' so the authRefresh call never
+  // throws with "Cannot read properties of undefined".
+  const recordModel =
+    (typeof pb.authStore.record?.collectionName === 'string' &&
+      pb.authStore.record.collectionName) ||
+    (typeof (pb.authStore.model as any)?.collectionName === 'string' &&
+      (pb.authStore.model as any).collectionName) ||
+    (typeof (pb.authStore.record as any)?.collectionId === 'string' &&
+      (pb.authStore.record as any).collectionId) ||
+    'users'
+  const collectionName = recordModel
 
   try {
     await pb.collection(collectionName).authRefresh()

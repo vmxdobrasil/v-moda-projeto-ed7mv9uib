@@ -10,6 +10,7 @@ import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 import { getRoleBasedRedirect, isSuperuserOrAdmin, setIntendedRoute } from '@/lib/auth-redirects'
 import { isPublicRoute } from '@/lib/public-routes'
 import { waitForTokenRenewal, hasFatalAuthFailure } from '@/lib/token-refresh'
+import { hasAuthInLocalStorage } from '@/lib/auth-diagnostics'
 
 const GRACE_PERIOD_MS = 120_000
 
