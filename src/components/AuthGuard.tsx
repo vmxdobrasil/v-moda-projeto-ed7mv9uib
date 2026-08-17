@@ -9,7 +9,7 @@ import {
 import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 import { getRoleBasedRedirect, isSuperuserOrAdmin, setIntendedRoute } from '@/lib/auth-redirects'
 import { isPublicRoute } from '@/lib/public-routes'
-import { waitForTokenRenewal } from '@/lib/token-refresh'
+import { waitForTokenRenewal, hasFatalAuthFailure } from '@/lib/token-refresh'
 
 const GRACE_PERIOD_MS = 120_000
 
@@ -38,6 +38,13 @@ function useGuardBase(): GuardState {
       return
     }
     if (bgOpsActive) return
+    // If refresh is permanently dead (PocketBase already returned 401/403 on
+    // auth-refresh) there is nothing to wait for — do NOT enter the grace
+    // period, just let the guard redirect to /login immediately.
+    if (hasFatalAuthFailure()) {
+      setInGracePeriod(false)
+      return
+    }
     if (!pb.authStore.token || !pb.authStore.record) return
     if (graceAttemptedRef.current) return
 

@@ -19,6 +19,7 @@ import {
   hasActiveBackgroundOperations,
   onBackgroundOperationsChange,
 } from '@/lib/background-operations'
+import { refreshAuthToken, hasFatalAuthFailure, resetFatalAuthFailure } from '@/lib/token-refresh'
 
 interface AuthContextType {
   user: any
@@ -60,29 +61,6 @@ function isJwtExpired(): boolean {
   }
 }
 
-async function retryWithBackoff<T>(
-  fn: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 1000,
-): Promise<T> {
-  let lastError: any
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn()
-    } catch (err: any) {
-      lastError = err
-      if (err?.status === 401 || err?.status === 403) {
-        throw err
-      }
-      if (attempt < maxRetries) {
-        const delay = baseDelay * Math.pow(2, attempt)
-        await new Promise((resolve) => setTimeout(resolve, delay))
-      }
-    }
-  }
-  throw lastError
-}
-
 const MIN_REFRESH_INTERVAL_MS = 60_000
 const BACKGROUND_REFRESH_INTERVAL_MS = 10 * 60_000
 
@@ -100,6 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isRefreshingRef = useRef(false)
   const lastRefreshRef = useRef<number>(0)
   const isInitializingRef = useRef<boolean>(true)
+  const sessionClearedRef = useRef(false)
   const lastCommittedRef = useRef<{ auth: boolean; recordId: string | null; hydrating: boolean }>({
     auth: false,
     recordId: null,
@@ -137,8 +116,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [])
 
+  /**
+   * Clears the local session exactly once when the refresh token is permanently
+   * dead (PocketBase returned 401/403 on auth-refresh). Subsequent calls are
+   * no-ops so the app never enters a clear → redirect → refresh → clear loop.
+   */
+  const handleFatalAuthFailure = useCallback(() => {
+    if (sessionClearedRef.current) return
+    sessionClearedRef.current = true
+    logAuthEvent(
+      'fatal_auth_failure_clearing_session',
+      {
+        loading: false,
+        isAuthenticated: false,
+        isHydrating: false,
+        hasToken: !!pb.authStore.token,
+        hasRecord: !!pb.authStore.record,
+        pathname: window.location.pathname,
+      },
+      { fatal: hasFatalAuthFailure() },
+    )
+    pb.authStore.clear()
+    commitAuthState(false, null, false)
+    if (!hasActiveBackgroundOperations()) {
+      setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
+    }
+  }, [commitAuthState])
+
   const silentRefresh = useCallback(async () => {
     if (refreshInProgressRef.current) return
+    if (hasFatalAuthFailure()) return
     if (!pb.authStore.token || !pb.authStore.record) return
 
     const now = Date.now()
@@ -149,78 +156,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     refreshInProgressRef.current = true
     isRefreshingRef.current = true
     try {
-      const record = pb.authStore.record
-      const collectionName = record?.collectionName || 'users'
-      await retryWithBackoff(() => pb.collection(collectionName).authRefresh(), 2, 1500)
+      const success = await refreshAuthToken()
       lastRefreshRef.current = Date.now()
-      if (pb.authStore.isValid && pb.authStore.record) {
+      if (success && pb.authStore.isValid && pb.authStore.record) {
+        sessionClearedRef.current = false
         commitAuthState(true, pb.authStore.record, false)
+      } else if (hasFatalAuthFailure()) {
+        handleFatalAuthFailure()
       }
-    } catch (err: any) {
-      const status = err?.status ?? 0
-      if (status === 401 || status === 403) {
-        if (!isJwtExpired()) {
-          logAuthEvent(
-            'silentRefresh_unauthorized_jwt_valid',
-            {
-              loading: false,
-              isAuthenticated: true,
-              isHydrating: false,
-              hasToken: true,
-              hasRecord: true,
-              pathname: window.location.pathname,
-            },
-            { status },
-          )
-        } else {
-          logAuthEvent(
-            'silentRefresh_unauthorized_retrying',
-            {
-              loading: false,
-              isAuthenticated: false,
-              isHydrating: false,
-              hasToken: true,
-              hasRecord: true,
-              pathname: window.location.pathname,
-            },
-            { status },
-          )
-          const retryCollection = pb.authStore.record?.collectionName || 'users'
-          try {
-            await new Promise((resolve) => setTimeout(resolve, 500))
-            await retryWithBackoff(() => pb.collection(retryCollection).authRefresh(), 1, 500)
-            lastRefreshRef.current = Date.now()
-            if (pb.authStore.isValid && pb.authStore.record) {
-              commitAuthState(true, pb.authStore.record, false)
-            }
-          } catch (retryErr: any) {
-            const retryStatus = retryErr?.status ?? 0
-            if (retryStatus === 401 || retryStatus === 403) {
-              if (!hasActiveBackgroundOperations()) {
-                setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
-              }
-            }
-          }
-        }
-      } else {
-        logAuthEvent(
-          'silentRefresh_transient_error',
-          {
-            loading: false,
-            isAuthenticated: true,
-            isHydrating: false,
-            hasToken: !!pb.authStore.token,
-            hasRecord: !!pb.authStore.record,
-            pathname: window.location.pathname,
-          },
-          { status, error: err?.message },
-        )
-      }
+      // transient failure: keep the existing session optimistically
     } finally {
       refreshInProgressRef.current = false
       isRefreshingRef.current = false
     }
-  }, [commitAuthState])
+  }, [commitAuthState, handleFatalAuthFailure])
 
   useEffect(() => {
     let cancelled = false
@@ -279,6 +228,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           hasRecord: false,
           pathname: window.location.pathname,
         })
+        sessionClearedRef.current = true
         commitAuthState(false, null, false)
       } else if (pb.authStore.token && record && pb.authStore.isValid) {
         if (!isInitializingRef.current && !refreshInProgressRef.current) {
@@ -290,6 +240,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             hasRecord: true,
             pathname: window.location.pathname,
           })
+          sessionClearedRef.current = false
           commitAuthState(true, record, false)
         }
       }
@@ -318,13 +269,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           hasRecord: !!pb.authStore.record,
           pathname: window.location.pathname,
         })
+        sessionClearedRef.current = true
         commitAuthState(false, null, false)
         setLoading(false)
         return
       }
 
       const record = pb.authStore.record
-      const collectionName = record?.collectionName || 'users'
       const jwtExpired = isJwtExpired()
 
       // If JWT is still valid, optimistically authenticate immediately
@@ -342,35 +293,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false)
 
         try {
-          await retryWithBackoff(() => pb.collection(collectionName).authRefresh(), 1, 1500)
+          const success = await refreshAuthToken()
           lastRefreshRef.current = Date.now()
           if (cancelled) return
-          if (pb.authStore.isValid && pb.authStore.record) {
+          if (success && pb.authStore.isValid && pb.authStore.record) {
+            sessionClearedRef.current = false
             commitAuthState(true, pb.authStore.record, false)
+          } else if (hasFatalAuthFailure()) {
+            handleFatalAuthFailure()
           }
-        } catch (err: any) {
-          if (cancelled) return
-          const status = err?.status ?? 0
-          if ((status === 401 || status === 403) && isJwtExpired()) {
-            try {
-              await new Promise((resolve) => setTimeout(resolve, 500))
-              await retryWithBackoff(() => pb.collection(collectionName).authRefresh(), 1, 500)
-              lastRefreshRef.current = Date.now()
-              if (cancelled) return
-              if (pb.authStore.isValid && pb.authStore.record) {
-                commitAuthState(true, pb.authStore.record, false)
-              } else {
-                setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
-              }
-            } catch (retryErr: any) {
-              if (cancelled) return
-              const retryStatus = retryErr?.status ?? 0
-              if (retryStatus === 401 || retryStatus === 403) {
-                setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
-              }
-            }
-          }
-          // Network error or JWT still valid — retain the session
+          // transient refresh error & JWT still valid → retain the session
+        } catch {
+          // ignore — optimistic session retained
         }
         return
       }
@@ -385,11 +319,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         pathname: window.location.pathname,
       })
       try {
-        await retryWithBackoff(() => pb.collection(collectionName).authRefresh())
+        const success = await refreshAuthToken()
         lastRefreshRef.current = Date.now()
         if (cancelled) return
-        const isValid = pb.authStore.isValid && !!pb.authStore.record
-        if (isValid) {
+        if (success && pb.authStore.isValid && pb.authStore.record) {
           logAuthEvent('validateSession_refresh_success', {
             loading: false,
             isAuthenticated: true,
@@ -398,46 +331,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             hasRecord: true,
             pathname: window.location.pathname,
           })
+          sessionClearedRef.current = false
           commitAuthState(true, pb.authStore.record, false)
         } else {
-          logAuthEvent('validateSession_refresh_invalid', {
+          logAuthEvent('validateSession_refresh_failed', {
             loading: false,
             isAuthenticated: false,
             isHydrating: false,
-            hasToken: false,
-            hasRecord: false,
+            hasToken: !!pb.authStore.token,
+            hasRecord: !!pb.authStore.record,
             pathname: window.location.pathname,
           })
-          pb.authStore.clear()
-          commitAuthState(false, null, false)
+          handleFatalAuthFailure()
         }
-      } catch (err: any) {
+      } catch {
         if (cancelled) return
-        const status = err?.status ?? 0
-        if (status === 401 || status === 403) {
-          try {
-            await new Promise((resolve) => setTimeout(resolve, 500))
-            await retryWithBackoff(() => pb.collection(collectionName).authRefresh(), 1, 500)
-            lastRefreshRef.current = Date.now()
-            if (cancelled) return
-            if (pb.authStore.isValid && pb.authStore.record) {
-              commitAuthState(true, pb.authStore.record, false)
-            } else {
-              pb.authStore.clear()
-              commitAuthState(false, null, false)
-              setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
-            }
-          } catch (retryErr: any) {
-            if (cancelled) return
-            pb.authStore.clear()
-            commitAuthState(false, null, false)
-            setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
-          }
-        } else {
-          // Network error with expired JWT — keep session optimistically;
-          // the next API call will handle 401 if the token is truly invalid
-          commitAuthState(true, record, false)
-        }
+        // Unexpected error — treat as fatal to avoid loops
+        handleFatalAuthFailure()
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -448,20 +358,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     })
 
     const refreshInterval = setInterval(() => {
-      if (!cancelled && pb.authStore.token) {
+      if (!cancelled && pb.authStore.token && !hasFatalAuthFailure()) {
         silentRefresh()
       }
     }, BACKGROUND_REFRESH_INTERVAL_MS)
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && pb.authStore.token) {
+      if (document.visibilityState === 'visible' && pb.authStore.token && !hasFatalAuthFailure()) {
         silentRefresh()
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
     const handleOnline = () => {
-      if (pb.authStore.token) {
+      if (pb.authStore.token && !hasFatalAuthFailure()) {
         silentRefresh()
       }
     }
@@ -474,7 +384,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('online', handleOnline)
     }
-  }, [commitAuthState, silentRefresh])
+  }, [commitAuthState, silentRefresh, handleFatalAuthFailure])
 
   useEffect(() => {
     const update = () => setHasBackgroundOperations(hasActiveBackgroundOperations())
@@ -491,6 +401,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         passwordConfirm: password,
       })
       await pb.collection('users').authWithPassword(email, password)
+      resetFatalAuthFailure()
+      sessionClearedRef.current = false
       lastRefreshRef.current = Date.now()
       const record = pb.authStore.record
       commitAuthState(true, record, false)
@@ -504,6 +416,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setAuthError(null)
       await pb.collection('users').authWithPassword(email, password)
+      // A fresh login always produces a brand-new refresh token, so clear any
+      // previously recorded fatal failure and allow protected pages again.
+      resetFatalAuthFailure()
+      sessionClearedRef.current = false
       lastRefreshRef.current = Date.now()
       const record = pb.authStore.record
       logAuthEvent(
@@ -547,6 +463,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       pathname: window.location.pathname,
     })
     pb.authStore.clear()
+    sessionClearedRef.current = true
     commitAuthState(false, null, false)
     setAuthError(null)
   }
@@ -566,6 +483,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return
     }
     pb.authStore.clear()
+    sessionClearedRef.current = true
     commitAuthState(false, null, false)
     setAuthError(message || 'Sua sessão expirou. Por favor, faça login novamente.')
   }
@@ -580,6 +498,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (status === 401 || status === 403) {
         if (hasActiveBackgroundOperations()) return
         pb.authStore.clear()
+        sessionClearedRef.current = true
         commitAuthState(false, null, false)
         setAuthError('Sua sessão expirou. Por favor, faça login novamente.')
       }

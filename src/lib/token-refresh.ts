@@ -37,32 +37,54 @@ export function getTokenExpiry(): number | null {
   }
 }
 
+/**
+ * Once PocketBase rejects an authRefresh with 401/403, the refresh token is
+ * permanently invalid — retrying it will only ever return 401 again. We set
+ * this flag so the whole app stops hammering auth-refresh in a loop and can
+ * clear the session + redirect to /login exactly once.
+ *
+ * The flag is reset by `resetFatalAuthFailure()` on a successful login.
+ */
+let fatalAuthFailure = false
+
+export function hasFatalAuthFailure(): boolean {
+  return fatalAuthFailure
+}
+
+export function resetFatalAuthFailure(): void {
+  fatalAuthFailure = false
+}
+
 let refreshLock: Promise<boolean> | null = null
 
 async function doRefreshAuthToken(): Promise<boolean> {
   if (!pb.authStore.token || !pb.authStore.record) return false
 
+  // If refresh is already known to be dead, do not retry — every call would
+  // hit 401 again and re-trigger the clear/redirect cycle.
+  if (fatalAuthFailure) return false
+
   const collectionName = pb.authStore.record?.collectionName || 'users'
 
-  for (let attempt = 0; attempt <= 2; attempt++) {
-    try {
-      await pb.collection(collectionName).authRefresh()
-      if (pb.authStore.isValid && pb.authStore.record) {
-        return true
-      }
-      return false
-    } catch (err: any) {
-      const status = err?.status ?? 0
-      if (status === 401 || status === 403) {
-        return false
-      }
-      if (attempt < 2) {
-        const delay = 1500 * Math.pow(2, attempt)
-        await new Promise((resolve) => setTimeout(resolve, delay))
-      }
+  try {
+    await pb.collection(collectionName).authRefresh()
+    if (pb.authStore.isValid && pb.authStore.record) {
+      return true
     }
+    // Refresh "succeeded" HTTP-wise but the store is invalid — treat as fatal.
+    fatalAuthFailure = true
+    return false
+  } catch (err: any) {
+    const status = err?.status ?? 0
+    if (status === 401 || status === 403) {
+      // Permanent failure — do NOT retry. The refresh token is revoked/expired.
+      fatalAuthFailure = true
+      return false
+    }
+    // Transient (network / 5xx) — leave fatalAuthFailure unchanged; caller may
+    // retry later when connectivity returns.
+    return false
   }
-  return false
 }
 
 export async function refreshAuthToken(): Promise<boolean> {
@@ -88,8 +110,14 @@ export async function waitForTokenRenewal(timeoutMs: number = 120_000): Promise<
   while (Date.now() < deadline) {
     if (!pb.authStore.token || !pb.authStore.record) return false
 
+    // If refresh is permanently dead, stop waiting immediately — there is
+    // nothing a retry loop can do except keep returning 401.
+    if (fatalAuthFailure) return false
+
     const renewed = await ensureValidToken()
     if (renewed) return true
+
+    if (fatalAuthFailure) return false
 
     const remaining = deadline - Date.now()
     if (remaining <= 0) return false

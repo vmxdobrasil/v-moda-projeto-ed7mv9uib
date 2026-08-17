@@ -15,7 +15,7 @@ import { Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
-import { getRoleBasedRedirect } from '@/lib/auth-redirects'
+import { getRoleBasedRedirect, getIntendedRoute } from '@/lib/auth-redirects'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 
 export default function AdminLogin() {
@@ -24,7 +24,7 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
-  const { authError, clearAuthError } = useAuth()
+  const { authError, clearAuthError, signIn } = useAuth()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,56 +36,73 @@ export default function AdminLogin() {
 
     setLoading(true)
     try {
-      await pb.collection('users').authWithPassword(email, password)
+      // Use the shared signIn() so the AuthProvider resets any recorded fatal
+      // auth failure, updates isAuthenticated/user state, and keeps the rest of
+      // the app in sync — bypassing it (calling pb directly) left stale state
+      // that made AuthGuard redirect back to /admin/login right after login.
+      const { error } = await signIn(email, password)
+      if (error) {
+        const err = error as any
+        pb.authStore.clear()
+
+        const fieldErrors = err.response?.data || {}
+        if (typeof fieldErrors === 'object' && Object.keys(fieldErrors).length > 0) {
+          const msgs = Object.values(fieldErrors)
+            .map((v: any) => v?.message)
+            .filter(Boolean)
+          if (msgs.length > 0) {
+            toast.error(`Erro: ${msgs.join(' ')}`)
+            setLoading(false)
+            return
+          }
+        }
+
+        let msg = 'Credenciais inválidas.'
+        if (err.status === 400) {
+          msg = 'Dados inválidos ou credenciais incorretos.'
+        } else if (err.status === 403 || err.status === 401) {
+          msg = 'Permissão negada ou credenciais incorretas.'
+        } else if (err.status === 0) {
+          msg = 'Erro de rede. Verifique sua conexão com a internet.'
+        } else if (err.message) {
+          msg = err.message
+        }
+
+        toast.error(msg)
+        setLoading(false)
+        return
+      }
+
       localStorage.setItem('admin_auth', '1')
 
       const record = pb.authStore.record as any
       if (!record) {
         toast.error('Erro ao processar login. Tente novamente.')
         pb.authStore.clear()
+        setLoading(false)
         return
       }
 
       toast.success('Login bem-sucedido. Bem-vindo ao painel.')
 
       const from = location.state?.from?.pathname
-      if (from && !['/login', '/admin/login', '/cadastro', '/'].includes(from)) {
-        navigate(from, { replace: true })
-      } else {
-        navigate(getRoleBasedRedirect(record), { replace: true })
-      }
+      const intended = getIntendedRoute()
+      const redirectTo =
+        (from && !['/login', '/admin/login', '/cadastro', '/'].includes(from) ? from : null) ||
+        intended ||
+        getRoleBasedRedirect(record)
+      navigate(redirectTo, { replace: true })
     } catch (err: any) {
       pb.authStore.clear()
-
-      const fieldErrors = err.response?.data || {}
-      if (typeof fieldErrors === 'object' && Object.keys(fieldErrors).length > 0) {
-        const msgs = Object.values(fieldErrors)
-          .map((v: any) => v?.message)
-          .filter(Boolean)
-        if (msgs.length > 0) {
-          toast.error(`Erro: ${msgs.join(' ')}`)
-          setLoading(false)
-          return
-        }
-      }
-
-      let msg = 'Credenciais inválidas.'
-      if (err.status === 400) {
-        msg = 'Dados inválidos ou credenciais incorretas.'
-      } else if (err.status === 403 || err.status === 401) {
-        msg = 'Permissão negada ou credenciais incorretas.'
-      } else if (err.status === 0) {
-        msg = 'Erro de rede. Verifique sua conexão com a internet.'
-      } else if (err.message) {
-        msg = err.message
-      }
-
+      const msg =
+        err?.status === 0
+          ? 'Erro de rede. Verifique sua conexão com a internet.'
+          : err?.message || 'Ocorreu um erro inesperado ao tentar fazer login.'
       toast.error(msg)
     } finally {
       setLoading(false)
     }
   }
-
   return (
     <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">

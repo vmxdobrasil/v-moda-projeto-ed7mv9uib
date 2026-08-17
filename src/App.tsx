@@ -57,10 +57,24 @@ window.fetch = async (input, init) => {
   let response
   response = await originalFetch(input, init)
 
+  // Only attempt a token refresh on 401/403 for non-auth endpoints. The
+  // PocketBase auth endpoints use kebab-case paths (auth-with-password,
+  // auth-refresh) and refreshing on those — especially on auth-refresh itself
+  // — is what caused the 401 → refresh → 401 loop. Also bail out entirely once
+  // a fatal auth failure is recorded: the refresh token is dead, so retrying
+  // would just re-trigger the clear/redirect cycle.
+  const isAuthEndpoint =
+    urlStr.includes('/auth-with-password') ||
+    urlStr.includes('/auth-refresh') ||
+    urlStr.includes('/authRefresh') ||
+    urlStr.includes('/api/collections/_superusers/auth-refresh') ||
+    urlStr.includes('/request-password-reset') ||
+    urlStr.includes('/confirm-password-reset')
+
   if (
-    (response.status === 401 || response.status === 403) &&
-    !urlStr.includes('/api/collections/users/auth-with-password') &&
-    !urlStr.includes('/api/collections/users/authRefresh')
+    !isAuthEndpoint &&
+    !hasFatalAuthFailure() &&
+    (response.status === 401 || response.status === 403)
   ) {
     try {
       await ensureValidToken()
@@ -153,7 +167,7 @@ import ConsultantCRM from '@/pages/dashboard/ConsultantCRM'
 import InventoryManagement from '@/pages/dashboard/InventoryManagement'
 import { trackEvent } from '@/lib/tracking'
 import { captureAffiliateRef } from '@/lib/affiliate-tracking'
-import { ensureValidToken } from '@/lib/token-refresh'
+import { ensureValidToken, hasFatalAuthFailure } from '@/lib/token-refresh'
 import { hasActiveBackgroundOperations } from '@/lib/background-operations'
 
 import Catalog from '@/pages/Catalog'
