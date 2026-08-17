@@ -84,6 +84,13 @@ function useGuardBase(): GuardState {
   }
 
   if (!isAuthenticated) {
+    // Se há auth em localStorage e não é falha fatal, dê chance ao grace period
+    // renovar o token antes de redirecionar para /login (evita race condition
+    // onde o redirecionamento acontece antes do useEffect de grace period rodar).
+    if (!hasFatalAuthFailure() && hasAuthInLocalStorage()) {
+      setIntendedRoute(location.pathname + location.search)
+      return { status: 'loading' }
+    }
     return { status: 'unauthenticated', from: location.pathname + location.search }
   }
 
