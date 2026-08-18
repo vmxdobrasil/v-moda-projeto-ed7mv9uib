@@ -116,10 +116,10 @@ async function doRefreshAuthToken(): Promise<boolean> {
     return true
   }
 
-  // Refresh "succeeded" HTTP-wise but the store is invalid. Treat as fatal
-  // only when the SDK reports a permanent auth rejection; otherwise restore
-  // the preserved session and let the caller retry later.
-  fatalAuthFailure = true
+  // Refresh succeeded HTTP-wise (200) but the store is not valid yet.
+  // This is a transient SDK state — do NOT set fatalAuthFailure.
+  // Restore the preserved session so callers can keep the user logged in
+  // optimistically and retry the refresh later.
   restoreAuthStore()
   return false
 }
