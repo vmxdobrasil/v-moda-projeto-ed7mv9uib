@@ -539,10 +539,10 @@ export default function App() {
                       <Route path="orders" element={<FashionistaOrders />} />
                     </Route>
                   </Route>
-                </Route>
 
-                {/* Catch-all 404 — absolute last to avoid capturing valid routes */}
-                <Route path="*" element={<NotFound />} />
+                  {/* Catch-all 404 inside AppRoot but after all other routes */}
+                  <Route path="*" element={<NotFound />} />
+                </Route>
               </Routes>
             </TooltipProvider>
           </AiAssistantProvider>

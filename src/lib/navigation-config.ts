@@ -84,11 +84,11 @@ export const AGENT_NAV_SECTIONS: NavSection[] = [
   {
     label: 'MINHAS ATIVIDADES',
     items: [
-      { name: 'Painel do Agente', href: '/Agente Credenciado', icon: LayoutDashboard },
-      { name: 'Minhas Excursões', href: '/Agente Credenciado?tab=excursions', icon: Calendar },
-      { name: 'Meus Clientes', href: '/Agente Credenciado?tab=clients', icon: Users },
-      { name: 'Minhas Comissões', href: '/Agente Credenciado?tab=finances', icon: DollarSign },
-      { name: 'Logística de Cargas', href: '/Agente Credenciado?tab=cargo', icon: Package },
+      { name: 'Painel do Agente', href: '/agente-credenciado', icon: LayoutDashboard },
+      { name: 'Minhas Excursões', href: '/agente-credenciado?tab=excursions', icon: Calendar },
+      { name: 'Meus Clientes', href: '/agente-credenciado?tab=clients', icon: Users },
+      { name: 'Minhas Comissões', href: '/agente-credenciado?tab=finances', icon: DollarSign },
+      { name: 'Logística de Cargas', href: '/agente-credenciado?tab=cargo', icon: Package },
       { name: 'Financeiro', href: '/financeiro', icon: Wallet },
     ],
   },

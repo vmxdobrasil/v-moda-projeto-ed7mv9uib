@@ -67,9 +67,9 @@ function isItemActive(href: string, pathname: string, search: string): boolean {
     const currentTab = new URLSearchParams(search).get('tab') || 'overview'
     return pathname === path && currentTab === tabQuery
   }
-  if (href === '/Agente Credenciado') {
+  if (href === '/agente-credenciado') {
     const currentTab = new URLSearchParams(search).get('tab')
-    return pathname === '/Agente Credenciado' && (!currentTab || currentTab === 'overview')
+    return pathname === '/agente-credenciado' && (!currentTab || currentTab === 'overview')
   }
   if (pathname === href) return true
   const exactPaths = [
@@ -78,14 +78,14 @@ function isItemActive(href: string, pathname: string, search: string): boolean {
     '/AdminMaster',
     '/manufacturer',
     '/dashboard',
-    '/Agente Credenciado',
+    '/agente-credenciado',
   ]
   if (exactPaths.includes(href)) return false
   return pathname.startsWith(href + '/')
 }
 
 function computeSections(user: any, pathname: string): NavSection[] {
-  const isAgentContext = pathname.startsWith('/Agente Credenciado')
+  const isAgentContext = pathname.startsWith('/agente-credenciado')
   const isManufacturerContext = pathname.startsWith('/manufacturer')
 
   if (isAgentContext) {

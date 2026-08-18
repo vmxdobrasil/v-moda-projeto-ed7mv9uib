@@ -34,7 +34,18 @@ export function RootRoute() {
   }
 
   if (isAuthenticated && !user) {
-    return <Navigate to="/login" replace />
+    return (
+      <div className="flex h-screen items-center justify-center bg-background animate-fade-transition">
+        <div className="flex flex-col items-center gap-4">
+          <img
+            src={logoUrl}
+            alt="V MODA Brasil"
+            className="h-12 w-auto object-contain opacity-80"
+          />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    )
   }
 
   return <Index />
