@@ -31,6 +31,21 @@ export const PUBLIC_ROUTES = [
 
 export const PUBLIC_PREFIXES = ['/assets', '/api/'] as const
 
+export const PUBLIC_AUTH_ROUTES = [
+  '/login',
+  '/signup',
+  '/join/guide',
+  '/join/influencer',
+  '/join/agent',
+  '/admin/login',
+  '/fashionista/login',
+  '/fashionista/signup',
+] as const
+
+export function isPublicAuthRoute(pathname: string): boolean {
+  return PUBLIC_AUTH_ROUTES.includes(pathname as (typeof PUBLIC_AUTH_ROUTES)[number])
+}
+
 export function isPublicRoute(pathname: string): boolean {
   if (PUBLIC_ROUTES.includes(pathname as (typeof PUBLIC_ROUTES)[number])) return true
   for (const prefix of PUBLIC_PREFIXES) {

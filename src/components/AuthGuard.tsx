@@ -8,7 +8,7 @@ import {
 } from '@/lib/background-operations'
 import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
 import { getRoleBasedRedirect, isSuperuserOrAdmin, setIntendedRoute } from '@/lib/auth-redirects'
-import { isPublicRoute } from '@/lib/public-routes'
+import { isPublicRoute, isPublicAuthRoute } from '@/lib/public-routes'
 import { waitForTokenRenewal, hasFatalAuthFailure } from '@/lib/token-refresh'
 import { hasAuthInLocalStorage } from '@/lib/auth-diagnostics'
 
@@ -102,7 +102,15 @@ function useGuardBase(): GuardState {
     })
   }, [isAuthenticated, loading, isHydrating, bgOpsActive, location.pathname])
 
-  if (isPublicRoute(location.pathname)) {
+  // Note: Public auth routes like /login or /signup should NOT cause useGuardBase
+  // to return status 'authenticated' for protected sub-guards. Only public content pages should.
+  if (isPublicRoute(location.pathname) && !isPublicAuthRoute(location.pathname)) {
+    if (isAuthenticated && !user) {
+      return { status: 'loading' }
+    }
+    if (!isAuthenticated && !hasFatalAuthFailure() && hasAuthInLocalStorage()) {
+      return { status: 'loading' }
+    }
     return { status: 'authenticated', user }
   }
 
@@ -246,8 +254,11 @@ export function PublicRoute() {
 
   if (loading || isHydrating) return <AuthLoadingScreen />
   if (bgOpsActive && !isAuthenticated) return <AuthLoadingScreen />
-  // If authenticated but user is still null, wait for user hydration before deciding
+  // If authenticated (or has stored token/auth session in localStorage), wait for user hydration
+  // so we don't flash/render login forms or Outlet before auth status settles
   if (isAuthenticated && !user) return <AuthLoadingScreen />
+  if (!isAuthenticated && !hasFatalAuthFailure() && hasAuthInLocalStorage())
+    return <AuthLoadingScreen />
   if (isAuthenticated && user) return <Navigate to={getRoleBasedRedirect(user)} replace />
   return <Outlet />
 }
