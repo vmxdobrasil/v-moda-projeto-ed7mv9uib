@@ -212,6 +212,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       if (cancelled) return
       if (!pb.authStore.token && !record) {
+        // 🔑 Proteção extra contra clear indevido: o PocketBase SDK pode
+        // disparar onChange com store vazio mesmo quando o localStorage
+        // ainda contém a sessão válida (chave `pocketbase_auth`). Antes de
+        // qualquer decisão de clear, tente re-hidratar o store manualmente
+        // a partir do localStorage. Se a hidratação funcionar e a sessão
+        // não for fatalmente morta, NÃO limpe — mantenha o usuário logado.
+        if (!hasFatalAuthFailure()) {
+          try {
+            const raw = localStorage.getItem('pocketbase_auth')
+            if (raw) {
+              const parsed = JSON.parse(raw)
+              if (parsed?.token && parsed?.record) {
+                pb.authStore.save(parsed.token, parsed.record)
+                if (pb.authStore.token && pb.authStore.record) {
+                  logAuthEvent('authStore_change_rehydrated_from_local_storage', {
+                    loading: true,
+                    isAuthenticated: true,
+                    isHydrating: false,
+                    hasToken: true,
+                    hasRecord: true,
+                    pathname: window.location.pathname,
+                  })
+                  // Não commita aqui em init/refresh para não competir com o
+                  // fluxo principal; apenas evita o clear. O validateSession /
+                  // refresh em andamento fará o commit definitivo.
+                  return
+                }
+              }
+            }
+          } catch {
+            // best-effort — segue para os guards abaixo
+          }
+        }
         if (isInitializingRef.current || refreshInProgressRef.current || isRefreshingRef.current) {
           logAuthEvent('authStore_change_skipped_during_init', {
             loading: true,
@@ -325,45 +358,112 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // guarded against wiping a recoverable session (see Frente 2).
           isInitializingRef.current = false
 
-          // First, attempt an explicit session recovery from the httpOnly
-          // refresh cookie. waitForTokenRenewal() also recovers internally,
-          // but calling recoverSession() here directly means that on a cold
-          // start / failed hydration the single most common path (store empty
-          // + localStorage present) recovers in one round-trip instead of
-          // waiting for the grace-period loop to pick it up.
-          if (!hasFatalAuthFailure()) {
-            try {
-              await recoverSession()
-            } catch {
-              /* best-effort — waitForTokenRenewal will retry */
+          // Cold start mais agressivo e resiliente: o servidor responde 200
+          // no auth-refresh (logs confirmam), então NÃO desistimos em 120s.
+          // Faça tentativas rápidas e, se nenhuma der certo, mantenha o
+          // estado de loading indefinidamente (NÃO commite false) enquanto o
+          // refresh token não for declarado morto (fatalAuthFailure). Só
+          // commite false se fatalAuthFailure ficar true — caso contrário o
+          // usuário seria redirecionado para /login mesmo com o backend saudável.
+          const COLD_START_MAX_FAST_ATTEMPTS = 3
+          const COLD_START_FAST_INTERVAL_MS = 1_000
+
+          const isSessionValid = () =>
+            !!(pb.authStore.isValid && pb.authStore.token && pb.authStore.record)
+
+          // Fase 1: 3 tentativas rápidas com recoverSession() (que agora
+          // também hidrata o store a partir do localStorage antes do refresh).
+          for (let attempt = 1; attempt <= COLD_START_MAX_FAST_ATTEMPTS; attempt++) {
+            if (cancelled) return
+            if (hasFatalAuthFailure()) break
+
+            if (!isSessionValid()) {
+              try {
+                await recoverSession()
+              } catch {
+                /* best-effort — próxima tentativa */
+              }
             }
             if (cancelled) return
-          }
 
-          try {
-            const renewed = await waitForTokenRenewal(AUTH_GRACE_PERIOD_MS)
-            if (cancelled) return
-            if (renewed && pb.authStore.isValid && pb.authStore.record) {
+            if (isSessionValid()) {
               sessionClearedRef.current = false
               commitAuthState(true, pb.authStore.record, false)
-            } else {
-              // Grace period exhausted without a valid token — the session is
-              // genuinely unrecoverable now.
-              if (pb.authStore.record) pb.authStore.clear()
-              logAuthEvent('validateSession_grace_period_exhausted', {
-                loading: false,
-                isAuthenticated: false,
-                isHydrating: false,
-                hasToken: !!pb.authStore.token,
-                hasRecord: !!pb.authStore.record,
-                pathname: window.location.pathname,
-              })
-              sessionClearedRef.current = true
-              commitAuthState(false, null, false)
+              setLoading(false)
+              return
             }
-          } finally {
-            if (!cancelled) setLoading(false)
+
+            if (hasFatalAuthFailure()) break
+
+            if (attempt < COLD_START_MAX_FAST_ATTEMPTS) {
+              await new Promise((r) => setTimeout(r, COLD_START_FAST_INTERVAL_MS))
+            }
           }
+
+          if (cancelled) return
+
+          // Fase 2: falha fatal confirmada pelo servidor (401/403 no refresh)
+          // — a sessão está realmente morta, commite não-autenticado.
+          if (hasFatalAuthFailure()) {
+            if (pb.authStore.record) pb.authStore.clear()
+            logAuthEvent('validateSession_cold_start_fatal', {
+              loading: false,
+              isAuthenticated: false,
+              isHydrating: false,
+              hasToken: !!pb.authStore.token,
+              hasRecord: !!pb.authStore.record,
+              pathname: window.location.pathname,
+            })
+            sessionClearedRef.current = true
+            commitAuthState(false, null, false)
+            setLoading(false)
+            return
+          }
+
+          // Fase 3: as tentativas rápidas falharam mas o refresh token NÃO
+          // está morto (servidor ainda responde 200). NÃO commite false e
+          // NÃO chame setLoading(false) — mantenha o estado de loading
+          // indefinidamente enquanto tenta recuperar periodicamente. O
+          // AuthGuard permanece em AuthLoadingScreen em vez de redirecionar
+          // para /login. Um background retry (waitForTokenRenewal com timeout
+          // longo) continua tentando em paralelo.
+          logAuthEvent('validateSession_cold_start_keep_loading', {
+            loading: true,
+            isAuthenticated: false,
+            isHydrating: true,
+            hasToken: !!pb.authStore.token,
+            hasRecord: !!pb.authStore.record,
+            pathname: window.location.pathname,
+          })
+          // Mantém loading = true e hidratando. Dispara um retry contínuo em
+          // background; quando a sessão for recuperada, o listener
+          // authStore.onChange (ou um próximo ciclo) fará o commit.
+          waitForTokenRenewal(AUTH_GRACE_PERIOD_MS)
+            .then((renewed) => {
+              if (cancelled) return
+              if (renewed && isSessionValid()) {
+                sessionClearedRef.current = false
+                commitAuthState(true, pb.authStore.record, false)
+                setLoading(false)
+              } else if (hasFatalAuthFailure()) {
+                if (pb.authStore.record) pb.authStore.clear()
+                logAuthEvent('validateSession_cold_start_background_fatal', {
+                  loading: false,
+                  isAuthenticated: false,
+                  isHydrating: false,
+                  hasToken: !!pb.authStore.token,
+                  hasRecord: !!pb.authStore.record,
+                  pathname: window.location.pathname,
+                })
+                sessionClearedRef.current = true
+                commitAuthState(false, null, false)
+                setLoading(false)
+              }
+              // Caso contrário: continua em loading (retry indefinido).
+            })
+            .catch(() => {
+              /* best-effort — permanece em loading */
+            })
           return
         }
 

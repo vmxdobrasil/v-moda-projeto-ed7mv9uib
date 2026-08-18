@@ -82,6 +82,30 @@ export async function recoverSessionFromCookie(): Promise<boolean> {
     return refreshAuthToken()
   }
 
+  // 🔑 Hidratação manual do localStorage ANTES de tentar refresh.
+  // O PocketBase SDK v0.26.x nem sempre popula o authStore imediatamente
+  // após authRefresh() retornar 200 (cold start / novo deploy). Lendo
+  // diretamente o JSON `{ token, record }` que o SDK persiste na chave
+  // `pocketbase_auth` e chamando `pb.authStore.save()`, garantimos que:
+  //   1. o snapshot capturado abaixo (savedToken/savedRecord) não seja null;
+  //   2. `restoreAuthStore()` tenha algo para restaurar caso o refresh falhe
+  //      de forma transitória ou o SDK não confirme o store;
+  //   3. o `doRefreshAuthToken()` consiga determinar `collectionName` a
+  //      partir do record hidratado.
+  if (!pb.authStore.token || !pb.authStore.record) {
+    try {
+      const raw = localStorage.getItem('pocketbase_auth')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed?.token && parsed?.record) {
+          pb.authStore.save(parsed.token, parsed.record)
+        }
+      }
+    } catch {
+      // best-effort — continua com o fluxo normal
+    }
+  }
+
   // Recover only when there is reason to believe a session exists: either the
   // httpOnly refresh cookie is set (we cannot read it directly, but the server
   // will use it) OR auth material is still present in localStorage.
