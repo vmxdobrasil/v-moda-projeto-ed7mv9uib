@@ -21,6 +21,7 @@ import {
 } from '@/lib/background-operations'
 import {
   refreshAuthToken,
+  recoverSession,
   hasFatalAuthFailure,
   resetFatalAuthFailure,
   waitForTokenRenewal,
@@ -323,6 +324,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Allow the onChange listener to operate, but its clear path is now
           // guarded against wiping a recoverable session (see Frente 2).
           isInitializingRef.current = false
+
+          // First, attempt an explicit session recovery from the httpOnly
+          // refresh cookie. waitForTokenRenewal() also recovers internally,
+          // but calling recoverSession() here directly means that on a cold
+          // start / failed hydration the single most common path (store empty
+          // + localStorage present) recovers in one round-trip instead of
+          // waiting for the grace-period loop to pick it up.
+          if (!hasFatalAuthFailure()) {
+            try {
+              await recoverSession()
+            } catch {
+              /* best-effort — waitForTokenRenewal will retry */
+            }
+            if (cancelled) return
+          }
+
           try {
             const renewed = await waitForTokenRenewal(AUTH_GRACE_PERIOD_MS)
             if (cancelled) return
@@ -398,6 +415,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Se houver qualquer material de token, tente um refresh explícito.
             if (pb.authStore.token) {
               await refreshAuthToken()
+              if (cancelled) return
+              if (pb.authStore.isValid && pb.authStore.record) {
+                recovered = true
+                break
+              }
+            } else if (!hasFatalAuthFailure()) {
+              // Store vazio — o refresh token httpOnly ainda pode recuperar a
+              // sessão mesmo sem JWT em memória.
+              await recoverSession()
               if (cancelled) return
               if (pb.authStore.isValid && pb.authStore.record) {
                 recovered = true
