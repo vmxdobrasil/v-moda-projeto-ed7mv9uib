@@ -310,7 +310,6 @@ export default function App() {
                     <Route path="revista" element={<Magazine />} />
                     <Route path="sobre-nos" element={<SobreNos />} />
                     <Route path="contato" element={<ContatoPage />} />
-                    <Route path="revenda" element={<RetailerLanding />} />
                     <Route path="empreenda" element={<Empreenda />} />
                     <Route path="faq" element={<FaqPage />} />
                     <Route path="favoritos" element={<FavoritosPage />} />
@@ -363,16 +362,22 @@ export default function App() {
                       <Route path="customers/:id" element={<CustomerDetails />} />
                       <Route path="customer/:id" element={<CustomerDetails />} />
                       <Route path="products" element={<DashboardProjects />} />
-                      <Route path="admin-products" element={<AdminProductsPage />} />
+                      <Route element={<AdminGuard />}>
+                        <Route path="admin-products" element={<AdminProductsPage />} />
+                      </Route>
                       <Route path="messages" element={<MessagesPage />} />
                       <Route path="manufacturers" element={<ManufacturersHub />} />
                       <Route path="affiliates" element={<AffiliateDashboard />} />
                       <Route element={<AgentGuard />}>
-                        <Route path="Agente Credenciado" element={<AgentDashboard />} />
+                        <Route path="agente-credenciado" element={<AgentDashboard />} />
                       </Route>
                       <Route
+                        path="Agente Credenciado"
+                        element={<Navigate to="/agente-credenciado" replace />}
+                      />
+                      <Route
                         path="agente"
-                        element={<Navigate to="/Agente Credenciado" replace />}
+                        element={<Navigate to="/agente-credenciado" replace />}
                       />
                       <Route path="resources" element={<Resources />} />
                       <Route path="analytics" element={<DashboardAnalytics />} />
@@ -384,9 +389,10 @@ export default function App() {
                       <Route path="vallen-consultora" element={<VallenConsultora />} />
                       <Route path="retail-crm" element={<RetailCRM />} />
                       <Route path="consultant-crm" element={<ConsultantCRM />} />
-                      <Route path="inventory" element={<InventoryManagement />} />
                       <Route path="seller-orders" element={<SellerOrders />} />
-                      <Route path="imports" element={<ImportsPage />} />
+                      <Route element={<AdminGuard />}>
+                        <Route path="imports" element={<ImportsPage />} />
+                      </Route>
                       <Route path="pickup-validation" element={<RetailerPickupValidation />} />
 
                       <Route element={<AgentOrTransporterGuard />}>
@@ -419,7 +425,7 @@ export default function App() {
                       <Route element={<AgentGuard />}>
                         <Route
                           path="agentes"
-                          element={<Navigate to="/Agente Credenciado" replace />}
+                          element={<Navigate to="/agente-credenciado" replace />}
                         />
                       </Route>
 
@@ -431,8 +437,10 @@ export default function App() {
                     </Route>
 
                     {/* Leads Routes */}
-                    <Route path="/leads" element={<LeadsDashboard />} />
-                    <Route path="/leads/:collection/:id" element={<LeadDetail />} />
+                    <Route element={<AdminGuard />}>
+                      <Route path="/leads" element={<LeadsDashboard />} />
+                      <Route path="/leads/:collection/:id" element={<LeadDetail />} />
+                    </Route>
 
                     {/* Admin Routes */}
                     <Route element={<AdminGuard />}>
