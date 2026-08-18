@@ -203,7 +203,7 @@ import LeadDetail from '@/pages/leads/LeadDetail'
 
 function FloatingCart() {
   const items = useCartStore((state) => state.items)
-  if (items.length === 0) return null
+  if (!items || items.length === 0) return null
   return (
     <Link
       to="/cart"

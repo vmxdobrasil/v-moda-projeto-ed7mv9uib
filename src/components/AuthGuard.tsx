@@ -145,6 +145,13 @@ function useGuardBase(): GuardState {
     return { status: 'unauthenticated', from: location.pathname + location.search }
   }
 
+  // If authenticated but user record is not hydrated yet, stay in loading status
+  // so guards don't evaluate roles or make redirect decisions against a null user.
+  if (!user) {
+    setIntendedRoute(location.pathname + location.search)
+    return { status: 'loading' }
+  }
+
   return { status: 'authenticated', user }
 }
 
@@ -239,6 +246,8 @@ export function PublicRoute() {
 
   if (loading || isHydrating) return <AuthLoadingScreen />
   if (bgOpsActive && !isAuthenticated) return <AuthLoadingScreen />
+  // If authenticated but user is still null, wait for user hydration before deciding
+  if (isAuthenticated && !user) return <AuthLoadingScreen />
   if (isAuthenticated && user) return <Navigate to={getRoleBasedRedirect(user)} replace />
   return <Outlet />
 }
