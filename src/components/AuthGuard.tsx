@@ -279,14 +279,33 @@ export function PublicRoute() {
     return onBackgroundOperationsChange(() => setBgOpsActive(hasActiveBackgroundOperations()))
   }, [])
 
-  if (loading || isHydrating) return <AuthLoadingScreen />
-  if (bgOpsActive && !isAuthenticated) return <AuthLoadingScreen />
-  // If authenticated (or has stored token/auth session in localStorage), wait for user hydration
-  // so we don't flash/render login forms or Outlet before auth status settles
-  if (isAuthenticated && !user) return <AuthLoadingScreen />
-  if (!isAuthenticated && !hasFatalAuthFailure() && hasAuthInLocalStorage())
+  // 🔑 CORREÇÃO "ghost redirect": ao detectar QUALQUER sinal de autenticação,
+  // redirecione IMEDIATAMENTE para a rota baseada em papel — mesmo quando o
+  // `user` do contexto ainda não hidratou (isAuthenticated=true & user=null).
+  // Usamos o record vivo do authStore como fallback para decidir o destino.
+  if (isAuthenticated) {
+    const record = user ?? pb.authStore.record
+    if (record) return <Navigate to={getRoleBasedRedirect(record)} replace />
     return <AuthLoadingScreen />
-  if (isAuthenticated && user) return <Navigate to={getRoleBasedRedirect(user)} replace />
+  }
+  if (!hasFatalAuthFailure() && (pb.authStore.token || hasAuthInLocalStorage())) {
+    try {
+      const record = pb.authStore.record
+      if (record) return <Navigate to={getRoleBasedRedirect(record)} replace />
+
+      const raw = localStorage.getItem('pocketbase_auth')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed?.record) {
+          return <Navigate to={getRoleBasedRedirect(parsed.record)} replace />
+        }
+      }
+    } catch {
+      /* best-effort — cai para loading abaixo */
+    }
+    return <AuthLoadingScreen />
+  }
+  if (bgOpsActive && !isAuthenticated) return <AuthLoadingScreen />
   return <Outlet />
 }
 

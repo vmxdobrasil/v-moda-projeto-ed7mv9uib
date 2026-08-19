@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
-import { getIntendedRoute } from '@/lib/auth-redirects'
+import { getIntendedRoute, getRoleBasedRedirect } from '@/lib/auth-redirects'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,7 +18,6 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import logoUrl from '@/assets/v_moda_brasil_horizontal_fiel-afff8.png'
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
-import { getRoleBasedRedirect } from '@/lib/auth-redirects'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -29,6 +28,32 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
+
+  // 🔑 CORREÇÃO "ghost redirect": se já existe qualquer sessão ativa ou
+  // no localStorage, NÃO renderize o formulário de login — redirecione
+  // imediatamente via <Navigate>.
+  const activeRecord =
+    (pb.authStore.token ? pb.authStore.record : null) ||
+    (() => {
+      try {
+        const raw = localStorage.getItem('pocketbase_auth')
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (parsed?.token && parsed?.record) return parsed.record
+        }
+      } catch {
+        /* intentionally ignored */
+      }
+      return null
+    })()
+
+  if (activeRecord) {
+    const queryRedirect = searchParams.get('redirect')
+    const stateFrom = (location.state as { from?: string })?.from
+    const intended = getIntendedRoute()
+    const redirectTo = queryRedirect || stateFrom || intended || getRoleBasedRedirect(activeRecord)
+    return <Navigate to={redirectTo} replace />
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
