@@ -24,6 +24,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { useAuth } from '@/hooks/use-auth'
+import pb from '@/lib/pocketbase/client'
 import {
   ADMIN_NAV_SECTIONS,
   AGENT_NAV_SECTIONS,
@@ -119,7 +120,14 @@ export function AppSidebar() {
   const { user } = useAuth()
   const location = useLocation()
 
-  const sections = computeSections(user, location.pathname)
+  // Defensivo: durante a janela de hidratação o `user` do contexto pode
+  // ainda ser null mesmo com `pb.authStore.record` já populado (hidratação
+  // síncrona em use-auth.tsx). Sem este fallback o `computeSections`
+  // retornaria `[]` para um admin e a sidebar ficaria vazia. Usamos o
+  // record vivo do authStore como segunda fonte de verdade.
+  const effectiveUser = user ?? pb.authStore.record
+
+  const sections = computeSections(effectiveUser, location.pathname)
 
   const renderItem = (item: NavItem) => (
     <SidebarMenuItem key={item.href}>

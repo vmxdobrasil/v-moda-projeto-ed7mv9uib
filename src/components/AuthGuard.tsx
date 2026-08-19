@@ -129,6 +129,33 @@ function useGuardBase(): GuardState {
   }
 
   if (!isAuthenticated) {
+    // 🔑 Hidratação direta do authStore na hora: o PocketBase SDK v0.26.x
+    // não popula `pb.authStore` automaticamente em cold start, então o
+    // contexto pode ainda não ter commitado `isAuthenticated=true`. Antes
+    // de considerar o usuário de fato não-autenticado, tente hidratar o
+    // store a partir do localStorage e, se funcionar, trate como
+    // autenticado para evitar o redirecionamento para /login.
+    if (!hasFatalAuthFailure() && !pb.authStore.token) {
+      try {
+        const raw = localStorage.getItem('pocketbase_auth')
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (parsed?.token && parsed?.record) {
+            pb.authStore.save(parsed.token, parsed.record)
+          }
+        }
+      } catch {
+        /* best-effort */
+      }
+    }
+    // Após a tentativa de hidratação, reavalie: se o store agora tem token
+    // e record válidos, o usuário está autenticado — retorne loading para
+    // que o AuthProvider/commitAuthState sincronize o contexto no próximo
+    // ciclo, em vez de redirecionar para /login.
+    if (!hasFatalAuthFailure() && pb.authStore.token && pb.authStore.record) {
+      setIntendedRoute(location.pathname + location.search)
+      return { status: 'loading' }
+    }
     // Se há auth em localStorage e não é falha fatal, dê chance ao grace period
     // renovar o token antes de redirecionar para /login (evita race condition
     // onde o redirecionamento acontece antes do useEffect de grace period rodar).

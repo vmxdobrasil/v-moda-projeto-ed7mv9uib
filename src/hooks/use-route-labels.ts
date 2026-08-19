@@ -47,7 +47,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/v-club': 'V Club Wallet',
   '/revenda': 'Central de Pedidos',
   '/revendedora-dashboard': 'Minha Revenda',
-  '/agente': 'Minhas Regiões',
+  '/agente-credenciado': 'Painel do Agente',
   '/affiliates': 'Afiliados',
   '/perfil': 'Meu Perfil',
   '/vallen-ia': 'Vallen IA',

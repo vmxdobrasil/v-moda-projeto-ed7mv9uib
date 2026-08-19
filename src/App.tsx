@@ -371,14 +371,6 @@ export default function App() {
                       <Route element={<AgentGuard />}>
                         <Route path="agente-credenciado" element={<AgentDashboard />} />
                       </Route>
-                      <Route
-                        path="Agente Credenciado"
-                        element={<Navigate to="/agente-credenciado" replace />}
-                      />
-                      <Route
-                        path="agente"
-                        element={<Navigate to="/agente-credenciado" replace />}
-                      />
                       <Route path="resources" element={<Resources />} />
                       <Route path="analytics" element={<DashboardAnalytics />} />
                       <Route path="v-club" element={<VClubWallet />} />

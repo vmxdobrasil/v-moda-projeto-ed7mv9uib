@@ -45,6 +45,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// 🔑 Hidratação síncrona do authStore a partir do localStorage.
+//
+// O PocketBase SDK v0.26.x NÃO hidrata `pb.authStore` automaticamente em
+// cold start: mesmo que o localStorage contenha `pocketbase_auth` com token
+// e record válidos, `pb.authStore.token` e `pb.authStore.record` ficam
+// vazios até uma chamada explícita a `save()`. Isso faz o primeiro render
+// do AuthProvider considerar o usuário como não-autenticado (hasToken=false),
+// disparando redirects para /login em rotas protegidas mesmo com o backend
+// 100% saudável (auth-refresh retornando 200).
+//
+// Executamos esta hidratação em escopo de módulo — ANTES de qualquer render
+// do React — para que `pb.authStore.isValid` seja `true` desde o primeiro
+// paint. O `useState` inicial do AuthProvider lê `pb.authStore.token` /
+// `pb.authStore.record` e, com o store já hidratado, inicializa
+// `isAuthenticated=true` e `user=record` de imediato.
+try {
+  const raw = localStorage.getItem('pocketbase_auth')
+  if (raw && (!pb.authStore.token || !pb.authStore.record)) {
+    const parsed = JSON.parse(raw)
+    if (parsed?.token && parsed?.record) {
+      pb.authStore.save(parsed.token, parsed.record)
+    }
+  }
+} catch {
+  /* best-effort — o fluxo normal de validateSession/refresh tenta recuperar abaixo */
+}
+
 export const useAuth = () => {
   const context = useContext(AuthContext)
   if (!context) throw new Error('useAuth must be used within an AuthProvider')
