@@ -62,8 +62,9 @@ export function AgentCustomers() {
 
   const loadData = async () => {
     try {
-      const data = await getReferredCustomers()
-      setCustomers(data)
+      const userId = user?.id || ''
+      const res = await getReferredCustomers(userId)
+      setCustomers((res?.items as unknown as Customer[]) || [])
     } catch (e) {
       console.error(e)
     } finally {
@@ -187,15 +188,11 @@ export function AgentCustomers() {
                             : 'Sem Nome'}
                           {(customer as any).is_verified ? (
                             <span title="Verificado">
-                              <ShieldCheck
-                                className="w-3.5 h-3.5 text-green-500"
-                              />
+                              <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
                             </span>
                           ) : (
                             <span title="Não verificado">
-                              <ShieldAlert
-                                className="w-3.5 h-3.5 text-muted-foreground/50"
-                              />
+                              <ShieldAlert className="w-3.5 h-3.5 text-muted-foreground/50" />
                             </span>
                           )}
                         </div>

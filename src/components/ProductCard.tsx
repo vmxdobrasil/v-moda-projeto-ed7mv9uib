@@ -31,14 +31,18 @@ export function ProductCard({ product }: ProductCardProps) {
   const { getPrice, loadAdjustments } = usePricingStore()
 
   useEffect(() => {
-    if (user?.id && (user?.role === 'retailer' || (user as any)?.segment_tier?.includes('consultant'))) {
+    if (
+      user?.id &&
+      (user?.role === 'retailer' || (user as any)?.segment_tier?.includes('consultant'))
+    ) {
       loadAdjustments(user.id)
     }
   }, [user])
 
   const baseWholesale = (product as any).wholesale_price || product.wholesalePrice || 0
   const isWholesaleViewer = user?.role === 'manufacturer' || user?.type === 'Atacado'
-  const isRetailerViewer = user?.role === 'retailer' || (user as any)?.segment_tier?.includes('consultant')
+  const isRetailerViewer =
+    user?.role === 'retailer' || (user as any)?.segment_tier?.includes('consultant')
 
   let displayPrice = product.price
   if (isWholesaleViewer && baseWholesale) {

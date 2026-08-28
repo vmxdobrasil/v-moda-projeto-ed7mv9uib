@@ -38,7 +38,9 @@ export default function Performance() {
           : { items: [] },
       ])
 
-      setMyCustomers(customersData)
+      setMyCustomers(
+        Array.isArray(customersData) ? customersData : (customersData as any).items || [],
+      )
       setMyProfile(profileData.items[0] || null)
     } catch (err) {
       console.error(err)

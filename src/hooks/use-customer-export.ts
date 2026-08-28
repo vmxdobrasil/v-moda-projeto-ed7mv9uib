@@ -68,7 +68,8 @@ export function useCustomerExport() {
     async (csvParts: string[], totalRecords: number, batchLabel: string): Promise<boolean> => {
       if (csvParts.length === 0 || totalRecords === 0) return false
       try {
-        const csvContent = 'phone,whatsapp_group_name,city,state\n' + csvParts.join('')
+        const csvContent =
+          'name,phone,whatsapp_group_name,city,state,source,status,created\n' + csvParts.join('')
         const filename = `leads_export_${new Date().toISOString().split('T')[0]}_${batchLabel}.csv`
         await createExportRecord(csvContent, filename, totalRecords)
         return true
@@ -316,7 +317,8 @@ export function useCustomerExport() {
           currentPage++
         }
 
-        const csvContent = 'phone,whatsapp_group_name,city,state\n' + csvParts.join('')
+        const csvContent =
+          'name,phone,whatsapp_group_name,city,state,source,status,created\n' + csvParts.join('')
         const filename = `leads_export_${new Date().toISOString().split('T')[0]}.csv`
         await createExportRecord(csvContent, filename, totalRecords)
 

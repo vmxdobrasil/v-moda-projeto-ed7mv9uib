@@ -97,18 +97,30 @@ routerAdd(
 
     const csvLines = []
     for (const record of records) {
+      const name = record.getString('name') || ''
       const phone = record.getString('phone') || ''
       const groupName = record.getString('whatsapp_group_name') || ''
       const city = record.getString('city') || ''
       const state = record.getString('state') || ''
+      const source = record.getString('source') || ''
+      const status = record.getString('status') || ''
+      const created = (record.getCreated() || '').split(' ')[0] || ''
       csvLines.push(
-        escapeCsv(phone) +
+        escapeCsv(name) +
+          ',' +
+          escapeCsv(phone) +
           ',' +
           escapeCsv(groupName) +
           ',' +
           escapeCsv(city) +
           ',' +
-          escapeCsv(state),
+          escapeCsv(state) +
+          ',' +
+          escapeCsv(source) +
+          ',' +
+          escapeCsv(status) +
+          ',' +
+          escapeCsv(created),
       )
     }
 

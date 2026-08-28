@@ -149,7 +149,7 @@ export default function ProductDetail() {
     setIsAdding(true)
     setTimeout(() => {
       if (product) {
-        addToCart(product, 1, selectedSize)
+        addToCart({ product, quantity: 1, size: selectedSize })
       }
       setIsAdding(false)
       toast({

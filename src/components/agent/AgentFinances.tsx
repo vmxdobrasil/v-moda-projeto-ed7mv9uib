@@ -20,15 +20,12 @@ export function AgentFinances({ referrals, user }: { referrals: any[]; user: any
   }
 
   const safeReferrals = Array.isArray(referrals) ? referrals : []
-  const grouped = safeReferrals.reduce<Record<string, any[]>>(
-    (acc, ref) => {
-      const month = format(new Date(ref.created), 'MMMM yyyy', { locale: ptBR })
-      if (!acc[month]) acc[month] = []
-      acc[month].push(ref)
-      return acc
-    },
-    {},
-  )
+  const grouped = safeReferrals.reduce<Record<string, any[]>>((acc, ref) => {
+    const month = format(new Date(ref.created), 'MMMM yyyy', { locale: ptBR })
+    if (!acc[month]) acc[month] = []
+    acc[month].push(ref)
+    return acc
+  }, {})
 
   return (
     <Card>

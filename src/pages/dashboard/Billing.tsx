@@ -118,7 +118,7 @@ export default function Billing() {
         await createMySubscription(planId as any)
       }
       toast.success('Plano atualizado com sucesso!')
-      await loadSubscription()
+      await loadData()
     } catch (err) {
       toast.error('Erro ao atualizar plano')
     } finally {

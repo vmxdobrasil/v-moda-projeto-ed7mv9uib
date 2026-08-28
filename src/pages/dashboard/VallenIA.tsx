@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, type ReactNode } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,8 +38,8 @@ function formatInline(text: string) {
 
 function formatMarkdown(text: string) {
   const lines = text.split('\n')
-  const elements: JSX.Element[] = []
-  let listItems: JSX.Element[] = []
+  const elements: ReactNode[] = []
+  let listItems: ReactNode[] = []
   let isList = false
   let isNumberedList = false
 

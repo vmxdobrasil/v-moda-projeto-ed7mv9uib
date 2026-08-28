@@ -215,7 +215,7 @@ export default function Settings() {
         formData.append('key', 'ai_system_instructions')
         formData.append('value_text', aiInstructionsInput)
         const record = await pb.collection('brand_settings').create(formData)
-        setAiInstructions(record as BrandSetting)
+        setAiInstructions(record as unknown as BrandSetting)
         toast({ description: 'Instruções da IA criadas com sucesso!' })
       }
     } catch (e) {

@@ -20,7 +20,15 @@ export const deleteCustomer = async (id: string) => {
   return pb.collection('customers').delete(id)
 }
 
-export type CustomerStatus = 'lead' | 'contacted' | 'negotiation' | 'converted' | 'lost' | 'inactive' | 'active' | string
+export type CustomerStatus =
+  | 'lead'
+  | 'contacted'
+  | 'negotiation'
+  | 'converted'
+  | 'lost'
+  | 'inactive'
+  | 'active'
+  | string
 
 export interface Customer {
   id: string

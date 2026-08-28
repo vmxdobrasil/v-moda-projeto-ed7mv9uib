@@ -30,8 +30,10 @@ export default function ManufacturerSettings() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (!user) return pb.collection('users').getOne(user.id).then(setProfile).catch(console.error)
-    loadBrandSettings()
+    if (user?.id) {
+      pb.collection('users').getOne(user.id).then(setProfile).catch(console.error)
+      loadBrandSettings()
+    }
   }, [user])
 
   const loadBrandSettings = async () => {

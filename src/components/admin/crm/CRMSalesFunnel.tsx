@@ -93,9 +93,7 @@ export function CRMSalesFunnel() {
                           <span className="font-medium line-clamp-1 flex-1 flex items-center gap-1">
                             {(c.source === 'whatsapp' || c.source === 'whatsapp_group') && (
                               <span title="Origem WhatsApp">
-                                <MessageCircle
-                                  className="h-3.5 w-3.5 text-green-500 shrink-0"
-                                />
+                                <MessageCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
                               </span>
                             )}
                             {c.name}

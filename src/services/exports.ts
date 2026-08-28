@@ -113,7 +113,8 @@ export async function exportCustomersCsv(): Promise<ExportResult> {
       return { success: false, total_records: 0, error: 'Nenhum lead encontrado para exportação.' }
     }
 
-    const csvContent = 'phone,whatsapp_group_name,city,state\n' + csvParts.join('')
+    const csvContent =
+      'name,phone,whatsapp_group_name,city,state,source,status,created\n' + csvParts.join('')
     const filename = `leads_export_${new Date().toISOString().split('T')[0]}.csv`
     await createExportRecord(csvContent, filename, totalRecords)
     return { success: true, total_records: totalRecords }

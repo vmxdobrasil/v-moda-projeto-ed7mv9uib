@@ -105,7 +105,7 @@ export default function SellerOrders() {
     setItemsLoading(true)
     try {
       const items = await getOrderItems(order.id)
-      setOrderItems(items as OrderItem[])
+      setOrderItems(items as unknown as OrderItem[])
     } catch (err) {
       console.error('Failed to load order items', err)
       toast({
