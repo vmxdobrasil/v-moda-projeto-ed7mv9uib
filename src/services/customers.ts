@@ -20,6 +20,41 @@ export const deleteCustomer = async (id: string) => {
   return pb.collection('customers').delete(id)
 }
 
+export type CustomerStatus = 'lead' | 'contacted' | 'negotiation' | 'converted' | 'lost' | 'inactive' | 'active' | string
+
+export interface Customer {
+  id: string
+  name: string
+  email?: string
+  phone?: string
+  status?: CustomerStatus
+  city?: string
+  state?: string
+  source?: string
+  notes?: string
+  tags?: string[]
+  avatar?: string
+  is_verified?: boolean
+  ranking_category?: string
+  price_level?: string
+  rating_average?: number
+  rating_count?: number
+  exclusivity_zone?: string
+  estimated_value?: number
+  created?: string
+  updated?: string
+  expand?: any
+  [key: string]: any
+}
+
+export const getReferredCustomers = async (userId: string, options = {}) => {
+  return pb.collection('customers').getList(1, 200, {
+    filter: `affiliate_referrer = "${userId}"`,
+    sort: '-created',
+    ...options,
+  })
+}
+
 export interface BulkTagData {
   tags: string[]
   operation: 'add' | 'remove'

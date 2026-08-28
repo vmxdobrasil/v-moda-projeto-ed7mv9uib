@@ -481,7 +481,7 @@ export function Header() {
                         <div className="flex items-center border border-border w-24 h-8 mt-2">
                           <button
                             onClick={() =>
-                              updateQuantity(item.product.id, item.quantity - 1, item.size)
+                              updateQuantity(item.id, item.quantity - 1)
                             }
                             className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
                           >
@@ -492,7 +492,7 @@ export function Header() {
                           </span>
                           <button
                             onClick={() =>
-                              updateQuantity(item.product.id, item.quantity + 1, item.size)
+                              updateQuantity(item.id, item.quantity + 1)
                             }
                             className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
                           >
@@ -501,7 +501,7 @@ export function Header() {
                         </div>
                       </div>
                       <button
-                        onClick={() => removeFromCart(item.product.id, item.size)}
+                        onClick={() => removeFromCart(item.id)}
                         className="p-2 text-muted-foreground hover:text-destructive transition-colors self-start"
                         aria-label="Remover item"
                       >

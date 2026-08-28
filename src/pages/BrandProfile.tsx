@@ -230,7 +230,9 @@ export default function BrandProfile() {
                   <h1 className="text-3xl md:text-5xl font-serif flex items-center justify-center md:justify-start gap-2 mb-2">
                     {brand.name}
                     {brand.is_verified && (
-                      <BadgeCheck className="w-6 h-6 text-green-500" title="Verificado" />
+                      <span title="Verificado">
+                        <BadgeCheck className="w-6 h-6 text-green-500" />
+                      </span>
                     )}
                   </h1>
 

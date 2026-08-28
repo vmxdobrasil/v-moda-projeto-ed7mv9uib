@@ -186,15 +186,17 @@ export function AgentCustomers() {
                             ? customer.name
                             : 'Sem Nome'}
                           {(customer as any).is_verified ? (
-                            <ShieldCheck
-                              className="w-3.5 h-3.5 text-green-500"
-                              title="Verificado"
-                            />
+                            <span title="Verificado">
+                              <ShieldCheck
+                                className="w-3.5 h-3.5 text-green-500"
+                              />
+                            </span>
                           ) : (
-                            <ShieldAlert
-                              className="w-3.5 h-3.5 text-muted-foreground/50"
-                              title="Não verificado"
-                            />
+                            <span title="Não verificado">
+                              <ShieldAlert
+                                className="w-3.5 h-3.5 text-muted-foreground/50"
+                              />
+                            </span>
                           )}
                         </div>
                       </TableCell>

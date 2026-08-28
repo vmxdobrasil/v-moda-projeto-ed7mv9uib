@@ -70,15 +70,45 @@ const store = {
   getSnapshot: () => cartState,
 }
 
-export default function useCartStore() {
+export default function useCartStore<T = {
+  items: CartItem[]
+  addItem: (item: Omit<CartItem, 'id'>) => void
+  removeItem: (id: string) => void
+  addToCart: (item: Omit<CartItem, 'id'>) => void
+  removeFromCart: (id: string) => void
+  updateQuantity: (id: string, qty: number) => void
+  clearCart: () => void
+}>(selector?: (state: {
+  items: CartItem[]
+  addItem: (item: Omit<CartItem, 'id'>) => void
+  removeItem: (id: string) => void
+  addToCart: (item: Omit<CartItem, 'id'>) => void
+  removeFromCart: (id: string) => void
+  updateQuantity: (id: string, qty: number) => void
+  clearCart: () => void
+}) => T): T {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot)
-  return {
+  const fullState = {
     items: state.items,
     addItem: store.addItem,
     removeItem: store.removeItem,
+    addToCart: store.addItem,
+    removeFromCart: store.removeItem,
     updateQuantity: store.updateQuantity,
     clearCart: store.clearCart,
   }
+  if (selector) {
+    return selector(fullState)
+  }
+  return fullState as unknown as T
 }
 
-useCartStore.getState = () => store.getSnapshot()
+useCartStore.getState = () => ({
+  ...store.getSnapshot(),
+  addItem: store.addItem,
+  removeItem: store.removeItem,
+  addToCart: store.addItem,
+  removeFromCart: store.removeItem,
+  updateQuantity: store.updateQuantity,
+  clearCart: store.clearCart,
+})

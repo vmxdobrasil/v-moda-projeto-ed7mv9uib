@@ -61,7 +61,9 @@ export function BrandCard({ brand }: { brand: any }) {
         >
           <span className="truncate">{brand.name || 'Marca Desconhecida'}</span>
           {brand.is_verified && (
-            <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" title="Verificado" />
+            <span title="Verificado">
+              <BadgeCheck className="w-4 h-4 text-green-500 shrink-0" />
+            </span>
           )}
         </h3>
 

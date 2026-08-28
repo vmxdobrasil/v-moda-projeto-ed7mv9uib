@@ -92,10 +92,11 @@ export function CRMSalesFunnel() {
                         <div className="flex justify-between items-start gap-2">
                           <span className="font-medium line-clamp-1 flex-1 flex items-center gap-1">
                             {(c.source === 'whatsapp' || c.source === 'whatsapp_group') && (
-                              <MessageCircle
-                                className="h-3.5 w-3.5 text-green-500 shrink-0"
-                                title="Origem WhatsApp"
-                              />
+                              <span title="Origem WhatsApp">
+                                <MessageCircle
+                                  className="h-3.5 w-3.5 text-green-500 shrink-0"
+                                />
+                              </span>
                             )}
                             {c.name}
                           </span>
