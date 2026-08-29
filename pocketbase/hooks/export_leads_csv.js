@@ -107,7 +107,7 @@ routerAdd(
           ';' +
           escapeCsv(r.getString('notes') || '') +
           ';' +
-          escapeCsv(r.getCreated().split(' ')[0] || ''),
+          escapeCsv(r.getString('created').split(' ')[0] || ''),
       )
     }
 

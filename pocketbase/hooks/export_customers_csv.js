@@ -117,7 +117,7 @@ routerAdd(
       const state = record.getString('state') || ''
       const source = record.getString('source') || ''
       const status = record.getString('status') || ''
-      const created = (record.getCreated() || '').split(' ')[0] || ''
+      const created = (record.getString('created') || '').split(' ')[0] || ''
       csvLines.push(
         escapeCsv(name) +
           ',' +
