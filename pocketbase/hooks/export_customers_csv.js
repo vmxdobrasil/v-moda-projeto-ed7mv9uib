@@ -37,6 +37,19 @@ routerAdd(
       )
     }
 
+    if (body.source) {
+      const s = String(body.source).replace(/'/g, "\\'")
+      if (s === 'whatsapp') {
+        pbParts.push("(source = 'whatsapp' || source = 'whatsapp_group' || phone != '')")
+      } else if (s === 'manual') {
+        pbParts.push(
+          "(source = 'manual' || (source != 'whatsapp' && source != 'whatsapp_group' && (phone = '' || phone = null)))",
+        )
+      } else if (s !== 'all') {
+        pbParts.push("source = '" + s + "'")
+      }
+    }
+
     if (body.status) {
       const s = String(body.status).replace(/'/g, "\\'")
       pbParts.push("status = '" + s + "'")

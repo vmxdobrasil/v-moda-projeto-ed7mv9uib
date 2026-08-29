@@ -14,6 +14,7 @@ import {
   AgentGuard,
   AgentOrTransporterGuard,
   FinancialGuard,
+  CrmGuard,
 } from '@/components/AuthGuard'
 import AdminMaster from '@/pages/admin/AdminMaster'
 import { AiAssistantProvider, LiveChat } from '@/components/LiveChat'
@@ -501,7 +502,7 @@ export default function App() {
                   </Route>
 
                   {/* CRM Routes */}
-                  <Route element={<AdminGuard />}>
+                  <Route element={<CrmGuard />}>
                     <Route path="/crm" element={<CrmLayout />}>
                       <Route index element={<CrmDashboard />} />
                       <Route path="leads" element={<CrmLeads />} />

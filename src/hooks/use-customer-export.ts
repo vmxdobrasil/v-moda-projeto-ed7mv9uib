@@ -7,10 +7,11 @@ import { ensureValidToken, refreshAuthToken } from '@/lib/token-refresh'
 
 export interface ExportFilters {
   search: string
+  source?: string
   status: string
-  shippingMethod: string
-  categoryId: string
-  inactivityDays: string
+  shippingMethod?: string
+  categoryId?: string
+  inactivityDays?: string
 }
 
 export interface ExportProgress {
@@ -151,6 +152,7 @@ export function useCustomerExport() {
                 page: currentPage,
                 perPage: BATCH_SIZE,
                 search: filters.search,
+                source: filters.source,
                 status: filters.status,
                 shippingMethod: filters.shippingMethod,
                 categoryId: filters.categoryId,

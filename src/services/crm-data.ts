@@ -34,6 +34,9 @@ export interface UnifiedLead {
   statusLabel: string
   data: string
   collection: string
+  whatsapp_group_name?: string
+  city?: string
+  state?: string
 }
 
 function calcVariation(c: number, p: number): number {
@@ -186,73 +189,116 @@ export async function fetchInteractions(): Promise<Interaction[]> {
   return [...li, ...ci]
 }
 
+export interface CustomerLeadParams {
+  page?: number
+  perPage?: number
+  search?: string
+  sourceFilter?: string // 'all' | 'whatsapp' | 'manual' | 'site' | 'instagram' | etc.
+  statusFilter?: string
+}
+
 export async function fetchUnifiedLeads(
-  perPage = 100,
-): Promise<{ items: UnifiedLead[]; totalItems: number }> {
+  page = 1,
+  perPage = 50,
+  params?: { search?: string; sourceFilter?: string; statusFilter?: string },
+): Promise<{ items: UnifiedLead[]; totalItems: number; totalPages: number }> {
   const SM: Record<string, string> = {
+    new: 'Novo',
+    lead: 'Novo',
+    interested: 'Interessado',
+    contact: 'Interessado',
+    proposal: 'Proposta',
+    qualified: 'Qualificado',
+    negotiating: 'Em Negociação',
+    negotiation: 'Em Negociação',
+    converted: 'Convertido',
+    closed: 'Fechado',
+    inactive: 'Inativo',
     pending: 'Novo',
     contacted: 'Em Negociação',
-    converted: 'Convertido',
     approved: 'Convertido',
-    closed: 'Convertido',
     rejected: 'Recusado',
   }
-  const [ret, fab, ven] = await Promise.all([
-    pb
-      .collection('leads_retailers')
-      .getList(1, perPage, { sort: '-created' })
-      .catch(() => ({ items: [], totalItems: 0 })),
-    pb
-      .collection('leads_fabricantes')
-      .getList(1, perPage, { sort: '-created' })
-      .catch(() => ({ items: [], totalItems: 0 })),
-    pb
-      .collection('leads_venda')
-      .getList(1, perPage, { sort: '-created', expand: 'retailer,brand,manufacturer' })
-      .catch(() => ({ items: [], totalItems: 0 })),
-  ])
-  const r = ((ret as any).items || []).map((l: any) => ({
-    id: l.id,
-    empresa: l.store_name,
-    contato: l.contact_name,
-    email: l.email || '',
-    segmento: l.fashion_hub || '',
-    origem: l.utm_source || 'retail',
-    status: l.status,
-    statusLabel: SM[l.status] || l.status,
-    data: l.created,
-    collection: 'leads_retailers',
-  }))
-  const f = ((fab as any).items || []).map((l: any) => ({
-    id: l.id,
-    empresa: l.name,
-    contato: l.whatsapp,
-    email: l.email || '',
-    segmento: l.category || '',
-    origem: l.utm_source || 'fabricante',
-    status: l.status,
-    statusLabel: SM[l.status] || l.status,
-    data: l.created,
-    collection: 'leads_fabricantes',
-  }))
-  const v = ((ven as any).items || []).map((l: any) => ({
-    id: l.id,
-    empresa: l.expand?.brand?.name || l.expand?.retailer?.name || 'N/A',
-    contato: l.expand?.retailer?.phone || '',
-    email: l.expand?.retailer?.email || '',
-    segmento: 'venda',
-    origem: 'leads_venda',
-    status: l.status,
-    statusLabel: SM[l.status] || l.status,
-    data: l.created,
-    collection: 'leads_venda',
-  }))
-  const totalItems =
-    ((ret as any).totalItems || 0) + ((fab as any).totalItems || 0) + ((ven as any).totalItems || 0)
-  return {
-    items: [...r, ...f, ...v].sort(
-      (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime(),
-    ),
-    totalItems,
+
+  const filters: string[] = []
+
+  if (params?.search && params.search.trim()) {
+    const s = params.search.trim().replace(/["\\]/g, '')
+    filters.push(
+      `(name ~ "${s}" || phone ~ "${s}" || email ~ "${s}" || city ~ "${s}" || state ~ "${s}" || whatsapp_group_name ~ "${s}")`,
+    )
+  }
+
+  if (params?.sourceFilter && params.sourceFilter !== 'all') {
+    if (params.sourceFilter === 'whatsapp') {
+      filters.push(`(source = "whatsapp" || source = "whatsapp_group" || phone != "")`)
+    } else if (params.sourceFilter === 'manual') {
+      filters.push(
+        `(source = "manual" || (source != "whatsapp" && source != "whatsapp_group" && (phone = "" || phone = null)))`,
+      )
+    } else {
+      filters.push(`source = "${params.sourceFilter}"`)
+    }
+  }
+
+  if (params?.statusFilter && params.statusFilter !== 'all') {
+    filters.push(`status = "${params.statusFilter}"`)
+  }
+
+  const filterString = filters.join(' && ')
+
+  try {
+    const res = await pb.collection('customers').getList(page, perPage, {
+      filter: filterString,
+      sort: '-created',
+      expand: 'category_id',
+    })
+
+    const items: UnifiedLead[] = res.items.map((c: any) => {
+      const isWhatsApp =
+        c.source === 'whatsapp' ||
+        c.source === 'whatsapp_group' ||
+        (c.phone && String(c.phone).trim().length > 0)
+      const origemLabel = c.source
+        ? c.source === 'whatsapp_group'
+          ? 'WhatsApp (Grupo)'
+          : c.source === 'whatsapp'
+            ? 'WhatsApp'
+            : c.source === 'manual'
+              ? 'Manual'
+              : c.source
+        : isWhatsApp
+          ? 'WhatsApp'
+          : 'Manual / Catálogo'
+
+      return {
+        id: c.id,
+        empresa: c.name || 'Sem nome',
+        contato: c.phone || c.contact_person || '—',
+        email: c.email || '',
+        segmento: c.ranking_category || c.fashion_hub || c.expand?.category_id?.name || 'Geral',
+        origem: origemLabel,
+        status: c.status || 'new',
+        statusLabel: SM[c.status] || c.status || 'Novo',
+        data: c.created,
+        collection: 'customers',
+        whatsapp_group_name: c.whatsapp_group_name || '',
+        city: c.city || '',
+        state: c.state || '',
+      }
+    })
+
+    return {
+      items,
+      totalItems: res.totalItems,
+      totalPages: res.totalPages,
+    }
+  } catch (err) {
+    console.error('Failed to fetch customers in fetchUnifiedLeads:', err)
+    return {
+      items: [],
+      totalItems: 0,
+      totalPages: 0,
+    }
   }
 }

@@ -226,6 +226,10 @@ export function CrmGuard() {
   if (s.status === 'unauthenticated') return toLogin(s.from)
   const ok =
     isSuperuserOrAdmin(s.user) ||
+    s.user?.role === 'admin' ||
+    s.user?.role === 'manufacturer' ||
+    s.user?.role === 'retailer' ||
+    s.user?.role === 'agent' ||
     s.user?.manufacturer_role === 'manager' ||
     s.user?.brand_role === 'manager'
   if (!ok) return <Navigate to={getRoleBasedRedirect(s.user)} replace />

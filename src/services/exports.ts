@@ -14,6 +14,7 @@ export interface ExportBatchParams {
   page: number
   perPage: number
   search?: string
+  source?: string
   status?: string
   shippingMethod?: string
   categoryId?: string
