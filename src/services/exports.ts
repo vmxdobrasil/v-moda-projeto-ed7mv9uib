@@ -133,6 +133,9 @@ export async function exportCustomersCsv(): Promise<ExportResult> {
 }
 
 export async function getExports(): Promise<ExportRecord[]> {
+  if (!pb.authStore.isValid || !pb.authStore.record) {
+    return []
+  }
   const result = await pb.collection('exports').getFullList({
     sort: '-created',
   })

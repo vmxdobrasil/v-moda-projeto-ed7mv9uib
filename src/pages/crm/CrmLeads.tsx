@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Search, Loader2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Plus, Search, Loader2, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
 import { fetchUnifiedLeads, type UnifiedLead } from '@/services/crm-data'
 import { NewLeadDialog } from '@/components/crm/NewLeadDialog'
+import { useLeadsExport } from '@/hooks/use-leads-export'
+import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -57,6 +60,13 @@ export default function CrmLeads() {
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [showNewLead, setShowNewLead] = useState(false)
+  const {
+    progress: exportProgress,
+    exportLeads,
+    isExporting,
+    cancelExport,
+    resetProgress,
+  } = useLeadsExport()
 
   const loadData = useCallback(async () => {
     try {
@@ -107,6 +117,19 @@ export default function CrmLeads() {
       l.contato.toLowerCase().includes(search.toLowerCase()),
   )
 
+  const handleExportAll = async () => {
+    const res = await exportLeads(['leads_venda', 'leads_fabricantes', 'leads_retailers'], {
+      search: search || undefined,
+    })
+    if (res.success) {
+      toast.success('Exportação concluída com sucesso! Verifique a página de Exportações.')
+    } else if (res.cancelled) {
+      toast.info('Exportação cancelada.')
+    } else if (res.error) {
+      toast.error(res.error)
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -116,13 +139,70 @@ export default function CrmLeads() {
             Gerencie leads de todas as fontes{totalLeads > 0 && ` · ${totalLeads} registros`}
           </p>
         </div>
-        <Button
-          onClick={() => setShowNewLead(true)}
-          className="bg-electric hover:bg-electric/90 text-white transition-all duration-300 hover:scale-105"
-        >
-          <Plus className="w-4 h-4 mr-2" /> Novo Lead
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExportAll}
+            disabled={isExporting}
+            className="border-white/10 bg-white/5 text-white hover:bg-white/10 transition-all"
+          >
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            Exportar Leads
+          </Button>
+          <Button
+            onClick={() => setShowNewLead(true)}
+            className="bg-electric hover:bg-electric/90 text-white transition-all duration-300 hover:scale-105"
+          >
+            <Plus className="w-4 h-4 mr-2" /> Novo Lead
+          </Button>
+        </div>
       </div>
+
+      {exportProgress.status === 'processing' && (
+        <div className="crm-card p-3 space-y-2">
+          <div className="flex items-center justify-between text-xs text-white/70">
+            <span>Exportando leads... ({exportProgress.processed} processados)</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={cancelExport}
+              className="h-5 text-xs text-white/50 hover:text-white"
+            >
+              Cancelar
+            </Button>
+          </div>
+          <Progress
+            value={
+              exportProgress.total > 0
+                ? (exportProgress.processed / exportProgress.total) * 100
+                : 50
+            }
+          />
+        </div>
+      )}
+
+      {exportProgress.status === 'done' && (
+        <div className="crm-card p-3 flex items-center justify-between text-xs bg-emerald-500/10 border-emerald-500/20 text-emerald-300">
+          <span>Exportação salva com sucesso!</span>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="link" size="sm" className="h-auto p-0 text-white underline">
+              <Link to="/crm/exportacoes">Ver Arquivos</Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetProgress}
+              className="h-5 text-xs text-white/50"
+            >
+              Fechar
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-2.5 h-4 w-4 text-white/40" />

@@ -70,6 +70,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/crm/tarefas': 'Tarefas',
   '/crm/propostas': 'Propostas',
   '/crm/relatorios': 'Relatórios',
+  '/crm/exportacoes': 'Exportações',
   '/crm/fundadores': 'Fundadores',
   '/guia-compras': 'Guia de Compras',
 }
