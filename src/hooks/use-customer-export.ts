@@ -1,7 +1,12 @@
 import { useState, useRef, useCallback } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { ClientResponseError } from 'pocketbase'
-import { exportCustomersBatch, createExportRecord, type ExportRecord } from '@/services/exports'
+import {
+  exportCustomersBatch,
+  createExportRecord,
+  triggerDirectCsvDownload,
+  type ExportRecord,
+} from '@/services/exports'
 import { startBackgroundOperation, endBackgroundOperation } from '@/lib/background-operations'
 import { ensureValidToken, refreshAuthToken } from '@/lib/token-refresh'
 
@@ -60,13 +65,6 @@ export function useCustomerExport() {
   const exportLeads = useCallback(
     async (filters: ExportFilters = {}): Promise<ExportResult> => {
       if (isExportingRef.current) return { success: false }
-      const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
-      if (currentPath === '/login' || currentPath === '/signup' || currentPath === '/admin/login') {
-        return {
-          success: false,
-          error: 'Não é possível exportar dados na página de login.',
-        }
-      }
 
       isExportingRef.current = true
       cancelRef.current = false
@@ -83,24 +81,27 @@ export function useCustomerExport() {
       })
 
       try {
+        // Tenta re-hidratar do localStorage se o authStore estiver vazio
+        if (!pb.authStore.token) {
+          try {
+            const raw =
+              typeof localStorage !== 'undefined' ? localStorage.getItem('pocketbase_auth') : null
+            if (raw) {
+              const parsed = JSON.parse(raw)
+              if (parsed?.token && parsed?.record) {
+                pb.authStore.save(parsed.token, parsed.record)
+              }
+            }
+          } catch {
+            /* best-effort */
+          }
+        }
+
         // Assegura que o token e store estejam válidos antes de iniciar
         const tokenValid = await ensureValidToken()
         if (!tokenValid && !pb.authStore.isValid && !pb.authStore.token) {
           // Tenta um refresh explícito antes de desistir
-          const refreshed = await refreshAuthToken()
-          if (!refreshed && !pb.authStore.isValid) {
-            const errorMsg =
-              'Não foi possível validar sua sessão. Tente novamente em alguns instantes.'
-            setProgress({
-              currentBatch: 0,
-              totalBatches: 0,
-              processed: 0,
-              total: 0,
-              status: 'error',
-              error: errorMsg,
-            })
-            return { success: false, error: errorMsg }
-          }
+          await refreshAuthToken()
         }
 
         let batch = null
@@ -110,7 +111,6 @@ export function useCustomerExport() {
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
           if (cancelRef.current) break
           try {
-            // Garante que o header Authorization utilize o token mais recente
             if (!pb.authStore.token) {
               await ensureValidToken()
             }
@@ -146,13 +146,11 @@ export function useCustomerExport() {
               if (isAuthError) {
                 const refreshed = await refreshAuthToken()
                 if (!refreshed) {
-                  // Dá um tempo curto e tenta mais uma vez validar antes de abortar o loop
-                  await new Promise((resolve) => setTimeout(resolve, 500))
-                  const secondAttempt = await refreshAuthToken()
-                  if (!secondAttempt) break
+                  await new Promise((resolve) => setTimeout(resolve, 600))
+                  await refreshAuthToken()
                 }
               } else {
-                await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt)))
+                await new Promise((resolve) => setTimeout(resolve, 800 * Math.pow(2, attempt)))
               }
             } else {
               break
@@ -230,7 +228,20 @@ export function useCustomerExport() {
           'name,phone,whatsapp_group_name,city,state,source,status,created\n' +
           (batch.csvChunk || '')
         const filename = `leads_export_${new Date().toISOString().split('T')[0]}.csv`
-        const record = await createExportRecord(csvContent, filename, totalRecords)
+
+        // 1. Aciona o download imediato no navegador do usuário
+        triggerDirectCsvDownload(csvContent, filename)
+
+        // 2. Salva o registro na coleção exports em background (se falhar, o download já foi feito)
+        let record: ExportRecord | undefined = undefined
+        try {
+          record = await createExportRecord(csvContent, filename, totalRecords)
+        } catch (saveErr) {
+          console.warn(
+            '[Customer Export] Saved file locally, but history record creation failed:',
+            saveErr,
+          )
+        }
 
         setProgress({
           currentBatch: 1,

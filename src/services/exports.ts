@@ -204,6 +204,22 @@ export async function getExports(): Promise<ExportRecord[]> {
   return result as unknown as ExportRecord[]
 }
 
+export function triggerDirectCsvDownload(csvContent: string, filename: string): void {
+  try {
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.setAttribute('download', filename)
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 2000)
+  } catch (err) {
+    console.error('[Export Service] triggerDirectCsvDownload failed:', err)
+  }
+}
+
 export async function downloadExportFile(record: ExportRecord): Promise<void> {
   const baseUrl = import.meta.env.VITE_POCKETBASE_URL
   const fileUrl = `${baseUrl}/api/files/exports/${record.id}/${record.file}`
@@ -245,7 +261,7 @@ export async function downloadExportFile(record: ExportRecord): Promise<void> {
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000)
   } catch (err: any) {
     console.error('[Export Service] downloadExportFile failed:', err)
     // Fallback de download direto

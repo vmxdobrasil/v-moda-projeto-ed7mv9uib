@@ -30,28 +30,33 @@ export default function Login() {
   const [searchParams] = useSearchParams()
 
   // 🔑 CORREÇÃO "ghost redirect": se já existe qualquer sessão ativa ou
-  // no localStorage, NÃO renderize o formulário de login — redirecione
+  // no localStorage, NÃO renderize o formulário de login — restaure e redirecione
   // imediatamente via <Navigate>.
-  const activeRecord =
-    (pb.authStore.token ? pb.authStore.record : null) ||
-    (() => {
-      try {
-        const raw = localStorage.getItem('pocketbase_auth')
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          if (parsed?.token && parsed?.record) return parsed.record
+  let activeRecord = pb.authStore.token ? pb.authStore.record : null
+  if (!activeRecord) {
+    try {
+      const raw = localStorage.getItem('pocketbase_auth')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed?.token && parsed?.record) {
+          pb.authStore.save(parsed.token, parsed.record)
+          activeRecord = parsed.record
         }
-      } catch {
-        /* intentionally ignored */
       }
-      return null
-    })()
+    } catch {
+      /* intentionally ignored */
+    }
+  }
 
   if (activeRecord) {
     const queryRedirect = searchParams.get('redirect')
     const stateFrom = (location.state as { from?: string })?.from
     const intended = getIntendedRoute()
-    const redirectTo = queryRedirect || stateFrom || intended || getRoleBasedRedirect(activeRecord)
+    // Nunca redirecione para a própria rota de login
+    const target = queryRedirect || stateFrom || intended
+    const safeTarget =
+      target && !target.startsWith('/login') && !target.startsWith('/admin/login') ? target : null
+    const redirectTo = safeTarget || getRoleBasedRedirect(activeRecord)
     return <Navigate to={redirectTo} replace />
   }
 

@@ -244,12 +244,6 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
   }, [user])
 
   const handleExport = async () => {
-    if (!hasValidAuth) {
-      clearAllExportState()
-      toast.error('Sua sessão expirou. Faça login novamente para continuar.')
-      navigate('/login')
-      return
-    }
     const result = await exportLeads({
       search: debouncedSearch,
       status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -259,12 +253,10 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
     })
     if (result.success) {
       toast.success(
-        `Exportação concluída com sucesso! ${result.total_records?.toLocaleString('pt-BR') || ''} leads exportados.`,
+        `Exportação concluída com sucesso! ${result.total_records?.toLocaleString('pt-BR') || ''} leads exportados e baixados.`,
       )
-      navigate('/crm/exportacoes')
     } else if (result.sessionExpired) {
       toast.error('Sua sessão expirou. Faça login novamente para continuar.')
-      navigate('/login')
     } else if (result.cancelled) {
       toast.info('Exportação cancelada.')
     } else if (result.error) {
@@ -273,19 +265,11 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
   }
 
   const handleRetryExport = async () => {
-    if (!hasValidAuth) {
-      clearAllExportState()
-      toast.error('Sua sessão expirou. Faça login novamente para continuar.')
-      navigate('/login')
-      return
-    }
     const result = await retryExport()
     if (result.success) {
-      toast.success('Exportação concluída com sucesso!')
-      navigate('/crm/exportacoes')
+      toast.success('Exportação concluída com sucesso! Arquivo baixado.')
     } else if (result.sessionExpired) {
       toast.error('Sua sessão expirou. Faça login novamente para continuar.')
-      navigate('/login')
     } else if (result.error) {
       toast.error(result.error)
     }

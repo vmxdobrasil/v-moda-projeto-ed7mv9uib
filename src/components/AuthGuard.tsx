@@ -108,17 +108,18 @@ function useGuardBase(): GuardState {
     if (isAuthenticated && !user) {
       return { status: 'loading' }
     }
-    if (!isAuthenticated && !hasFatalAuthFailure() && hasAuthInLocalStorage()) {
+    if (
+      !isAuthenticated &&
+      !hasFatalAuthFailure() &&
+      (hasAuthInLocalStorage() || pb.authStore.isValid)
+    ) {
       return { status: 'loading' }
     }
-    return { status: 'authenticated', user }
+    return { status: 'authenticated', user: user ?? pb.authStore.record }
   }
 
-  if (loading || isHydrating) {
-    setIntendedRoute(location.pathname + location.search)
-    return { status: 'loading' }
-  }
-
+  // Se houver uma operação em segundo plano ativa (ex: exportação de leads),
+  // NUNCA redirecione para /login mesmo que o React context esteja temporariamente sem user
   if (bgOpsActive) {
     const effectiveUser = user ?? pb.authStore.record
     if (effectiveUser) {
@@ -127,52 +128,46 @@ function useGuardBase(): GuardState {
     return { status: 'loading' }
   }
 
+  if (loading || isHydrating) {
+    setIntendedRoute(location.pathname + location.search)
+    return { status: 'loading' }
+  }
+
   if (!isAuthenticated && inGracePeriod) {
     setIntendedRoute(location.pathname + location.search)
     return { status: 'loading' }
   }
 
-  if (!isAuthenticated) {
-    // 🔑 Hidratação direta do authStore na hora: o PocketBase SDK v0.26.x
-    // não popula `pb.authStore` automaticamente em cold start, então o
-    // contexto pode ainda não ter commitado `isAuthenticated=true`. Antes
-    // de considerar o usuário de fato não-autenticado, tente hidratar o
-    // store a partir do localStorage e, se funcionar, trate como
-    // autenticado para evitar o redirecionamento para /login.
-    if (!hasFatalAuthFailure() && !pb.authStore.token) {
-      try {
-        const raw = localStorage.getItem('pocketbase_auth')
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          if (parsed?.token && parsed?.record) {
+  // 🔑 Verificação de emergência: se pb.authStore.token/record estiver presente ou no localStorage
+  let effectiveRecord = user ?? pb.authStore.record
+  if (!effectiveRecord) {
+    try {
+      const raw =
+        typeof localStorage !== 'undefined' ? localStorage.getItem('pocketbase_auth') : null
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed?.token && parsed?.record) {
+          if (!pb.authStore.token) {
             pb.authStore.save(parsed.token, parsed.record)
           }
+          effectiveRecord = parsed.record
         }
-      } catch {
-        /* best-effort */
       }
+    } catch {
+      /* best-effort */
     }
-    // Após a tentativa de hidratação, reavalie: se o store agora tem token
-    // e record válidos, o usuário está autenticado — retorne loading para
-    // que o AuthProvider/commitAuthState sincronize o contexto no próximo
-    // ciclo, em vez de redirecionar para /login.
-    if (!hasFatalAuthFailure() && pb.authStore.token && pb.authStore.record) {
-      setIntendedRoute(location.pathname + location.search)
-      return { status: 'loading' }
-    }
+  }
+
+  if (effectiveRecord && !hasFatalAuthFailure()) {
+    return { status: 'authenticated', user: effectiveRecord }
+  }
+
+  if (!isAuthenticated) {
     // Se há auth em localStorage e não é falha fatal, dê chance ao grace period
-    // renovar o token antes de redirecionar para /login (evita race condition
-    // onde o redirecionamento acontece antes do useEffect de grace period rodar).
-    if (!hasFatalAuthFailure() && hasAuthInLocalStorage()) {
+    if (!hasFatalAuthFailure() && (hasAuthInLocalStorage() || pb.authStore.token)) {
       setIntendedRoute(location.pathname + location.search)
       return { status: 'loading' }
     }
-    // Segunda camada síncrona: se isAuthenticated acabou de virar false (há
-    // menos de AUTH_FALSE_GRACE_MS) e não é falha fatal, mantenha loading para
-    // dar tempo ao grace period / waitForTokenRenewal agir. Isto cobre o caso
-    // em que o estado React já está false mas o localStorage ainda pode ter a
-    // sessão (ou o refresh está em andamento) — sem isso o React Router
-    // navegaria para /login antes do useEffect de grace period rodar.
     if (
       !hasFatalAuthFailure() &&
       authFalseSinceRef.current !== null &&
@@ -184,14 +179,12 @@ function useGuardBase(): GuardState {
     return { status: 'unauthenticated', from: location.pathname + location.search }
   }
 
-  // If authenticated but user record is not hydrated yet, check pb.authStore.record first
-  const effectiveUser = user ?? pb.authStore.record
-  if (!effectiveUser) {
+  if (!effectiveRecord) {
     setIntendedRoute(location.pathname + location.search)
     return { status: 'loading' }
   }
 
-  return { status: 'authenticated', user: effectiveUser }
+  return { status: 'authenticated', user: effectiveRecord }
 }
 
 function toLogin(from: string) {

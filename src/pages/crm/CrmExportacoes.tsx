@@ -71,12 +71,12 @@ export default function CrmExportacoes() {
   }
 
   const handleStartExport = async () => {
-    toast.info('Iniciando exportação completa de leads...')
+    toast.info('Iniciando exportação completa de leads e download do arquivo...')
     try {
       const res = await exportLeads()
       if (res.success) {
         toast.success(
-          `Exportação concluída com sucesso! ${res.total_records?.toLocaleString('pt-BR') || ''} leads exportados.`,
+          `Exportação e download concluídos! ${res.total_records?.toLocaleString('pt-BR') || ''} leads exportados.`,
         )
         await loadExports()
       } else if (res.error) {

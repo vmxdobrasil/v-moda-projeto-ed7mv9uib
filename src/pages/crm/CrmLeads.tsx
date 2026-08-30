@@ -126,6 +126,7 @@ export default function CrmLeads() {
   }
 
   const handleExportAll = async () => {
+    toast.info('Preparando e baixando exportação de leads...')
     const res = await exportLeads({
       search: search || '',
       source: sourceFilter !== 'all' ? sourceFilter : undefined,
@@ -133,7 +134,7 @@ export default function CrmLeads() {
     })
     if (res.success) {
       toast.success(
-        'Exportação da base de clientes concluída com sucesso! Verifique a página de Exportações.',
+        `Exportação concluída! ${res.total_records?.toLocaleString('pt-BR') || ''} leads baixados com sucesso.`,
       )
     } else if (res.cancelled) {
       toast.info('Exportação cancelada.')
@@ -209,16 +210,16 @@ export default function CrmLeads() {
       {/* Export Done Notification */}
       {exportProgress.status === 'done' && (
         <div className="crm-card p-3 flex items-center justify-between text-xs bg-emerald-500/10 border-emerald-500/20 text-emerald-300">
-          <span>Exportação salva com sucesso no histórico!</span>
+          <span>Arquivo CSV baixado e salvo no histórico com sucesso!</span>
           <div className="flex items-center gap-2">
             <Button asChild variant="link" size="sm" className="h-auto p-0 text-white underline">
-              <Link to="/crm/exportacoes">Ver Arquivos</Link>
+              <Link to="/crm/exportacoes">Ver Histórico de Arquivos</Link>
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={resetProgress}
-              className="h-5 text-xs text-white/50"
+              className="h-5 text-xs text-white/50 hover:text-white"
             >
               Fechar
             </Button>
