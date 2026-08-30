@@ -45,11 +45,11 @@ export function LeadTransferToVModa2() {
     try {
       // Dispara transferência direta no backend
       setStatusMessage(
-        'Enviando lotes diretamente para "V MODA BRASIL 2"... Aguarde, este processo processa ~30.771 leads.',
+        'Enviando lotes diretamente para "V MODA BRASIL 2"... Aguarde, processando os leads em lotes.',
       )
 
       startBackgroundOperation()
-      const response = await pb.send('/backend/v1/transfer-to-v-moda-2', {
+      const response: TransferSummary = await pb.send('/backend/v1/transfer-to-v-moda-2', {
         method: 'POST',
         body: {
           batch_size: 500,
@@ -59,15 +59,27 @@ export function LeadTransferToVModa2() {
       setResult(response)
       setStatusMessage('Transferência concluída!')
 
-      if (response.failed === 0) {
+      const totalEffectivelySent = (response.created || 0) + (response.updated || 0)
+
+      if (response.batches_sent > 0 && response.failed === 0) {
         toast({
           title: 'Transferência Concluída com Sucesso!',
-          description: `${response.total.toLocaleString('pt-BR')} leads processados em ${response.batches_sent} lotes para o V MODA BRASIL 2.`,
+          description: `${totalEffectivelySent > 0 ? totalEffectivelySent.toLocaleString('pt-BR') : response.total.toLocaleString('pt-BR')} leads enviados (${response.created.toLocaleString('pt-BR')} novos, ${response.updated.toLocaleString('pt-BR')} atualizados) em ${response.batches_sent} lotes para o V MODA BRASIL 2.`,
         })
-      } else {
+      } else if (response.batches_sent > 0 && response.failed > 0) {
         toast({
           title: 'Transferência concluída com avisos',
-          description: `${response.created + response.updated} processados, ${response.failed} com erro.`,
+          description: `${totalEffectivelySent.toLocaleString('pt-BR')} leads enviados com sucesso em ${response.batches_sent} lotes, mas ${response.failed.toLocaleString('pt-BR')} falharam.`,
+          variant: 'destructive',
+        })
+      } else {
+        // batches_sent === 0 ou nenhum lote enviado
+        toast({
+          title: 'Aviso: Nenhum lote enviado',
+          description:
+            response.total === 0
+              ? 'Nenhum lead com telefone foi encontrado na base para transferir.'
+              : 'Nenhum lote pôde ser enviado para o servidor de destino. Verifique os logs e a conexão.',
           variant: 'destructive',
         })
       }
@@ -183,17 +195,17 @@ export function LeadTransferToVModa2() {
 
         {/* Estado de Carregamento Ativo */}
         {loading && (
-          <div className="p-6 rounded-xl border border-primary/20 bg-primary/5 space-y-4 animate-pulse">
+          <div className="p-6 rounded-xl border border-primary/20 bg-primary/5 space-y-4">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium flex items-center gap-2 text-primary">
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
                 {statusMessage}
               </span>
-              <span className="text-xs text-muted-foreground">
-                Isso pode levar de 1 a 2 minutos
+              <span className="text-xs text-muted-foreground font-mono">
+                Processando no backend...
               </span>
             </div>
-            <Progress value={undefined} className="h-2 w-full bg-primary/20" />
+            <Progress value={undefined} className="h-2 w-full bg-primary/20 overflow-hidden" />
           </div>
         )}
 
@@ -202,7 +214,7 @@ export function LeadTransferToVModa2() {
           <div className="space-y-4 rounded-xl border p-5 bg-background shadow-sm">
             <div className="flex items-center justify-between">
               <h4 className="font-display font-bold text-lg flex items-center gap-2">
-                {result.failed === 0 ? (
+                {result.batches_sent > 0 && result.failed === 0 ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald" />
                 ) : (
                   <AlertTriangle className="w-5 h-5 text-amber-500" />
@@ -210,13 +222,41 @@ export function LeadTransferToVModa2() {
                 Resultado da Transferência
               </h4>
               <Badge
-                variant={result.failed === 0 ? 'default' : 'outline'}
+                variant={result.batches_sent > 0 && result.failed === 0 ? 'default' : 'outline'}
                 className={
-                  result.failed === 0 ? 'bg-emerald text-white' : 'text-amber-500 border-amber-500'
+                  result.batches_sent > 0 && result.failed === 0
+                    ? 'bg-emerald text-white'
+                    : result.batches_sent === 0
+                      ? 'text-destructive border-destructive'
+                      : 'text-amber-500 border-amber-500'
                 }
               >
-                {result.failed === 0 ? '100% Sucesso' : `${result.failed} falhas`}
+                {result.batches_sent > 0 && result.failed === 0
+                  ? '100% Sucesso'
+                  : result.batches_sent === 0
+                    ? '0 lotes enviados'
+                    : `${result.failed} falhas`}
               </Badge>
+            </div>
+
+            {/* Progresso de Lotes Concluídos */}
+            <div className="space-y-1.5 bg-muted/30 p-3 rounded-lg border border-border/40">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-medium">Progresso dos Lotes:</span>
+                <span className="font-semibold text-foreground">
+                  {result.batches_sent} de {result.total_batches} lotes (
+                  {result.total_batches > 0
+                    ? Math.round((result.batches_sent / result.total_batches) * 100)
+                    : 0}
+                  %)
+                </span>
+              </div>
+              <Progress
+                value={
+                  result.total_batches > 0 ? (result.batches_sent / result.total_batches) * 100 : 0
+                }
+                className="h-2.5 w-full bg-muted"
+              />
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">

@@ -91,7 +91,7 @@ routerAdd(
     // Loop paginado usando cursor por ID (ID > lastId ORDER BY id ASC LIMIT batchSize)
     // Isso é O(1) em memória por lote e previne estouro de memória (OOM) no runtime Goja.
     for (let b = 0; b < totalBatches; b++) {
-      let batchRows = []
+      const batchRows = []
       try {
         let query
         if (lastId) {
@@ -109,7 +109,7 @@ routerAdd(
             )
             .bind({ limit: batchSize })
         }
-        batchRows = query.all()
+        query.all(batchRows)
       } catch (dbErr) {
         const errMsg = `Erro ao ler lote ${b + 1}: ${dbErr.message || String(dbErr)}`
         $app.logger().error(`[Transferência V MODA 2] ${errMsg}`)
@@ -117,7 +117,12 @@ routerAdd(
         break
       }
 
-      if (!batchRows || batchRows.length === 0) {
+      if (batchRows.length === 0) {
+        $app
+          .logger()
+          .info(
+            `[Transferência V MODA 2] Nenhum registro adicional retornado no lote ${b + 1} após ID '${lastId}'. Encerrando paginação. Total processado até agora: ${totalProcessedSoFar}/${totalCount}.`,
+          )
         break
       }
 
@@ -145,6 +150,11 @@ routerAdd(
       }
 
       if (leadsPayload.length === 0) {
+        $app
+          .logger()
+          .warn(
+            `[Transferência V MODA 2] Lote ${b + 1} ignorado: nenhum registro com telefone válido encontrado entre os ${batchRows.length} lidos.`,
+          )
         continue
       }
 
