@@ -111,6 +111,14 @@ export async function recoverSessionFromCookie(): Promise<boolean> {
   // will use it) OR auth material is still present in localStorage.
   const hasLocalAuth = hasAuthInLocalStorage()
 
+  // If there is no token in memory and no auth in localStorage, calling
+  // authRefresh() without an Authorization header will simply fail with 401.
+  // We should NOT make the request or mark fatalAuthFailure if there is zero
+  // auth material locally.
+  if (!pb.authStore.token && !hasLocalAuth) {
+    return false
+  }
+
   const savedToken = pb.authStore.token
   const savedRecord = pb.authStore.record
 

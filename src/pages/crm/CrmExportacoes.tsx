@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getExports, downloadExportFile, type ExportRecord } from '@/services/exports'
+import { useCustomerExport } from '@/hooks/use-customer-export'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +21,7 @@ import {
   ArrowRight,
   AlertCircle,
   Database,
+  Sparkles,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -29,6 +31,8 @@ export default function CrmExportacoes() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+
+  const { exportLeads, isExporting } = useCustomerExport()
 
   const loadExports = useCallback(async () => {
     setLoading(true)
@@ -94,12 +98,37 @@ export default function CrmExportacoes() {
             Atualizar
           </Button>
           <Button
+            size="sm"
+            onClick={async () => {
+              toast.info('Iniciando exportação completa de leads...')
+              const res = await exportLeads()
+              if (res.success) {
+                toast.success(
+                  `Exportação concluída com sucesso! ${res.total_records?.toLocaleString('pt-BR') || ''} leads exportados.`,
+                )
+                await loadExports()
+              } else if (res.error) {
+                toast.error(res.error)
+              }
+            }}
+            disabled={isExporting || loading}
+            className="bg-electric hover:bg-electric/90 text-white shadow-glow"
+          >
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4 mr-2" />
+            )}
+            {isExporting ? 'Exportando...' : 'Exportar Todos os Leads (CSV)'}
+          </Button>
+          <Button
             asChild
             size="sm"
-            className="bg-primary hover:bg-primary/90 text-white shadow-glow"
+            variant="outline"
+            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
           >
             <Link to="/crm/leads">
-              Gerar Nova Exportação
+              Filtrar na Base de Leads
               <ArrowRight className="w-4 h-4 ml-2" />
             </Link>
           </Button>
@@ -157,16 +186,43 @@ export default function CrmExportacoes() {
                     filtrar e exportar dados em formato CSV.
                   </p>
                 </div>
-                <Button
-                  asChild
-                  size="sm"
-                  className="bg-primary hover:bg-primary/90 text-white shadow-glow"
-                >
-                  <Link to="/crm/leads">
-                    Ir para Leads
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Link>
-                </Button>
+                <div className="flex items-center justify-center gap-3 pt-2">
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      toast.info('Iniciando exportação completa de leads...')
+                      const res = await exportLeads()
+                      if (res.success) {
+                        toast.success(
+                          `Exportação concluída com sucesso! ${res.total_records?.toLocaleString('pt-BR') || ''} leads exportados.`,
+                        )
+                        await loadExports()
+                      } else if (res.error) {
+                        toast.error(res.error)
+                      }
+                    }}
+                    disabled={isExporting}
+                    className="bg-electric hover:bg-electric/90 text-white shadow-glow"
+                  >
+                    {isExporting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
+                    {isExporting ? 'Exportando...' : 'Exportar Todos os Leads (CSV)'}
+                  </Button>
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="outline"
+                    className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  >
+                    <Link to="/crm/leads">
+                      Ir para Leads
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="overflow-x-auto">

@@ -252,13 +252,15 @@ export function CRMLeadGrid({ adminView = false }: { adminView?: boolean }) {
     }
     const result = await exportLeads({
       search: debouncedSearch,
-      status: statusFilter,
-      shippingMethod: shippingFilter,
-      categoryId: categoryFilter,
-      inactivityDays: inactivityFilter,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      shippingMethod: shippingFilter !== 'all' ? shippingFilter : undefined,
+      categoryId: categoryFilter !== 'all' ? categoryFilter : undefined,
+      inactivityDays: inactivityFilter !== 'all' ? inactivityFilter : undefined,
     })
     if (result.success) {
-      toast.success('Exportação concluída com sucesso!')
+      toast.success(
+        `Exportação concluída com sucesso! ${result.total_records?.toLocaleString('pt-BR') || ''} leads exportados.`,
+      )
       navigate('/crm/exportacoes')
     } else if (result.sessionExpired) {
       toast.error('Sua sessão expirou. Faça login novamente para continuar.')

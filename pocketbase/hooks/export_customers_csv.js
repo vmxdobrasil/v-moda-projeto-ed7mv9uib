@@ -3,10 +3,6 @@ routerAdd(
   '/backend/v1/export-customers-csv',
   (e) => {
     const body = e.requestInfo().body || {}
-    const page = Math.max(1, parseInt(body.page) || 1)
-    const perPage = Math.min(1000, Math.max(1, parseInt(body.perPage) || 500))
-    const offset = (page - 1) * perPage
-
     const userId = e.auth?.id
     if (!userId) return e.unauthorizedError('auth required')
 
@@ -14,89 +10,77 @@ routerAdd(
     const userEmail = e.auth?.getString('email') || ''
     const isAdmin = userRole === 'admin' || userEmail === 'valterpmendonca@gmail.com'
 
-    const pbParts = []
+    const whereClauses = []
+    const params = {}
 
     if (!isAdmin) {
-      pbParts.push("manufacturer = '" + userId.replace(/'/g, "\\'") + "'")
+      whereClauses.push('manufacturer = {:userId}')
+      params.userId = userId
     }
 
     if (body.search) {
-      const s = String(body.search).replace(/'/g, "\\'")
-      pbParts.push(
-        "(name ~ '" +
-          s +
-          "' || phone ~ '" +
-          s +
-          "' || whatsapp_group_name ~ '" +
-          s +
-          "' || city ~ '" +
-          s +
-          "' || state ~ '" +
-          s +
-          "')",
-      )
-    }
-
-    if (body.source) {
-      const s = String(body.source).replace(/'/g, "\\'")
-      if (s === 'whatsapp') {
-        pbParts.push("(source = 'whatsapp' || source = 'whatsapp_group' || phone != '')")
-      } else if (s === 'manual') {
-        pbParts.push(
-          "(source = 'manual' || (source != 'whatsapp' && source != 'whatsapp_group' && (phone = '' || phone = null)))",
+      const s = String(body.search).trim()
+      if (s) {
+        whereClauses.push(
+          '(name LIKE {:search} OR phone LIKE {:search} OR whatsapp_group_name LIKE {:search} OR city LIKE {:search} OR state LIKE {:search})',
         )
-      } else if (s !== 'all') {
-        pbParts.push("source = '" + s + "'")
+        params.search = '%' + s + '%'
       }
     }
 
-    if (body.status) {
-      const s = String(body.status).replace(/'/g, "\\'")
-      pbParts.push("status = '" + s + "'")
+    if (body.source) {
+      const s = String(body.source).trim()
+      if (s === 'whatsapp') {
+        whereClauses.push(
+          "(source = 'whatsapp' OR source = 'whatsapp_group' OR (phone IS NOT NULL AND phone != ''))",
+        )
+      } else if (s === 'manual') {
+        whereClauses.push(
+          "(source = 'manual' OR (source != 'whatsapp' AND source != 'whatsapp_group' AND (phone IS NULL OR phone = '')))",
+        )
+      } else if (s !== 'all') {
+        whereClauses.push('source = {:source}')
+        params.source = s
+      }
     }
 
-    if (body.shippingMethod) {
-      const s = String(body.shippingMethod).replace(/'/g, "\\'")
-      pbParts.push("shipping_method = '" + s + "'")
+    if (body.status && body.status !== 'all') {
+      whereClauses.push('status = {:status}')
+      params.status = String(body.status).trim()
     }
 
-    if (body.categoryId) {
-      const s = String(body.categoryId).replace(/'/g, "\\'")
-      pbParts.push("category_id = '" + s + "'")
+    if (body.shippingMethod && body.shippingMethod !== 'all') {
+      whereClauses.push('shipping_method = {:shippingMethod}')
+      params.shippingMethod = String(body.shippingMethod).trim()
+    }
+
+    if (body.categoryId && body.categoryId !== 'all') {
+      whereClauses.push('category_id = {:categoryId}')
+      params.categoryId = String(body.categoryId).trim()
     }
 
     if (body.inactivityDays) {
       const days = parseInt(body.inactivityDays)
       if (days > 0) {
-        const cutoff = new Date(Date.now() - days * 86400000).toISOString().split('T')[0]
-        pbParts.push("(last_contacted_at = '' || last_contacted_at <= '" + cutoff + "')")
+        const cutoff =
+          new Date(Date.now() - days * 86400000).toISOString().replace('T', ' ').substring(0, 19) +
+          'Z'
+        whereClauses.push(
+          "(last_contacted_at IS NULL OR last_contacted_at = '' OR last_contacted_at <= {:cutoff})",
+        )
+        params.cutoff = cutoff
       }
     }
 
-    const pbFilter = pbParts.join(' && ')
-
-    let totalRecords = 0
-    try {
-      const allRecs = $app.findRecordsByFilter('customers', pbFilter, '-created', 0, 0)
-      totalRecords = allRecs.length
-    } catch (_) {
-      totalRecords = 0
-    }
-
-    let records = []
-    try {
-      records = $app.findRecordsByFilter('customers', pbFilter, '-created', perPage, offset)
-    } catch (err) {
-      return e.json(500, {
-        error: 'Failed to query customers: ' + (err.message || 'unknown error'),
-      })
-    }
-
-    const totalPages = perPage > 0 ? Math.ceil(totalRecords / perPage) : 1
-    const hasMore = page < totalPages
+    const whereSql = whereClauses.length > 0 ? ' WHERE ' + whereClauses.join(' AND ') : ''
+    const sql =
+      'SELECT name, phone, whatsapp_group_name, city, state, source, status, created FROM customers' +
+      whereSql +
+      ' ORDER BY created DESC'
 
     function escapeCsv(val) {
-      const s = String(val || '')
+      if (val === null || val === undefined) return ''
+      const s = String(val)
       if (
         s.indexOf(',') !== -1 ||
         s.indexOf('"') !== -1 ||
@@ -108,16 +92,101 @@ routerAdd(
       return s
     }
 
+    const isSingleShot = body.singleShot === true || body.page === undefined || body.page === null
+
+    if (isSingleShot) {
+      let rows = []
+      try {
+        $app.db().newQuery(sql).bind(params).all(rows)
+      } catch (err) {
+        return e.json(500, {
+          error: 'Failed to query customers: ' + (err.message || 'unknown error'),
+        })
+      }
+
+      const totalRecords = rows.length
+      const csvLines = []
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i]
+        const name = r.name || ''
+        const phone = r.phone || ''
+        const groupName = r.whatsapp_group_name || ''
+        const city = r.city || ''
+        const state = r.state || ''
+        const source = r.source || ''
+        const status = r.status || ''
+        const created = (r.created || '').split(' ')[0] || ''
+        csvLines.push(
+          escapeCsv(name) +
+            ',' +
+            escapeCsv(phone) +
+            ',' +
+            escapeCsv(groupName) +
+            ',' +
+            escapeCsv(city) +
+            ',' +
+            escapeCsv(state) +
+            ',' +
+            escapeCsv(source) +
+            ',' +
+            escapeCsv(status) +
+            ',' +
+            escapeCsv(created),
+        )
+      }
+
+      const csvContent = csvLines.length > 0 ? csvLines.join('\n') + '\n' : ''
+
+      return e.json(200, {
+        csvChunk: csvContent,
+        totalRecords: totalRecords,
+        page: 1,
+        totalPages: 1,
+        hasMore: false,
+      })
+    }
+
+    // Paginated fallback if specifically requested by a legacy client
+    const page = Math.max(1, parseInt(body.page) || 1)
+    const perPage = Math.min(5000, Math.max(1, parseInt(body.perPage) || 500))
+    const offset = (page - 1) * perPage
+
+    let countModel = new DynamicModel({ total: 0 })
+    try {
+      $app
+        .db()
+        .newQuery('SELECT COUNT(*) as total FROM customers' + whereSql)
+        .bind(params)
+        .one(countModel)
+    } catch (_) {
+      countModel.total = 0
+    }
+    const totalRecords = countModel.total || 0
+
+    let rows = []
+    try {
+      const paginatedSql = sql + ' LIMIT ' + perPage + ' OFFSET ' + offset
+      $app.db().newQuery(paginatedSql).bind(params).all(rows)
+    } catch (err) {
+      return e.json(500, {
+        error: 'Failed to query customers: ' + (err.message || 'unknown error'),
+      })
+    }
+
+    const totalPages = perPage > 0 ? Math.ceil(totalRecords / perPage) : 1
+    const hasMore = page < totalPages
+
     const csvLines = []
-    for (const record of records) {
-      const name = record.getString('name') || ''
-      const phone = record.getString('phone') || ''
-      const groupName = record.getString('whatsapp_group_name') || ''
-      const city = record.getString('city') || ''
-      const state = record.getString('state') || ''
-      const source = record.getString('source') || ''
-      const status = record.getString('status') || ''
-      const created = (record.getString('created') || '').split(' ')[0] || ''
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i]
+      const name = r.name || ''
+      const phone = r.phone || ''
+      const groupName = r.whatsapp_group_name || ''
+      const city = r.city || ''
+      const state = r.state || ''
+      const source = r.source || ''
+      const status = r.status || ''
+      const created = (r.created || '').split(' ')[0] || ''
       csvLines.push(
         escapeCsv(name) +
           ',' +

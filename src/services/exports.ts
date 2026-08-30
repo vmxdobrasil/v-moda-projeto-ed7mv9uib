@@ -11,8 +11,9 @@ export interface ExportRecord {
 }
 
 export interface ExportBatchParams {
-  page: number
-  perPage: number
+  page?: number
+  perPage?: number
+  singleShot?: boolean
   search?: string
   source?: string
   status?: string
@@ -32,6 +33,8 @@ export interface ExportBatchResult {
 export interface ExportResult {
   success: boolean
   total_records: number
+  filename?: string
+  exportRecord?: ExportRecord
   error?: string
 }
 
@@ -93,34 +96,37 @@ export async function createExportRecord(
   return record as unknown as ExportRecord
 }
 
-export async function exportCustomersCsv(): Promise<ExportResult> {
+export async function exportCustomersSingleShot(
+  params: Omit<ExportBatchParams, 'page' | 'perPage' | 'singleShot'> = {},
+): Promise<ExportResult> {
   try {
-    const csvParts: string[] = []
-    let currentPage = 1
-    let totalRecords = 0
+    const batch = await exportCustomersBatch({
+      ...params,
+      singleShot: true,
+    })
 
-    while (true) {
-      const batch = await exportCustomersBatch({
-        page: currentPage,
-        perPage: 500,
-      })
-      totalRecords = batch.totalRecords
-      if (batch.csvChunk) csvParts.push(batch.csvChunk)
-      if (!batch.hasMore) break
-      currentPage++
-    }
-
+    const totalRecords = batch.totalRecords || 0
     if (totalRecords === 0) {
-      return { success: false, total_records: 0, error: 'Nenhum lead encontrado para exportação.' }
+      return {
+        success: false,
+        total_records: 0,
+        error: 'Nenhum lead encontrado para exportação com os filtros selecionados.',
+      }
     }
 
     const csvContent =
-      'name,phone,whatsapp_group_name,city,state,source,status,created\n' + csvParts.join('')
+      'name,phone,whatsapp_group_name,city,state,source,status,created\n' + (batch.csvChunk || '')
     const filename = `leads_export_${new Date().toISOString().split('T')[0]}.csv`
-    await createExportRecord(csvContent, filename, totalRecords)
-    return { success: true, total_records: totalRecords }
+    const exportRecord = await createExportRecord(csvContent, filename, totalRecords)
+
+    return {
+      success: true,
+      total_records: totalRecords,
+      filename,
+      exportRecord,
+    }
   } catch (err: any) {
-    console.error('[Export Service] exportCustomersCsv failed:', {
+    console.error('[Export Service] exportCustomersSingleShot failed:', {
       status: err?.status ?? 0,
       message: err?.message ?? 'Unknown error',
       error: err,
@@ -131,6 +137,10 @@ export async function exportCustomersCsv(): Promise<ExportResult> {
       error: err?.message || 'Erro ao exportar leads. Tente novamente.',
     }
   }
+}
+
+export async function exportCustomersCsv(): Promise<ExportResult> {
+  return exportCustomersSingleShot({})
 }
 
 export async function getExports(): Promise<ExportRecord[]> {
