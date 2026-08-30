@@ -12,6 +12,7 @@ import { AdminMasterMetrics } from '@/components/admin/AdminMasterMetrics'
 import { AdminMasterVClub } from '@/components/admin/AdminMasterVClub'
 import { AdminMasterMagazine } from '@/components/admin/AdminMasterMagazine'
 import { AdminMasterModules } from '@/components/admin/AdminMasterModules'
+import { LeadTransferToVModa2 } from '@/components/admin/LeadTransferToVModa2'
 
 export default function AdminMaster() {
   const [orders, setOrders] = useState<any[]>([])
@@ -138,6 +139,8 @@ export default function AdminMaster() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6 space-y-6">
+          <LeadTransferToVModa2 />
+
           <AdminMasterMetrics />
 
           <div className="grid gap-6 md:grid-cols-2">
