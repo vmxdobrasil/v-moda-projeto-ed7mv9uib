@@ -31,53 +31,39 @@ routerAdd(
     $app
       .logger()
       .info(
-        '[Transferência V MODA 2] Iniciando processo de transferência...',
+        '[Transferência V MODA 2] Iniciando processo de transferência por OFFSET...',
         'target',
         targetUrl,
         'batchSize',
         batchSize,
       )
 
-    // Contar total de registros com telefone não nulo e não vazio usando findRecordsByFilter
-    // customers tem campo 'phone'
+    // Filtro padrão para leads válidos com telefone
+    const filterExpr = "phone != '' && phone != null"
+
+    // Contar total de registros com telefone válido
     let totalCount = 0
     try {
-      // Usando query direta para contar rapidamente
-      const countRow = new DynamicModel({ total: 0 })
-      $app
-        .db()
-        .newQuery(
-          "SELECT COUNT(id) as total FROM customers WHERE phone IS NOT NULL AND TRIM(phone) != ''",
-        )
-        .one(countRow)
-      totalCount = countRow.total || 0
+      const allMatches = $app.findRecordsByFilter('customers', filterExpr, '', 0, 0)
+      totalCount = allMatches.length
     } catch (countErr) {
       $app
         .logger()
         .warn(
-          '[Transferência V MODA 2] Falha ao contar via DynamicModel, tentando fallback:',
+          '[Transferência V MODA 2] Falha ao obter total com findRecordsByFilter (limit 0):',
           'error',
           countErr.message || String(countErr),
         )
       try {
-        const testRecords = $app.findRecordsByFilter(
-          'customers',
-          "phone != '' && phone != null",
-          '',
-          1,
-          0,
-        )
-        totalCount = testRecords.length > 0 ? 30771 : 0
+        totalCount = $app.countRecords('customers')
       } catch (_) {
-        totalCount = 0
+        totalCount = 30771
       }
     }
 
     $app
       .logger()
-      .info(
-        `[Transferência V MODA 2] Total de clientes com telefone identificados na base: ${totalCount}`,
-      )
+      .info(`[Transferência V MODA 2] Total de clientes identificados na base: ${totalCount}`)
 
     if (totalCount === 0) {
       return e.json(200, {
@@ -102,121 +88,54 @@ routerAdd(
     let totalFailed = 0
     const errorsList = []
 
-    let lastId = ''
-    let totalProcessedSoFar = 0
+    let offset = 0
     let batchIndex = 0
-    const maxBatches = Math.ceil(totalCount / batchSize) + 5 // margem de segurança
+    let totalProcessedSoFar = 0
+    const totalBatches = Math.ceil(totalCount / batchSize)
 
-    while (batchIndex < maxBatches) {
+    while (true) {
       batchIndex++
-      let batchItems = []
 
-      // Estratégia 1: Consulta SQL direta
+      let records = []
       try {
-        let sql =
-          "SELECT id, phone, name, source, email FROM customers WHERE phone IS NOT NULL AND TRIM(phone) != ''"
-        const params = { limit: batchSize }
-        if (lastId) {
-          sql += ' AND id > {:lastId} ORDER BY id ASC LIMIT {:limit}'
-          params.lastId = lastId
-        } else {
-          sql += ' ORDER BY id ASC LIMIT {:limit}'
-        }
-
-        const rows = []
-        $app.db().newQuery(sql).bind(params).all(rows)
-
-        if (Array.isArray(rows) && rows.length > 0) {
-          for (let i = 0; i < rows.length; i++) {
-            const r = rows[i]
-            batchItems.push({
-              id: r.id || '',
-              phone: r.phone || '',
-              name: r.name || '',
-              source: r.source || '',
-              email: r.email || '',
-            })
-          }
-        }
-      } catch (sqlErr) {
-        $app
-          .logger()
-          .warn(
-            `[Transferência V MODA 2] Erro na query SQL do lote ${batchIndex}, tentando fallback por findRecordsByFilter: ${sqlErr.message || String(sqlErr)}`,
-          )
+        records = $app.findRecordsByFilter('customers', filterExpr, 'id', batchSize, offset)
+      } catch (queryErr) {
+        const errMsg = `Erro ao consultar lote ${batchIndex} no offset ${offset}: ${queryErr.message || String(queryErr)}`
+        $app.logger().error(`[Transferência V MODA 2] ${errMsg}`)
+        errorsList.push(errMsg)
+        break
       }
 
-      // Estratégia 2 (Fallback): Se batchItems veio vazio e ainda não terminamos, usar findRecordsByFilter
-      if (batchItems.length === 0) {
-        try {
-          const filter = lastId
-            ? "phone != '' && phone != null && id > {:lastId}"
-            : "phone != '' && phone != null"
-          const filterParams = lastId ? { lastId: lastId } : {}
-          const records = $app.findRecordsByFilter(
-            'customers',
-            filter,
-            'id',
-            batchSize,
-            0,
-            filterParams,
-          )
-
-          if (Array.isArray(records) && records.length > 0) {
-            for (let i = 0; i < records.length; i++) {
-              const rec = records[i]
-              batchItems.push({
-                id: rec.id || rec.getString('id'),
-                phone: rec.getString('phone'),
-                name: rec.getString('name'),
-                source: rec.getString('source'),
-                email: rec.getString('email'),
-              })
-            }
-          }
-        } catch (filterErr) {
-          $app
-            .logger()
-            .error(
-              `[Transferência V MODA 2] Fallback findRecordsByFilter falhou no lote ${batchIndex}: ${filterErr.message || String(filterErr)}`,
-            )
-        }
-      }
-
-      // Se após ambas estratégias não veio nenhum registro, finalizamos
-      if (batchItems.length === 0) {
+      if (!Array.isArray(records) || records.length === 0) {
         $app
           .logger()
           .info(
-            `[Transferência V MODA 2] Nenhum registro adicional retornado no lote ${batchIndex} após ID '${lastId}'. Fim da paginação. Total processado: ${totalProcessedSoFar}/${totalCount}.`,
+            `[Transferência V MODA 2] Nenhum registro retornado no lote ${batchIndex} (offset ${offset}). Fim da paginação. Total processado: ${totalProcessedSoFar}/${totalCount}.`,
           )
         break
       }
 
-      // Atualiza o cursor lastId com o último elemento lido
-      const lastItem = batchItems[batchItems.length - 1]
-      lastId = lastItem.id
-      totalProcessedSoFar += batchItems.length
+      totalProcessedSoFar += records.length
 
       $app
         .logger()
         .info(
-          `[Transferência V MODA 2] Lote ${batchIndex} lido com sucesso: ${batchItems.length} registros. Último ID: ${lastId}. Total acumulado: ${totalProcessedSoFar}`,
+          `[Transferência V MODA 2] Lote ${batchIndex}/${totalBatches} lido: ${records.length} registros (offset ${offset}). Total acumulado: ${totalProcessedSoFar}`,
         )
 
       // Monta o payload do lote atual
       const leadsPayload = []
-      for (let i = 0; i < batchItems.length; i++) {
-        const item = batchItems[i]
-        const phone = (item.phone || '').toString().trim()
+      for (let i = 0; i < records.length; i++) {
+        const rec = records[i]
+        const phone = (rec.getString('phone') || '').trim()
         if (!phone) continue
 
         const leadObj = {
           phone: phone,
-          name: (item.name || '').toString().trim() || 'Lead WhatsApp',
-          source: (item.source || '').toString().trim() || 'transferencia_vmoda',
+          name: (rec.getString('name') || '').trim() || 'Lead WhatsApp',
+          source: (rec.getString('source') || '').trim() || 'transferencia_vmoda',
         }
-        const email = (item.email || '').toString().trim()
+        const email = (rec.getString('email') || '').trim()
         if (email) {
           leadObj.email = email
         }
@@ -229,6 +148,7 @@ routerAdd(
           .warn(
             `[Transferência V MODA 2] Lote ${batchIndex} não possui registros com telefone válido. Ignorando envio.`,
           )
+        offset += batchSize
         continue
       }
 
@@ -275,32 +195,45 @@ routerAdd(
             $app
               .logger()
               .info(
-                `[Transferência V MODA 2] Lote ${batchIndex} enviado com sucesso (${leadsPayload.length} leads). Resposta do destino: criados=${c}, atualizados=${u}, ignorados=${s}, falhas=${f}`,
+                `[Transferência V MODA 2] Lote ${batchIndex}/${totalBatches} enviado com sucesso (${leadsPayload.length} leads). Resposta do destino: criados=${c}, atualizados=${u}, ignorados=${s}, falhas=${f}`,
               )
           } else {
             totalCreated += leadsPayload.length
             $app
               .logger()
               .info(
-                `[Transferência V MODA 2] Lote ${batchIndex} status HTTP ${res.statusCode} (${leadsPayload.length} leads enviados).`,
+                `[Transferência V MODA 2] Lote ${batchIndex}/${totalBatches} status HTTP ${res.statusCode} (${leadsPayload.length} leads enviados).`,
               )
           }
         } else {
           totalFailed += leadsPayload.length
-          const rawSnippet = res.raw ? String(res.raw).substring(0, 200) : 'Sem corpo de resposta'
-          const errMsg = `Lote ${batchIndex} falhou com status HTTP ${res.statusCode}: ${rawSnippet}`
+          const rawSnippet = res.raw ? String(res.raw).substring(0, 300) : 'Sem corpo de resposta'
+          const errMsg = `Lote ${batchIndex} (offset ${offset}) falhou com status HTTP ${res.statusCode}: ${rawSnippet}`
           $app.logger().error(`[Transferência V MODA 2] ${errMsg}`)
           errorsList.push(errMsg)
         }
       } catch (httpErr) {
         totalFailed += leadsPayload.length
-        const errMsg = `Lote ${batchIndex} erro de requisição HTTP para destino: ${httpErr.message || String(httpErr)}`
+        const errMsg = `Lote ${batchIndex} (offset ${offset}) erro de requisição HTTP para destino (${targetUrl}): ${httpErr.message || String(httpErr)}`
         $app.logger().error(`[Transferência V MODA 2] ${errMsg}`)
         errorsList.push(errMsg)
       }
+
+      // Avança o offset para o próximo lote
+      offset += batchSize
+
+      // Se o lote retornado foi menor que batchSize, chegamos ao final da coleção
+      if (records.length < batchSize) {
+        $app
+          .logger()
+          .info(
+            `[Transferência V MODA 2] Lote ${batchIndex} retornou ${records.length} < ${batchSize}. Fim da base alcançado.`,
+          )
+        break
+      }
     }
 
-    const calculatedTotalBatches = Math.ceil(totalCount / batchSize)
+    const calculatedTotalBatches = totalBatches > 0 ? totalBatches : batchesSent
     const summary = {
       success: errorsList.length === 0 && batchesSent > 0,
       total: totalCount,

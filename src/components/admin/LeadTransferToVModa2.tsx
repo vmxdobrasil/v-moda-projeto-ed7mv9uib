@@ -181,7 +181,8 @@ export function LeadTransferToVModa2() {
             <div>
               <p className="font-semibold text-foreground">Divisão em Lotes</p>
               <p className="text-muted-foreground text-xs">
-                Envio sequencial em blocos de 500 leads com cursor indexado e tolerância a falhas.
+                Envio sequencial em blocos de 500 leads via paginação por OFFSET direta e tolerância
+                a falhas.
               </p>
             </div>
           </div>
