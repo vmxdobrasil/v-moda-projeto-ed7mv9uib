@@ -15,8 +15,8 @@ import {
   Database,
   Layers,
   Sparkles,
-  Info,
-  RefreshCw,
+  Download,
+  FileSpreadsheet,
 } from 'lucide-react'
 
 interface TransferSummary {
@@ -35,9 +35,90 @@ interface TransferSummary {
 
 export function LeadTransferToVModa2() {
   const [loading, setLoading] = useState(false)
+  const [downloadingCsv, setDownloadingCsv] = useState(false)
   const [result, setResult] = useState<TransferSummary | null>(null)
+  const [csvDownloadSummary, setCsvDownloadSummary] = useState<{
+    filename: string
+    totalRecords: number
+  } | null>(null)
   const [statusMessage, setStatusMessage] = useState<string>('')
   const { toast } = useToast()
+
+  const handleDownloadCsv = async () => {
+    if (downloadingCsv || loading) return
+
+    setDownloadingCsv(true)
+    startBackgroundOperation()
+
+    try {
+      const response: {
+        csvChunk?: string
+        totalRecords?: number
+      } = await pb.send('/backend/v1/export-customers-csv', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: pb.authStore.token || '',
+        },
+        body: {},
+      })
+
+      const rawCsv = response?.csvChunk || ''
+      const totalRecords = response?.totalRecords || 0
+
+      if (!rawCsv && totalRecords === 0) {
+        toast({
+          title: 'Nenhum lead encontrado',
+          description: 'A consulta não retornou registros de clientes.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      // Garante o cabeçalho CSV padrão conforme especificação
+      const header = 'name,phone,whatsapp_group_name,city,state,source,status,created\n'
+      const csvContent = rawCsv.startsWith('name,phone') ? rawCsv : header + rawCsv
+
+      const today = new Date().toISOString().split('T')[0]
+      const filename = `leads_vmoda_${today}.csv`
+
+      // Converte em Blob e dispara o download imediato
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', filename)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      setTimeout(() => URL.revokeObjectURL(url), 2000)
+
+      setCsvDownloadSummary({
+        filename,
+        totalRecords,
+      })
+
+      toast({
+        title: 'Download Concluído!',
+        description: `CSV gerado com sucesso contendo ${totalRecords.toLocaleString('pt-BR')} leads (${filename}).`,
+      })
+    } catch (err: any) {
+      console.error('Erro ao baixar CSV de leads:', err)
+      const errorMsg =
+        err?.data?.message ||
+        err?.data?.error ||
+        err?.message ||
+        'Falha ao gerar o arquivo CSV de leads. Verifique a conexão.'
+      toast({
+        title: 'Erro ao gerar CSV',
+        description: errorMsg,
+        variant: 'destructive',
+      })
+    } finally {
+      endBackgroundOperation()
+      setDownloadingCsv(false)
+    }
+  }
 
   const handleTransfer = async () => {
     if (loading) return
@@ -137,24 +218,47 @@ export function LeadTransferToVModa2() {
             </CardDescription>
           </div>
 
-          <Button
-            size="lg"
-            onClick={handleTransfer}
-            disabled={loading}
-            className="font-semibold shadow-md bg-gradient-to-r from-primary to-electric hover:opacity-90 transition-all text-white min-w-[240px] h-12"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Transferindo Leads...
-              </>
-            ) : (
-              <>
-                <Send className="w-5 h-5 mr-2" />
-                Transferir para V MODA 2
-              </>
-            )}
-          </Button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              onClick={handleDownloadCsv}
+              disabled={downloadingCsv || loading}
+              className="font-semibold border-primary/40 bg-background hover:bg-primary/10 hover:text-primary transition-all text-foreground min-w-[200px] h-12 shadow-sm"
+            >
+              {downloadingCsv ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin text-primary" />
+                  Gerando CSV...
+                </>
+              ) : (
+                <>
+                  <Download className="w-5 h-5 mr-2 text-primary" />
+                  Baixar CSV (Leads)
+                </>
+              )}
+            </Button>
+
+            <Button
+              size="lg"
+              onClick={handleTransfer}
+              disabled={loading || downloadingCsv}
+              className="font-semibold shadow-md bg-gradient-to-r from-primary to-electric hover:opacity-90 transition-all text-white min-w-[220px] h-12"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Transferindo Leads...
+                </>
+              ) : (
+                <>
+                  <Send className="w-5 h-5 mr-2" />
+                  Transferir para V MODA 2
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
@@ -203,7 +307,7 @@ export function LeadTransferToVModa2() {
           </div>
         </div>
 
-        {/* Estado de Carregamento Ativo */}
+        {/* Estado de Carregamento Ativo da Transferência */}
         {loading && (
           <div className="p-6 rounded-xl border border-primary/20 bg-primary/5 space-y-4">
             <div className="flex items-center justify-between text-sm">
@@ -216,6 +320,44 @@ export function LeadTransferToVModa2() {
               </span>
             </div>
             <Progress value={undefined} className="h-2 w-full bg-primary/20 overflow-hidden" />
+          </div>
+        )}
+
+        {/* Estado de Carregamento Ativo do Download CSV */}
+        {downloadingCsv && (
+          <div className="p-5 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium flex items-center gap-2 text-primary">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                Gerando arquivo CSV completo com toda a base de clientes...
+              </span>
+              <span className="text-xs text-muted-foreground font-mono">Aguarde o download...</span>
+            </div>
+            <Progress value={undefined} className="h-2 w-full bg-primary/20 overflow-hidden" />
+          </div>
+        )}
+
+        {/* Feedback de Download CSV Concluído */}
+        {csvDownloadSummary && !downloadingCsv && (
+          <div className="p-4 rounded-xl border border-emerald/30 bg-emerald/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald/20 flex items-center justify-center text-emerald shrink-0">
+                <FileSpreadsheet className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-semibold text-emerald-950 dark:text-emerald-200">
+                  CSV baixado com sucesso!
+                </p>
+                <p className="text-xs text-emerald-800 dark:text-emerald-300">
+                  Arquivo: <code className="font-mono">{csvDownloadSummary.filename}</code> • Total
+                  de <strong>{csvDownloadSummary.totalRecords.toLocaleString('pt-BR')}</strong>{' '}
+                  leads exportados para importação manual no V MODA BRASIL 2.
+                </p>
+              </div>
+            </div>
+            <Badge className="bg-emerald text-white hover:bg-emerald/90 self-start sm:self-center shrink-0">
+              {csvDownloadSummary.totalRecords.toLocaleString('pt-BR')} registros
+            </Badge>
           </div>
         )}
 
