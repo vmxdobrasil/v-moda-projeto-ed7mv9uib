@@ -15,11 +15,15 @@ import {
   Database,
   Layers,
   Sparkles,
+  Info,
+  RefreshCw,
 } from 'lucide-react'
 
 interface TransferSummary {
   success: boolean
+  message?: string
   total: number
+  processed?: number
   batches_sent: number
   total_batches: number
   created: number
@@ -43,7 +47,6 @@ export function LeadTransferToVModa2() {
     setStatusMessage('Iniciando comunicação com o backend e lendo base de clientes com telefone...')
 
     try {
-      // Dispara transferência direta no backend
       setStatusMessage(
         'Enviando lotes diretamente para "V MODA BRASIL 2"... Aguarde, processando os leads em lotes.',
       )
@@ -64,7 +67,7 @@ export function LeadTransferToVModa2() {
       if (response.batches_sent > 0 && response.failed === 0) {
         toast({
           title: 'Transferência Concluída com Sucesso!',
-          description: `${totalEffectivelySent > 0 ? totalEffectivelySent.toLocaleString('pt-BR') : response.total.toLocaleString('pt-BR')} leads enviados (${response.created.toLocaleString('pt-BR')} novos, ${response.updated.toLocaleString('pt-BR')} atualizados) em ${response.batches_sent} lotes para o V MODA BRASIL 2.`,
+          description: `${totalEffectivelySent > 0 ? totalEffectivelySent.toLocaleString('pt-BR') : (response.processed || response.total).toLocaleString('pt-BR')} leads enviados (${(response.created || 0).toLocaleString('pt-BR')} novos, ${(response.updated || 0).toLocaleString('pt-BR')} atualizados) em ${response.batches_sent} lotes para o V MODA BRASIL 2.`,
         })
       } else if (response.batches_sent > 0 && response.failed > 0) {
         toast({
@@ -74,19 +77,26 @@ export function LeadTransferToVModa2() {
         })
       } else {
         // batches_sent === 0 ou nenhum lote enviado
+        const errorDetail =
+          response.errors && response.errors.length > 0
+            ? response.errors[0]
+            : response.total === 0
+              ? 'Nenhum lead com telefone foi encontrado na base para transferir.'
+              : 'Nenhum lote pôde ser enviado para o servidor de destino. Verifique os logs e a conexão.'
+
         toast({
           title: 'Aviso: Nenhum lote enviado',
-          description:
-            response.total === 0
-              ? 'Nenhum lead com telefone foi encontrado na base para transferir.'
-              : 'Nenhum lote pôde ser enviado para o servidor de destino. Verifique os logs e a conexão.',
+          description: errorDetail,
           variant: 'destructive',
         })
       }
     } catch (err: any) {
       console.error('Erro na transferência:', err)
       const errorMsg =
-        err?.data?.message || err?.message || 'Falha ao processar transferência. Verifique os logs.'
+        err?.data?.message ||
+        err?.data?.error ||
+        err?.message ||
+        'Falha ao processar transferência. Verifique os logs.'
       setStatusMessage('Erro na transferência: ' + errorMsg)
       toast({
         title: 'Falha na Transferência',
@@ -104,7 +114,7 @@ export function LeadTransferToVModa2() {
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge
                 variant="outline"
                 className="border-primary/30 text-primary bg-primary/10 gap-1.5 py-1 px-3"
@@ -122,7 +132,7 @@ export function LeadTransferToVModa2() {
             </CardTitle>
             <CardDescription className="text-base text-muted-foreground">
               Transfere todos os <strong>~30.771 clientes com telefone</strong> diretamente para o
-              banco de dados do novo projeto em lotes otimizados de 493 leads (sem necessidade de
+              banco de dados do novo projeto em lotes otimizados de ~500 leads (sem necessidade de
               CSV manual).
             </CardDescription>
           </div>
@@ -159,7 +169,7 @@ export function LeadTransferToVModa2() {
               <p className="font-semibold text-foreground">Origem (Este Projeto)</p>
               <p className="text-muted-foreground text-xs">
                 Coleção <code className="text-xs bg-background px-1 py-0.5 rounded">customers</code>{' '}
-                filtrando apenas registros com telefone (ignora os 322 de catálogo).
+                filtrando registros com telefone válido (ignora registros sem contato).
               </p>
             </div>
           </div>
@@ -171,8 +181,7 @@ export function LeadTransferToVModa2() {
             <div>
               <p className="font-semibold text-foreground">Divisão em Lotes</p>
               <p className="text-muted-foreground text-xs">
-                Envio sequencial em blocos de ~493 leads com timeout estendido e tolerância a
-                falhas.
+                Envio sequencial em blocos de 500 leads com cursor indexado e tolerância a falhas.
               </p>
             </div>
           </div>
@@ -187,7 +196,7 @@ export function LeadTransferToVModa2() {
                 <code className="text-xs bg-background px-1 py-0.5 rounded">
                   v-moda-brasil-d7c0f.goskip.app
                 </code>{' '}
-                via webhook de produção.
+                com deduplicação automática e enriquecimento de dados.
               </p>
             </div>
           </div>
@@ -307,8 +316,11 @@ export function LeadTransferToVModa2() {
 
             {result.errors && result.errors.length > 0 && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-xs text-destructive space-y-1">
-                <p className="font-semibold">Ocorrências durante o envio:</p>
-                <ul className="list-disc pl-4 space-y-0.5 max-h-32 overflow-y-auto">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Ocorrências durante o envio ({result.errors.length}):
+                </p>
+                <ul className="list-disc pl-4 space-y-0.5 max-h-36 overflow-y-auto font-mono text-[11px]">
                   {result.errors.map((err, i) => (
                     <li key={i}>{err}</li>
                   ))}
