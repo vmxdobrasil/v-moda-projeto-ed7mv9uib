@@ -64,9 +64,27 @@ export default function CrmExportacoes() {
       toast.success(`Download iniciado: ${record.filename}`)
     } catch (err: any) {
       console.error('Download error:', err)
-      toast.error('Falha ao baixar arquivo CSV.')
+      toast.error(err?.message || 'Falha ao baixar arquivo CSV.')
     } finally {
       setDownloadingId(null)
+    }
+  }
+
+  const handleStartExport = async () => {
+    toast.info('Iniciando exportação completa de leads...')
+    try {
+      const res = await exportLeads()
+      if (res.success) {
+        toast.success(
+          `Exportação concluída com sucesso! ${res.total_records?.toLocaleString('pt-BR') || ''} leads exportados.`,
+        )
+        await loadExports()
+      } else if (res.error) {
+        toast.error(res.error)
+      }
+    } catch (err: any) {
+      console.error('Export error in UI:', err)
+      toast.error(err?.message || 'Erro ao processar exportação.')
     }
   }
 
@@ -98,19 +116,9 @@ export default function CrmExportacoes() {
             Atualizar
           </Button>
           <Button
+            type="button"
             size="sm"
-            onClick={async () => {
-              toast.info('Iniciando exportação completa de leads...')
-              const res = await exportLeads()
-              if (res.success) {
-                toast.success(
-                  `Exportação concluída com sucesso! ${res.total_records?.toLocaleString('pt-BR') || ''} leads exportados.`,
-                )
-                await loadExports()
-              } else if (res.error) {
-                toast.error(res.error)
-              }
-            }}
+            onClick={handleStartExport}
             disabled={isExporting || loading}
             className="bg-electric hover:bg-electric/90 text-white shadow-glow"
           >
@@ -188,19 +196,9 @@ export default function CrmExportacoes() {
                 </div>
                 <div className="flex items-center justify-center gap-3 pt-2">
                   <Button
+                    type="button"
                     size="sm"
-                    onClick={async () => {
-                      toast.info('Iniciando exportação completa de leads...')
-                      const res = await exportLeads()
-                      if (res.success) {
-                        toast.success(
-                          `Exportação concluída com sucesso! ${res.total_records?.toLocaleString('pt-BR') || ''} leads exportados.`,
-                        )
-                        await loadExports()
-                      } else if (res.error) {
-                        toast.error(res.error)
-                      }
-                    }}
+                    onClick={handleStartExport}
                     disabled={isExporting}
                     className="bg-electric hover:bg-electric/90 text-white shadow-glow"
                   >
@@ -266,6 +264,7 @@ export default function CrmExportacoes() {
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
+                            type="button"
                             variant="outline"
                             size="sm"
                             onClick={() => handleDownload(exp)}

@@ -119,7 +119,11 @@ function useGuardBase(): GuardState {
     return { status: 'loading' }
   }
 
-  if (!isAuthenticated && bgOpsActive) {
+  if (bgOpsActive) {
+    const effectiveUser = user ?? pb.authStore.record
+    if (effectiveUser) {
+      return { status: 'authenticated', user: effectiveUser }
+    }
     return { status: 'loading' }
   }
 
@@ -180,14 +184,14 @@ function useGuardBase(): GuardState {
     return { status: 'unauthenticated', from: location.pathname + location.search }
   }
 
-  // If authenticated but user record is not hydrated yet, stay in loading status
-  // so guards don't evaluate roles or make redirect decisions against a null user.
-  if (!user) {
+  // If authenticated but user record is not hydrated yet, check pb.authStore.record first
+  const effectiveUser = user ?? pb.authStore.record
+  if (!effectiveUser) {
     setIntendedRoute(location.pathname + location.search)
     return { status: 'loading' }
   }
 
-  return { status: 'authenticated', user }
+  return { status: 'authenticated', user: effectiveUser }
 }
 
 function toLogin(from: string) {

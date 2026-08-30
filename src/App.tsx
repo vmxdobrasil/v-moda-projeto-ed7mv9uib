@@ -75,7 +75,8 @@ window.fetch = async (input, init) => {
   if (
     !isAuthEndpoint &&
     !hasFatalAuthFailure() &&
-    (response.status === 401 || response.status === 403)
+    (response.status === 401 || response.status === 403) &&
+    !hasActiveBackgroundOperations()
   ) {
     try {
       await ensureValidToken()

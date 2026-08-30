@@ -83,28 +83,37 @@ export function useCustomerExport() {
       })
 
       try {
+        // Assegura que o token e store estejam válidos antes de iniciar
         const tokenValid = await ensureValidToken()
-        if (!tokenValid) {
-          const errorMsg =
-            'Não foi possível validar sua sessão. Tente novamente em alguns instantes.'
-          setProgress({
-            currentBatch: 0,
-            totalBatches: 0,
-            processed: 0,
-            total: 0,
-            status: 'error',
-            error: errorMsg,
-          })
-          return { success: false, error: errorMsg }
+        if (!tokenValid && !pb.authStore.isValid && !pb.authStore.token) {
+          // Tenta um refresh explícito antes de desistir
+          const refreshed = await refreshAuthToken()
+          if (!refreshed && !pb.authStore.isValid) {
+            const errorMsg =
+              'Não foi possível validar sua sessão. Tente novamente em alguns instantes.'
+            setProgress({
+              currentBatch: 0,
+              totalBatches: 0,
+              processed: 0,
+              total: 0,
+              status: 'error',
+              error: errorMsg,
+            })
+            return { success: false, error: errorMsg }
+          }
         }
 
         let batch = null
         let lastBatchError: unknown = null
-        const MAX_RETRIES = 2
+        const MAX_RETRIES = 3
 
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
           if (cancelRef.current) break
           try {
+            // Garante que o header Authorization utilize o token mais recente
+            if (!pb.authStore.token) {
+              await ensureValidToken()
+            }
             batch = await exportCustomersBatch({
               singleShot: true,
               search: filters.search,
@@ -120,7 +129,12 @@ export function useCustomerExport() {
             lastBatchError = err
             const errStatus = (err as any)?.status ?? 0
             const isAuthError = errStatus === 401 || errStatus === 403
-            const isTransient = errStatus === 0 || errStatus === 500
+            const isTransient =
+              errStatus === 0 ||
+              errStatus === 500 ||
+              errStatus === 502 ||
+              errStatus === 503 ||
+              errStatus === 504
 
             console.error('[Customer Export] Single-shot export request failed:', {
               attempt: attempt + 1,
@@ -131,7 +145,12 @@ export function useCustomerExport() {
             if (attempt < MAX_RETRIES && (isAuthError || isTransient)) {
               if (isAuthError) {
                 const refreshed = await refreshAuthToken()
-                if (!refreshed) break
+                if (!refreshed) {
+                  // Dá um tempo curto e tenta mais uma vez validar antes de abortar o loop
+                  await new Promise((resolve) => setTimeout(resolve, 500))
+                  const secondAttempt = await refreshAuthToken()
+                  if (!secondAttempt) break
+                }
               } else {
                 await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt)))
               }

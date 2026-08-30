@@ -39,6 +39,22 @@ export interface ExportResult {
 }
 
 export async function exportCustomersBatch(params: ExportBatchParams): Promise<ExportBatchResult> {
+  if (!pb.authStore.token && !pb.authStore.record) {
+    // Tenta re-hidratar do localStorage antes de lançar erro
+    try {
+      const raw =
+        typeof localStorage !== 'undefined' ? localStorage.getItem('pocketbase_auth') : null
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed?.token && parsed?.record) {
+          pb.authStore.save(parsed.token, parsed.record)
+        }
+      }
+    } catch {
+      /* best-effort */
+    }
+  }
+
   if (!pb.authStore.isValid || !pb.authStore.record) {
     console.error('[Export Service] Auth check failed: authStore invalid or no record')
     const error = new Error(
@@ -51,7 +67,10 @@ export async function exportCustomersBatch(params: ExportBatchParams): Promise<E
     const result = await pb.send('/backend/v1/export-customers-csv', {
       method: 'POST',
       body: JSON.stringify(params),
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: pb.authStore.token || '',
+      },
     })
     return result as ExportBatchResult
   } catch (err: any) {
@@ -80,8 +99,24 @@ export async function createExportRecord(
   filename: string,
   recordCount: number,
 ): Promise<ExportRecord> {
-  const userId = pb.authStore.record?.id
-  if (!userId) throw new Error('Usuário não autenticado')
+  let userId = pb.authStore.record?.id
+  if (!userId) {
+    // Tenta recuperar do localStorage
+    try {
+      const raw =
+        typeof localStorage !== 'undefined' ? localStorage.getItem('pocketbase_auth') : null
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed?.token && parsed?.record) {
+          pb.authStore.save(parsed.token, parsed.record)
+          userId = parsed.record.id
+        }
+      }
+    } catch {
+      /* best-effort */
+    }
+  }
+  if (!userId) throw new Error('Usuário não autenticado para criar registro de exportação.')
 
   const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' })
   const formData = new FormData()
@@ -145,37 +180,80 @@ export async function exportCustomersCsv(): Promise<ExportResult> {
 
 export async function getExports(): Promise<ExportRecord[]> {
   if (!pb.authStore.isValid || !pb.authStore.record) {
+    try {
+      const raw =
+        typeof localStorage !== 'undefined' ? localStorage.getItem('pocketbase_auth') : null
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed?.token && parsed?.record) {
+          pb.authStore.save(parsed.token, parsed.record)
+        }
+      }
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  if (!pb.authStore.isValid || !pb.authStore.record) {
     return []
   }
   const result = await pb.collection('exports').getFullList({
     sort: '-created',
+    requestKey: null,
   })
   return result as unknown as ExportRecord[]
 }
 
 export async function downloadExportFile(record: ExportRecord): Promise<void> {
   const baseUrl = import.meta.env.VITE_POCKETBASE_URL
-  const url = `${baseUrl}/api/files/exports/${record.id}/${record.file}`
-  const res = await fetch(url, {
-    headers: {
-      Authorization: pb.authStore.token || '',
-    },
-  })
-  if (!res.ok) {
-    console.error('[Export Service] downloadExportFile failed:', {
-      status: res.status,
-      statusText: res.statusText,
-      url,
+  const fileUrl = `${baseUrl}/api/files/exports/${record.id}/${record.file}`
+
+  // Tenta garantir que temos o token mais recente
+  const token = pb.authStore.token || ''
+
+  try {
+    const res = await fetch(fileUrl, {
+      headers: token ? { Authorization: token } : {},
     })
-    throw new Error('Falha ao baixar arquivo')
+
+    if (!res.ok) {
+      console.error('[Export Service] downloadExportFile fetch response not ok:', {
+        status: res.status,
+        statusText: res.statusText,
+        fileUrl,
+      })
+      // Se 404 ou 403 no download via fetch, tenta link direto com query param de token
+      if (token) {
+        const directUrl = `${fileUrl}?token=${encodeURIComponent(token)}`
+        const a = document.createElement('a')
+        a.href = directUrl
+        a.download = record.filename
+        a.target = '_blank'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        return
+      }
+      throw new Error(`Falha ao baixar arquivo (${res.status} ${res.statusText})`)
+    }
+
+    const blob = await res.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = record.filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+  } catch (err: any) {
+    console.error('[Export Service] downloadExportFile failed:', err)
+    // Fallback de download direto
+    if (token) {
+      const directUrl = `${fileUrl}?token=${encodeURIComponent(token)}`
+      window.open(directUrl, '_blank')
+      return
+    }
+    throw new Error(err?.message || 'Falha ao baixar arquivo')
   }
-  const blob = await res.blob()
-  const blobUrl = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = blobUrl
-  a.download = record.filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(blobUrl)
 }
