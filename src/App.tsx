@@ -72,8 +72,16 @@ window.fetch = async (input, init) => {
     urlStr.includes('/request-password-reset') ||
     urlStr.includes('/confirm-password-reset')
 
+  // Rotas customizadas de backend (/backend/v1/*) nunca devem disparar
+  // refresh automático ou degradação de sessão caso falhem com erro de negócio ou 401/403.
+  const isCustomBackendEndpoint =
+    urlStr.includes('/backend/v1/') ||
+    urlStr.startsWith('/backend/') ||
+    urlStr.includes('/backend/')
+
   if (
     !isAuthEndpoint &&
+    !isCustomBackendEndpoint &&
     !hasFatalAuthFailure() &&
     (response.status === 401 || response.status === 403) &&
     !hasActiveBackgroundOperations()
@@ -86,7 +94,6 @@ window.fetch = async (input, init) => {
       // will call refreshAuthToken and handle errors gracefully.
     }
   }
-
   return response
 }
 

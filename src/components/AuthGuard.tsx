@@ -118,12 +118,24 @@ function useGuardBase(): GuardState {
     return { status: 'authenticated', user: user ?? pb.authStore.record }
   }
 
-  // Se houver uma operação em segundo plano ativa (ex: exportação de leads),
+  // Se houver uma operação em segundo plano ativa (ex: exportação de leads / transferência),
   // NUNCA redirecione para /login mesmo que o React context esteja temporariamente sem user
   if (bgOpsActive) {
-    const effectiveUser = user ?? pb.authStore.record
-    if (effectiveUser) {
-      return { status: 'authenticated', user: effectiveUser }
+    let effectiveBgUser = user ?? pb.authStore.record
+    if (!effectiveBgUser) {
+      try {
+        const raw =
+          typeof localStorage !== 'undefined' ? localStorage.getItem('pocketbase_auth') : null
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (parsed?.record) effectiveBgUser = parsed.record
+        }
+      } catch {
+        /* intentionally ignored */
+      }
+    }
+    if (effectiveBgUser) {
+      return { status: 'authenticated', user: effectiveBgUser }
     }
     return { status: 'loading' }
   }

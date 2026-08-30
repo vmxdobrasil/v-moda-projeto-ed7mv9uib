@@ -38,6 +38,8 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     label: 'ADMINISTRAÇÃO',
     items: [
       { name: 'Painel de Gestão', href: '/admin/dashboard', icon: LayoutDashboard },
+      { name: 'CRM & Leads (31k)', href: '/crm/leads', icon: Users },
+      { name: 'CRM Hub', href: '/crm', icon: GitBranch },
       { name: 'Assinaturas', href: '/admin/assinaturas', icon: Wallet },
       { name: 'Insights', href: '/admin/insights', icon: TrendingUp },
     ],
@@ -55,7 +57,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
   {
     label: 'RELACIONAMENTO',
     items: [
-      { name: 'Clientes', href: '/admin/clientes', icon: Users },
+      { name: 'CRM Leads Global', href: '/crm/leads', icon: Users },
       { name: 'CRM Global', href: '/admin/crm-global', icon: Activity },
       { name: 'CRM Hub', href: '/crm', icon: GitBranch },
       { name: 'Revendedoras', href: '/admin/revendedoras', icon: ShoppingBag },

@@ -97,7 +97,10 @@ function computeSections(user: any, pathname: string): NavSection[] {
     return [{ label: 'Portal do Fabricante', items: MANUFACTURER_ITEMS }]
   }
 
-  const isAdmin = user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com'
+  const isAdmin =
+    user?.role === 'admin' ||
+    user?.email === 'valterpmendonca@gmail.com' ||
+    user?.collectionName === '_superusers'
   const isManufacturer = user?.role === 'manufacturer'
   const isAgent = user?.role === 'agent'
   const isAffiliate = user?.role === 'affiliate'

@@ -22,55 +22,53 @@ routerAdd(
       return e.forbiddenError('Apenas administradores podem executar esta transferência.')
     }
 
-    // Parâmetros opcionais de offset / batchSize caso queira controle
     const body = e.requestInfo().body || {}
     const targetUrl =
       body.target_url || 'https://v-moda-brasil-d7c0f.goskip.app/backend/v1/n8n-webhook'
-    const batchSize = Math.max(50, Math.min(1000, parseInt(body.batch_size) || 493))
+    // Lote de envio paginado - padrão 500 records por vez
+    const batchSize = Math.max(50, Math.min(1000, parseInt(body.batch_size) || 500))
 
     $app
       .logger()
       .info(
-        '[Transferência V MODA 2] Iniciando leitura da base de clientes...',
+        '[Transferência V MODA 2] Iniciando transferência paginada...',
         'target',
         targetUrl,
+        'batchSize',
+        batchSize,
       )
 
-    // 2. Consulta de leads com telefone preenchido
-    // Usando SQL direto ou findRecordsByFilter.
-    // Como são ~31.000 registros, newQuery SQL é extremamente rápido e consome pouca memória.
-    let rows = []
+    // Contar total de registros com telefone válido
+    let totalCount = 0
     try {
-      const query = $app
+      const countRow = new DynamicModel({ total: 0 })
+      $app
         .db()
         .newQuery(
-          "SELECT phone, name, source, email FROM customers WHERE phone IS NOT NULL AND TRIM(phone) != '' ORDER BY id ASC",
+          "SELECT COUNT(id) as total FROM customers WHERE phone IS NOT NULL AND TRIM(phone) != ''",
         )
-      rows = query.all()
-    } catch (dbErr) {
+        .one(countRow)
+      totalCount = countRow.total || 0
+    } catch (countErr) {
       $app
         .logger()
         .error(
-          '[Transferência V MODA 2] Erro ao consultar banco:',
+          '[Transferência V MODA 2] Erro ao contar clientes:',
           'error',
-          dbErr.message || String(dbErr),
+          countErr.message || String(countErr),
         )
       return e.json(500, {
-        error: 'Erro ao consultar clientes: ' + (dbErr.message || String(dbErr)),
+        error: 'Erro ao contar clientes: ' + (countErr.message || String(countErr)),
       })
     }
 
-    const totalLeads = rows.length
-    $app
-      .logger()
-      .info('[Transferência V MODA 2] Leads válidos encontrados para envio:', 'total', totalLeads)
-
-    if (totalLeads === 0) {
+    if (totalCount === 0) {
       return e.json(200, {
         success: true,
         message: 'Nenhum lead com telefone encontrado para transferir.',
         total: 0,
         batches_sent: 0,
+        total_batches: 0,
         created: 0,
         updated: 0,
         skipped: 0,
@@ -79,8 +77,7 @@ routerAdd(
       })
     }
 
-    // 3. Montar lotes e enviar via $http.send
-    const totalBatches = Math.ceil(totalLeads / batchSize)
+    const totalBatches = Math.ceil(totalCount / batchSize)
     let batchesSent = 0
     let totalCreated = 0
     let totalUpdated = 0
@@ -88,14 +85,50 @@ routerAdd(
     let totalFailed = 0
     const errorsList = []
 
-    for (let b = 0; b < totalBatches; b++) {
-      const startIdx = b * batchSize
-      const endIdx = Math.min(startIdx + batchSize, totalLeads)
-      const chunk = rows.slice(startIdx, endIdx)
+    let lastId = ''
+    let totalProcessedSoFar = 0
 
+    // Loop paginado usando cursor por ID (ID > lastId ORDER BY id ASC LIMIT batchSize)
+    // Isso é O(1) em memória por lote e previne estouro de memória (OOM) no runtime Goja.
+    for (let b = 0; b < totalBatches; b++) {
+      let batchRows = []
+      try {
+        let query
+        if (lastId) {
+          query = $app
+            .db()
+            .newQuery(
+              "SELECT id, phone, name, source, email FROM customers WHERE phone IS NOT NULL AND TRIM(phone) != '' AND id > {:lastId} ORDER BY id ASC LIMIT {:limit}",
+            )
+            .bind({ lastId: lastId, limit: batchSize })
+        } else {
+          query = $app
+            .db()
+            .newQuery(
+              "SELECT id, phone, name, source, email FROM customers WHERE phone IS NOT NULL AND TRIM(phone) != '' ORDER BY id ASC LIMIT {:limit}",
+            )
+            .bind({ limit: batchSize })
+        }
+        batchRows = query.all()
+      } catch (dbErr) {
+        const errMsg = `Erro ao ler lote ${b + 1}: ${dbErr.message || String(dbErr)}`
+        $app.logger().error(`[Transferência V MODA 2] ${errMsg}`)
+        errorsList.push(errMsg)
+        break
+      }
+
+      if (!batchRows || batchRows.length === 0) {
+        break
+      }
+
+      // Atualiza o cursor lastId
+      lastId = batchRows[batchRows.length - 1].id
+      totalProcessedSoFar += batchRows.length
+
+      // Monta o payload do lote atual
       const leadsPayload = []
-      for (let i = 0; i < chunk.length; i++) {
-        const item = chunk[i]
+      for (let i = 0; i < batchRows.length; i++) {
+        const item = batchRows[i]
         const phone = (item.phone || '').toString().trim()
         if (!phone) continue
 
@@ -115,13 +148,14 @@ routerAdd(
         continue
       }
 
+      // Envia o lote via $http.send
       try {
         const res = $http.send({
           url: targetUrl,
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'User-Agent': 'V-Moda-Brasil-Transfer-Agent/1.0',
+            'User-Agent': 'V-Moda-Brasil-Transfer-Agent/2.0',
           },
           body: JSON.stringify({
             leads: leadsPayload,
@@ -150,7 +184,6 @@ routerAdd(
             totalSkipped += s
             totalFailed += f
 
-            // Se o endpoint retornou sucesso geral sem desmembrar contagens
             if (c === 0 && u === 0 && s === 0 && f === 0) {
               totalCreated += leadsPayload.length
             }
@@ -158,14 +191,14 @@ routerAdd(
             $app
               .logger()
               .info(
-                `[Transferência V MODA 2] Lote ${b + 1}/${totalBatches} enviado com sucesso (${leadsPayload.length} leads). Criados: ${c}, Atualizados: ${u}, Ignorados: ${s}, Falhas: ${f}`,
+                `[Transferência V MODA 2] Lote ${b + 1}/${totalBatches} (${leadsPayload.length} leads). Criados: ${c}, Atualizados: ${u}, Ignorados: ${s}, Falhas: ${f}`,
               )
           } else {
             totalCreated += leadsPayload.length
             $app
               .logger()
               .info(
-                `[Transferência V MODA 2] Lote ${b + 1}/${totalBatches} enviado com status ${res.statusCode} (${leadsPayload.length} leads).`,
+                `[Transferência V MODA 2] Lote ${b + 1}/${totalBatches} status ${res.statusCode} (${leadsPayload.length} leads).`,
               )
           }
         } else {
@@ -176,7 +209,7 @@ routerAdd(
         }
       } catch (httpErr) {
         totalFailed += leadsPayload.length
-        const errMsg = `Lote ${b + 1}/${totalBatches} falhou por erro de conexão: ${httpErr.message || String(httpErr)}`
+        const errMsg = `Lote ${b + 1}/${totalBatches} erro de conexão: ${httpErr.message || String(httpErr)}`
         $app.logger().error(`[Transferência V MODA 2] ${errMsg}`)
         errorsList.push(errMsg)
       }
@@ -184,7 +217,8 @@ routerAdd(
 
     const summary = {
       success: errorsList.length === 0,
-      total: totalLeads,
+      total: totalCount,
+      processed: totalProcessedSoFar,
       batches_sent: batchesSent,
       total_batches: totalBatches,
       created: totalCreated,
@@ -197,7 +231,7 @@ routerAdd(
     $app
       .logger()
       .info(
-        `[Transferência V MODA 2] Concluída! Total: ${totalLeads}, Lotes: ${batchesSent}/${totalBatches}, Criados: ${totalCreated}, Atualizados: ${totalUpdated}, Falhas: ${totalFailed}`,
+        `[Transferência V MODA 2] Finalizada. Total: ${totalCount}, Processados: ${totalProcessedSoFar}, Lotes: ${batchesSent}/${totalBatches}, Criados: ${totalCreated}, Atualizados: ${totalUpdated}, Falhas: ${totalFailed}`,
       )
 
     return e.json(200, summary)

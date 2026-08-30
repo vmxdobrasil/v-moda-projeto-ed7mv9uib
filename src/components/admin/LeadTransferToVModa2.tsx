@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { useToast } from '@/hooks/use-toast'
+import { startBackgroundOperation, endBackgroundOperation } from '@/lib/background-operations'
 import {
   Send,
   Loader2,
@@ -47,10 +48,11 @@ export function LeadTransferToVModa2() {
         'Enviando lotes diretamente para "V MODA BRASIL 2"... Aguarde, este processo processa ~30.771 leads.',
       )
 
+      startBackgroundOperation()
       const response = await pb.send('/backend/v1/transfer-to-v-moda-2', {
         method: 'POST',
         body: {
-          batch_size: 493,
+          batch_size: 500,
         },
       })
 
@@ -80,6 +82,7 @@ export function LeadTransferToVModa2() {
         variant: 'destructive',
       })
     } finally {
+      endBackgroundOperation()
       setLoading(false)
     }
   }
