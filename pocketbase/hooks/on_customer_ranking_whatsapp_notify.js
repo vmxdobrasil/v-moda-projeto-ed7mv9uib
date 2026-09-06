@@ -16,10 +16,6 @@ onRecordAfterUpdateSuccess((e) => {
   }
 
   try {
-    const config = $app.findFirstRecordByData('whatsapp_configs', 'user', manufacturerId)
-    const apiUrl = config.get('api_url')
-    const token = config.get('token')
-
     let templateContent = null
     let templateActive = true
     try {
@@ -53,21 +49,13 @@ onRecordAfterUpdateSuccess((e) => {
         .replace(/\{\{benefit_link\}\}/g, link)
     }
 
-    const res = $http.send({
-      url: apiUrl,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        phone: phone,
-        message: msg,
-      }),
-      timeout: 10,
+    const sendResult = $whatsappRotator.sendWithRotation({
+      userId: manufacturerId,
+      phone: phone,
+      message: msg,
     })
 
-    if (res.statusCode < 400) {
+    if (sendResult.success) {
       $app
         .db()
         .newQuery('UPDATE customers SET whatsapp_welcome_sent = 1 WHERE id = {:id}')
@@ -78,10 +66,13 @@ onRecordAfterUpdateSuccess((e) => {
       notif.set('user', manufacturerId)
       notif.set('customer_email', record.get('email') || '')
       notif.set('title', 'WhatsApp Enviado (Automático)')
-      notif.set('message', `Mensagem de ranking automático enviada para ${name}.`)
+      notif.set(
+        'message',
+        `Mensagem de ranking automático enviada para ${name} via ${sendResult.label || sendResult.instance}.`,
+      )
       $app.save(notif)
     } else {
-      throw new Error(`Status ${res.statusCode}`)
+      throw new Error(sendResult.error || 'Falha no envio')
     }
   } catch (err) {
     try {

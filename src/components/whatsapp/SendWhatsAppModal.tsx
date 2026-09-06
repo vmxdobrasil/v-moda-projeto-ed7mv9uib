@@ -16,11 +16,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getTemplates, sendWhatsappMessage } from '@/services/whatsapp'
+import {
+  getTemplates,
+  sendWhatsappMessage,
+  getWhatsappConfigs,
+  type WhatsappConfig,
+} from '@/services/whatsapp'
 import { ensureWhatsappChannel, logMessage } from '@/services/messages'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { Clock, Send } from 'lucide-react'
+import { Clock, Send, Shuffle } from 'lucide-react'
 
 interface SendWhatsAppModalProps {
   isOpen: boolean
@@ -31,17 +36,29 @@ interface SendWhatsAppModalProps {
 export function SendWhatsAppModal({ isOpen, onClose, customer }: SendWhatsAppModalProps) {
   const { toast } = useToast()
   const [templates, setTemplates] = useState<any[]>([])
+  const [configs, setConfigs] = useState<WhatsappConfig[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<string>('custom')
+  const [selectedRoute, setSelectedRoute] = useState<string>('round_robin')
   const [messageContent, setMessageContent] = useState('')
   const [isSending, setIsSending] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
       loadTemplates()
+      loadConfigs()
       setMessageContent('')
       setSelectedTemplate('custom')
     }
   }, [isOpen])
+
+  const loadConfigs = async () => {
+    try {
+      const list = await getWhatsappConfigs()
+      setConfigs(list.filter((c) => c.is_active !== false))
+    } catch {
+      /* ignore */
+    }
+  }
 
   const loadTemplates = async () => {
     try {
@@ -79,7 +96,15 @@ export function SendWhatsAppModal({ isOpen, onClose, customer }: SendWhatsAppMod
 
     try {
       setIsSending(true)
-      await sendWhatsappMessage(customer.phone, messageContent)
+      const payload: any = {
+        phone: customer.phone,
+        message: messageContent,
+      }
+      if (selectedRoute !== 'round_robin') {
+        payload.config_id = selectedRoute
+      }
+
+      const res = await sendWhatsappMessage(payload)
 
       const channelId = await ensureWhatsappChannel()
       await logMessage({
@@ -90,7 +115,11 @@ export function SendWhatsAppModal({ isOpen, onClose, customer }: SendWhatsAppMod
         status: 'replied',
       })
 
-      toast({ title: 'Sucesso', description: 'Mensagem enviada com sucesso!' })
+      const viaInfo = res.sent_via_label || res.sent_via_instance
+      toast({
+        title: 'Sucesso',
+        description: viaInfo ? `Mensagem enviada via ${viaInfo}!` : 'Mensagem enviada com sucesso!',
+      })
       onClose()
     } catch (err: any) {
       toast({
@@ -113,6 +142,29 @@ export function SendWhatsAppModal({ isOpen, onClose, customer }: SendWhatsAppMod
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label>Rota de Envio (Anti-Banimento)</Label>
+            <Select value={selectedRoute} onValueChange={setSelectedRoute}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="round_robin">
+                  🔄 Rodízio Automático ({configs.length} números ativos)
+                </SelectItem>
+                {configs.map((c) => (
+                  <SelectItem key={c.id} value={c.id!}>
+                    📱 Número: {c.label || c.instance_id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Shuffle className="w-3 h-3 text-emerald-600" />O rodízio automático distribui os
+              disparos entre as instâncias conectadas.
+            </p>
+          </div>
+
           <div className="grid gap-2">
             <Label>Template (Opcional)</Label>
             <Select value={selectedTemplate} onValueChange={handleTemplateChange}>

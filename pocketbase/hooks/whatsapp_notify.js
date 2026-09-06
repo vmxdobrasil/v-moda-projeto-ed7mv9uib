@@ -25,16 +25,6 @@ routerAdd(
       return e.forbiddenError('Sem permissão para notificar este cliente.')
     }
 
-    let config
-    try {
-      config = $app.findFirstRecordByData('whatsapp_configs', 'user', manufacturerId)
-    } catch (err) {
-      return e.badRequestError('API do WhatsApp não configurada para este fabricante.')
-    }
-
-    const apiUrl = config.get('api_url')
-    const token = config.get('token')
-
     let templateContent = null
     let templateActive = true
     try {
@@ -69,55 +59,14 @@ routerAdd(
     }
 
     try {
-      let endpoint = apiUrl
-      let reqBody = {
+      const sendResult = $whatsappRotator.sendWithRotation({
+        userId: manufacturerId,
         phone: phone,
         message: msg,
-      }
-      let reqHeaders = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      }
-
-      if (apiUrl.includes('evolution') || apiUrl.includes('n8n')) {
-        const instanceId = config.get('instance_id') || 'Evolution'
-        const base = apiUrl.replace(/\/$/, '')
-
-        if (apiUrl.includes('evolution')) {
-          endpoint = `${base}/message/sendText/${instanceId}`
-          reqHeaders['apikey'] = token
-
-          const humanDelay = Math.floor(Math.random() * 2000) + 1000
-
-          reqBody = {
-            number: phone,
-            textMessage: { text: msg },
-            text: msg,
-            options: {
-              delay: humanDelay,
-              presence: 'composing',
-            },
-          }
-        }
-      }
-
-      // Human Typing: Server-side sleep function varying randomly between 1000ms and 3000ms
-      const delayMs = Math.floor(Math.random() * 2000) + 1000
-      const start = Date.now()
-      while (Date.now() - start < delayMs) {
-        // busy wait
-      }
-
-      const res = $http.send({
-        url: endpoint,
-        method: 'POST',
-        headers: reqHeaders,
-        body: JSON.stringify(reqBody),
-        timeout: 10,
       })
 
-      if (res.statusCode >= 400) {
-        throw new Error(`API retornou ${res.statusCode} na URL ${endpoint}`)
+      if (!sendResult.success) {
+        throw new Error(sendResult.error || 'Falha no envio via rodízio')
       }
 
       $app
@@ -130,24 +79,26 @@ routerAdd(
       notif.set('user', manufacturerId)
       notif.set('customer_email', record.get('email') || '')
       notif.set('title', 'WhatsApp Enviado')
-      notif.set('message', `Mensagem de boas-vindas enviada para ${name}.`)
+      notif.set(
+        'message',
+        `Mensagem de boas-vindas enviada para ${name} via ${sendResult.label || sendResult.instance}.`,
+      )
       $app.save(notif)
 
-      return e.json(200, { success: true })
+      return e.json(200, {
+        success: true,
+        sent_via: sendResult.instance,
+        label: sendResult.label,
+      })
     } catch (err) {
       const notif = new Record($app.findCollectionByNameOrId('notifications'))
       notif.set('user', manufacturerId)
       notif.set('customer_email', record.get('email') || '')
       notif.set('title', 'Erro WhatsApp')
-      notif.set(
-        'message',
-        `Falha ao enviar mensagem para ${name}. Verifique as configurações da API.`,
-      )
+      notif.set('message', `Falha ao enviar mensagem para ${name}: ${err.message}`)
       $app.save(notif)
 
-      return e.badRequestError(
-        'Falha ao enviar a mensagem do WhatsApp. Verifique sua configuração de API.',
-      )
+      return e.badRequestError('Falha ao enviar a mensagem do WhatsApp: ' + err.message)
     }
   },
   $apis.requireAuth(),

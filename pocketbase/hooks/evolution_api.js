@@ -91,12 +91,19 @@ routerAdd(
         'whatsapp_configs',
         'user = {:userId}',
         '-created',
-        1,
+        100,
         0,
         { userId: e.auth.id },
       )
       if (configs && configs.length > 0) {
-        const config = configs[0]
+        let matched = null
+        if (instanceQuery) {
+          matched = configs.find((c) => {
+            const ids = (c.getString('instance_id') || '').split(',').map((s) => s.trim())
+            return ids.includes(instanceQuery)
+          })
+        }
+        const config = matched || configs[0]
         if (config.getString('api_url')) apiUrl = config.getString('api_url')
         if (config.getString('token')) token = config.getString('token')
         if (!instanceQuery && config.getString('instance_id')) {
@@ -141,12 +148,19 @@ routerAdd(
         'whatsapp_configs',
         'user = {:userId}',
         '-created',
-        1,
+        100,
         0,
         { userId: e.auth.id },
       )
       if (configs && configs.length > 0) {
-        const config = configs[0]
+        let matched = null
+        if (body.instance) {
+          matched = configs.find((c) => {
+            const ids = (c.getString('instance_id') || '').split(',').map((s) => s.trim())
+            return ids.includes(body.instance)
+          })
+        }
+        const config = matched || configs[0]
         if (config.getString('api_url')) apiUrl = config.getString('api_url')
         if (config.getString('token')) token = config.getString('token')
         if (!body.instance && config.getString('instance_id')) {
@@ -175,182 +189,110 @@ routerAdd(
   'POST',
   '/backend/v1/evolution_api/send',
   (e) => {
-    let apiUrl =
-      $secrets.get('EVOLUTION_API_URL') || 'https://evolution-evolution.6xxwvj.easypanel.host'
-    let token = $secrets.get('EVOLUTION_API_KEY') || '7i5UsFq1MM8pEbt8NqCVDPglfY8v9LTd'
-    const body = e.requestInfo().body
-    let instanceId = body.instance_id
-
-    try {
-      const configs = $app.findRecordsByFilter(
-        'whatsapp_configs',
-        'user = {:userId}',
-        '-created',
-        100,
-        0,
-        { userId: e.auth.id },
-      )
-      if (configs.length > 0) {
-        const config = configs[0]
-        if (config.getString('api_url')) apiUrl = config.getString('api_url')
-        if (config.getString('token')) token = config.getString('token')
-
-        if (!instanceId) {
-          let allInstances = []
-          for (let i = 0; i < configs.length; i++) {
-            const ids = configs[i]
-              .getString('instance_id')
-              .split(',')
-              .map((s) => s.trim())
-              .filter((s) => s)
-            allInstances = allInstances.concat(ids)
-          }
-          if (allInstances.length > 0) {
-            instanceId = allInstances[Math.floor(Math.random() * allInstances.length)]
-          }
-        }
-      }
-    } catch (_) {}
-
-    if (!instanceId) instanceId = 'vmoda'
-
-    if (!apiUrl || !token || !instanceId) {
-      return e.badRequestError('Configuração do WhatsApp incompleta.')
-    }
-
-    let phone = body.phone
+    const body = e.requestInfo().body || {}
+    const phone = body.phone
     const message = body.message
 
     if (!phone || !message) {
       return e.badRequestError('Telefone e mensagem são obrigatórios.')
     }
 
-    phone = phone.replace(/\D/g, '')
-    if (phone.length === 10 || phone.length === 11) {
-      phone = '55' + phone
-    }
-    if (phone.length < 12) {
-      return e.badRequestError(
-        'Número de telefone inválido. O formato esperado é 55 + DDD + 9 dígitos.',
-      )
+    const result = $whatsappRotator.sendWithRotation({
+      userId: e.auth.id,
+      phone: phone,
+      message: message,
+      instanceId: body.instance_id,
+      configId: body.config_id,
+    })
+
+    if (!result.success) {
+      return e.badRequestError(result.error || 'Falha ao enviar mensagem.')
     }
 
-    const url = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
-
+    // Registra a mensagem enviada no histórico (audit trail com qual número/instância disparou)
     try {
-      let allInstances = []
+      let channelId = null
+      const channelName = 'WhatsApp (' + result.instance + ')'
       try {
-        const configs = $app.findRecordsByFilter(
-          'whatsapp_configs',
-          'user = {:userId}',
-          '-created',
-          100,
-          0,
-          { userId: e.auth.id },
-        )
-        for (let i = 0; i < configs.length; i++) {
-          const ids = configs[i]
-            .getString('instance_id')
-            .split(',')
-            .map((s) => s.trim())
-            .filter((s) => s)
-          allInstances = allInstances.concat(ids)
+        const channels = $app.findRecordsByFilter('channels', "type='whatsapp'", '-created', 1, 0)
+        if (channels.length > 0) {
+          channelId = channels[0].id
         }
       } catch (_) {}
 
-      let instancesToTry = allInstances.length > 0 ? allInstances : [instanceId]
-      instancesToTry = instancesToTry.sort(() => Math.random() - 0.5)
-
-      if (body.instance_id && instancesToTry.includes(body.instance_id)) {
-        instancesToTry = [
-          body.instance_id,
-          ...instancesToTry.filter((id) => id !== body.instance_id),
-        ]
+      if (!channelId) {
+        const col = $app.findCollectionByNameOrId('channels')
+        const rec = new Record(col)
+        rec.set('name', 'WhatsApp')
+        rec.set('type', 'whatsapp')
+        rec.set('status', true)
+        $app.save(rec)
+        channelId = rec.id
       }
 
-      let lastError = null
-      for (const inst of instancesToTry) {
-        try {
-          const res = $http.send({
-            url: `${url}/message/sendText/${inst}`,
-            method: 'POST',
-            headers: {
-              apikey: token,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              number: phone,
-              options: {
-                delay: [1000, 2000, 3000][Math.floor(Math.random() * 3)],
-                presence: 'composing',
-              },
-              textMessage: { text: message },
-            }),
-            timeout: 10,
-          })
-
-          if (res.statusCode === 200 || res.statusCode === 201) {
-            try {
-              let channelId = null
-              const channels = $app.findRecordsByFilter(
-                'channels',
-                "type='whatsapp'",
-                '-created',
-                1,
-                0,
-              )
-              if (channels.length > 0) {
-                channelId = channels[0].id
-              } else {
-                const col = $app.findCollectionByNameOrId('channels')
-                const rec = new Record(col)
-                rec.set('name', 'WhatsApp')
-                rec.set('type', 'whatsapp')
-                rec.set('status', true)
-                $app.save(rec)
-                channelId = rec.id
-              }
-
-              const msgCol = $app.findCollectionByNameOrId('messages')
-              const msgRec = new Record(msgCol)
-              msgRec.set('channel', channelId)
-              msgRec.set('sender_id', e.auth.id)
-              msgRec.set('sender_name', e.auth.getString('name') || e.auth.getString('email'))
-              msgRec.set('content', message)
-              msgRec.set('direction', 'outbound')
-              msgRec.set('status', 'replied')
-              $app.save(msgRec)
-            } catch (err) {
-              $app.logger().error('Failed to log message to DB', 'err', String(err))
-            }
-            return e.json(res.statusCode, res.json)
-          } else {
-            lastError = `Status ${res.statusCode}`
-            $app
-              .logger()
-              .error('Evolution API Send Error on instance ' + inst, 'statusCode', res.statusCode)
-            if (res.statusCode === 404 || res.statusCode === 428 || res.statusCode === 401) {
-              continue
-            } else {
-              break
-            }
-          }
-        } catch (err) {
-          lastError = String(err)
-          $app
-            .logger()
-            .error('Evolution API Send Transport Error on instance ' + inst, 'err', lastError)
-          continue
-        }
-      }
-
-      return e.badRequestError(
-        `Falha ao enviar mensagem após tentar múltiplas instâncias. Último erro: ${lastError}`,
-      )
+      const msgCol = $app.findCollectionByNameOrId('messages')
+      const msgRec = new Record(msgCol)
+      msgRec.set('channel', channelId)
+      msgRec.set('sender_id', e.auth.id)
+      const senderDisplay =
+        (e.auth.getString('name') || e.auth.getString('email')) +
+        ' [' +
+        (result.label || result.instance) +
+        ']'
+      msgRec.set('sender_name', senderDisplay)
+      msgRec.set('content', message)
+      msgRec.set('direction', 'outbound')
+      msgRec.set('status', 'replied')
+      $app.save(msgRec)
     } catch (err) {
-      $app.logger().error('Evolution API Send Transport Error', 'err', String(err))
-      return e.internalServerError('Falha de transporte ao se conectar com a Evolution API.')
+      $app.logger().error('Failed to log message to DB', 'err', String(err))
     }
+
+    return e.json(result.statusCode || 200, {
+      success: true,
+      sent_via_instance: result.instance,
+      sent_via_label: result.label,
+      config_id: result.configId,
+      phone: result.phone,
+      data: result.data,
+    })
+  },
+  $apis.requireAuth(),
+)
+
+// Alias /backend/v1/whatsapp/send apontando para a mesma lógica com rotação
+routerAdd(
+  'POST',
+  '/backend/v1/whatsapp/send',
+  (e) => {
+    const body = e.requestInfo().body || {}
+    const phone = body.phone
+    const message = body.message
+
+    if (!phone || !message) {
+      return e.badRequestError('Telefone e mensagem são obrigatórios.')
+    }
+
+    const result = $whatsappRotator.sendWithRotation({
+      userId: e.auth.id,
+      phone: phone,
+      message: message,
+      instanceId: body.instance_id,
+      configId: body.config_id,
+    })
+
+    if (!result.success) {
+      return e.badRequestError(result.error || 'Falha ao enviar mensagem.')
+    }
+
+    return e.json(result.statusCode || 200, {
+      success: true,
+      sent_via_instance: result.instance,
+      sent_via_label: result.label,
+      config_id: result.configId,
+      phone: result.phone,
+      data: result.data,
+    })
   },
   $apis.requireAuth(),
 )

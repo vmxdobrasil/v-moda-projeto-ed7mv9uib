@@ -20,7 +20,8 @@ import { Label } from '@/components/ui/label'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from '@/hooks/use-toast'
-import { Loader2, Send } from 'lucide-react'
+import { Loader2, Send, Shuffle } from 'lucide-react'
+import { getWhatsappConfigs, type WhatsappConfig } from '@/services/whatsapp'
 
 interface SendWhatsAppModalProps {
   open: boolean
@@ -31,6 +32,8 @@ interface SendWhatsAppModalProps {
 export function SendWhatsAppModal({ open, onOpenChange, customer }: SendWhatsAppModalProps) {
   const { user } = useAuth()
   const [templates, setTemplates] = useState<any[]>([])
+  const [configs, setConfigs] = useState<WhatsappConfig[]>([])
+  const [selectedRoute, setSelectedRoute] = useState<string>('round_robin')
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -38,10 +41,20 @@ export function SendWhatsAppModal({ open, onOpenChange, customer }: SendWhatsApp
   useEffect(() => {
     if (open) {
       fetchTemplates()
+      loadConfigs()
       setMessage('')
       setSelectedTemplate('')
     }
   }, [open])
+
+  const loadConfigs = async () => {
+    try {
+      const list = await getWhatsappConfigs()
+      setConfigs(list.filter((c) => c.is_active !== false))
+    } catch {
+      /* ignore */
+    }
+  }
 
   const fetchTemplates = async () => {
     try {
@@ -88,12 +101,17 @@ export function SendWhatsAppModal({ open, onOpenChange, customer }: SendWhatsApp
 
     setLoading(true)
     try {
-      await pb.send('/backend/v1/evolution_api/send', {
+      const payload: any = {
+        phone: customer.phone,
+        message: message.trim(),
+      }
+      if (selectedRoute !== 'round_robin') {
+        payload.config_id = selectedRoute
+      }
+
+      const res = await pb.send('/backend/v1/evolution_api/send', {
         method: 'POST',
-        body: JSON.stringify({
-          phone: customer.phone,
-          message: message.trim(),
-        }),
+        body: JSON.stringify(payload),
       })
 
       // Ensure a channel exists to save the message history
@@ -123,7 +141,11 @@ export function SendWhatsAppModal({ open, onOpenChange, customer }: SendWhatsApp
         console.error('Failed to log message to history', err)
       }
 
-      toast({ title: 'Sucesso', description: 'Mensagem enviada com sucesso.' })
+      const viaInfo = res?.sent_via_label || res?.sent_via_instance
+      toast({
+        title: 'Sucesso',
+        description: viaInfo ? `Mensagem enviada via ${viaInfo}!` : 'Mensagem enviada com sucesso.',
+      })
       onOpenChange(false)
     } catch (error: any) {
       console.error(error)
@@ -149,6 +171,29 @@ export function SendWhatsAppModal({ open, onOpenChange, customer }: SendWhatsApp
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          <div className="space-y-2">
+            <Label>Rota de Envio (Anti-Banimento)</Label>
+            <Select value={selectedRoute} onValueChange={setSelectedRoute}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="round_robin">
+                  🔄 Rodízio Automático ({configs.length} números ativos)
+                </SelectItem>
+                {configs.map((c) => (
+                  <SelectItem key={c.id} value={c.id!}>
+                    📱 Número: {c.label || c.instance_id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Shuffle className="w-3 h-3 text-emerald-600" />O rodízio alternará entre seus números
+              conectados com pausa anti-banimento.
+            </p>
+          </div>
+
           <div className="space-y-2">
             <Label>Template</Label>
             <Select value={selectedTemplate} onValueChange={handleTemplateChange}>

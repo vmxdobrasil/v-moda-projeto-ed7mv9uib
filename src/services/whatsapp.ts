@@ -6,6 +6,13 @@ export interface WhatsappConfig {
   api_url?: string
   token?: string
   instance_id?: string
+  label?: string
+  phone_number?: string
+  is_active?: boolean
+  throttle_interval_sec?: number
+  last_used_at?: string
+  created?: string
+  updated?: string
 }
 
 export interface WhatsappTemplate {
@@ -17,19 +24,66 @@ export interface WhatsappTemplate {
   is_active: boolean
 }
 
-export const getWhatsappConfigs = () =>
-  pb.collection('whatsapp_configs').getFullList({ sort: '-created' })
-
-export const getWhatsappConfig = async (userId?: string): Promise<WhatsappConfig | null> => {
+export const getWhatsappConfigs = async (userId?: string): Promise<WhatsappConfig[]> => {
   try {
     const filter = userId ? `user = "${userId}"` : ''
     const configs = await pb.collection('whatsapp_configs').getFullList({
       filter,
       sort: '-created',
     })
-    return (configs[0] as unknown as WhatsappConfig) || null
+    return configs as unknown as WhatsappConfig[]
+  } catch {
+    return []
+  }
+}
+
+export const getWhatsappConfig = async (userId?: string): Promise<WhatsappConfig | null> => {
+  try {
+    const configs = await getWhatsappConfigs(userId)
+    return configs[0] || null
   } catch {
     return null
+  }
+}
+
+export const createWhatsappConfig = async (
+  data: Partial<WhatsappConfig>,
+): Promise<WhatsappConfig> => {
+  const currentUserId = pb.authStore.record?.id
+  const payload = {
+    ...data,
+    user: data.user || currentUserId,
+    is_active: data.is_active !== undefined ? data.is_active : true,
+    throttle_interval_sec: data.throttle_interval_sec || 8,
+  }
+  const res = await pb.collection('whatsapp_configs').create(payload)
+  return res as unknown as WhatsappConfig
+}
+
+export const updateWhatsappConfig = async (
+  id: string,
+  data: Partial<WhatsappConfig>,
+): Promise<WhatsappConfig> => {
+  const res = await pb.collection('whatsapp_configs').update(id, data)
+  return res as unknown as WhatsappConfig
+}
+
+export const deleteWhatsappConfig = async (id: string): Promise<boolean> => {
+  return pb.collection('whatsapp_configs').delete(id)
+}
+
+// Mantido para compatibilidade com telas legadas que salvam a primeira config
+export const saveWhatsappConfig = async (data: any) => {
+  const configs = await getWhatsappConfigs()
+  if (configs.length > 0 && configs[0].id) {
+    return pb.collection('whatsapp_configs').update(configs[0].id, data)
+  } else {
+    return pb.collection('whatsapp_configs').create({
+      ...data,
+      user: pb.authStore.record?.id,
+      is_active: true,
+      throttle_interval_sec: 8,
+    })
   }
 }
 
@@ -59,33 +113,54 @@ export const saveWhatsappTemplate = async (
   return res as unknown as WhatsappTemplate
 }
 
-export const saveWhatsappConfig = async (data: any) => {
-  const configs = await getWhatsappConfigs()
-  if (configs.length > 0) {
-    return pb.collection('whatsapp_configs').update(configs[0].id, data)
-  } else {
-    return pb.collection('whatsapp_configs').create({ ...data, user: pb.authStore.record?.id })
-  }
-}
-
 export const getEvolutionStatus = async (instance?: string) => {
   const url = instance
-    ? `/backend/v1/evolution_api/status?instance=${instance}`
+    ? `/backend/v1/evolution_api/status?instance=${encodeURIComponent(instance)}`
     : `/backend/v1/evolution_api/status`
   return pb.send(url, { method: 'GET' })
 }
 
 export const getEvolutionConnect = async (instance?: string) => {
   const url = instance
-    ? `/backend/v1/evolution_api/connect?instance=${instance}`
+    ? `/backend/v1/evolution_api/connect?instance=${encodeURIComponent(instance)}`
     : `/backend/v1/evolution_api/connect`
   return pb.send(url, { method: 'GET' })
 }
 
-export const sendWhatsappMessage = async (phone: string, message: string, instance_id?: string) => {
+export const disconnectEvolutionInstance = async (instance?: string) => {
+  return pb.send('/backend/v1/evolution_api/logout', {
+    method: 'POST',
+    body: JSON.stringify({ instance }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+export interface SendWhatsappMessageOptions {
+  phone: string
+  message: string
+  instance_id?: string
+  config_id?: string
+}
+
+export const sendWhatsappMessage = async (
+  phoneOrOptions: string | SendWhatsappMessageOptions,
+  message?: string,
+  instance_id?: string,
+) => {
+  let body: any
+  if (typeof phoneOrOptions === 'object') {
+    body = phoneOrOptions
+  } else {
+    body = {
+      phone: phoneOrOptions,
+      message,
+      instance_id,
+    }
+  }
+
   return pb.send('/backend/v1/evolution_api/send', {
     method: 'POST',
-    body: JSON.stringify({ phone, message, instance_id }),
+    body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' },
   })
 }

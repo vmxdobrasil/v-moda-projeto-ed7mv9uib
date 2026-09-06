@@ -54,74 +54,38 @@ onRecordAfterUpdateSuccess((e) => {
 
     const template = templates[0]
 
-    const configs = $app.findRecordsByFilter('whatsapp_configs', `user = {:user}`, '', 1, 0, {
-      user: manufacturerId,
-    })
-
-    if (!configs || configs.length === 0) return e.next()
-
-    const config = configs[0]
-    const apiUrl = config.getString('api_url')
-    const token = config.getString('token')
-    const instanceId = config.getString('instance_id')
-
-    if (!apiUrl) return e.next()
-
     let phone = e.record.getString('phone')
     if (!phone) return e.next()
-    phone = phone.replace(/\D/g, '')
-    if (!phone.startsWith('55')) phone = '55' + phone
 
     let content = template.getString('content')
     content = content.replace(/\{nome\}/g, e.record.getString('name') || 'Cliente')
+    content = content.replace(/\{\{name\}\}/g, e.record.getString('name') || 'Cliente')
 
-    const payload = {
-      number: phone,
-      text: content,
-    }
-
-    const headers = {
-      'Content-Type': 'application/json',
-    }
-    if (token) {
-      headers['Authorization'] = 'Bearer ' + token
-      headers['apikey'] = token
-    }
-
-    let finalUrl = apiUrl
-    if (instanceId && finalUrl.includes('evolution')) {
-      finalUrl = `${apiUrl}/message/sendText/${instanceId}`
-    } else if (!finalUrl.endsWith('/send') && !finalUrl.includes('message/sendText')) {
-      finalUrl = `${apiUrl}/send`
-    }
-
-    const res = $http.send({
-      url: finalUrl,
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(payload),
-      timeout: 15,
+    const sendResult = $whatsappRotator.sendWithRotation({
+      userId: manufacturerId,
+      phone: phone,
+      message: content,
     })
 
-    if (res.statusCode !== 200 && res.statusCode !== 201) {
+    if (!sendResult.success) {
       $app
         .logger()
         .error(
-          'Failed to send WhatsApp status notification',
-          'status',
-          res.statusCode,
-          'response',
-          res.raw,
+          'Failed to send WhatsApp status notification via rotation',
+          'error',
+          sendResult.error,
         )
     } else {
       $app
         .logger()
         .info(
-          'WhatsApp status notification sent successfully',
+          'WhatsApp status notification sent successfully via ' + sendResult.instance,
           'customer',
           e.record.id,
           'status',
           newStatus,
+          'label',
+          sendResult.label,
         )
     }
   } catch (err) {

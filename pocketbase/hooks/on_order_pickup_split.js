@@ -117,40 +117,22 @@ onRecordAfterUpdateSuccess((e) => {
               config = $app.findFirstRecordByData('whatsapp_configs', 'user', sellerId)
             } catch (_) {}
 
-            if (config) {
-              var apiUrl = config.getString('api_url')
-              var token = config.getString('token')
-              var instanceId = config.getString('instance_id') || 'Evolution'
+            var msg =
+              'Nova retirada confirmada para sua unidade. Pedido: ' +
+              record.id +
+              '. Codigo de retirada: ' +
+              qrCode
 
-              if (apiUrl && apiUrl.indexOf('evolution') !== -1) {
-                var base = apiUrl.replace(/\/$/, '')
-                var endpoint = base + '/message/sendText/' + instanceId
-                var msg =
-                  'Nova retirada confirmada para sua unidade. Pedido: ' +
-                  record.id +
-                  '. Codigo de retirada: ' +
-                  qrCode
-
-                try {
-                  $http.send({
-                    url: endpoint,
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      apikey: token,
-                    },
-                    body: JSON.stringify({
-                      number: phone,
-                      textMessage: { text: msg },
-                    }),
-                    timeout: 10,
-                  })
-                } catch (httpErr) {
-                  $app
-                    .logger()
-                    .error('WhatsApp send failed', 'orderId', record.id, 'error', httpErr.message)
-                }
-              }
+            try {
+              $whatsappRotator.sendWithRotation({
+                userId: sellerId,
+                phone: phone,
+                message: msg,
+              })
+            } catch (httpErr) {
+              $app
+                .logger()
+                .error('WhatsApp send failed', 'orderId', record.id, 'error', httpErr.message)
             }
 
             var notifCol = $app.findCollectionByNameOrId('notifications')

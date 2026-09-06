@@ -5,9 +5,30 @@ routerAdd(
     const instance = e.request.url.query().get('instance')
     if (!instance) return e.badRequestError('Instance required')
 
-    const config = $app.findFirstRecordByData('whatsapp_configs', 'user', e.auth.id)
-    const apiUrl = config.getString('api_url').replace(/\/$/, '')
-    const token = config.getString('token')
+    let apiUrl = (
+      $secrets.get('EVOLUTION_API_URL') || 'https://evolution-evolution.6xxwvj.easypanel.host'
+    ).replace(/\/$/, '')
+    let token = $secrets.get('EVOLUTION_API_KEY') || '7i5UsFq1MM8pEbt8NqCVDPglfY8v9LTd'
+
+    try {
+      const configs = $app.findRecordsByFilter(
+        'whatsapp_configs',
+        'user = {:userId}',
+        '-created',
+        100,
+        0,
+        { userId: e.auth.id },
+      )
+      if (configs.length > 0) {
+        let matched = configs.find((c) => {
+          const ids = (c.getString('instance_id') || '').split(',').map((s) => s.trim())
+          return ids.includes(instance)
+        })
+        const config = matched || configs[0]
+        if (config.getString('api_url')) apiUrl = config.getString('api_url').replace(/\/$/, '')
+        if (config.getString('token')) token = config.getString('token')
+      }
+    } catch (_) {}
 
     let res
     try {

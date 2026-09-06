@@ -81,47 +81,22 @@ onRecordAfterUpdateSuccess((e) => {
 
         const partnerPhone = partner.getString('phone')
         if (partnerPhone && sellerId) {
-          let config = null
+          const msg =
+            'Nova retirada confirmada para sua unidade. Pedido: ' +
+            record.id +
+            '. Codigo: ' +
+            pickupCode
+
           try {
-            config = $app.findFirstRecordByData('whatsapp_configs', 'user', sellerId)
-          } catch (_) {}
-
-          if (config) {
-            const apiUrl = config.get('api_url')
-            const token = config.get('token')
-            const instanceId = config.get('instance_id') || 'Evolution'
-            const msg =
-              'Nova retirada confirmada para sua unidade. Pedido: ' +
-              record.id +
-              '. Codigo: ' +
-              pickupCode
-
-            try {
-              let endpoint = apiUrl
-              let reqBody = { phone: partnerPhone, message: msg }
-              let reqHeaders = {
-                'Content-Type': 'application/json',
-                Authorization: 'Bearer ' + token,
-              }
-
-              if (apiUrl.includes('evolution')) {
-                endpoint = apiUrl.replace(/\/$/, '') + '/message/sendText/' + instanceId
-                reqHeaders['apikey'] = token
-                reqBody = { number: partnerPhone, textMessage: { text: msg } }
-              }
-
-              $http.send({
-                url: endpoint,
-                method: 'POST',
-                headers: reqHeaders,
-                body: JSON.stringify(reqBody),
-                timeout: 10,
-              })
-            } catch (err) {
-              $app
-                .logger()
-                .error('Pickup WhatsApp failed', 'orderId', record.id, 'error', err.message)
-            }
+            $whatsappRotator.sendWithRotation({
+              userId: sellerId,
+              phone: partnerPhone,
+              message: msg,
+            })
+          } catch (err) {
+            $app
+              .logger()
+              .error('Pickup WhatsApp failed', 'orderId', record.id, 'error', err.message)
           }
         }
       } catch (err) {
