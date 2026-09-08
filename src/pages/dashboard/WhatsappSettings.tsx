@@ -57,6 +57,11 @@ import {
   Send,
   Power,
   PowerOff,
+  Copy,
+  Check,
+  Eye,
+  EyeOff,
+  Key,
 } from 'lucide-react'
 import {
   getWhatsappConfigs,
@@ -84,6 +89,8 @@ export default function WhatsappSettings() {
   // Modal de Adicionar/Editar Número
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false)
   const [editingConfig, setEditingConfig] = useState<WhatsappConfig | null>(null)
+  const [showToken, setShowToken] = useState(false)
+  const [copiedToken, setCopiedToken] = useState(false)
   const [configForm, setConfigForm] = useState({
     label: '',
     phone_number: '',
@@ -510,16 +517,38 @@ export default function WhatsappSettings() {
                   nas mensagens do sistema.
                 </CardDescription>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => checkAllStatuses()}
-                disabled={checkingStatus || configs.length === 0}
-                className="gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${checkingStatus ? 'animate-spin' : ''}`} />
-                Atualizar Status
-              </Button>
+              <div className="flex items-center gap-2">
+                {configs.some((c) => c.token) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={() => {
+                      const sampleToken =
+                        configs.find((c) => c.token)?.token || '7i5UsFq1MM8pEbt8NqCVDPglfY8v9LTd'
+                      navigator.clipboard.writeText(sampleToken)
+                      toast({
+                        title: 'Token Copiado!',
+                        description: 'Token da Evolution API copiado para a área de transferência.',
+                      })
+                    }}
+                    title="Copiar chave de API da Evolution"
+                  >
+                    <Key className="w-3.5 h-3.5 text-primary" />
+                    Copiar Token Evolution
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => checkAllStatuses()}
+                  disabled={checkingStatus || configs.length === 0}
+                  className="gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${checkingStatus ? 'animate-spin' : ''}`} />
+                  Atualizar Status
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {loadingConfigs ? (
@@ -946,13 +975,60 @@ export default function WhatsappSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cfg-token">Chave da API (Token)</Label>
-              <Input
-                id="cfg-token"
-                type="password"
-                value={configForm.token}
-                onChange={(e) => setConfigForm({ ...configForm, token: e.target.value })}
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="cfg-token" className="flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-primary" /> Chave da API (Token Evolution)
+                </Label>
+                {configForm.token && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs px-2 gap-1 text-primary hover:text-primary"
+                    onClick={() => {
+                      navigator.clipboard.writeText(configForm.token)
+                      setCopiedToken(true)
+                      setTimeout(() => setCopiedToken(false), 2000)
+                      toast({
+                        title: 'Token Copiado!',
+                        description: 'Chave copiada para a área de transferência.',
+                      })
+                    }}
+                  >
+                    {copiedToken ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-600" /> Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" /> Copiar Token
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+              <div className="relative">
+                <Input
+                  id="cfg-token"
+                  type={showToken ? 'text' : 'password'}
+                  value={configForm.token}
+                  onChange={(e) => setConfigForm({ ...configForm, token: e.target.value })}
+                  className="pr-10 font-mono text-xs"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowToken(!showToken)}
+                  title={showToken ? 'Ocultar token' : 'Visualizar token'}
+                >
+                  {showToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Token da Evolution API utilizado para autenticar as requisições desta instância.
+              </p>
             </div>
 
             <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">

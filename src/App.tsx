@@ -433,9 +433,27 @@ export default function App() {
                       {/* Protected Manufacturer specifics inside DashboardLayout */}
                       <Route element={<ManufacturerGuard />}>
                         <Route path="logistics" element={<DashboardLogistics />} />
-                        <Route path="settings" element={<WhatsappSettings />} />
                       </Route>
+
+                      {/* WhatsApp Multi-Number & Rotation Settings (Accessible to authenticated users) */}
+                      <Route path="settings" element={<WhatsappSettings />} />
+                      <Route path="whatsapp-settings" element={<WhatsappSettings />} />
+                      <Route path="whatsapp" element={<WhatsappSettings />} />
                     </Route>
+
+                    {/* Direct aliases with /dashboard/ prefix to ensure deep links and redirects work */}
+                    <Route
+                      path="/dashboard/whatsapp-settings"
+                      element={<Navigate to="/whatsapp-settings" replace />}
+                    />
+                    <Route
+                      path="/dashboard/settings"
+                      element={<Navigate to="/settings" replace />}
+                    />
+                    <Route
+                      path="/dashboard/whatsapp"
+                      element={<Navigate to="/whatsapp-settings" replace />}
+                    />
 
                     {/* Leads Routes */}
                     <Route element={<AdminGuard />}>

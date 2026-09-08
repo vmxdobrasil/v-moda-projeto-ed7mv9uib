@@ -73,6 +73,11 @@ const ROUTE_LABELS: Record<string, string> = {
   '/crm/exportacoes': 'Exportações',
   '/crm/fundadores': 'Fundadores',
   '/guia-compras': 'Guia de Compras',
+  '/settings': 'Configurações WhatsApp & Rodízio',
+  '/whatsapp-settings': 'WhatsApp & Rodízio Anti-Ban',
+  '/whatsapp': 'WhatsApp & Rodízio',
+  '/dashboard/whatsapp-settings': 'WhatsApp & Rodízio Anti-Ban',
+  '/dashboard/settings': 'Configurações WhatsApp & Rodízio',
 }
 
 function capitalize(s: string): string {

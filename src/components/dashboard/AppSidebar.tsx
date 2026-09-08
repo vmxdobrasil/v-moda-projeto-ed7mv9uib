@@ -12,6 +12,7 @@ import {
   Users,
   Award,
   Upload,
+  MessageCircle,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -39,6 +40,7 @@ const MANUFACTURER_ITEMS: NavItem[] = [
   { name: 'Importar Dados', href: '/imports', icon: Upload },
   { name: 'Logística', href: '/manufacturer/logistics', icon: Truck },
   { name: 'V Club', href: '/manufacturer/v-club', icon: Award },
+  { name: 'WhatsApp & Rodízio', href: '/dashboard/whatsapp-settings', icon: MessageCircle },
   { name: 'Configurações', href: '/manufacturer/settings', icon: Settings },
   { name: 'Financeiro', href: '/financeiro', icon: CreditCard },
   { name: 'Logística & Transporte', href: '/logistica-transportadoras', icon: Truck },

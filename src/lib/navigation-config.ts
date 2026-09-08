@@ -78,6 +78,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
     items: [
       { name: 'Distribuição Geográfica', href: '/admin/geografico', icon: BarChart },
       { name: 'Logística & Transporte', href: '/logistica-transportadoras', icon: Truck },
+      { name: 'WhatsApp & Rodízio', href: '/dashboard/whatsapp-settings', icon: MessageCircle },
     ],
   },
 ]

@@ -85,12 +85,15 @@ export default function AdminLogin() {
 
       toast.success('Login bem-sucedido. Bem-vindo ao painel.')
 
-      const from = location.state?.from?.pathname
+      const searchParams = new URLSearchParams(location.search)
+      const queryRedirect = searchParams.get('redirect')
+      const stateFrom = (location.state as any)?.from
+      const fromPath = typeof stateFrom === 'string' ? stateFrom : stateFrom?.pathname
       const intended = getIntendedRoute()
-      const redirectTo =
-        (from && !['/login', '/admin/login', '/cadastro', '/'].includes(from) ? from : null) ||
-        intended ||
-        getRoleBasedRedirect(record)
+      const target = queryRedirect || fromPath || intended
+      const safeTarget =
+        target && !target.startsWith('/login') && !target.startsWith('/admin/login') ? target : null
+      const redirectTo = safeTarget || getRoleBasedRedirect(record)
       navigate(redirectTo, { replace: true })
     } catch (err: any) {
       pb.authStore.clear()
