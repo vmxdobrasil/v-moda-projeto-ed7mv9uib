@@ -56,6 +56,7 @@ const RETAILER_ITEMS: NavItem[] = [
   { name: 'Minha Revenda', href: '/revendedora-dashboard', icon: Wallet },
   { name: 'Vitrine de Marcas', href: '/guia-de-moda', icon: Store },
   { name: 'V Club Wallet', href: '/v-club', icon: Wallet },
+  { name: 'WhatsApp & Rodízio', href: '/dashboard/whatsapp-settings', icon: MessageCircle },
   { name: 'Meu Perfil', href: '/perfil', icon: Settings },
   { name: 'Top 100 Marcas', href: '/top-marcas', icon: Star },
   { name: 'Guia de Compras', href: '/guia-compras', icon: Store },
@@ -95,10 +96,6 @@ function computeSections(user: any, pathname: string): NavSection[] {
     return AGENT_NAV_SECTIONS
   }
 
-  if (isManufacturerContext) {
-    return [{ label: 'Portal do Fabricante', items: MANUFACTURER_ITEMS }]
-  }
-
   const isAdmin =
     user?.role === 'admin' ||
     user?.email === 'valterpmendonca@gmail.com' ||
@@ -109,6 +106,9 @@ function computeSections(user: any, pathname: string): NavSection[] {
   const isRetailer =
     user?.role === 'retailer' || (!isAdmin && !isManufacturer && !isAgent && !isAffiliate)
 
+  if (isManufacturerContext || isManufacturer) {
+    return [{ label: 'Portal do Fabricante', items: MANUFACTURER_ITEMS }]
+  }
   if (isAdmin) {
     return [
       ...ADMIN_NAV_SECTIONS,
