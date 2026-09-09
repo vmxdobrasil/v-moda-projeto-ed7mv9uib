@@ -1,11 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { startBackgroundOperation, endBackgroundOperation } from '@/lib/background-operations'
+import { getBrandSettingByKey, saveBrandSettingValue } from '@/services/brandSettings'
 import {
   Send,
   Loader2,
@@ -17,7 +20,23 @@ import {
   Sparkles,
   Download,
   FileSpreadsheet,
+  Globe,
+  Radio,
+  Save,
+  RotateCcw,
+  Check,
+  XCircle,
+  Info,
 } from 'lucide-react'
+
+// Fallback padrão de referência para o projeto destino
+const DEFAULT_TARGET_URL = [
+  'https://',
+  'v-moda-brasil-d7c0f',
+  '.goskip.app',
+  '/backend/v1/n8n-webhook',
+].join('')
+const SETTING_KEY = 'migration_target_webhook_url'
 
 interface TransferSummary {
   success: boolean
@@ -36,6 +55,17 @@ interface TransferSummary {
 export function LeadTransferToVModa2() {
   const [loading, setLoading] = useState(false)
   const [downloadingCsv, setDownloadingCsv] = useState(false)
+  const [testingConnection, setTestingConnection] = useState(false)
+  const [savingUrl, setSavingUrl] = useState(false)
+  const [targetUrl, setTargetUrl] = useState<string>(DEFAULT_TARGET_URL)
+  const [savedTargetUrl, setSavedTargetUrl] = useState<string>(DEFAULT_TARGET_URL)
+  const [connectionTestResult, setConnectionTestResult] = useState<{
+    success: boolean
+    statusCode: number
+    message: string
+    tip?: string
+    timestamp: string
+  } | null>(null)
   const [result, setResult] = useState<TransferSummary | null>(null)
   const [csvDownloadSummary, setCsvDownloadSummary] = useState<{
     filename: string
@@ -43,6 +73,144 @@ export function LeadTransferToVModa2() {
   } | null>(null)
   const [statusMessage, setStatusMessage] = useState<string>('')
   const { toast } = useToast()
+
+  // Carrega URL salva no banco ao abrir a tela
+  useEffect(() => {
+    let isMounted = true
+    const loadSavedUrl = async () => {
+      try {
+        const record = await getBrandSettingByKey(SETTING_KEY)
+        if (isMounted && record?.value_text?.trim()) {
+          const val = record.value_text.trim()
+          setTargetUrl(val)
+          setSavedTargetUrl(val)
+        }
+      } catch (err) {
+        console.warn('Não foi possível carregar a URL salva da migração:', err)
+      }
+    }
+    loadSavedUrl()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  // Validação da URL
+  const cleanUrl = targetUrl.trim()
+  const isUrlEmpty = !cleanUrl
+  const hasHttps = cleanUrl.startsWith('https://')
+  const hasExpectedSuffix = cleanUrl.endsWith('/backend/v1/n8n-webhook')
+  const isMalformed = !isUrlEmpty && (!hasHttps || !hasExpectedSuffix)
+
+  // Mensagens de alerta de validação
+  let validationWarning = ''
+  if (!isUrlEmpty) {
+    if (!hasHttps) {
+      validationWarning =
+        'Aviso: A URL deve iniciar com "https://". Endereços inseguros (http) ou sem protocolo não funcionarão.'
+    } else if (!hasExpectedSuffix) {
+      validationWarning =
+        'Aviso: A URL deve terminar exatamente com "/backend/v1/n8n-webhook". Verifique se o caminho completo da rota foi informado.'
+    }
+  }
+
+  const handleSaveUrl = async () => {
+    const urlToSave = cleanUrl || DEFAULT_TARGET_URL
+    setSavingUrl(true)
+    try {
+      await saveBrandSettingValue(SETTING_KEY, urlToSave, 'URL Webhook de Migração V MODA 2')
+      setTargetUrl(urlToSave)
+      setSavedTargetUrl(urlToSave)
+      toast({
+        title: 'URL salva com sucesso!',
+        description:
+          'A URL do webhook de destino foi gravada no banco e será usada nas próximas transferências.',
+      })
+    } catch (err: any) {
+      console.error('Erro ao salvar URL de migração:', err)
+      toast({
+        title: 'Erro ao salvar URL',
+        description: err?.message || 'Falha ao persistir no banco de dados.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingUrl(false)
+    }
+  }
+
+  const handleResetDefaultUrl = () => {
+    setTargetUrl(DEFAULT_TARGET_URL)
+  }
+
+  const handleTestConnection = async () => {
+    const urlToTest = cleanUrl || DEFAULT_TARGET_URL
+    setTestingConnection(true)
+    setConnectionTestResult(null)
+
+    try {
+      const response: {
+        success: boolean
+        statusCode: number
+        message: string
+        tip?: string
+        targetUrl?: string
+      } = await pb.send('/backend/v1/test-target-webhook', {
+        method: 'POST',
+        body: {
+          target_url: urlToTest,
+        },
+      })
+
+      const now = new Date().toLocaleTimeString('pt-BR')
+      setConnectionTestResult({
+        success: response.success,
+        statusCode: response.statusCode,
+        message: response.message,
+        tip: response.tip,
+        timestamp: now,
+      })
+
+      if (response.success) {
+        toast({
+          title: '✅ Webhook respondendo!',
+          description: `Status HTTP ${response.statusCode}: conexão com ${urlToTest} estabelecida com sucesso.`,
+        })
+      } else {
+        toast({
+          title: `❌ Status ${response.statusCode}`,
+          description: response.message,
+          variant: 'destructive',
+        })
+      }
+    } catch (err: any) {
+      const status = err?.status || err?.statusCode || 0
+      const errorMsg =
+        err?.data?.message || err?.message || 'Não foi possível alcançar o servidor de destino.'
+      const now = new Date().toLocaleTimeString('pt-BR')
+
+      let tip = ''
+      if (status === 405 || status === 404) {
+        tip =
+          'Rota não encontrada no destino. Verifique se a URL é a de PRODUÇÃO do V MODA BRASIL 2 (não a de preview) e se termina em /backend/v1/n8n-webhook'
+      }
+
+      setConnectionTestResult({
+        success: false,
+        statusCode: status,
+        message: `Status ${status || 'Erro'} — ${errorMsg}`,
+        tip,
+        timestamp: now,
+      })
+
+      toast({
+        title: `❌ Falha no teste de conexão (${status || 'Erro'})`,
+        description: tip ? `${errorMsg}. ${tip}` : errorMsg,
+        variant: 'destructive',
+      })
+    } finally {
+      setTestingConnection(false)
+    }
+  }
 
   const handleDownloadCsv = async () => {
     if (downloadingCsv || loading) return
@@ -133,9 +301,12 @@ export function LeadTransferToVModa2() {
       )
 
       startBackgroundOperation()
+      const effectiveUrl = cleanUrl || savedTargetUrl || DEFAULT_TARGET_URL
+
       const response: TransferSummary = await pb.send('/backend/v1/transfer-to-v-moda-2', {
         method: 'POST',
         body: {
+          target_url: effectiveUrl,
           batch_size: 500,
         },
       })
@@ -263,6 +434,163 @@ export function LeadTransferToVModa2() {
       </CardHeader>
 
       <CardContent className="space-y-6">
+        {/* Configuração Editável da URL de Destino */}
+        <div className="p-4 rounded-xl border border-primary/25 bg-background shadow-sm space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-primary" />
+              <Label htmlFor="webhook-target-url" className="text-sm font-semibold text-foreground">
+                URL do Webhook de Destino (V MODA BRASIL 2)
+              </Label>
+              {cleanUrl === savedTargetUrl && (
+                <Badge
+                  variant="outline"
+                  className="text-[11px] text-emerald border-emerald/30 bg-emerald/5 gap-1 py-0 h-5"
+                >
+                  <Check className="w-3 h-3" /> Salva no banco
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {cleanUrl !== DEFAULT_TARGET_URL && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetDefaultUrl}
+                  className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" /> Restaurar padrão
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-2">
+            <div className="relative flex-1">
+              <Input
+                id="webhook-target-url"
+                type="text"
+                value={targetUrl}
+                onChange={(e) => setTargetUrl(e.target.value)}
+                placeholder="https://www.seudominio-vmoda2.com.br/backend/v1/n8n-webhook"
+                className={`font-mono text-xs sm:text-sm h-10 ${
+                  isMalformed ? 'border-amber-500 focus-visible:ring-amber-500' : ''
+                }`}
+                disabled={loading || testingConnection}
+              />
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleTestConnection}
+                disabled={testingConnection || loading}
+                className="h-10 px-3.5 font-medium border-primary/30 hover:bg-primary/10 gap-1.5"
+              >
+                {testingConnection ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    Testando...
+                  </>
+                ) : (
+                  <>
+                    <Radio className="w-4 h-4 text-primary" />
+                    Testar Conexão
+                  </>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleSaveUrl}
+                disabled={savingUrl || loading || testingConnection || cleanUrl === savedTargetUrl}
+                className="h-10 px-3.5 font-medium bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 shadow-sm"
+              >
+                {savingUrl ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Salvar URL
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Dica e Validação Inline */}
+          {validationWarning ? (
+            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">{validationWarning}</p>
+                <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
+                  Importante: a URL deve apontar para o domínio de <strong>PRODUÇÃO</strong> do
+                  destino (ex:{' '}
+                  <code>https://www.&lt;dominio-destino&gt;/backend/v1/n8n-webhook</code>), pois o
+                  preview não possui a rota ativada.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Info className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span>
+                Cole a URL de produção do projeto destino. Padrão:{' '}
+                <code>https://&lt;dominio-destino&gt;/backend/v1/n8n-webhook</code>
+              </span>
+            </div>
+          )}
+
+          {/* Resultado do Teste de Conexão */}
+          {connectionTestResult && (
+            <div
+              className={`p-3 rounded-lg border text-xs space-y-1 transition-all ${
+                connectionTestResult.success
+                  ? 'bg-emerald/10 border-emerald/30 text-emerald-950 dark:text-emerald-200'
+                  : 'bg-destructive/10 border-destructive/30 text-destructive dark:text-destructive-foreground'
+              }`}
+            >
+              <div className="flex items-center justify-between font-semibold">
+                <span className="flex items-center gap-1.5">
+                  {connectionTestResult.success ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-destructive" />
+                  )}
+                  {connectionTestResult.success
+                    ? '✅ Webhook respondendo'
+                    : `❌ Status ${connectionTestResult.statusCode || 'Falha'} — ${
+                        connectionTestResult.statusCode === 405
+                          ? 'rota não encontrada neste endereço (HTTP 405)'
+                          : connectionTestResult.statusCode === 404
+                            ? 'rota não encontrada (HTTP 404)'
+                            : 'falha de comunicação'
+                      }`}
+                </span>
+                <span className="font-mono text-[10px] opacity-75">
+                  Testado às {connectionTestResult.timestamp}
+                </span>
+              </div>
+
+              <p className="text-xs leading-relaxed opacity-90">{connectionTestResult.message}</p>
+
+              {connectionTestResult.tip && (
+                <div className="pt-1 mt-1 border-t border-current/20 font-medium">
+                  💡 {connectionTestResult.tip}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Banner Explicativo */}
         <div className="grid md:grid-cols-3 gap-4 text-sm bg-muted/40 p-4 rounded-xl border border-border/60">
           <div className="flex items-start gap-3">
@@ -298,10 +626,7 @@ export function LeadTransferToVModa2() {
             <div>
               <p className="font-semibold text-foreground">Destino (V MODA 2)</p>
               <p className="text-muted-foreground text-xs">
-                <code className="text-xs bg-background px-1 py-0.5 rounded">
-                  v-moda-brasil-d7c0f.goskip.app
-                </code>{' '}
-                com deduplicação automática e enriquecimento de dados.
+                Webhook configurado na URL acima (UPSERT com deduplicação por telefone).
               </p>
             </div>
           </div>

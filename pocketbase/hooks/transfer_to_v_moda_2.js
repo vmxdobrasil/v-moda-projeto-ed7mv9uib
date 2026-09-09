@@ -23,9 +23,27 @@ routerAdd(
     }
 
     const body = e.requestInfo().body || {}
-    const targetUrl =
-      body.target_url || 'https://v-moda-brasil-d7c0f.goskip.app/backend/v1/n8n-webhook'
-    // Lote de envio paginado - padrão 500 records por vez
+    let targetUrl = (body.target_url || '').trim()
+
+    // Se não fornecido no body, tenta buscar da coleção brand_settings
+    if (!targetUrl) {
+      try {
+        const settingRec = $app.findFirstRecordByData(
+          'brand_settings',
+          'key',
+          'migration_target_webhook_url',
+        )
+        const savedUrl = (settingRec.getString('value_text') || '').trim()
+        if (savedUrl) {
+          targetUrl = savedUrl
+        }
+      } catch (_) {}
+    }
+
+    // Fallback padrão se ainda estiver vazio
+    if (!targetUrl) {
+      targetUrl = 'https://v-moda-brasil-d7c0f.goskip.app/backend/v1/n8n-webhook'
+    }
     const batchSize = Math.max(50, Math.min(1000, parseInt(body.batch_size) || 500))
 
     $app
@@ -208,7 +226,12 @@ routerAdd(
         } else {
           totalFailed += leadsPayload.length
           const rawSnippet = res.raw ? String(res.raw).substring(0, 300) : 'Sem corpo de resposta'
-          const errMsg = `Lote ${batchIndex} (offset ${offset}) falhou com status HTTP ${res.statusCode}: ${rawSnippet}`
+          let extraHint = ''
+          if (res.statusCode === 404 || res.statusCode === 405) {
+            extraHint =
+              ' 💡 Dica: Rota não encontrada no destino. Verifique se a URL é a de PRODUÇÃO do V MODA BRASIL 2 (não a de preview) e se termina em /backend/v1/n8n-webhook'
+          }
+          const errMsg = `Lote ${batchIndex} (offset ${offset}) falhou com status HTTP ${res.statusCode}: ${rawSnippet}.${extraHint}`
           $app.logger().error(`[Transferência V MODA 2] ${errMsg}`)
           errorsList.push(errMsg)
         }
