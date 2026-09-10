@@ -29,6 +29,16 @@ export default function Revista() {
           <p className="text-gray-400 max-w-xl mx-auto text-sm md:text-base">
             Descubra as últimas tendências e lançamentos exclusivos em nossa edição digital.
           </p>
+
+          <div className="pt-2">
+            <a
+              href="/colunas/holofote"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#d4af37] via-[#f3e5ab] to-[#aa771c] text-black font-semibold text-xs uppercase tracking-widest hover:opacity-95 shadow-lg transition-transform hover:scale-105"
+            >
+              <span>Acessar Coluna Holofote — Edição Especial</span>
+              <span>→</span>
+            </a>
+          </div>
         </div>
       )}
 

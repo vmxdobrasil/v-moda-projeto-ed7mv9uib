@@ -106,7 +106,9 @@ import AdminTopBrands from '@/pages/admin/AdminTopBrands'
 import AdminManufacturers from '@/pages/admin/AdminManufacturers'
 import AdminProducts from '@/pages/admin/AdminProducts'
 import AdminCategories from '@/pages/admin/AdminCategories'
+import AdminColunas from '@/pages/admin/AdminColunas'
 import AdminMarketing from '@/pages/admin/AdminMarketing'
+import HolofoteColumn from '@/pages/HolofoteColumn'
 import AdminPricing from '@/pages/admin/AdminPricing'
 import AdminCatalog from '@/pages/admin/AdminCatalog'
 import AdminManufacturerCRM from '@/pages/admin/AdminManufacturerCRM'
@@ -317,6 +319,8 @@ export default function App() {
                     <Route path="guia-de-moda" element={<GuiaDeModa />} />
                     <Route path="conhecimento" element={<Conhecimento />} />
                     <Route path="revista" element={<Magazine />} />
+                    <Route path="colunas/holofote" element={<HolofoteColumn />} />
+                    <Route path="colunas/:slug" element={<HolofoteColumn />} />
                     <Route path="sobre-nos" element={<SobreNos />} />
                     <Route path="contato" element={<ContatoPage />} />
                     <Route path="empreenda" element={<Empreenda />} />
@@ -461,6 +465,7 @@ export default function App() {
                         <Route path="master" element={<AdminMaster />} />
                         <Route path="dashboard" element={<AdminDashboard />} />
                         <Route path="hub" element={<DashboardHub />} />
+                        <Route path="colunas" element={<AdminColunas />} />
                         <Route path="crm-global" element={<AdminCRMGlobal />} />
                         <Route path="comissoes" element={<AdminCommissions />} />
                         <Route path="v-club" element={<AdminVClub />} />

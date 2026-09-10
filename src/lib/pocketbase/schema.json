@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-09T11:44:56.089Z",
+  "generatedAt": "2026-09-10T20:51:49.572Z",
   "collections": [
     {
       "name": "users",
@@ -4132,6 +4132,145 @@
       "indexes": [
         "CREATE INDEX idx_exports_user ON exports (user)",
         "CREATE INDEX idx_exports_created ON exports (created DESC)"
+      ]
+    },
+    {
+      "name": "magazine_columns",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "slug",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "columnist_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "columnist_photo",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "columnist_contacts",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "headline",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "body_text",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "featured_photo",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "featured_caption",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "featured_subcaption",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "featured_badge",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "photos",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "captions",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "accent_color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "layout_preset",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "published",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "published_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sort_order",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_mag_columns_slug ON magazine_columns (slug)",
+        "CREATE INDEX idx_mag_columns_published ON magazine_columns (published, sort_order)"
       ]
     }
   ]

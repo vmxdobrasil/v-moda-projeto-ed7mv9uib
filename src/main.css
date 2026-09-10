@@ -91,6 +91,13 @@
   .font-display {
     font-family: 'Montserrat', sans-serif;
   }
+  .font-serif-editorial {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+  .font-editorial-title {
+    font-family: 'Cinzel', 'Playfair Display', Georgia, serif;
+    letter-spacing: -0.02em;
+  }
   .glass-nav {
     backdrop-filter: blur(16px) saturate(180%);
     -webkit-backdrop-filter: blur(16px) saturate(180%);

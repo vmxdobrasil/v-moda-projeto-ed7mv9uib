@@ -19,6 +19,7 @@ import {
   Truck,
   Users,
   Wallet,
+  Newspaper,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -47,6 +48,7 @@ export const ADMIN_NAV_SECTIONS: NavSection[] = [
   {
     label: 'GESTÃO DE CONTEÚDO',
     items: [
+      { name: 'Coluna Holofote', href: '/admin/colunas', icon: Newspaper },
       { name: 'Top 60 Marcas', href: '/admin/top-marcas', icon: Star },
       { name: 'Top 100 Marcas', href: '/top-marcas', icon: Star },
       { name: 'Fabricantes do Guia', href: '/admin/guia-de-marcas', icon: Store },

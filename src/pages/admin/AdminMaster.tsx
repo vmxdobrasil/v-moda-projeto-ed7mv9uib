@@ -11,8 +11,10 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { AdminMasterMetrics } from '@/components/admin/AdminMasterMetrics'
 import { AdminMasterVClub } from '@/components/admin/AdminMasterVClub'
 import { AdminMasterMagazine } from '@/components/admin/AdminMasterMagazine'
+import { AdminMasterColumnsManager } from '@/components/admin/AdminMasterColumnsManager'
 import { AdminMasterModules } from '@/components/admin/AdminMasterModules'
 import { LeadTransferToVModa2 } from '@/components/admin/LeadTransferToVModa2'
+import { Newspaper } from 'lucide-react'
 
 export default function AdminMaster() {
   const [orders, setOrders] = useState<any[]>([])
@@ -130,11 +132,18 @@ export default function AdminMaster() {
             <Package className="w-4 h-4 mr-2" />V Club Card
           </TabsTrigger>
           <TabsTrigger
+            value="columns"
+            className="data-[state=active]:text-primary data-[state=active]:bg-primary/10"
+          >
+            <Newspaper className="w-4 h-4 mr-2" />
+            Colunas da Revista (Holofote)
+          </TabsTrigger>
+          <TabsTrigger
             value="magazine"
             className="data-[state=active]:text-primary data-[state=active]:bg-primary/10"
           >
             <TrendingUp className="w-4 h-4 mr-2" />
-            Revista ModaAtual
+            Revistas & PDFs
           </TabsTrigger>
         </TabsList>
 
@@ -227,6 +236,10 @@ export default function AdminMaster() {
 
         <TabsContent value="vclub" className="mt-6">
           <AdminMasterVClub />
+        </TabsContent>
+
+        <TabsContent value="columns" className="mt-6">
+          <AdminMasterColumnsManager />
         </TabsContent>
 
         <TabsContent value="magazine" className="mt-6">
