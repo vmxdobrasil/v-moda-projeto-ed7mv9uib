@@ -1,5 +1,12 @@
 export function setIntendedRoute(path: string): void {
-  if (path && path !== '/login' && path !== '/signup' && path !== '/admin/login') {
+  if (
+    path &&
+    path !== '/login' &&
+    path !== '/signup' &&
+    path !== '/admin/login' &&
+    path !== '/fashionista/login' &&
+    path !== '/fashionista/signup'
+  ) {
     sessionStorage.setItem('auth_intended_route', path)
   }
 }

@@ -18,17 +18,14 @@ export const PUBLIC_ROUTES = [
   '/faq',
   '/favoritos',
   '/finalizar-compra',
-  '/orders/view/:id',
   '/cart',
   '/top-marcas',
   '/guia-compras',
   '/explorar',
-  '/produto/:id',
   '/fashionista/login',
   '/fashionista/signup',
   '/marketing',
   '/colunas/holofote',
-  '/colunas/:slug',
 ] as const
 
 export const PUBLIC_PREFIXES = ['/assets', '/api/'] as const
@@ -51,6 +48,8 @@ export function isPublicAuthRoute(pathname: string): boolean {
 export function isPublicRoute(pathname: string): boolean {
   if (PUBLIC_ROUTES.includes(pathname as (typeof PUBLIC_ROUTES)[number])) return true
   if (pathname.startsWith('/colunas/')) return true
+  if (pathname.startsWith('/produto/')) return true
+  if (pathname.startsWith('/orders/view/')) return true
   for (const prefix of PUBLIC_PREFIXES) {
     if (pathname.startsWith(prefix)) return true
   }

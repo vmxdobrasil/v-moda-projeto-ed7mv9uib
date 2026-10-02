@@ -239,6 +239,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       if (cancelled) return
       if (!pb.authStore.token && !record) {
+        if (!hasFatalAuthFailure()) {
+          // Se não há 401/403 fatal, ignorar evento de store limpo transitório
+          // durante inicialização ou quando ainda há credenciais no localStorage
+          try {
+            const raw = localStorage.getItem('pocketbase_auth')
+            if (raw) {
+              const parsed = JSON.parse(raw)
+              if (parsed?.token && parsed?.record) {
+                pb.authStore.save(parsed.token, parsed.record)
+                return
+              }
+            }
+          } catch {
+            /* ignore */
+          }
+          if (
+            isInitializingRef.current ||
+            refreshInProgressRef.current ||
+            isRefreshingRef.current
+          ) {
+            return
+          }
+          if (hasAuthInLocalStorage()) {
+            return
+          }
+          if (Date.now() - initStartedAtRef.current < INIT_GRACE_WINDOW_MS) {
+            return
+          }
+        }
         // 🔑 Proteção extra contra clear indevido: o PocketBase SDK pode
         // disparar onChange com store vazio mesmo quando o localStorage
         // ainda contém a sessão válida (chave `pocketbase_auth`). Antes de
@@ -563,8 +592,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (recovered && pb.authStore.isValid && pb.authStore.record) {
             sessionClearedRef.current = false
             commitAuthState(true, pb.authStore.record, false)
-          } else {
-            logAuthEvent('validateSession_no_token_short_grace_exhausted', {
+          } else if (hasFatalAuthFailure()) {
+            logAuthEvent('validateSession_no_token_short_grace_exhausted_fatal', {
               loading: false,
               isAuthenticated: false,
               isHydrating: false,
@@ -572,6 +601,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               hasRecord: !!pb.authStore.record,
               pathname: window.location.pathname,
             })
+            sessionClearedRef.current = true
+            commitAuthState(false, null, false)
+          } else {
+            // Se o refresh não deu 401 definitivo, pode ser apenas delay de rede
+            // ou cold start. Não deslogue agressivamente se houver indício de auth.
+            const hasLocal = hasAuthInLocalStorage()
+            if (hasLocal) {
+              logAuthEvent('validateSession_no_token_retaining_optimistic_loading', {
+                loading: true,
+                isAuthenticated: false,
+                isHydrating: true,
+                hasToken: !!pb.authStore.token,
+                hasRecord: !!pb.authStore.record,
+                pathname: window.location.pathname,
+              })
+              // Mantém loading enquanto retry em background roda
+              waitForTokenRenewal(AUTH_GRACE_PERIOD_MS)
+                .then((ok) => {
+                  if (cancelled) return
+                  if (ok && pb.authStore.isValid && pb.authStore.record) {
+                    sessionClearedRef.current = false
+                    commitAuthState(true, pb.authStore.record, false)
+                    setLoading(false)
+                  } else if (hasFatalAuthFailure()) {
+                    sessionClearedRef.current = true
+                    commitAuthState(false, null, false)
+                    setLoading(false)
+                  }
+                })
+                .catch(() => {})
+              return
+            }
+
             sessionClearedRef.current = true
             commitAuthState(false, null, false)
           }
