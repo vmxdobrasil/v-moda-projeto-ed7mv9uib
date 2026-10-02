@@ -7,7 +7,12 @@ import {
   onBackgroundOperationsChange,
 } from '@/lib/background-operations'
 import { AuthLoadingScreen } from '@/components/AuthLoadingScreen'
-import { getRoleBasedRedirect, isSuperuserOrAdmin, setIntendedRoute } from '@/lib/auth-redirects'
+import {
+  getRoleBasedRedirect,
+  isSuperuserOrAdmin,
+  setIntendedRoute,
+  getIntendedRoute,
+} from '@/lib/auth-redirects'
 import { isPublicRoute, isPublicAuthRoute } from '@/lib/public-routes'
 import { waitForTokenRenewal, hasFatalAuthFailure } from '@/lib/token-refresh'
 import { hasAuthInLocalStorage } from '@/lib/auth-diagnostics'
@@ -216,6 +221,7 @@ export function AdminGuard() {
   const s = useGuardBase()
   if (s.status === 'loading') return <AuthLoadingScreen />
   if (s.status === 'unauthenticated') return toLogin(s.from)
+  if (!s.user) return <AuthLoadingScreen />
   if (!isSuperuserOrAdmin(s.user)) return <Navigate to={getRoleBasedRedirect(s.user)} replace />
   return <Outlet />
 }
@@ -224,6 +230,7 @@ export function ManufacturerGuard() {
   const s = useGuardBase()
   if (s.status === 'loading') return <AuthLoadingScreen />
   if (s.status === 'unauthenticated') return toLogin(s.from)
+  if (!s.user) return <AuthLoadingScreen />
   const ok = s.user?.role === 'manufacturer' || isSuperuserOrAdmin(s.user)
   if (!ok) return <Navigate to={getRoleBasedRedirect(s.user)} replace />
   return <Outlet />
@@ -233,6 +240,7 @@ export function CrmGuard() {
   const s = useGuardBase()
   if (s.status === 'loading') return <AuthLoadingScreen />
   if (s.status === 'unauthenticated') return toLogin(s.from)
+  if (!s.user) return <AuthLoadingScreen />
   const ok =
     isSuperuserOrAdmin(s.user) ||
     s.user?.role === 'admin' ||
@@ -249,6 +257,7 @@ export function RetailerGuard() {
   const s = useGuardBase()
   if (s.status === 'loading') return <AuthLoadingScreen />
   if (s.status === 'unauthenticated') return toLogin(s.from)
+  if (!s.user) return <AuthLoadingScreen />
   const ok = s.user?.role === 'retailer' || isSuperuserOrAdmin(s.user)
   if (!ok) return <Navigate to={getRoleBasedRedirect(s.user)} replace />
   return <Outlet />
@@ -258,6 +267,7 @@ export function AgentGuard() {
   const s = useGuardBase()
   if (s.status === 'loading') return <AuthLoadingScreen />
   if (s.status === 'unauthenticated') return toLogin(s.from)
+  if (!s.user) return <AuthLoadingScreen />
   const ok = s.user?.role === 'agent' || isSuperuserOrAdmin(s.user)
   if (!ok) return <Navigate to={getRoleBasedRedirect(s.user)} replace />
   return <Outlet />
@@ -267,6 +277,7 @@ export function AgentOrTransporterGuard() {
   const s = useGuardBase()
   if (s.status === 'loading') return <AuthLoadingScreen />
   if (s.status === 'unauthenticated') return toLogin(s.from)
+  if (!s.user) return <AuthLoadingScreen />
   const ok =
     s.user?.role === 'agent' ||
     s.user?.role === 'retailer' ||
@@ -280,6 +291,7 @@ export function MasterAdminGuard() {
   const s = useGuardBase()
   if (s.status === 'loading') return <AuthLoadingScreen />
   if (s.status === 'unauthenticated') return toLogin(s.from)
+  if (!s.user) return <AuthLoadingScreen />
   if (!isSuperuserOrAdmin(s.user)) return <Navigate to={getRoleBasedRedirect(s.user)} replace />
   return <Outlet />
 }
@@ -293,24 +305,32 @@ export function PublicRoute() {
   }, [])
 
   // 🔑 CORREÇÃO "ghost redirect": ao detectar QUALQUER sinal de autenticação,
-  // redirecione IMEDIATAMENTE para a rota baseada em papel — mesmo quando o
-  // `user` do contexto ainda não hidratou (isAuthenticated=true & user=null).
-  // Usamos o record vivo do authStore como fallback para decidir o destino.
+  // priorizar getIntendedRoute() ANTES do fallback de papel.
   if (isAuthenticated) {
     const record = user ?? pb.authStore.record
-    if (record) return <Navigate to={getRoleBasedRedirect(record)} replace />
+    if (record) {
+      const intended = getIntendedRoute()
+      const dest = intended || getRoleBasedRedirect(record)
+      return <Navigate to={dest} replace />
+    }
     return <AuthLoadingScreen />
   }
   if (!hasFatalAuthFailure() && (pb.authStore.token || hasAuthInLocalStorage())) {
     try {
       const record = pb.authStore.record
-      if (record) return <Navigate to={getRoleBasedRedirect(record)} replace />
+      if (record) {
+        const intended = getIntendedRoute()
+        const dest = intended || getRoleBasedRedirect(record)
+        return <Navigate to={dest} replace />
+      }
 
       const raw = localStorage.getItem('pocketbase_auth')
       if (raw) {
         const parsed = JSON.parse(raw)
         if (parsed?.record) {
-          return <Navigate to={getRoleBasedRedirect(parsed.record)} replace />
+          const intended = getIntendedRoute()
+          const dest = intended || getRoleBasedRedirect(parsed.record)
+          return <Navigate to={dest} replace />
         }
       }
     } catch {
@@ -326,6 +346,7 @@ export function FinancialGuard() {
   const s = useGuardBase()
   if (s.status === 'loading') return <AuthLoadingScreen />
   if (s.status === 'unauthenticated') return toLogin(s.from)
+  if (!s.user) return <AuthLoadingScreen />
   const ok =
     isSuperuserOrAdmin(s.user) ||
     s.user?.role === 'manufacturer' ||

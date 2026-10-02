@@ -523,7 +523,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return
         }
 
-        if (pb.authStore.record) pb.authStore.clear()
+        // Só limpa o authStore se houver falha fatal comprovada e não houver token no storage local
+        if (hasFatalAuthFailure() && !hasAuthInLocalStorage()) {
+          if (pb.authStore.record) pb.authStore.clear()
+        }
         if (cancelled) return
         isInitializingRef.current = false
 
@@ -932,8 +935,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       })
       return
     }
-    pb.authStore.clear()
-    sessionClearedRef.current = true
+    if (hasFatalAuthFailure()) {
+      pb.authStore.clear()
+      sessionClearedRef.current = true
+    }
     commitAuthState(false, null, false)
     setAuthError(message || 'Sua sessão expirou. Por favor, faça login novamente.')
   }

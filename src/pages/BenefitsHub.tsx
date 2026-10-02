@@ -11,7 +11,11 @@ export default function BenefitsHub() {
   const user = useAuthStore((s) => s.user)
 
   if (!user) {
-    return <Navigate to="/login" replace />
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    )
   }
 
   const showCrm = user.role === 'retailer' || user.unlocked_benefits?.crm_enabled

@@ -20,17 +20,47 @@ export function getIntendedRoute(): string | null {
   return null
 }
 
-export function getRoleBasedRedirect(user: any): string {
-  if (!user) return '/login'
+import pb from '@/lib/pocketbase/client'
 
-  if (user?.collectionName === '_superusers') return '/AdminMaster'
-  if (user?.role === 'admin' || user?.email === 'valterpmendonca@gmail.com') return '/AdminMaster'
-  if (user?.role === 'manufacturer') return '/manufacturer'
-  if (user?.role === 'retailer') return '/customers'
-  if (user?.role === 'agent') return '/agente-credenciado'
-  if (user?.role === 'fashionista') return '/fashionista'
-  if (user?.role === 'affiliate') return '/affiliates'
-  if (user?.is_transporter === true) return '/logistica-transportadoras'
+function resolveEffectiveUser(user: any): any {
+  if (user) return user
+
+  // Fallback 1: pb.authStore.record
+  if (pb?.authStore?.record) {
+    return pb.authStore.record
+  }
+
+  // Fallback 2: localStorage ('pocketbase_auth')
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('pocketbase_auth')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed?.record) {
+          return parsed.record
+        }
+      }
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  return null
+}
+
+export function getRoleBasedRedirect(user: any): string {
+  const effectiveUser = resolveEffectiveUser(user)
+  if (!effectiveUser) return '/login'
+
+  if (effectiveUser?.collectionName === '_superusers') return '/AdminMaster'
+  if (effectiveUser?.role === 'admin' || effectiveUser?.email === 'valterpmendonca@gmail.com')
+    return '/AdminMaster'
+  if (effectiveUser?.role === 'manufacturer') return '/manufacturer'
+  if (effectiveUser?.role === 'retailer') return '/customers'
+  if (effectiveUser?.role === 'agent') return '/agente-credenciado'
+  if (effectiveUser?.role === 'fashionista') return '/fashionista'
+  if (effectiveUser?.role === 'affiliate') return '/affiliates'
+  if (effectiveUser?.is_transporter === true) return '/logistica-transportadoras'
 
   return '/customers'
 }

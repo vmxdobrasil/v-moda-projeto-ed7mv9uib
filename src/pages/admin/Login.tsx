@@ -43,7 +43,6 @@ export default function AdminLogin() {
       const { error } = await signIn(email, password)
       if (error) {
         const err = error as any
-        pb.authStore.clear()
 
         const fieldErrors = err.response?.data || {}
         if (typeof fieldErrors === 'object' && Object.keys(fieldErrors).length > 0) {
@@ -78,7 +77,6 @@ export default function AdminLogin() {
       const record = pb.authStore.record as any
       if (!record) {
         toast.error('Erro ao processar login. Tente novamente.')
-        pb.authStore.clear()
         setLoading(false)
         return
       }
@@ -96,7 +94,6 @@ export default function AdminLogin() {
       const redirectTo = safeTarget || getRoleBasedRedirect(record)
       navigate(redirectTo, { replace: true })
     } catch (err: any) {
-      pb.authStore.clear()
       const msg =
         err?.status === 0
           ? 'Erro de rede. Verifique sua conexão com a internet.'

@@ -19,7 +19,6 @@ export default function RetailerDashboard() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login')
       return
     }
 
