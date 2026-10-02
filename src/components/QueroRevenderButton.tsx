@@ -31,7 +31,7 @@ export function QueroRevenderButton({
   const [loading, setLoading] = useState(false)
 
   const handleClick = async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user?.id) {
       toast.info('Faça login para se candidatar como revendedora.')
       navigate('/login')
       return

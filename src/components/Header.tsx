@@ -47,7 +47,10 @@ export function Header() {
   const [notifications, setNotifications] = useState<Notification[]>([])
 
   const loadNotifications = async () => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated || !user?.id) {
+      setNotifications([])
+      return
+    }
     try {
       const data = await getMyNotifications()
       setNotifications(data)
@@ -57,15 +60,19 @@ export function Header() {
   }
 
   useEffect(() => {
-    loadNotifications()
-  }, [isAuthenticated, user])
+    if (isAuthenticated && !!user?.id) {
+      loadNotifications()
+    } else {
+      setNotifications([])
+    }
+  }, [isAuthenticated, user?.id])
 
   useRealtime(
     'notifications',
     () => {
       loadNotifications()
     },
-    isAuthenticated,
+    Boolean(isAuthenticated && !!user?.id),
   )
 
   const unreadCount = notifications.filter((n) => !n.read).length

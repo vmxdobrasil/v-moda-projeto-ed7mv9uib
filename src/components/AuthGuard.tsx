@@ -107,20 +107,15 @@ function useGuardBase(): GuardState {
     })
   }, [isAuthenticated, loading, isHydrating, bgOpsActive, location.pathname])
 
-  // Note: Public auth routes like /login or /signup should NOT cause useGuardBase
-  // to return status 'authenticated' for protected sub-guards. Only public content pages should.
+  // 🔑 REGRA DE OURO PARA ROTAS PÚBLICAS DE CONTEÚDO:
+  // Se a rota atual é pública de conteúdo livre (ex.: /guia-de-moda, /revista, /sobre-nos,
+  // /conhecimento, /top-marcas, /colecoes, /explorar, etc.), useGuardBase NUNCA deve
+  // retornar 'unauthenticated' e NUNCA deve chamar toLogin().
+  // Páginas públicas de conteúdo devem renderizar sempre e imediatamente,
+  // esteja o usuário logado ou anônimo, haja sessão expirada ou erro transitório.
   if (isPublicRoute(location.pathname) && !isPublicAuthRoute(location.pathname)) {
-    if (isAuthenticated && !user) {
-      return { status: 'loading' }
-    }
-    if (
-      !isAuthenticated &&
-      !hasFatalAuthFailure() &&
-      (hasAuthInLocalStorage() || pb.authStore.isValid)
-    ) {
-      return { status: 'loading' }
-    }
-    return { status: 'authenticated', user: user ?? pb.authStore.record }
+    const effectiveUser = user ?? pb.authStore.record ?? null
+    return { status: 'authenticated', user: effectiveUser }
   }
 
   // Se houver uma operação em segundo plano ativa (ex: exportação de leads / transferência),
@@ -205,15 +200,30 @@ function useGuardBase(): GuardState {
 }
 
 function toLogin(from: string) {
+  // NUNCA redirecionar para login nem salvar intended_route se a rota de origem for pública
+  if (isPublicRoute(from) && !isPublicAuthRoute(from)) {
+    return <Outlet />
+  }
   setIntendedRoute(from)
   const redirectParam = `?redirect=${encodeURIComponent(from)}`
   return <Navigate to={`/login${redirectParam}`} state={{ from }} replace />
 }
 
 export function AuthGuard() {
+  const location = useLocation()
+  // Imunidade absoluta para rotas públicas
+  if (isPublicRoute(location.pathname) && !isPublicAuthRoute(location.pathname)) {
+    return <Outlet />
+  }
+
   const s = useGuardBase()
   if (s.status === 'loading') return <AuthLoadingScreen />
-  if (s.status === 'unauthenticated') return toLogin(s.from)
+  if (s.status === 'unauthenticated') {
+    if (isPublicRoute(s.from) && !isPublicAuthRoute(s.from)) {
+      return <Outlet />
+    }
+    return toLogin(s.from)
+  }
   return <Outlet />
 }
 

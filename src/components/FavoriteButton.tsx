@@ -14,7 +14,11 @@ export function FavoriteButton({ brandId, className }: { brandId: string; classN
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!user) return
+    if (!user?.id) {
+      setIsFavorite(false)
+      setFavoriteId(null)
+      return
+    }
     const checkFavorite = async () => {
       try {
         const records = await pb.collection('favorites').getList(1, 1, {
@@ -29,7 +33,7 @@ export function FavoriteButton({ brandId, className }: { brandId: string; classN
       }
     }
     checkFavorite()
-  }, [brandId, user])
+  }, [brandId, user?.id])
 
   const toggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault()

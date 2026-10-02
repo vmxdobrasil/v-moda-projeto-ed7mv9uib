@@ -1,26 +1,39 @@
+import { isFreePublicContentRoute, isPublicAuthRoute, normalizePath } from '@/lib/public-routes'
+
 export function setIntendedRoute(path: string): void {
-  if (
-    path &&
-    path !== '/login' &&
-    path !== '/signup' &&
-    path !== '/admin/login' &&
-    path !== '/fashionista/login' &&
-    path !== '/fashionista/signup'
-  ) {
-    sessionStorage.setItem('auth_intended_route', path)
+  if (!path || typeof path !== 'string') return
+
+  const clean = normalizePath(path)
+
+  // 1. Nunca salvar rotas de login/auth (evita loop no Login)
+  if (isPublicAuthRoute(clean)) return
+
+  // 2. Nunca salvar rotas públicas de navegação livre (ex.: /guia-de-moda, /revista,
+  //    /sobre-nos, /conhecimento, /top-marcas, /colecoes, /explorar, etc.).
+  //    Evita envenenar o sessionStorage e criar o loop de ghost redirect no PublicRoute/Login.
+  if (isFreePublicContentRoute(clean)) {
+    // Se havia algum resquício antigo de rota pública salvo, limpe imediatamente
+    sessionStorage.removeItem('auth_intended_route')
+    return
   }
+
+  // Apenas rotas protegidas que exigem autenticação devem ser lembradas
+  sessionStorage.setItem('auth_intended_route', path)
 }
 
 export function getIntendedRoute(): string | null {
   const route = sessionStorage.getItem('auth_intended_route')
   if (route) {
     sessionStorage.removeItem('auth_intended_route')
+    const clean = normalizePath(route)
+    // Se porventura uma rota pública de navegação livre ou rota de auth foi gravada no passado, descarte-a
+    if (isPublicAuthRoute(clean) || isFreePublicContentRoute(clean)) {
+      return null
+    }
     return route
   }
   return null
 }
-
-import pb from '@/lib/pocketbase/client'
 
 function resolveEffectiveUser(user: any): any {
   if (user) return user
