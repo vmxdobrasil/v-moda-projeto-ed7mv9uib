@@ -19,6 +19,17 @@ routerAdd('GET', '/backend/v1/maestro/summary', (e) => {
     })
   }
 
+  // Verificar status de revogação
+  try {
+    const statusRec = $app.findFirstRecordByData('brand_settings', 'key', 'maestro_token_status')
+    if ((statusRec.getString('value_text') || '').trim() === 'revoked') {
+      return e.json(401, {
+        success: false,
+        error: 'Token do Maestro revogado. Gere uma nova credencial no painel AdminMaster.',
+      })
+    }
+  } catch (_) {}
+
   // 2. Buscar o token configurado em brand_settings
   let configuredToken = ''
   try {
@@ -41,7 +52,7 @@ routerAdd('GET', '/backend/v1/maestro/summary', (e) => {
 
   // 3. Validar token
   if (providedToken !== configuredToken) {
-    return e.json(403, {
+    return e.json(401, {
       success: false,
       error: 'Token do Maestro inválido ou expirado.',
     })

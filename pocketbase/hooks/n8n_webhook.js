@@ -1,13 +1,112 @@
 routerAdd('POST', '/backend/v1/n8n-webhook', (e) => {
   const body = e.requestInfo().body || {}
 
+  // 1. Extração do token Bearer / Custom / Query
+  const queryToken = (e.request.url.query().get('token') || '').trim()
+  const headerAuth = (e.request.header.get('Authorization') || '').trim()
+  const headerCustom = (e.request.header.get('x-maestro-token') || '').trim()
+
+  let providedToken = queryToken || headerCustom
+  if (!providedToken && headerAuth.startsWith('Bearer ')) {
+    providedToken = headerAuth.substring(7).trim()
+  } else if (!providedToken && headerAuth) {
+    providedToken = headerAuth
+  }
+
+  // 2. Verificar se a origem do payload é Maestro ou se token foi enviado
+  // Origens Maestro: 'maestro', 'maestro_adapta', 'maestro-test', 'maestro_adapta_teste', etc.
+  function isMaestroPayload() {
+    if (providedToken) return true
+    if (Array.isArray(body.leads)) {
+      return body.leads.some((l) => {
+        const s = String(l?.source || '')
+          .toLowerCase()
+          .trim()
+        return s.startsWith('maestro')
+      })
+    }
+    const singleSource = String(body.source || '')
+      .toLowerCase()
+      .trim()
+    return singleSource.startsWith('maestro')
+  }
+
+  // Se o payload for do Maestro ou enviar credencial de token, validar estritamente
+  if (isMaestroPayload()) {
+    if (!providedToken) {
+      return e.json(401, {
+        success: false,
+        error: 'Autenticação necessária. Envie o header Authorization: Bearer <token>',
+      })
+    }
+
+    // Verificar se o token foi revogado
+    try {
+      const statusRec = $app.findFirstRecordByData('brand_settings', 'key', 'maestro_token_status')
+      if ((statusRec.getString('value_text') || '').trim() === 'revoked') {
+        return e.json(401, {
+          success: false,
+          error: 'Token do Maestro foi revogado. Gere uma nova credencial no painel AdminMaster.',
+        })
+      }
+    } catch (_) {}
+
+    // Buscar token configurado em brand_settings
+    let configuredToken = ''
+    try {
+      const settingRec = $app.findFirstRecordByData(
+        'brand_settings',
+        'key',
+        'maestro_integration_token',
+      )
+      configuredToken = (settingRec.getString('value_text') || '').trim()
+    } catch (_) {}
+
+    if (!configuredToken || providedToken !== configuredToken) {
+      return e.json(401, {
+        success: false,
+        error: 'Token do Maestro inválido ou expirado.',
+      })
+    }
+  }
+
+  // Lista de fontes válidas conhecidas
+  const validSources = [
+    'maestro',
+    'maestro_adapta',
+    'whatsapp',
+    'instagram',
+    'email',
+    'manual',
+    'site',
+    'whatsapp_group',
+    'social_profile',
+    'facebook',
+    'n8n_whatsapp',
+    'transferencia_vmoda',
+  ]
+
   // Helper de normalização e processamento de um único lead
   function processSingleLead(item) {
     const rawPhone = item.phone !== undefined && item.phone !== null ? String(item.phone) : ''
-    const rawName = item.name
-    const messageText = item.message || ''
+    const rawName = item.nome !== undefined ? item.nome : item.name
+    const messageText = item.mensagem !== undefined ? item.mensagem : item.message || ''
     const email = item.email || ''
-    const source = item.source || 'maestro_adapta'
+    const rawDate = item.data !== undefined ? item.data : item.date || ''
+
+    // Ajuste 1: Se source não vier ou for inválido, usar 'maestro' como padrão em vez de rejeitar
+    let source = (item.source || '').trim()
+    if (!source || !validSources.includes(source)) {
+      // Se tiver prefixo maestro (ex: maestro-test, maestro_adapta_teste), normalizar para 'maestro'
+      if (source.startsWith('maestro')) {
+        source = 'maestro'
+      } else if (!source) {
+        source = 'maestro'
+      } else {
+        // Fallback seguro prescrito pelo usuário: use maestro como padrão em vez de rejeitar
+        source = 'maestro'
+      }
+    }
 
     if (!rawPhone || !rawPhone.trim()) {
       return { success: false, error: "O campo 'phone' é obrigatório." }
@@ -34,6 +133,7 @@ routerAdd('POST', '/backend/v1/n8n-webhook', (e) => {
       phoneNormalized = '55' + ddd + '9' + num
     }
 
+    // Ajuste 2: Usar o campo nome quando enviado; não forçar "Lead WhatsApp ####" se nome existir
     let finalName = ''
     if (rawName !== null && rawName !== undefined) {
       const nameStr = String(rawName).trim()
@@ -61,7 +161,13 @@ routerAdd('POST', '/backend/v1/n8n-webhook', (e) => {
       let updated = false
 
       const currentName = customer.getString('name')
-      if (
+      // Se enviou um nome real válido, atualiza o lead
+      if (finalName && !finalName.startsWith('Lead WhatsApp')) {
+        if (currentName !== finalName) {
+          customer.set('name', finalName)
+          updated = true
+        }
+      } else if (
         (!currentName ||
           currentName === 'Novo Lead' ||
           currentName.startsWith('Lead WhatsApp') ||
@@ -72,12 +178,23 @@ routerAdd('POST', '/backend/v1/n8n-webhook', (e) => {
         updated = true
       }
 
-      if (email && !customer.getString('email')) {
+      if (email && customer.getString('email') !== email) {
         customer.set('email', email)
         updated = true
       }
 
-      customer.set('last_contacted_at', new Date().toISOString())
+      // Salvar mensagem / observações e data quando vierem no payload
+      if (messageText) {
+        const existingNotes = customer.getString('notes') || ''
+        const datePrefix = rawDate ? `[${rawDate}] ` : ''
+        const newNotes = existingNotes
+          ? `${existingNotes}\n${datePrefix}Mensagem: ${messageText}`
+          : `${datePrefix}Mensagem: ${messageText}`
+        customer.set('notes', newNotes)
+        updated = true
+      }
+
+      customer.set('last_contacted_at', rawDate || new Date().toISOString())
       $app.save(customer)
       action = updated ? 'updated' : 'skipped'
     } catch (_) {
@@ -88,7 +205,13 @@ routerAdd('POST', '/backend/v1/n8n-webhook', (e) => {
       customer.set('status', 'new')
       customer.set('source', source)
       if (email) customer.set('email', email)
-      customer.set('last_contacted_at', new Date().toISOString())
+
+      if (messageText) {
+        const datePrefix = rawDate ? `[${rawDate}] ` : ''
+        customer.set('notes', `${datePrefix}Mensagem: ${messageText}`)
+      }
+
+      customer.set('last_contacted_at', rawDate || new Date().toISOString())
       $app.save(customer)
       action = 'created'
     }

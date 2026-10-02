@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/hooks/use-toast'
-import { getBrandSettingByKey, saveBrandSettingValue } from '@/services/brandSettings'
+import { getBrandSettingByKey } from '@/services/brandSettings'
 import {
   Bot,
   Copy,
@@ -19,56 +19,90 @@ import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
-  HelpCircle,
-  ArrowRight,
-  Layers,
   Code2,
-  Info,
   KeyRound,
   Webhook,
   Activity,
   CheckCheck,
+  Ban,
+  AlertTriangle,
+  Lock,
 } from 'lucide-react'
 
 const TOKEN_SETTING_KEY = 'maestro_integration_token'
-const CHECKLIST_SETTING_KEY = 'maestro_checklist_steps'
+const STATUS_SETTING_KEY = 'maestro_token_status'
 
-// Gera token aleatório seguro para o Maestro
-function generateSecureToken(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let token = 'mst_'
-  for (let i = 0; i < 32; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return token
+interface StepDefinition {
+  id: string
+  title: string
+  description: string
+  linkText?: string
+  linkUrl?: string
+  samplePrompts?: string[]
 }
+
+const STEPS: StepDefinition[] = [
+  {
+    id: 'step1',
+    title: 'Passo 1: Ativar o conector MCP do Skip no painel do Maestro',
+    description:
+      'Acesse o painel do Maestro na Adapta, vá na seção Conectores → Skip → Conectar (OAuth 2.1) e inicie a ativação.',
+    linkText: 'Abrir painel Maestro (app.adapta.org)',
+    linkUrl: 'https://app.adapta.org',
+  },
+  {
+    id: 'step2',
+    title: 'Passo 2: Autorizar o acesso a este projeto no fluxo OAuth',
+    description:
+      'No popup do Skip Cloud, confirme a permissão para este projeto (V MODA BRASIL) e vincule sua conta de integração.',
+  },
+  {
+    id: 'step3',
+    title: 'Passo 3: Testar pedindo dados reais ao Maestro',
+    description:
+      'No chat do Maestro na Adapta, envie comandos de teste para confirmar a leitura em tempo real do banco de dados.',
+    samplePrompts: ['"Liste os projetos da minha conta Skip"', '"Consulte os leads do CRM"'],
+  },
+  {
+    id: 'step4',
+    title: 'Passo 4: Criar automação no Maestro que envia leads via webhook',
+    description:
+      'Crie ou conecte um fluxo de automação no Maestro direcionando os leads capturados para a URL do Webhook exibida abaixo.',
+  },
+]
 
 export function AdminMasterMaestroIntegration() {
   const { toast } = useToast()
 
-  // Estados do Token
+  // Estados do Token / Credencial
   const [token, setToken] = useState<string>('')
+  const [maskedToken, setMaskedToken] = useState<string>('sk-mst-••••••••••••')
+  const [tokenStatus, setTokenStatus] = useState<'active' | 'revoked'>('active')
   const [loadingToken, setLoadingToken] = useState<boolean>(true)
-  const [savingToken, setSavingToken] = useState<boolean>(false)
+  const [processingAction, setProcessingAction] = useState<boolean>(false)
   const [copiedToken, setCopiedToken] = useState<boolean>(false)
+  const [isRevealedOnce, setIsRevealedOnce] = useState<boolean>(false)
 
   // Estados do Webhook & Teste
   const [copiedWebhook, setCopiedWebhook] = useState<boolean>(false)
   const [copiedPayload, setCopiedPayload] = useState<boolean>(false)
-  const [copiedSummaryUrl, setCopiedSummaryUrl] = useState<boolean>(false)
+  const [copiedLeadsApi, setCopiedLeadsApi] = useState<boolean>(false)
+  const [copiedCountApi, setCopiedCountApi] = useState<boolean>(false)
+  const [copiedGroupsApi, setCopiedGroupsApi] = useState<boolean>(false)
   const [testingWebhook, setTestingWebhook] = useState<boolean>(false)
   const [testResult, setTestResult] = useState<{
     success: boolean
+    status: number
     message: string
     details?: string
     timestamp: string
   } | null>(null)
 
-  // Teste do Endpoint de Leitura do Maestro
-  const [testingSummary, setTestingSummary] = useState<boolean>(false)
-  const [summaryResult, setSummaryResult] = useState<any | null>(null)
+  // Testes de Endpoints de Leitura
+  const [testingLeads, setTestingLeads] = useState<boolean>(false)
+  const [leadsResult, setLeadsResult] = useState<any | null>(null)
 
-  // Checklist de 4 passos com persistência no banco
+  // Checklist persistido em integration_state (tabela dedicada: step, done_at)
   const [completedSteps, setCompletedSteps] = useState<{ [key: string]: boolean }>({
     step1: false,
     step2: false,
@@ -79,16 +113,21 @@ export function AdminMasterMaestroIntegration() {
   // URL do Backend e Endpoints
   const backendBaseUrl = window.location.origin
   const webhookUrl = `${backendBaseUrl}/backend/v1/n8n-webhook`
-  const summaryApiUrl = `${backendBaseUrl}/backend/v1/maestro/summary`
+  const leadsApiUrl = `${backendBaseUrl}/backend/v1/leads?limit=50`
+  const countApiUrl = `${backendBaseUrl}/backend/v1/leads/count?periodo=hoje`
+  const groupsApiUrl = `${backendBaseUrl}/backend/v1/groups`
 
-  // Exemplo de Payload JSON para automação do Maestro
+  // Exemplo de Payload exato pedido pelo usuário
   const payloadExample = JSON.stringify(
     {
       leads: [
         {
-          phone: '5562999999999',
-          name: 'Maria Vendedora',
-          source: 'maestro_adapta',
+          nome: 'Maria Vendedora',
+          phone: '+5511999990000',
+          email: 'maria@exemplo.com',
+          source: 'maestro',
+          mensagem: 'Gostaria de revender atacado',
+          data: new Date().toISOString(),
         },
       ],
     },
@@ -96,39 +135,52 @@ export function AdminMasterMaestroIntegration() {
     2,
   )
 
-  // 1. Carregar ou Inicializar o Token e Checklist
+  // 1. Carregar Token, Status e Checklist da integration_state
   useEffect(() => {
     let isMounted = true
     const initData = async () => {
       try {
         setLoadingToken(true)
 
-        // Token do Maestro
+        // Carregar Token
         const tokenRecord = await getBrandSettingByKey(TOKEN_SETTING_KEY)
+        const statusRecord = await getBrandSettingByKey(STATUS_SETTING_KEY)
+
         if (isMounted) {
-          if (tokenRecord?.value_text?.trim()) {
-            setToken(tokenRecord.value_text.trim())
+          const currentToken = tokenRecord?.value_text?.trim() || ''
+          setToken(currentToken)
+          if (currentToken) {
+            const last4 = currentToken.slice(-4)
+            setMaskedToken(`sk-mst-••••••••${last4}`)
+          }
+          if (statusRecord?.value_text?.trim() === 'revoked') {
+            setTokenStatus('revoked')
           } else {
-            // Gera na primeira visita e salva automaticamente
-            const newToken = generateSecureToken()
-            setToken(newToken)
-            await saveBrandSettingValue(
-              TOKEN_SETTING_KEY,
-              newToken,
-              'Token de Integração Maestro (Adapta)',
-            )
+            setTokenStatus('active')
           }
         }
 
-        // Checklist persistido
-        const checklistRecord = await getBrandSettingByKey(CHECKLIST_SETTING_KEY)
-        if (isMounted && checklistRecord?.value_text) {
-          try {
-            const parsed = JSON.parse(checklistRecord.value_text)
-            setCompletedSteps((prev) => ({ ...prev, ...parsed }))
-          } catch {
-            // ignora se json inválido
+        // Carregar Checklist da coleção integration_state
+        try {
+          const states = await pb.collection('integration_state').getFullList({
+            filter: "integration = 'maestro'",
+          })
+          if (isMounted && states.length > 0) {
+            const stepMap: { [key: string]: boolean } = {
+              step1: false,
+              step2: false,
+              step3: false,
+              step4: false,
+            }
+            states.forEach((item: any) => {
+              if (item.step && item.done_at) {
+                stepMap[item.step] = true
+              }
+            })
+            setCompletedSteps((prev) => ({ ...prev, ...stepMap }))
           }
+        } catch {
+          // Fallback silencioso
         }
       } catch (err) {
         console.warn('Erro ao inicializar dados do Maestro:', err)
@@ -143,27 +195,38 @@ export function AdminMasterMaestroIntegration() {
     }
   }, [])
 
-  // Alternar checkbox e salvar progresso
+  // Alternar checkbox e salvar na tabela integration_state (step, done_at)
   const toggleStep = async (stepKey: string) => {
-    const updated = {
-      ...completedSteps,
-      [stepKey]: !completedSteps[stepKey],
-    }
-    setCompletedSteps(updated)
+    const nextState = !completedSteps[stepKey]
+    setCompletedSteps((prev) => ({ ...prev, [stepKey]: nextState }))
 
     try {
-      await saveBrandSettingValue(
-        CHECKLIST_SETTING_KEY,
-        JSON.stringify(updated),
-        'Progresso do Checklist Maestro',
-      )
+      const existing = await pb
+        .collection('integration_state')
+        .getFirstListItem(`integration = 'maestro' && step = '${stepKey}'`)
+        .catch(() => null)
+
+      if (existing) {
+        await pb.collection('integration_state').update(existing.id, {
+          done_at: nextState ? new Date().toISOString() : null,
+        })
+      } else {
+        await pb.collection('integration_state').create({
+          integration: 'maestro',
+          step: stepKey,
+          done_at: nextState ? new Date().toISOString() : null,
+        })
+      }
     } catch (e) {
-      console.warn('Falha ao salvar progresso do checklist:', e)
+      console.warn('Falha ao persistir em integration_state:', e)
     }
   }
 
   // Copiar para o Clipboard
-  const handleCopy = (text: string, type: 'token' | 'webhook' | 'payload' | 'summary') => {
+  const handleCopy = (
+    text: string,
+    type: 'token' | 'webhook' | 'payload' | 'leads' | 'count' | 'groups',
+  ) => {
     navigator.clipboard.writeText(text)
     if (type === 'token') {
       setCopiedToken(true)
@@ -174,52 +237,114 @@ export function AdminMasterMaestroIntegration() {
     } else if (type === 'payload') {
       setCopiedPayload(true)
       setTimeout(() => setCopiedPayload(false), 2000)
-    } else if (type === 'summary') {
-      setCopiedSummaryUrl(true)
-      setTimeout(() => setCopiedSummaryUrl(false), 2000)
+    } else if (type === 'leads') {
+      setCopiedLeadsApi(true)
+      setTimeout(() => setCopiedLeadsApi(false), 2000)
+    } else if (type === 'count') {
+      setCopiedCountApi(true)
+      setTimeout(() => setCopiedCountApi(false), 2000)
+    } else if (type === 'groups') {
+      setCopiedGroupsApi(true)
+      setTimeout(() => setCopiedGroupsApi(false), 2000)
     }
 
     toast({
       title: 'Copiado para a área de transferência!',
-      description: 'Pronto para colar no painel do Maestro na Adapta.',
+      description: 'Pronto para uso nas configurações do Maestro.',
     })
   }
 
-  // Regenerar Token com confirmação
+  // Regenerar Token via endpoint /backend/v1/maestro-token (somente admin)
   const handleRegenerateToken = async () => {
     if (
       !window.confirm(
-        'Atenção: Ao regenerar o token, qualquer automação existente do Maestro que use o token antigo precisará ser atualizada com o novo valor. Deseja continuar?',
+        'Atenção: Ao regenerar o token, a credencial anterior deixará de funcionar imediatamente. O novo JWT/Bearer será exibido em tela uma única vez. Deseja continuar?',
       )
     ) {
       return
     }
 
-    setSavingToken(true)
+    setProcessingAction(true)
     try {
-      const newToken = generateSecureToken()
-      await saveBrandSettingValue(
-        TOKEN_SETTING_KEY,
-        newToken,
-        'Token de Integração Maestro (Adapta)',
-      )
-      setToken(newToken)
-      toast({
-        title: 'Token regenerado com sucesso!',
-        description: 'Copie o novo token e atualize suas configurações no Maestro.',
+      const response = await fetch(`${backendBaseUrl}/backend/v1/maestro-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: pb.authStore.token ? `Bearer ${pb.authStore.token}` : '',
+        },
+        body: JSON.stringify({ action: 'regenerate' }),
       })
+
+      const data = await response.json()
+      if (response.ok && data.success) {
+        setToken(data.token) // exibido uma única vez
+        setMaskedToken(data.masked_token || 'sk-mst-••••••••XXXX')
+        setTokenStatus('active')
+        setIsRevealedOnce(true)
+
+        toast({
+          title: '✅ Token Regenerado com Sucesso!',
+          description:
+            'A nova credencial foi gerada e está visível agora. Copie e guarde-a com segurança.',
+        })
+      } else {
+        throw new Error(data.error || 'Falha ao regenerar credencial')
+      }
     } catch (err: any) {
       toast({
-        title: 'Erro ao regenerar token',
+        title: '❌ Erro ao regenerar token',
         description: err?.message || 'Falha ao atualizar token.',
         variant: 'destructive',
       })
     } finally {
-      setSavingToken(false)
+      setProcessingAction(false)
     }
   }
 
-  // Testar conexão enviando um lead fictício para o webhook
+  // Revogar Token via endpoint /backend/v1/maestro-token
+  const handleRevokeToken = async () => {
+    if (
+      !window.confirm(
+        'Atenção: Revogar o token desativará imediatamente o acesso do usuário de serviço. Todas as chamadas retornarão HTTP 401. Confirmar revogação?',
+      )
+    ) {
+      return
+    }
+
+    setProcessingAction(true)
+    try {
+      const response = await fetch(`${backendBaseUrl}/backend/v1/maestro-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: pb.authStore.token ? `Bearer ${pb.authStore.token}` : '',
+        },
+        body: JSON.stringify({ action: 'revoke' }),
+      })
+
+      const data = await response.json()
+      if (response.ok && data.success) {
+        setTokenStatus('revoked')
+        setIsRevealedOnce(false)
+        toast({
+          title: '🚫 Token Revogado com Sucesso!',
+          description: 'A credencial foi desativada. As chamadas futuras retornarão 401.',
+        })
+      } else {
+        throw new Error(data.error || 'Falha ao revogar token')
+      }
+    } catch (err: any) {
+      toast({
+        title: '❌ Erro ao revogar token',
+        description: err?.message || 'Falha ao revogar credencial.',
+        variant: 'destructive',
+      })
+    } finally {
+      setProcessingAction(false)
+    }
+  }
+
+  // Testar Conexão enviando lead de teste (origem maestro-test)
   const handleTestWebhook = async () => {
     setTestingWebhook(true)
     setTestResult(null)
@@ -227,9 +352,12 @@ export function AdminMasterMaestroIntegration() {
     const testPayload = {
       leads: [
         {
-          name: 'Lead Teste Maestro Adapta',
-          phone: '5562999998888',
-          source: 'maestro_adapta_teste',
+          nome: 'Lead Teste Maestro Adapta',
+          phone: '+5511999990001',
+          email: 'maestro-teste@adapta.org',
+          source: 'maestro-test',
+          mensagem: 'Validação de conexão ponta a ponta',
+          data: new Date().toISOString(),
         },
       ],
     }
@@ -239,38 +367,52 @@ export function AdminMasterMaestroIntegration() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(testPayload),
       })
 
-      const data = await response.json()
+      const data = await response.json().catch(() => ({}))
       const now = new Date().toLocaleTimeString('pt-BR')
 
-      if (response.ok && data.success) {
-        setTestResult({
-          success: true,
-          message: 'Webhook respondendo com 100% de sucesso!',
-          details: `Lead de teste processado (${data.action === 'created' ? 'criado' : 'atualizado'} com sucesso na base). O Maestro conseguirá injetar leads normalmente.`,
-          timestamp: now,
-        })
+      let detailExplanation = ''
+      if (response.status === 200) {
+        detailExplanation = '200 OK: Payload aceito e lead processado com sucesso na base de dados.'
+      } else if (response.status === 401) {
+        detailExplanation =
+          '401 Não Autorizado: Token ausente, inválido ou revogado. Verifique a credencial Bearer.'
+      } else if (response.status === 400) {
+        detailExplanation =
+          '400 Payload Inválido: Estrutura JSON ou campos obrigatórios incorretos.'
+      } else if (response.status >= 500) {
+        detailExplanation = `5xx Erro no Backend: Falha interna no servidor (${response.status}).`
+      } else {
+        detailExplanation = `Status HTTP ${response.status}: ${data.message || data.error || 'Retorno inesperado'}.`
+      }
+
+      const success = response.ok && data.success
+      setTestResult({
+        success,
+        status: response.status,
+        message: success
+          ? 'Conexão Webhook Aprovada (200 OK)!'
+          : `Erro de Conexão (HTTP ${response.status})`,
+        details: detailExplanation,
+        timestamp: now,
+      })
+
+      if (success) {
         toast({
           title: '✅ Conexão Webhook Aprovada!',
           description: 'O endpoint recebeu e processou o lead de teste perfeitamente.',
         })
-        // Marca o passo 3 ou 4 como pronto se ainda não estava
         if (!completedSteps.step4) {
           toggleStep('step4')
         }
       } else {
-        setTestResult({
-          success: false,
-          message: `O webhook respondeu com erro (HTTP ${response.status})`,
-          details: data.message || data.error || 'Verifique a rota e parâmetros.',
-          timestamp: now,
-        })
         toast({
-          title: '❌ Falha ao testar webhook',
-          description: data.message || 'O servidor retornou um status inesperado.',
+          title: `❌ Falha ao testar webhook (HTTP ${response.status})`,
+          description: detailExplanation,
           variant: 'destructive',
         })
       }
@@ -278,13 +420,14 @@ export function AdminMasterMaestroIntegration() {
       const now = new Date().toLocaleTimeString('pt-BR')
       setTestResult({
         success: false,
-        message: 'Falha de comunicação com o servidor',
+        status: 0,
+        message: 'Falha de comunicação de rede',
         details: err?.message || 'Não foi possível disparar a requisição.',
         timestamp: now,
       })
       toast({
-        title: '❌ Falha na conexão',
-        description: err?.message || 'Erro ao conectar.',
+        title: '❌ Falha de Rede',
+        description: err?.message || 'Erro ao conectar ao servidor.',
         variant: 'destructive',
       })
     } finally {
@@ -292,21 +435,25 @@ export function AdminMasterMaestroIntegration() {
     }
   }
 
-  // Testar leitura de estatísticas do CRM protegida por Token
-  const handleTestSummaryApi = async () => {
+  // Testar leitura de Leads protegida pelo Bearer token
+  const handleTestLeadsApi = async () => {
     if (!token) return
-    setTestingSummary(true)
-    setSummaryResult(null)
+    setTestingLeads(true)
+    setLeadsResult(null)
 
     try {
-      const response = await fetch(`${summaryApiUrl}?token=${encodeURIComponent(token)}`)
+      const response = await fetch(`${backendBaseUrl}/backend/v1/leads?limit=5`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       const data = await response.json()
 
       if (response.ok && data.success) {
-        setSummaryResult(data)
+        setLeadsResult(data)
         toast({
-          title: '✅ Dados do CRM lidos com sucesso!',
-          description: `Total de clientes consultados: ${data.summary?.crm?.total_customers_leads?.toLocaleString('pt-BR') || 0}.`,
+          title: '✅ Leitura de Leads bem-sucedida!',
+          description: `Retornados ${data.total} leads da base com permissão somente-leitura.`,
         })
         if (!completedSteps.step3) {
           toggleStep('step3')
@@ -314,7 +461,7 @@ export function AdminMasterMaestroIntegration() {
       } else {
         toast({
           title: '❌ Falha ao consultar endpoint',
-          description: data.error || 'Token inválido ou recusado.',
+          description: data.error || `HTTP ${response.status} - Acesso recusado.`,
           variant: 'destructive',
         })
       }
@@ -325,7 +472,7 @@ export function AdminMasterMaestroIntegration() {
         variant: 'destructive',
       })
     } finally {
-      setTestingSummary(false)
+      setTestingLeads(false)
     }
   }
 
@@ -351,32 +498,39 @@ export function AdminMasterMaestroIntegration() {
                   <Sparkles className="w-3 h-3 text-amber-500" />
                   Adapta & Skip MCP Nativo
                 </Badge>
+                <Badge
+                  variant="outline"
+                  className="border-blue-500/30 text-blue-600 bg-blue-500/10 gap-1"
+                >
+                  <Lock className="w-3 h-3" />
+                  svc-maestro@integracao.local (Leitura)
+                </Badge>
                 {allCompleted && (
                   <Badge className="bg-emerald-600 text-white gap-1 hover:bg-emerald-700">
                     <CheckCheck className="w-3 h-3" />
-                    Integração Completa
+                    Integração Concluída
                   </Badge>
                 )}
               </div>
               <CardTitle className="text-2xl font-bold font-display text-navy dark:text-white flex items-center gap-2 mt-2">
-                Integração Maestro (Adapta) — Agente de Inteligência Artificial
+                Integração Maestro (Adapta)
               </CardTitle>
               <CardDescription className="text-base text-muted-foreground">
-                Conecte o agente de IA <strong>Maestro da Adapta</strong> com o conector nativo MCP
-                do Skip. Monitore leads, acione automações de vendas e sincronize este projeto e
-                todos os outros desenvolvidos na sua conta Skip.dev.
+                Conecte o agente de IA <strong>Maestro da Adapta</strong> com conector MCP nativo e
+                usuário de serviço dedicado (somente-leitura). Sincronize leads, consulte contagens
+                e automações com segurança.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
 
         <CardContent className="space-y-8">
-          {/* SEÇÃO 1: GUIA PASSO A PASSO COM CHECKLIST */}
+          {/* SEÇÃO 1: CHECKLIST DE 4 PASSOS DE CONEXÃO COM O MAESTRO */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold font-display flex items-center gap-2 text-navy dark:text-white">
-                <Layers className="w-5 h-5 text-primary" />
-                Passo a Passo de Integração (Checklist)
+                <ShieldCheck className="w-5 h-5 text-primary" />
+                Checklist de Conexão com o Maestro
               </h3>
               <span className="text-xs font-semibold text-muted-foreground">
                 {Object.values(completedSteps).filter(Boolean).length} de 4 passos concluídos
@@ -384,283 +538,94 @@ export function AdminMasterMaestroIntegration() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              {/* Passo 1 */}
-              <div
-                onClick={() => toggleStep('step1')}
-                className={`p-4 rounded-xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
-                  completedSteps.step1
-                    ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : 'bg-muted/40 border-border/60 hover:border-primary/30 hover:bg-muted/60'
-                }`}
-              >
-                <Checkbox
-                  checked={completedSteps.step1}
-                  onCheckedChange={() => toggleStep('step1')}
-                  className="mt-1"
-                />
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold flex items-center gap-2">
-                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-bold">
-                      1
-                    </span>
-                    Ativar o conector MCP do Skip no painel do Maestro
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Acesse seu painel na Adapta, vá na seção de conectores/ferramentas do Maestro e
-                    selecione o <strong>conector MCP oficial do Skip</strong>.
-                  </p>
-                </div>
-              </div>
+              {STEPS.map((stepItem, idx) => {
+                const isDone = completedSteps[stepItem.id]
+                return (
+                  <div
+                    key={stepItem.id}
+                    onClick={() => toggleStep(stepItem.id)}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
+                      isDone
+                        ? 'bg-emerald-500/10 border-emerald-500/30'
+                        : 'bg-muted/40 border-border/60 hover:border-primary/30 hover:bg-muted/60'
+                    }`}
+                  >
+                    <Checkbox
+                      checked={isDone}
+                      onCheckedChange={() => toggleStep(stepItem.id)}
+                      className="mt-1"
+                    />
+                    <div className="space-y-2 flex-1">
+                      <p className="text-sm font-semibold flex items-center gap-2">
+                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-bold">
+                          {idx + 1}
+                        </span>
+                        {stepItem.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {stepItem.description}
+                      </p>
 
-              {/* Passo 2 */}
-              <div
-                onClick={() => toggleStep('step2')}
-                className={`p-4 rounded-xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
-                  completedSteps.step2
-                    ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : 'bg-muted/40 border-border/60 hover:border-primary/30 hover:bg-muted/60'
-                }`}
-              >
-                <Checkbox
-                  checked={completedSteps.step2}
-                  onCheckedChange={() => toggleStep('step2')}
-                  className="mt-1"
-                />
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold flex items-center gap-2">
-                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-bold">
-                      2
-                    </span>
-                    Autorizar o acesso a este projeto
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    No fluxo de autorização do Maestro, escolha a sua conta Skip e autorize o acesso
-                    a este projeto (<strong>V MODA BRASIL</strong>). Cole o Token de Integração se
-                    solicitado.
-                  </p>
-                </div>
-              </div>
+                      {stepItem.linkUrl && (
+                        <div className="pt-1">
+                          <a
+                            href={stepItem.linkUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline"
+                          >
+                            {stepItem.linkText}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      )}
 
-              {/* Passo 3 */}
-              <div
-                onClick={() => toggleStep('step3')}
-                className={`p-4 rounded-xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
-                  completedSteps.step3
-                    ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : 'bg-muted/40 border-border/60 hover:border-primary/30 hover:bg-muted/60'
-                }`}
-              >
-                <Checkbox
-                  checked={completedSteps.step3}
-                  onCheckedChange={() => toggleStep('step3')}
-                  className="mt-1"
-                />
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold flex items-center gap-2">
-                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-bold">
-                      3
-                    </span>
-                    Testar pedindo dados reais ao Maestro pelo chat
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    No chat do Maestro, digite perguntas como: &ldquo;Quantos leads temos no CRM da
-                    V MODA BRASIL?&rdquo; ou &ldquo;Quais as principais cidades dos
-                    clientes?&rdquo;.
-                  </p>
-                </div>
-              </div>
-
-              {/* Passo 4 */}
-              <div
-                onClick={() => toggleStep('step4')}
-                className={`p-4 rounded-xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
-                  completedSteps.step4
-                    ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : 'bg-muted/40 border-border/60 hover:border-primary/30 hover:bg-muted/60'
-                }`}
-              >
-                <Checkbox
-                  checked={completedSteps.step4}
-                  onCheckedChange={() => toggleStep('step4')}
-                  className="mt-1"
-                />
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold flex items-center gap-2">
-                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-bold">
-                      4
-                    </span>
-                    Criar automação que envia leads via Webhook
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    No fluxo do Maestro, adicione a ação de disparo HTTP POST direcionada para a URL
-                    do Webhook abaixo, injetando novos leads diretamente no seu CRM.
-                  </p>
-                </div>
-              </div>
+                      {stepItem.samplePrompts && (
+                        <div className="pt-1 space-y-1">
+                          <span className="text-[11px] font-medium text-foreground block">
+                            Exemplos de teste no chat do Maestro:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {stepItem.samplePrompts.map((p, pIdx) => (
+                              <code
+                                key={pIdx}
+                                className="text-[11px] bg-background/80 px-2 py-0.5 rounded border text-foreground"
+                              >
+                                {p}
+                              </code>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
-          {/* SEÇÃO 2: CREDENCIAL DEDICADA PARA O MAESTRO */}
-          <div className="p-5 rounded-2xl bg-card border border-border/60 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-1">
-                <h4 className="text-base font-bold font-display flex items-center gap-2 text-navy dark:text-white">
-                  <KeyRound className="w-4 h-4 text-primary" />
-                  Token de Integração Dedicado para o Maestro
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  Chave segura exclusiva para o agente Maestro consultar leitura do CRM (leads,
-                  contagens, cidades e produtos) sem expor senhas.
-                </p>
-              </div>
-              <Badge
-                variant="outline"
-                className="border-emerald-500/30 text-emerald-600 bg-emerald-500/10 self-start"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 mr-1" /> Ativo & Seguro
-              </Badge>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div className="relative flex-1">
-                <Input
-                  type="text"
-                  readOnly
-                  value={loadingToken ? 'Carregando credencial...' : token}
-                  className="font-mono text-xs pr-10 bg-muted/40 border-border/70"
-                />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleCopy(token, 'token')}
-                disabled={loadingToken || !token}
-                className="gap-1.5"
-              >
-                {copiedToken ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-600" /> Copiado!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" /> Copiar Token
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleRegenerateToken}
-                disabled={loadingToken || savingToken}
-                className="text-muted-foreground hover:text-destructive gap-1.5"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${savingToken ? 'animate-spin' : ''}`} />
-                Regenerar Token
-              </Button>
-            </div>
-
-            {/* Teste do endpoint de leitura do Maestro */}
-            <div className="pt-2 border-t border-border/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="text-xs text-muted-foreground space-y-0.5">
-                <p className="font-medium text-foreground">
-                  Endpoint de Leitura do CRM para o Maestro:
-                </p>
-                <code className="text-[11px] bg-muted/60 px-1.5 py-0.5 rounded font-mono break-all">
-                  GET {summaryApiUrl}?token={token ? '***' : ''}
-                </code>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleCopy(`${summaryApiUrl}?token=${token}`, 'summary')}
-                  className="text-xs h-8"
-                >
-                  {copiedSummaryUrl ? (
-                    <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5 mr-1" />
-                  )}
-                  Copiar URL da API
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleTestSummaryApi}
-                  disabled={testingSummary || !token}
-                  className="text-xs h-8"
-                >
-                  <Activity
-                    className={`w-3.5 h-3.5 mr-1 ${testingSummary ? 'animate-spin' : ''}`}
-                  />
-                  {testingSummary ? 'Consultando...' : 'Testar Leitura'}
-                </Button>
-              </div>
-            </div>
-
-            {summaryResult && (
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs space-y-2">
-                <div className="flex items-center gap-2 text-emerald-600 font-semibold">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Leitura do Maestro bem-sucedida! Dados retornados:
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-muted-foreground">
-                  <div className="bg-background/80 p-2 rounded border">
-                    <span className="block text-[10px]">Total Leads CRM</span>
-                    <strong className="text-foreground text-sm">
-                      {summaryResult.summary?.crm?.total_customers_leads?.toLocaleString('pt-BR')}
-                    </strong>
-                  </div>
-                  <div className="bg-background/80 p-2 rounded border">
-                    <span className="block text-[10px]">Produtos Ativos</span>
-                    <strong className="text-foreground text-sm">
-                      {summaryResult.summary?.catalog?.active_products || 0}
-                    </strong>
-                  </div>
-                  <div className="bg-background/80 p-2 rounded border">
-                    <span className="block text-[10px]">Pedidos Totais</span>
-                    <strong className="text-foreground text-sm">
-                      {summaryResult.summary?.orders?.total_orders || 0}
-                    </strong>
-                  </div>
-                  <div className="bg-background/80 p-2 rounded border">
-                    <span className="block text-[10px]">Grupos de WhatsApp</span>
-                    <strong className="text-foreground text-sm">
-                      {summaryResult.summary?.crm?.unique_whatsapp_groups || 0}
-                    </strong>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* SEÇÃO 3: WEBHOOK DE LEADS COM TESTE E PAYLOAD PRONTOS */}
+          {/* SEÇÃO 2: DADOS DE CONEXÃO & TESTAR CONEXÃO */}
           <div className="p-5 rounded-2xl bg-card border border-border/60 shadow-sm space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-1">
                 <h4 className="text-base font-bold font-display flex items-center gap-2 text-navy dark:text-white">
                   <Webhook className="w-4 h-4 text-primary" />
-                  URL do Webhook para Envio de Leads pelo Maestro
+                  Dados de Conexão do Webhook
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  Configure esta URL na ação de envio HTTP do Maestro. Qualquer lead capturado pelo
-                  agente (via chat, anúncio, site ou WhatsApp) será salvo automaticamente no seu
-                  CRM.
+                  URL completa para o Maestro injetar leads capturados via automação ou conversa.
                 </p>
               </div>
               <Badge variant="secondary" className="gap-1 self-start">
-                <Code2 className="w-3.5 h-3.5" /> Método HTTP POST
+                <Code2 className="w-3.5 h-3.5" /> POST com Bearer Token
               </Badge>
             </div>
 
             {/* Input da URL do Webhook */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-muted-foreground">
-                Endereço de Produção do Webhook:
+                URL Completa do Webhook:
               </Label>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <Input
@@ -691,11 +656,11 @@ export function AdminMasterMaestroIntegration() {
                   variant="default"
                   size="sm"
                   onClick={handleTestWebhook}
-                  disabled={testingWebhook}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 min-w-[140px]"
+                  disabled={testingWebhook || tokenStatus === 'revoked'}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 min-w-[150px]"
                 >
                   <Send className={`w-3.5 h-3.5 ${testingWebhook ? 'animate-spin' : ''}`} />
-                  {testingWebhook ? 'Enviando teste...' : 'Testar Conexão'}
+                  {testingWebhook ? 'Testando...' : 'Testar Conexão'}
                 </Button>
               </div>
             </div>
@@ -736,7 +701,7 @@ export function AdminMasterMaestroIntegration() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold text-muted-foreground">
-                  Formato de Payload JSON Aceito pelo Webhook:
+                  Formato de Payload Exigido pelo Webhook:
                 </Label>
                 <Button
                   type="button"
@@ -763,82 +728,232 @@ export function AdminMasterMaestroIntegration() {
                 </pre>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Dica: O webhook aceita tanto lote no formato{' '}
-                <code className="bg-muted px-1 rounded">&#123;&quot;leads&quot;: [...]&#125;</code>{' '}
-                quanto lead individual direto{' '}
-                <code className="bg-muted px-1 rounded">
-                  &#123;&quot;phone&quot;: &quot;...&quot;, &quot;name&quot;: &quot;...&quot;&#125;
-                </code>
-                .
+                Campos suportados: <code>nome</code> (ou <code>name</code>), <code>phone</code> (com
+                DDD), <code>email</code>, <code>source</code> (padrão: <code>maestro</code>),{' '}
+                <code>mensagem</code> e <code>data</code>.
               </p>
             </div>
           </div>
 
-          {/* SEÇÃO 4: GUIA DE REPLICAÇÃO EM OUTROS PROJETOS SKIP */}
-          <div className="p-5 rounded-2xl bg-muted/30 border border-border/50 space-y-4">
-            <div className="space-y-1">
-              <h4 className="text-base font-bold font-display flex items-center gap-2 text-navy dark:text-white">
-                <Sparkles className="w-4 h-4 text-primary" />
-                Como Replicar nos Meus Outros Projetos Skip
-              </h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Você pode interligar o mesmo agente Maestro da Adapta com todos os aplicativos
-                construídos ou em construção na sua conta Skip.dev seguindo este padrão:
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-              <div className="p-3 rounded-xl bg-background border border-border/60 space-y-1">
-                <span className="text-xs font-bold text-primary flex items-center gap-1">
-                  1. No Maestro
-                </span>
+          {/* SEÇÃO 3: CREDENCIAL DEDICADA & ENDPOINTS DE LEITURA */}
+          <div className="p-5 rounded-2xl bg-card border border-border/60 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <h4 className="text-base font-bold font-display flex items-center gap-2 text-navy dark:text-white">
+                  <KeyRound className="w-4 h-4 text-primary" />
+                  Credencial Dedicada do Usuário de Serviço (svc-maestro)
+                </h4>
                 <p className="text-xs text-muted-foreground">
-                  No painel do Maestro, adicione uma nova integração MCP ou ferramenta apontando
-                  para o novo projeto Skip.
+                  Usuário de serviço <code>svc-maestro@integracao.local</code> sem login humano, com
+                  permissão exclusiva de leitura (SELECT) em leads, contagens e grupos.
                 </p>
               </div>
-
-              <div className="p-3 rounded-xl bg-background border border-border/60 space-y-1">
-                <span className="text-xs font-bold text-primary flex items-center gap-1">
-                  2. Conectar Projeto
-                </span>
-                <p className="text-xs text-muted-foreground">
-                  Autorize a conexão com o novo projeto da sua conta Skip selecionando-o na lista.
-                </p>
-              </div>
-
-              <div className="p-3 rounded-xl bg-background border border-border/60 space-y-1">
-                <span className="text-xs font-bold text-primary flex items-center gap-1">
-                  3. Copiar Webhook
-                </span>
-                <p className="text-xs text-muted-foreground">
-                  Copie a rota de webhook do novo projeto (
-                  <code className="text-[10px]">
-                    https://[outro-app].goskip.app/backend/v1/n8n-webhook
-                  </code>
-                  ).
-                </p>
-              </div>
-
-              <div className="p-3 rounded-xl bg-background border border-border/60 space-y-1">
-                <span className="text-xs font-bold text-primary flex items-center gap-1">
-                  4. Automação Global
-                </span>
-                <p className="text-xs text-muted-foreground">
-                  Configure o Maestro para direcionar os leads conforme a marca ou produto de cada
-                  projeto da conta.
-                </p>
+              <div className="flex items-center gap-2">
+                {tokenStatus === 'active' ? (
+                  <Badge
+                    variant="outline"
+                    className="border-emerald-500/30 text-emerald-600 bg-emerald-500/10"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 mr-1" /> Ativo
+                  </Badge>
+                ) : (
+                  <Badge variant="destructive" className="gap-1">
+                    <Ban className="w-3.5 h-3.5" /> Revogado (401)
+                  </Badge>
+                )}
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-start gap-3">
-              <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-              <p className="text-xs text-muted-foreground">
-                <strong>Vantagem do conector nativo MCP Skip:</strong> O Maestro se conecta
-                diretamente à sua conta Skip. Quando você cria novos projetos, eles compartilham a
-                mesma infraestrutura de segurança do Skip Cloud, permitindo que um único agente de
-                IA consulte estoques, clientes e direcione leads entre múltiplas marcas.
-              </p>
+            {/* Aviso de Segurança Prescrito */}
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2.5">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+              <span>
+                <strong>Aviso de Segurança:</strong> Este token permite apenas LEITURA de leads,
+                contagens e grupos. Ele não possui permissão para alterar regras do sistema.
+              </span>
+            </div>
+
+            {/* Input do Token com Máscara e Botões Copiar / Regenerar / Revogar */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Token JWT / Bearer ({isRevealedOnce ? 'Visível (Copie Agora)' : 'Mascarado'}):
+              </Label>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <Input
+                  type="text"
+                  readOnly
+                  value={
+                    loadingToken ? 'Carregando credencial...' : isRevealedOnce ? token : maskedToken
+                  }
+                  className="font-mono text-xs bg-muted/40 border-border/70 select-all"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopy(token, 'token')}
+                  disabled={loadingToken || !token || tokenStatus === 'revoked'}
+                  className="gap-1.5"
+                >
+                  {copiedToken ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-600" /> Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" /> Copiar Token
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleRegenerateToken}
+                  disabled={loadingToken || processingAction}
+                  className="gap-1.5"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${processingAction ? 'animate-spin' : ''}`} />
+                  Regenerar
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRevokeToken}
+                  disabled={loadingToken || processingAction || tokenStatus === 'revoked'}
+                  className="text-destructive hover:bg-destructive/10 gap-1.5"
+                >
+                  <Ban className="w-3.5 h-3.5" />
+                  Revogar
+                </Button>
+              </div>
+            </div>
+
+            {/* ENDPOINTS DE LEITURA DISPONÍVEIS PARA O MAESTRO */}
+            <div className="pt-3 border-t border-border/40 space-y-3">
+              <span className="text-xs font-bold text-foreground block">
+                Endpoints de Leitura Prontos para o Maestro:
+              </span>
+
+              <div className="grid gap-2.5">
+                {/* 1. GET /backend/v1/leads */}
+                <div className="p-2.5 rounded-lg bg-muted/40 border border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div className="space-y-0.5">
+                    <span className="font-semibold text-foreground">
+                      Últimos Leads (?limit= e ?source=):
+                    </span>
+                    <code className="text-[11px] block text-muted-foreground font-mono">
+                      GET {leadsApiUrl}
+                    </code>
+                  </div>
+                  <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopy(leadsApiUrl, 'leads')}
+                      className="h-7 text-xs gap-1"
+                    >
+                      {copiedLeadsApi ? (
+                        <Check className="w-3 h-3 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                      Copiar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleTestLeadsApi}
+                      disabled={testingLeads || !token || tokenStatus === 'revoked'}
+                      className="h-7 text-xs gap-1"
+                    >
+                      <Activity className={`w-3 h-3 ${testingLeads ? 'animate-spin' : ''}`} />
+                      {testingLeads ? 'Lendo...' : 'Testar Leitura'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 2. GET /backend/v1/leads/count */}
+                <div className="p-2.5 rounded-lg bg-muted/40 border border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div className="space-y-0.5">
+                    <span className="font-semibold text-foreground">
+                      Contagem Total e Período (?periodo=hoje|7d|30d):
+                    </span>
+                    <code className="text-[11px] block text-muted-foreground font-mono">
+                      GET {countApiUrl}
+                    </code>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopy(countApiUrl, 'count')}
+                    className="h-7 text-xs gap-1 self-end sm:self-auto"
+                  >
+                    {copiedCountApi ? (
+                      <Check className="w-3 h-3 text-emerald-600" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                    Copiar
+                  </Button>
+                </div>
+
+                {/* 3. GET /backend/v1/groups */}
+                <div className="p-2.5 rounded-lg bg-muted/40 border border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div className="space-y-0.5">
+                    <span className="font-semibold text-foreground">
+                      Grupos de WhatsApp de Leads:
+                    </span>
+                    <code className="text-[11px] block text-muted-foreground font-mono">
+                      GET {groupsApiUrl}
+                    </code>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopy(groupsApiUrl, 'groups')}
+                    className="h-7 text-xs gap-1 self-end sm:self-auto"
+                  >
+                    {copiedGroupsApi ? (
+                      <Check className="w-3 h-3 text-emerald-600" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                    Copiar
+                  </Button>
+                </div>
+              </div>
+
+              {/* Resultado do Testar Leitura */}
+              {leadsResult && (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs space-y-2">
+                  <div className="flex items-center gap-2 text-emerald-600 font-semibold">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Leitura de Leads autorizada! Total retornado: {leadsResult.total}
+                  </div>
+                  <div className="space-y-1">
+                    {leadsResult.leads?.slice(0, 3).map((lead: any, i: number) => (
+                      <div
+                        key={i}
+                        className="p-1.5 rounded bg-background/80 border text-[11px] flex justify-between"
+                      >
+                        <span className="font-medium text-foreground">
+                          {lead.nome || lead.name}
+                        </span>
+                        <span className="text-muted-foreground font-mono">{lead.phone}</span>
+                        <Badge variant="outline" className="text-[10px] py-0">
+                          {lead.source}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>

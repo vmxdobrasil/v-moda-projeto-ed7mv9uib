@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T00:11:28.212Z",
+  "generatedAt": "2026-10-02T02:02:07.151Z",
   "collections": [
     {
       "name": "users",
@@ -429,7 +429,9 @@
             "manual",
             "site",
             "whatsapp_group",
-            "social_profile"
+            "social_profile",
+            "maestro",
+            "maestro_adapta"
           ]
         },
         {
@@ -4271,6 +4273,54 @@
       "indexes": [
         "CREATE INDEX idx_mag_columns_slug ON magazine_columns (slug)",
         "CREATE INDEX idx_mag_columns_published ON magazine_columns (published, sort_order)"
+      ]
+    },
+    {
+      "name": "integration_state",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "step",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "done_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "integration",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_integration_state_step ON integration_state (integration, step)"
       ]
     }
   ]
