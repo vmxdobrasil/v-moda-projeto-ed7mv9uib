@@ -14,7 +14,8 @@ import { AdminMasterMagazine } from '@/components/admin/AdminMasterMagazine'
 import { AdminMasterColumnsManager } from '@/components/admin/AdminMasterColumnsManager'
 import { AdminMasterModules } from '@/components/admin/AdminMasterModules'
 import { LeadTransferToVModa2 } from '@/components/admin/LeadTransferToVModa2'
-import { Newspaper } from 'lucide-react'
+import { AdminMasterMaestroIntegration } from '@/components/admin/AdminMasterMaestroIntegration'
+import { Newspaper, Bot } from 'lucide-react'
 
 export default function AdminMaster() {
   const [orders, setOrders] = useState<any[]>([])
@@ -126,6 +127,13 @@ export default function AdminMaster() {
             Visão Geral
           </TabsTrigger>
           <TabsTrigger
+            value="maestro"
+            className="data-[state=active]:text-primary data-[state=active]:bg-primary/10 font-medium"
+          >
+            <Bot className="w-4 h-4 mr-2 text-primary" />
+            Integração Maestro (Adapta)
+          </TabsTrigger>
+          <TabsTrigger
             value="vclub"
             className="data-[state=active]:text-primary data-[state=active]:bg-primary/10"
           >
@@ -148,6 +156,9 @@ export default function AdminMaster() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6 space-y-6">
+          {/* Card em destaque na Visão Geral do AdminMaster para acesso imediato */}
+          <AdminMasterMaestroIntegration />
+
           <LeadTransferToVModa2 />
 
           <AdminMasterMetrics />
@@ -232,6 +243,10 @@ export default function AdminMaster() {
           )}
 
           <AdminMasterModules />
+        </TabsContent>
+
+        <TabsContent value="maestro" className="mt-6 space-y-6">
+          <AdminMasterMaestroIntegration />
         </TabsContent>
 
         <TabsContent value="vclub" className="mt-6">
